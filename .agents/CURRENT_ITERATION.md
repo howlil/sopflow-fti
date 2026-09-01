@@ -1,217 +1,170 @@
 # Current Iteration
 
 Iteration: Sprint 6 — Migration Reliability & Deployment Safety
-Delivery State: PLANNED
-Branch: not created yet
+Delivery State: VERIFIED_BRANCH
+Branch: `chore/migration-reliability`
 Created: 2026-09-01
-
-## Why This Iteration Exists
-
-Sprint 5 is merged into `master`, but the first deployment attempt exposed a migration-chain failure before the next product slice could be considered safe to ship.
-
-Observed evidence:
-
-```text
-prisma migrate deploy
-  -> 20260901163000_add_fti_process_foundation
-  -> MySQL error 3823
-  -> P3018
-  -> subsequent deploy -> P3009 failed-migration block
-```
-
-The failing migration combined a `CHECK` using `Process.departmentId` with explicit FK referential actions on that same column. The source migration has been hotfixed to preserve the scope/department invariant through `BEFORE INSERT/UPDATE` triggers while retaining the intended foreign key actions.
-
-The existing default Server CI validates/generates Prisma and runs TypeScript/unit checks, but it does not execute the historical migration chain against a real database. Therefore this class of DDL failure was outside the evidence boundary of normal CI.
-
-This is now a proven delivery bottleneck, not speculative test coverage.
 
 ## Feature Shape
 
-Add a narrow migration-specific safety lane without turning normal CI into an integration pipeline.
+Sprint 6 adds a narrow database-migration safety lane after the deployment incident where `20260901163000_add_fti_process_foundation` failed with database error `3823`, then left Prisma blocked by `P3018/P3009`.
+
+Implemented shape:
 
 ```text
-normal server change
-  -> existing fast Server CI
+normal application change
+  -> existing fast Server / Client CI
 
-migration/schema-history change
-  -> existing fast Server CI
-  -> migration smoke lane
-       -> disposable MariaDB
-       -> apply full migration chain from empty DB
-       -> verify critical target invariants
+migration-relevant change
+  -> existing fast CI as applicable
+  -> dedicated Migration Smoke
+       -> runtime-matched MariaDB 11.4
+       -> --lower_case_table_names=1
+       -> full historical prisma migrate deploy
+       -> migrate status + migration-history proof
+       -> critical raw-SQL invariant proof
 ```
 
-Normal backend/client iteration must remain fast.
+This sprint does not add product behavior, approval behavior, TTE changes, deployment automation, or full integration/E2E to ordinary commits.
 
 ## Current Position
 
-`UNDERSTAND -> BOUND -> SPECIFY -> DESIGN`
+`QUALITY GATES -> STOP`
 
-Sprint 6 is planned only. No Sprint 6 implementation branch exists yet.
+Sprint 6 is implemented and verified on its branch. It is not merged, deployed, or released.
 
-## Sprint Goal
+## Completed Delta
 
-Make migration failures such as the observed `3823` detectable before deployment and make failed-migration recovery explicit and repeatable, while adding no full integration/E2E burden to ordinary commits.
+### Dedicated Migration Smoke
 
-Success means:
+Added `.github/workflows/migration-smoke.yml`.
 
-1. the complete committed Prisma migration chain applies successfully to the repository-supported MariaDB test engine from an empty database;
-2. migration-changing commits automatically run that proof;
-3. ordinary server commits do not pay the database-smoke cost;
-4. Process scope/department DB invariants are verified against the resulting database;
-5. production failed-migration recovery is documented as an explicit operational procedure, with no reset/destructive default;
-6. migration history edits/recovery semantics are documented so future agents do not treat `prisma validate` as proof of raw SQL compatibility.
+The workflow is path-scoped to:
 
-## Slice A — Full Migration Chain Smoke
+- `server/prisma/migrations/**`;
+- `server/prisma/*.prisma`;
+- `server/prisma.config.ts`;
+- `.github/workflows/migration-smoke.yml`.
 
-Add one dedicated migration verification command/workflow using the existing repository database baseline (`mariadb:11.4`).
+It uses the same database baseline as production Compose: `mariadb:11.4` with `--lower_case_table_names=1`.
 
-Expected flow:
+The gate performs:
+
+1. frozen dependency install;
+2. Prisma schema validation;
+3. full `prisma migrate deploy` from an empty database;
+4. `prisma migrate status`;
+5. migration-directory count versus successful `_prisma_migrations` history count;
+6. unresolved failed-migration count = zero;
+7. Process/ProcessMember foreign-key presence proof;
+8. Process scope trigger presence proof;
+9. valid FACULTY/DEPARTMENT structural writes;
+10. invalid FACULTY/DEPARTMENT INSERT rejection;
+11. invalid Process scope UPDATE rejection.
+
+The workflow does not run the application integration suite, browser E2E, application Compose stack, coverage, deployment, or release steps.
+
+### Failed Migration Recovery Contract
+
+Added `server/prisma/MIGRATION-RECOVERY.md`.
+
+Canonical recovery loop for shared/staging/production databases:
 
 ```text
-fresh MariaDB
-  -> pnpm install --frozen-lockfile
+inspect failed migration
+  -> inspect actual partial database state
+  -> explicit fix-forward or safe rollback
+  -> execute bounded repair SQL
+  -> verify resulting schema/invariants
+  -> prisma migrate resolve
+  -> prisma migrate status
   -> prisma migrate deploy
-  -> prisma migrate status
-  -> targeted invariant assertions
 ```
 
-The smoke must execute the **full historical chain**, not only the latest migration, because ordering and accumulated raw SQL are part of the deployment contract.
+Rules include:
 
-Do not run application integration suites in this lane.
+- no `migrate reset` for shared/staging/production recovery;
+- no manual `_prisma_migrations` row editing as a shortcut;
+- no blind rerun of a partially applied migration;
+- treat successfully applied shared/production migration files as immutable by default;
+- an actively failed migration is the narrow recovery exception and still requires state inspection + `migrate resolve`.
 
-## Slice B — Path-Scoped CI
+### Repository Documentation
 
-Add a separate workflow rather than expanding every Server CI run.
+- `.agents/DEVELOPMENT.md` now distinguishes fast default CI from the migration-specific database gate.
+- `server/prisma/DB-INVARIANTS.md` now records Process scope enforcement through `trg_process_scope_department_insert` / `trg_process_scope_department_update` rather than the invalid CHECK formulation.
+- Migration-backed verification documentation now explicitly states that `prisma validate`, `generate`, and `db push` are not evidence that historical raw SQL executes successfully.
 
-Trigger only when relevant inputs change, initially:
+## Verification Evidence
 
-```text
-server/prisma/migrations/**
-server/prisma/*.prisma
-server/prisma.config.ts
-migration-smoke workflow/script itself
-```
+### Migration Smoke
 
-Properties:
+Final Migration Smoke run `33520082595`: PASS on commit `bae3f958e023430aa1aa82a3e3e65bf0e72c6054`.
 
-- cancel superseded runs;
-- strict timeout;
-- one MariaDB service only;
-- no browser;
-- no Docker Compose application stack;
-- no full Jest integration suite;
-- no coverage;
-- no deployment.
+Evidence:
 
-If only TypeScript/application code changes, this lane should not run.
+- runtime-matched MariaDB startup: PASS;
+- Prisma schema validation: PASS;
+- all 65 committed migrations applied from an empty database: PASS;
+- `prisma migrate status`: PASS / database up to date;
+- migration-history completeness: PASS;
+- unresolved failed migrations: zero;
+- all four Process foundation foreign keys present: PASS;
+- Process scope INSERT/UPDATE triggers present: PASS;
+- valid scope/context writes: PASS;
+- invalid FACULTY/DEPARTMENT INSERTs rejected: PASS;
+- invalid Process scope UPDATE rejected: PASS.
 
-## Slice C — Migration Invariant Proof
+This proves the repository migration chain containing the `20260901163000_add_fti_process_foundation` trigger hotfix executes successfully on the current repository-supported production database engine baseline.
 
-After the chain applies, verify at minimum:
+### Fast Server CI
 
-```text
-Process.scope = FACULTY
-  -> departmentId must be NULL
+Server CI run `33519958047`: PASS on commit `f914c71dc1bc2d4030f00c50570b48552b893a7b`.
 
-Process.scope = DEPARTMENT
-  -> departmentId must be non-NULL and reference Department
+Evidence includes:
 
-ProcessMember
-  -> Process/User foreign keys exist
-```
+- Prisma validate: PASS;
+- Prisma generate: PASS;
+- TypeScript typecheck: PASS;
+- core unit tests: PASS;
+- focused FTI target-domain unit tests: PASS.
 
-For the hotfixed Process invariant, prove both INSERT and UPDATE rejection paths so the trigger replacement is evidence-backed rather than assumed.
+### Path Scope Proof
 
-Keep these checks narrowly tied to raw-SQL invariants that Prisma schema validation cannot prove.
+The migration workflow ran for migration-workflow changes. A later `server/prisma/DB-INVARIANTS.md` documentation-only change triggered Server CI but did not trigger Migration Smoke, demonstrating that ordinary server changes outside the migration input paths do not pay the database-smoke cost.
 
-## Slice D — Recovery Contract
+## Drift Diagnostic
 
-Document the production/staging failed-migration recovery contract around:
+An exploratory `prisma migrate diff --from-config-datasource --to-schema=prisma` after a successful full-chain run exposed broad pre-existing Prisma-model-versus-migration drift, including legacy Pelaksana shape and historical FK/type differences.
 
-```text
-P3018 / P3009
-  -> inspect actual partial state
-  -> choose explicit fix-forward or rollback path
-  -> prisma migrate resolve only after state matches the chosen path
-  -> prisma migrate status
-  -> migrate deploy
-```
+That diagnostic was intentionally **not** promoted to a required Sprint 6 gate because:
 
-Rules:
+- the full committed migration chain itself applied successfully;
+- the drift is broader historical debt, not the escaped `3823` failure boundary;
+- making the known noisy baseline mandatory would block valid migration work for unrelated existing differences.
 
-- never use `migrate reset` as production recovery;
-- never delete/edit `_prisma_migrations` rows manually as the default procedure;
-- do not blindly rerun a partially applied migration;
-- inspect which DDL statements committed before deciding recovery;
-- if a failed migration file must be corrected, source control and database recovery must converge on the same intended migration end-state;
-- migrations that have already been successfully applied in shared/production environments are immutable by default; prefer a new corrective migration rather than rewriting successful history.
+Do not interpret this as the drift being resolved. Track schema/migration drift cleanup as a separate bounded iteration if prioritized.
 
-## Non-Goals
+## Residual Operational State
 
-Sprint 6 does **not** include:
+Sprint 6 proves fresh-chain repository correctness. It does **not** mutate or certify the user's already-partially-applied deployment database.
 
-- Dean/Kadep final approval;
-- TTE migration;
-- evaluator cleanup;
-- full integration tests on every push;
-- browser E2E;
-- deployment automation;
-- production database mutation from CI;
-- resetting any existing environment;
-- migration squashing/rebaselining unless separate evidence proves it necessary.
+A database currently blocked by `P3018/P3009` must still be reconciled using `server/prisma/MIGRATION-RECOVERY.md` based on its actual partial state before deployment can continue.
 
-## Verification Plan
-
-Required evidence before closure:
-
-### Fast existing gates
-
-- Prisma validate/generate: PASS;
-- server typecheck: PASS;
-- existing core/focused unit suites: PASS.
-
-### Migration-specific gate
-
-- clean disposable MariaDB starts;
-- all committed migrations apply from empty DB;
-- `prisma migrate status` reports migration history synchronized;
-- Process scope trigger INSERT negative cases PASS;
-- Process scope trigger UPDATE negative cases PASS;
-- valid FACULTY/DEPARTMENT cases PASS;
-- migration workflow is path-scoped and does not run on unrelated client/server application-only changes.
-
-No full application integration/E2E suite is required unless the migration smoke uncovers a boundary that cannot be proven more narrowly.
-
-## Stop Conditions
-
-Stop and surface instead of inventing a fix if:
-
-- the full migration chain fails in an older unrelated migration;
-- recovery would require dropping or rewriting existing production data;
-- database engine/version behavior materially differs from the repository test engine;
-- successful historical migrations would need rewriting;
-- production migration state cannot be reconciled without knowing what DDL partially committed.
+No production database reset, deployment, or automatic `migrate resolve` is performed by CI.
 
 ## Next Move
 
-Execute Sprint 6 on a dedicated branch from current `master`.
-
-First implementation action:
-
-```text
-add reproducible migration-smoke command
-  -> prove full chain on MariaDB 11.4
-  -> then wire the same command into path-scoped CI
-```
-
-After Sprint 6 is verified and the current environment migration history is healthy, continue product work with:
+After the affected environment's failed migration is explicitly recovered and the branch is merged when authorized, continue product work with:
 
 ```text
 Sprint 7 — Contextual Final Approval
+
 READY FOR APPROVAL
   -> FACULTY -> DEKAN
   -> DEPARTMENT -> relevant KADEP
 ```
 
-TTE remains after authority resolution; it must execute resolved authority rather than define it.
+Sprint 7 should establish the contextual final-approval resolver and authorization before TTE is cut over. TTE must execute the resolved organizational authority rather than define it.
+
+Do not merge, deploy, or release Sprint 6 without explicit user authorization.
