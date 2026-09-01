@@ -20,6 +20,7 @@ import { type ApiSuccessResponse, JwtAuthGuard } from '../../../common';
 import { ACCESS_TOKEN_COOKIE_NAME, type JwtAccessPayload } from '../../core/auth/helpers/auth.shared';
 import { ListSopQueryDto } from '../catalog/dto/list-sop-query.dto';
 import { UpdateSopHeaderDto } from '../catalog/dto/update-sop-header.dto';
+import { PelaksanaSnapshotService } from '../pelaksana/pelaksana-snapshot.service';
 import { CreateProcessSopDto } from './dto/create-process-sop.dto';
 import { ProcessSopAuthoringService } from './process-sop-authoring.service';
 
@@ -28,7 +29,10 @@ import { ProcessSopAuthoringService } from './process-sop-authoring.service';
 @Controller('process-sop')
 @UseGuards(JwtAuthGuard)
 export class ProcessSopAuthoringController {
-  constructor(private readonly service: ProcessSopAuthoringService) {}
+  constructor(
+    private readonly service: ProcessSopAuthoringService,
+    private readonly pelaksanaSnapshotService: PelaksanaSnapshotService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'Daftar SOP legacy + Process yang dapat diakses pengguna' })
@@ -65,10 +69,11 @@ export class ProcessSopAuthoringController {
     @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,
     @Query('logsLimit', new DefaultValuePipe(100), ParseIntPipe) logsLimit: number,
   ): Promise<ApiSuccessResponse<unknown>> {
+    const workbench = await this.service.getWorkbench(req.user, detailOrSopId, logsLimit);
     return {
       message: 'Workbench SOP berhasil diambil',
       success: true,
-      data: await this.service.getWorkbench(req.user, detailOrSopId, logsLimit),
+      data: await this.pelaksanaSnapshotService.applyToWorkbench(workbench),
     };
   }
 
@@ -81,10 +86,11 @@ export class ProcessSopAuthoringController {
     @Body() dto: UpdateSopHeaderDto,
     @Query('logsLimit', new DefaultValuePipe(100), ParseIntPipe) logsLimit: number,
   ): Promise<ApiSuccessResponse<unknown>> {
+    const workbench = await this.service.updateHeader(req.user, detailOrSopId, dto, logsLimit);
     return {
       message: 'Header SOP berhasil diperbarui',
       success: true,
-      data: await this.service.updateHeader(req.user, detailOrSopId, dto, logsLimit),
+      data: await this.pelaksanaSnapshotService.applyToWorkbench(workbench),
     };
   }
 }
