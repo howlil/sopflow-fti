@@ -70,9 +70,8 @@ export function ProcessApprovalPage() {
         title="Setujui SOP ini?"
         description={selected ? `${selected.judul} akan dicatat sebagai telah mendapat final approval dan selanjutnya menunggu TTE.` : ''}
         confirmLabel="Ya, setujui"
-        isLoading={isApproving}
         onConfirm={async () => {
-          if (!selected) return
+          if (!selected || isApproving) return
           try {
             await approve(selected.detailSopId)
             setSelectedId(null)
