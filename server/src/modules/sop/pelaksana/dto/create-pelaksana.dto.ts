@@ -1,16 +1,11 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreatePelaksanaDto {
-  @ApiPropertyOptional({ description: 'OPD target; jika diisi harus sama dengan OPD pengguna' })
-  @IsOptional()
-  @IsUUID()
-  readonly opdId?: string;
-
-  @ApiProperty({ description: 'Nama pelaksana / aktor SOP' })
+  @ApiProperty({ description: 'Nama actor/pelaksana global yang dapat digunakan ulang' })
   @IsString()
   @IsNotEmpty()
   @MinLength(1)
-  @MaxLength(255)
+  @MaxLength(15)
   readonly namaPelaksana!: string;
 }
