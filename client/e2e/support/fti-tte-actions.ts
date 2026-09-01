@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test'
 import { expectNoAppShellError, searchPageIfAvailable, waitForAppReady } from './app'
 import { e2ePin } from './test-data'
 
-export async function signFacultyProcessSopViaUi(
+export async function signProcessSopViaUi(
   page: Page,
   title: string,
 ): Promise<void> {
@@ -13,9 +13,8 @@ export async function signFacultyProcessSopViaUi(
   const titleHeading = page.getByRole('heading', { name: title, exact: true })
   await expect(titleHeading).toBeVisible()
 
-  // J08–J11 intentionally share one runtime database in CI, so earlier journeys may
-  // leave other approved SOP rows in the same queue. Scope status/action assertions
-  // to the nearest row containing this SOP title and its signing control.
+  // Critical journeys intentionally share one runtime database in CI. Scope signing
+  // assertions to the row containing this unique SOP title.
   const row = titleHeading.locator(
     'xpath=ancestor::div[.//button[normalize-space(.)="Tanda tangani"]][1]',
   )
@@ -33,6 +32,13 @@ export async function signFacultyProcessSopViaUi(
 
   await expect(titleHeading).toHaveCount(0, { timeout: 15_000 })
   await expectNoAppShellError(page)
+}
+
+export async function signFacultyProcessSopViaUi(
+  page: Page,
+  title: string,
+): Promise<void> {
+  await signProcessSopViaUi(page, title)
 }
 
 export async function expectProcessSopBerlakuInWorkQueue(
