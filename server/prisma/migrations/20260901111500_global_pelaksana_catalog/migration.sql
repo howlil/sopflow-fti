@@ -62,8 +62,8 @@ SELECT d.`detailSopId`, m.`canonicalId`, d.`urutan`, d.`createdAt`, d.`updatedAt
 FROM `DetailSOPPelaksana` d
 JOIN `_PelaksanaCanonical` m ON m.`duplicateId` = d.`pelaksanaId`
 ON DUPLICATE KEY UPDATE
-  `urutan` = LEAST(`urutan`, VALUES(`urutan`)),
-  `updatedAt` = GREATEST(`updatedAt`, VALUES(`updatedAt`));
+  `urutan` = LEAST(`DetailSOPPelaksana`.`urutan`, VALUES(`urutan`)),
+  `updatedAt` = GREATEST(`DetailSOPPelaksana`.`updatedAt`, VALUES(`updatedAt`));
 
 UPDATE `LangkahSOP` l
 JOIN `_PelaksanaCanonical` m ON m.`duplicateId` = l.`pelaksanaId`
