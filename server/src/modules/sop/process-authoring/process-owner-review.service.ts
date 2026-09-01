@@ -2,8 +2,18 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import type { JwtAccessPayload } from '../../../common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { assertDetailSopEditable } from '../../../common/status/sop-editable.util';
-import { BagianSOP, StatusSOP } from '../../../generated/prisma';
+import {
+  BagianSOP,
+  OrganizationalAuthority,
+  ProcessNotificationKind,
+  StatusSOP,
+} from '../../../generated/prisma';
+import { OrganizationalAuthorityService } from '../../core/process/organizational-authority.service';
 import { ProcessContextService } from '../../core/process/process-context.service';
+import {
+  ProcessNotificationService,
+  type ProcessNotificationCreateInput,
+} from '../../notifications/process/process-notification.service';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
 import { assertSopWorkbenchCompleteForSiapDievaluasi } from '../catalog/sop-completeness.validator';
 import { SopCatalogRepository } from '../catalog/sop-catalog.repository';
@@ -16,6 +26,8 @@ export class ProcessOwnerReviewService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly processContextService: ProcessContextService,
+    private readonly organizationalAuthorityService: OrganizationalAuthorityService,
+    private readonly processNotificationService: ProcessNotificationService,
     private readonly sopCatalogRepository: SopCatalogRepository,
     private readonly processSopAuthoringService: ProcessSopAuthoringService,
   ) {}
@@ -26,7 +38,7 @@ export class ProcessOwnerReviewService {
     logsLimit?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
     const context = await this.resolveTargetContext(detailOrSopId);
-    await this.processContextService.assertCanAuthor(user.sub, context.processId);
+    const process = await this.processContextService.assertCanAuthor(user.sub, context.processId);
 
     const statusContext = await this.sopCatalogRepository.findLatestDetailStatusContext(
       context.detailSopId,
@@ -52,6 +64,14 @@ export class ProcessOwnerReviewService {
       expectedStatus: statusContext.status,
       targetStatus: StatusSOP.SEDANG_DIEVALUASI,
       userId: user.sub,
+      notification: {
+        detailSopId: context.detailSopId,
+        sopId: context.sopId,
+        processId: context.processId,
+        penggunaId: process.ownerId,
+        kind: ProcessNotificationKind.PROCESS_OWNER_REVIEW_REQUESTED,
+        processName: process.nama,
+      },
     });
 
     return this.processSopAuthoringService.getWorkbench(user, context.detailSopId, logsLimit);
@@ -64,7 +84,7 @@ export class ProcessOwnerReviewService {
     logsLimit?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
     const context = await this.resolveTargetContext(detailOrSopId);
-    await this.processContextService.assertCanReview(user.sub, context.processId);
+    const process = await this.processContextService.assertCanReview(user.sub, context.processId);
 
     const statusContext = await this.sopCatalogRepository.findLatestDetailStatusContext(
       context.detailSopId,
@@ -83,11 +103,29 @@ export class ProcessOwnerReviewService {
         ? StatusSOP.REVISI_DARI_EVALUATOR
         : StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR;
 
+    let notification: ProcessNotificationCreateInput | undefined;
+    if (decision === ProcessReviewDecision.ACCEPT) {
+      const authority = await this.organizationalAuthorityService.resolveForProcess(context.processId);
+      notification = {
+        detailSopId: context.detailSopId,
+        sopId: context.sopId,
+        processId: context.processId,
+        penggunaId: authority.holderId,
+        kind: ProcessNotificationKind.FINAL_APPROVAL_REQUESTED,
+        processName: process.nama,
+        authorityLabel:
+          authority.authority === OrganizationalAuthority.DEAN
+            ? 'Dean'
+            : 'Kepala Departemen',
+      };
+    }
+
     await this.transitionStatus({
       detailSopId: context.detailSopId,
       expectedStatus: StatusSOP.SEDANG_DIEVALUASI,
       targetStatus,
       userId: user.sub,
+      notification,
     });
 
     return this.processSopAuthoringService.getWorkbench(user, context.detailSopId, logsLimit);
@@ -98,6 +136,7 @@ export class ProcessOwnerReviewService {
     expectedStatus: StatusSOP;
     targetStatus: StatusSOP;
     userId: string;
+    notification?: ProcessNotificationCreateInput;
   }): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       const updated = await tx.detailSOP.updateMany({
@@ -123,7 +162,14 @@ export class ProcessOwnerReviewService {
         fields: ['status'],
         discrete: true,
       });
+      if (params.notification !== undefined) {
+        await this.processNotificationService.createInTransaction(tx, params.notification);
+      }
     });
+
+    if (params.notification !== undefined) {
+      this.processNotificationService.emitChanged(params.notification.penggunaId);
+    }
   }
 
   private async resolveTargetContext(detailOrSopId: string): Promise<{
