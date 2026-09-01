@@ -19,6 +19,8 @@ on:
       - 'server/src/modules/core/process/**'
       - 'server/src/modules/sop/process-authoring/**'
       - 'server/src/modules/notifications/process/**'
+      - 'server/src/modules/tte/**'
+      - 'server/src/modules/sop/pdf/**'
       - 'server/prisma/seed-e2e.ts'
       - 'server/prisma/*.prisma'
       - 'server/prisma/migrations/**'
@@ -48,7 +50,8 @@ jobs:
       JWT_REFRESH_EXPIRATION: 7d
       TTE_ENCRYPTION_SECRET: this-is-a-dedicated-tte-encryption-secret-for-test-only
       PUBLIC_APP_ORIGIN: http://localhost:5173
-      PDF_SIGNING_ENABLED: 'false'
+      PDF_SIGNING_ENABLED: 'true'
+      SOP_PDF_STORAGE_DIR: /tmp/sop-fti-e2e-pdf
       VITE_API_BASE_URL: http://localhost:3001/api/v1
       E2E_BASE_URL: http://localhost:5173
       E2E_API_BASE_URL: http://127.0.0.1:3001/api/v1
@@ -144,9 +147,9 @@ jobs:
         working-directory: client
         run: pnpm test:e2e:audit
 
-      - name: Run FTI target journeys J08-J10
+      - name: Run FTI target journeys J08-J11
         working-directory: client
-        run: node scripts/run-e2e.mjs journeys --grep 'J(08|09|10)\b' --project=chromium
+        run: node scripts/run-e2e.mjs journeys --grep 'J(08|09|10|11)\b' --project=chromium
 
       - name: Backend logs on failure
         if: failure()
@@ -159,3 +162,4 @@ jobs:
             kill "$(cat /tmp/sop-fti-e2e-server.pid)" 2>/dev/null || true
           fi
           docker rm --force sop-fti-e2e-db || true
+          rm -rf "$SOP_PDF_STORAGE_DIR"

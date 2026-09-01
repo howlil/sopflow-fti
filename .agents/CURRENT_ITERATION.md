@@ -19,7 +19,7 @@ In scope:
 - Process work queue + Process authorization;
 - Process Member submit and Process Owner review/revision;
 - contextual final-approval handoff + notifications;
-- TTE/public-integrity boundary where the existing signing harness can prove it safely;
+- TTE/public-integrity boundary using the real existing signing harness;
 - path-scoped browser-runtime CI proportional to target FTI surfaces.
 
 Out of scope:
@@ -37,15 +37,15 @@ Out of scope:
 Target E2E Identity + Fixture Foundation    VERIFIED + INTEGRATED
 Contextual Entry + Navigation Journey       VERIFIED + INTEGRATED
 Process Work + Owner Review Journey         VERIFIED + INTEGRATED
-Final Approval + Notification Journey       ACTIVE / RUNTIME GATE
-TTE/Public Integrity Boundary               PLANNED
+Final Approval + Notification Journey       VERIFIED + INTEGRATED
+TTE/Public Integrity Boundary               ACTIVE / RUNTIME GATE
 Milestone Gate                              PENDING
 ```
 
 Current branch:
 
 ```text
-m3-final-approval-notification
+m3-tte-public-integrity
 ```
 
 ## Integrated Evidence
@@ -77,46 +77,57 @@ Client CI: 33551088103 PASS
 FTI Critical E2E: 33551087697 PASS
 ```
 
-J09 proves in Chromium + Nest + migrated/seeded MariaDB:
+Final approval + notification:
 
-- Process Member sees Process draft in `/work/queue` and submits it through the existing workspace;
-- Process Owner receives the work as `Review Process Owner` and can request revision;
-- Process Member receives the same SOP back as `Perlu revisi`;
-- the protected workspace implementation remains unchanged.
+```text
+PR #6
+merge: e46b0cf73a1ba2db8ef13b176571b46e6efa6f8f
+Client CI: 33551654000 PASS
+FTI Critical E2E: 33551654201 PASS
+```
 
-The first J09 runtime attempt exposed only an E2E fixture contract mismatch: generated `namaPelaksana` exceeded the API maximum of 15 characters. The fixture was shortened; no production behavior changed.
+J10 proves in real Chromium + Nest + migrated/seeded MariaDB:
 
-## Active Slice — J10 Final Approval + Notification
+- Process Owner ACCEPT moves a Faculty Process SOP to contextual final approval;
+- Dean receives the target Process notification and follows it to `/approval`;
+- the approval row resolves to `Fakultas · Dekan`;
+- Dean final approval succeeds and leaves the SOP ready for TTE.
+
+## Active Slice — J11 Process TTE + Public Handoff
 
 Precondition:
 
-- create one complete Faculty Process SOP using the J09 target fixture;
-- submit it to Process Owner review via API because Member submit is already browser-verified by J09;
-- keep Owner `ACCEPT`, notification consumption, and Dean approval as browser actions.
+- create one complete Faculty Process SOP;
+- submit to Process Owner, ACCEPT, and final-approve via API because those actions are already browser-verified by J09/J10;
+- prepare Dean TTE credentials using the existing `/tte/profil/setup/generate` flow;
+- do not mock or bypass signing.
 
 Browser behavior under test:
 
 ```text
-Process Owner
-  -> opens SOP under review
-  -> Terima
-  -> SOP becomes Siap untuk persetujuan
+Dean /approval
+  -> Persetujuan akhir tercatat · siap TTE
+  -> Tanda tangani
+  -> PIN TTE
+  -> real Process TTE signing
 
-Dean
-  -> receives FINAL_APPROVAL_REQUESTED notification
-  -> notification routes to /approval
-  -> sees Faculty · Dekan authority row
-  -> Setujui
-  -> SOP becomes Persetujuan akhir tercatat · siap TTE
+Process Member /work/queue
+  -> SOP status BerLaku
+
+Public /arsip
+  -> Process SOP appears publicly
+  -> preview exposes no internal evaluation data
 ```
 
-J10 intentionally stops before `Tanda tangani`. PDF generation, PIN/TTE signing, transition to `BERLAKU`, and public integrity remain owned by the next slice.
+The FTI runtime gate enables `PDF_SIGNING_ENABLED=true` only in its disposable test environment so J11 exercises the actual personal-P12 signing path. Production configuration is unchanged.
+
+J11 does not duplicate the full PKCS#7 verification suite already owned by J07. Its purpose is to prove that the contextual Process workflow reaches the same signed/public boundary correctly.
 
 Runtime gate:
 
-- J10 registered beside J01–J09 in the existing audited critical set;
-- local critical runner includes J10 with per-journey DB reset;
-- path-scoped FTI CI executes J08–J10 on one disposable MariaDB/Nest/Chromium stack.
+- J11 registered beside J01–J10 in the audited critical set;
+- local critical runner includes J11 with per-journey DB reset;
+- path-scoped FTI CI executes J08–J11 against one disposable MariaDB/Nest/Chromium stack with real PDF signing enabled.
 
 ## Guardrail
 
@@ -124,8 +135,8 @@ The protected Edit SOP workspace may be exercised as existing user-visible behav
 
 ## Stop Conditions
 
-Stop/escalate if J10 requires changing approved workflow semantics, weakening authorization/security, destructive migration, public-contract change, or modifying the protected workspace implementation.
+Stop/escalate if J11 requires changing approved workflow semantics, weakening authorization/TTE security, destructive migration, public-contract change, or modifying the protected workspace implementation.
 
 ## Next Move
 
-Run J08–J10 in the path-scoped FTI browser gate. Fix only observed test/fixture/runtime defects. Integrate J10 when green, then proceed to the TTE/Public Integrity boundary.
+Run J08–J11. Fix only observed test/fixture/runtime defects. Integrate J11 when green, then execute the M3 milestone gate and stop.
