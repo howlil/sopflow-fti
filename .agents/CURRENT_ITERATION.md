@@ -1,142 +1,110 @@
 # Current Iteration
 
-Iteration: Sprint 6 — Migration Reliability & Deployment Safety
+Iteration: Sprint 7 — Contextual Final Approval
 Delivery State: VERIFIED_BRANCH
-Operational Recovery: READY_TO_EXECUTE
-Branch: `chore/migration-reliability`
+Branch: `feat/contextual-final-approval`
 Created: 2026-09-01
 
 ## Feature Shape
 
-Sprint 6 addresses the deployment incident where `20260901163000_add_fti_process_foundation` failed with MariaDB error `3823`, leaving Prisma blocked by `P3018/P3009`.
-
-Implemented shape:
+Target Process-bound SOP approval is now contextual to organizational authority:
 
 ```text
-migration-relevant repository change
-  -> fast Server CI
-  -> Migration Smoke
-       -> mariadb:11.4
-       -> --lower_case_table_names=1
-       -> full historical migrate deploy
-       -> migration-history proof
-       -> Process foundation DB invariant proof
-
-already-failed deployment database
-  -> incident-specific recovery script
-       -> inspect partial state
-       -> fail closed on ambiguity
-       -> bounded fix-forward
-       -> verify end-state
-       -> migrate resolve --applied
-       -> remaining migrate deploy
-       -> final migrate status
+Process Owner accepts latest SOP version
+  -> ready for final approval
+  -> authority resolver
+       -> FACULTY -> DEAN
+       -> DEPARTMENT -> HEAD_OF_DEPARTMENT for that department
+  -> assigned holder approves
+  -> ProcessFinalApproval evidence stored
+  -> awaits contextual TTE
 ```
 
-No product behavior, approval behavior, TTE behavior, deployment automation, reset, or destructive rollback was introduced.
+Final approval is intentionally distinct from TTE and does not make the SOP `BERLAKU`.
 
 ## Current Position
 
-`QUALITY GATES -> STOP`
+`QUALITY GATES -> RELEASE READY -> STOP`
 
-Repository implementation is verified. The affected deployment database itself is **not yet certified recovered** because no shell/database connector is available in this conversation to execute the recovery against that environment.
+Sprint 7 implementation and branch-level verification are complete. The branch is not merged and is not deployed.
 
 ## Completed Delta
 
-### Migration Smoke
+### Organizational Authority
 
-`.github/workflows/migration-smoke.yml` is path-scoped to:
+- Added persistent organizational authority assignments for Dean and Department Heads.
+- Faculty Process approval resolves only to the current Dean assignment.
+- Department Process approval resolves only to the Head assigned to that exact Department.
+- `SUPER_ADMIN` may maintain authority configuration but receives no final-approval permission or workflow bypass from platform role alone.
+- Approver identity is independent from Process Owner/member relationship and legacy global workflow role.
 
-- `server/prisma/migrations/**`;
-- `server/prisma/recovery/**`;
-- `server/prisma/*.prisma`;
-- `server/prisma.config.ts`;
-- the migration-smoke workflow itself.
+### Contextual Final Approval
 
-It verifies:
+- Added `ProcessFinalApproval` evidence for Process-bound SOP versions.
+- Added approver queue/read/approve APIs.
+- Approval requires a Process-bound SOP and the authority holder resolved from the Process scope.
+- Only the latest SOP version is eligible; stale older versions are rejected even if they previously reached the ready status.
+- Duplicate final approval is rejected.
+- Legacy/unbound SOPs stay on the compatibility workflow.
+- Final approval does not execute TTE or transition the SOP to `BERLAKU`.
 
-1. recovery shell scripts parse with `bash -n`;
-2. Prisma schema validation;
-3. all committed migrations apply from an empty runtime-matched MariaDB;
-4. `prisma migrate status` is synchronized;
-5. migration-history completeness and zero unresolved failed migrations;
-6. all four Process/ProcessMember foreign keys;
-7. Process scope INSERT/UPDATE triggers;
-8. valid FACULTY/DEPARTMENT writes;
-9. invalid Process scope INSERT/UPDATE rejection.
+### Client
 
-### Failed Migration Recovery
-
-Added:
-
-`server/prisma/recovery/20260901163000_add_fti_process_foundation.sh`
-
-Modes:
-
-```text
---inspect  read-only live-state inspection
---apply    bounded fix-forward + verified migrate resolve/deploy
-```
-
-The script requires exactly one unresolved failed row for `20260901163000_add_fti_process_foundation`, validates existing partial objects before mutation, refuses ambiguous `Department`/`Process`/`ProcessMember` state, verifies the backend image contains the fixed trigger-based migration, creates only missing intended objects, reinstalls the Process scope triggers, proves the repaired invariant, resolves the failed migration only after verification, applies remaining migrations, then verifies final status.
-
-The script never runs `migrate reset`, deletes `_prisma_migrations` rows, drops domain tables, restarts services, or deploys application images.
-
-Operational procedure is documented in `server/prisma/MIGRATION-RECOVERY.md`.
+- Added Super Admin authority configuration route `/admin/authorities`.
+- Added contextual approver inbox route `/approval`.
+- Dashboard navigation exposes approval from organizational authority rather than legacy role or platform-admin status.
+- TanStack generated route tree is committed and verified clean after production build.
+- Client CI permissions were restored to `contents: read` after the one-time generated-route synchronization.
 
 ## Verification Evidence
 
-Final recovery-tooling commit:
+Server CI run `33523846138`: **PASS**.
 
-`8c13b6f16a6803f35d3b2a8fb61c8eeacea0f46e`
+The verified server slice includes stale-version rejection for contextual final approval. Existing core server tests and focused FTI authority/final-approval tests passed on the final server implementation.
 
-Migration Smoke run `33521190650`: **PASS**.
+Migration Smoke run `33522522783`: **PASS** on the persistence commit `17250dc30be050d328379a68211faa152e615acf`.
 
-Evidence includes recovery-script syntax validation, runtime-matched MariaDB startup, full migration chain, migration history, and Process foundation database invariants.
+Migration evidence includes:
 
-Server CI run `33521190638`: **PASS**.
+- runtime-matched MariaDB 11.4 startup;
+- Prisma schema validation;
+- full historical migration-chain deploy;
+- synchronized migration status;
+- migration-history completeness with zero unresolved failed rows;
+- existing Process foundation database invariant checks.
 
-The earlier exploratory Prisma-schema-versus-migration drift remains separate historical debt and is not treated as resolved by this sprint.
+No Prisma schema or migration changed after that successful Sprint 7 migration run.
 
-## Operational Execution
+Client CI run `33525633521`: **PASS** on commit `d403ca71675e505a2d9e90698864d540cbfbd2a1`.
 
-On the deployment host, from repository code containing the fixed migration and recovery script:
+Client evidence includes:
 
-```sh
-bash server/prisma/recovery/20260901163000_add_fti_process_foundation.sh --inspect
-```
+- production client + SSR build;
+- generated route tree consistency;
+- TypeScript typecheck;
+- 91/91 test files passed;
+- 404 tests passed, 2 skipped.
 
-Only if inspection passes:
+Documentation-only closure commits follow these verified implementation commits and do not change server, client, schema, or migration behavior.
 
-```sh
-bash server/prisma/recovery/20260901163000_add_fti_process_foundation.sh --apply
-```
+## Compatibility Boundary
 
-If the backend image still contains the old CHECK-based migration, the script stops before database mutation; rebuild/update that image first.
-
-## Stop Conditions
-
-Stop instead of automatic repair if:
-
-- the unresolved failed migration is not exactly `20260901163000_add_fti_process_foundation`;
-- existing Process-foundation tables have an unexpected or partial shape;
-- existing Process rows violate scope/department semantics;
-- expected foreign keys are partially present in an ambiguous shape;
-- the backend image still contains the old failing migration;
-- repair would require destructive rollback or data reinterpretation.
+- Target final approval currently consumes the existing legacy storage status used around readiness for downstream signing; status vocabulary cleanup is not part of Sprint 7.
+- Legacy/unbound SOPs remain on the legacy compatibility approval/TTE flow.
+- Contextual final approval does not sign documents, create effective-state artifacts, or produce `BERLAKU`.
+- Existing legacy TTE authority must not be treated as target authority for Process-bound SOPs in the next slice.
+- No historical bulk mapping or destructive migration was performed.
 
 ## Next Move
 
-Execute the recovery script on the affected environment and retain its output as deployment evidence.
-
-After environment recovery and explicit merge authorization, continue with Sprint 7 — Contextual Final Approval:
+Sprint 8 — Contextual TTE / Effective-State Cutover:
 
 ```text
-READY FOR APPROVAL
-  -> FACULTY -> DEKAN
-  -> DEPARTMENT -> relevant KADEP
+contextual final approval
+  -> resolved Dean/Kadep signer
+  -> TTE
+  -> legal/effective artifact
+  -> BERLAKU
 ```
 
-TTE remains after contextual authority resolution.
-
-Do not merge, deploy, or release Sprint 6 without explicit user authorization.
+The next slice must preserve one-active-version/effective-state invariants while removing legacy `KEPALA_OPD` authority from the Process-bound TTE path. Do not merge, deploy, or release without explicit user authorization.
