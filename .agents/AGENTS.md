@@ -1,153 +1,214 @@
-# SOPFlow Agent Instructions
+# SOPFlow Agent Operating Contract
 
-This folder is the repository-local operating guide for coding agents working on SOPFlow.
+This file is the repository-local operating contract for software-engineering agents working on SOPFlow. Keep it lean: durable project facts belong in `PROJECT.md`, commands and test details in `DEVELOPMENT.md`, and live iteration state in `CURRENT_ITERATION.md`.
 
-## Instruction Precedence
+## Instruction And State Sources
 
 When instructions conflict, follow this order:
 
 1. User request in the current conversation.
-2. Root `AGENTS.md` and external harness instructions already loaded by the session.
-3. `.agents/AGENTS.md`.
-4. `.agents/PROJECT.md`.
-5. `.agents/CURRENT_ITERATION.md`.
-6. `.agents/DEVELOPMENT.md`.
-7. Source files, tests, package scripts, and README.
+2. System, harness, and tool instructions loaded by the session.
+3. Root `AGENTS.md` if one exists in the current checkout.
+4. `.agents/AGENTS.md`.
+5. `.agents/PROJECT.md` for durable repository facts and architecture boundaries.
+6. `.agents/CURRENT_ITERATION.md` for active scope and iteration state.
+7. `.agents/DEVELOPMENT.md` for commands, setup, and verification details.
+8. Source files, tests, package scripts, and README as implementation evidence.
 
-Treat this repository's actual checkout as the source of truth. Re-check files before making claims about current state.
+The actual checkout is the source of truth. Re-inspect relevant files before making claims about current behavior or state.
 
-## Project Summary
+## Canonical Engineering Lifecycle
 
-SOPFlow is a web application for managing Standar Operasional Prosedur documents. The observed stack in this checkout is:
+Use this lifecycle as the default orientation model:
 
-- Frontend: React 19, Vite, TanStack Router, TanStack Query, Zustand, Tailwind CSS 4, Radix UI, lucide-react, Vitest, Playwright.
-- Backend: NestJS 11, TypeScript, Prisma 7, MariaDB, Jest.
-- Runtime: Docker Compose with `db`, `backend`, and `frontend`; frontend exposes internal port `8080`, backend exposes `3001`, MariaDB uses `3306`.
-- Main domains: SOP catalog/procedure/diagram/PDF/public archive, evaluation workflow, TTE profile/signing/verification, and in-app notifications.
+`USER INTENT -> UNDERSTAND -> BOUND -> SPECIFY -> DESIGN -> IMPLEMENT -> VERIFY -> QUALITY GATES -> RELEASE READY -> STOP`
 
-## Working Rules
+Stages may be fused for small and unambiguous tasks. The lifecycle is an orientation model, not mandatory ceremony.
 
-- Inspect before editing. Check relevant files, package scripts, and current runtime assumptions before changing behavior.
-- Preserve unrelated files and generated artifacts unless the user explicitly asks to clean them.
-- Do not infer permission to commit, merge, push, deploy, or reset state.
-- Keep changes narrowly scoped to the requested workflow or bug.
-- Prefer existing modules, DTOs, repositories, hooks, query keys, UI primitives, and test utilities over new patterns.
-- Do not commit secrets. Root `.env` and `server/.env` may exist locally, but changes to real secret values are out of scope unless explicitly requested.
-- Generated Prisma client files under `server/src/generated/prisma` are not the first place to edit. Change Prisma schema/migrations/source code, then regenerate when needed.
-- If README references a path that is absent in the checkout, report it as absent instead of assuming the documentation exists.
+Do not skip a stage when doing so would hide a material product, architecture, security, data, or verification decision.
 
-## Discovery
+## Authority Split
 
-Use codebase-memory graph tools when they are available in the session. If they are not available, fall back to `rg`, package manifests, and targeted file reads.
+### User owns
 
-Recommended first checks:
+- WHY and WHAT.
+- Product behavior and scope.
+- Architecture boundaries.
+- Acceptance criteria.
+- Public contracts.
+- Data ownership.
+- Security boundaries.
+- Material technical decisions.
+- Final approve, reject, change-direction, merge/release/deploy decisions when those actions are material to delivery.
 
-```sh
-rtk proxy powershell -NoProfile -Command "Get-ChildItem -Force"
-rtk proxy powershell -NoProfile -Command "Get-Content -LiteralPath README.md"
-rtk proxy powershell -NoProfile -Command "Get-Content -LiteralPath client/package.json"
-rtk proxy powershell -NoProfile -Command "Get-Content -LiteralPath server/package.json"
-```
+### Agent owns
 
-Use `rg` for source discovery where possible:
+Within approved behavior and boundaries, act autonomously on:
 
-```sh
-rtk proxy rg "pattern" client/src server/src
-rtk proxy rg --files client/src server/src server/prisma
-```
+- Repository inspection and targeted discovery.
+- Implementation design.
+- Coding and debugging.
+- Test selection and execution.
+- Verification and quality gates.
+- Implementation-level decisions.
+- Local refactoring required by the requested change.
+- Maintaining accurate implementation evidence and iteration orientation.
 
-## Architecture Boundaries
+Do not ask for approval for routine implementation choices that preserve the approved behavior, contracts, ownership, and architecture boundaries.
+
+## Product Authority And Scope
+
+- Do not introduce features, behavior, permissions, requirements, or product decisions the user did not request.
+- Do not expand scope because of best practice, optimization, cleanup, future need, or speculative extensibility.
+- If a missing requirement would materially change observable behavior, data, contracts, permissions, security, or architecture, surface it instead of guessing.
+- If the requested behavior is clear, implement it without turning routine engineering choices into user decisions.
+
+## Minimum Change Rule
+
+Implement the smallest coherent vertical slice that satisfies the requested behavior.
+
+Preference order:
+
+1. Reuse an existing pattern.
+2. Extend the existing owning component or module.
+3. Add a small local abstraction.
+4. Add a new component or module.
+5. Change architecture only when necessary.
+
+Guardrails:
+
+- Modify only what the requirement needs.
+- Preserve unrelated behavior and files.
+- Do not rename, reorganize, clean, or refactor unrelated code.
+- Do not add speculative abstractions, extension points, dependencies, or dependency upgrades.
+- Keep change surface and migration cost proportional to the requirement.
+- Prefer lower coupling, clear ownership, reversibility, and fewer new dependencies.
+
+## Repository Boundaries
+
+Use `.agents/PROJECT.md` as the durable repository map. Preserve these high-level ownership rules unless the user explicitly changes them:
 
 Frontend:
 
-- Keep API transport in `client/src/api` and shared response/client helpers in `client/src/lib/api`.
-- Keep reusable UI primitives in `client/src/components/ui`.
-- Keep role/page workflows under `client/src/pages` and route wiring under `client/src/routes`.
-- Keep DTO shapes under `client/src/types/dto` and role/status utilities under `client/src/lib` or `client/src/utils`.
-- Preserve TanStack Router conventions. Do not hand-edit generated route tree output unless the local workflow requires it.
+- API transport belongs in `client/src/api`; shared API helpers belong in `client/src/lib/api`.
+- Reusable UI primitives belong in `client/src/components/ui`.
+- Workflow/page behavior belongs under `client/src/pages`; route wiring belongs under `client/src/routes`.
+- Preserve TanStack Router conventions and avoid hand-editing generated route output unless the local workflow requires it.
 
 Backend:
 
-- Keep Nest modules under `server/src/modules`.
-- Use the existing controller/service/repository layering for business behavior.
-- Keep shared guards, pipes, Prisma utilities, HTTP/security helpers, and status/date utilities under `server/src/common`.
-- Keep schema and migrations under `server/prisma`.
-- Keep DB invariants aligned with `server/prisma/DB-INVARIANTS.md` when touching persistence behavior.
+- Nest modules belong under `server/src/modules`.
+- Preserve existing controller/service/repository ownership for business behavior and persistence.
+- Shared cross-cutting behavior belongs under `server/src/common`.
+- Prisma schema and migrations belong under `server/prisma`.
+- Do not edit generated Prisma client output as the source change.
 
-Domain boundaries:
+Domain ownership:
 
-- SOP behavior belongs in `server/src/modules/sop` and corresponding client `sop` pages/components/API/types.
-- Evaluation behavior belongs in `server/src/modules/evaluation` and corresponding client `evaluasi` pages/components/API/types.
-- TTE credential, signing, and verification behavior belongs in `server/src/modules/tte` and corresponding client `tte` components/API/types.
-- Notification and reminder behavior belongs in `server/src/modules/notifications`; Sprint 1 keeps notification delivery in-app only.
+- SOP: `server/src/modules/sop` and corresponding client SOP surfaces.
+- Evaluation: `server/src/modules/evaluation` and corresponding client evaluation surfaces.
+- TTE: `server/src/modules/tte` and corresponding client TTE surfaces.
+- Notifications: `server/src/modules/notifications`.
 
-## Delivery Standard
+## Stop Conditions
 
-For meaningful code changes, use a small RED -> GREEN -> REFACTOR loop:
+Stop implementation and surface the decision when any of these becomes necessary:
 
-1. Add or identify a failing focused test when behavior is changing.
+- The request contradicts existing required behavior.
+- A destructive migration or destructive state reset is required.
+- A public contract must change.
+- A security boundary must change.
+- Data ownership must materially change.
+- Service/module boundaries, communication patterns, or consistency model require a material architecture change.
+
+Do not use stop conditions for normal implementation uncertainty that can be resolved by inspecting the repository.
+
+## Repository Mutation And Release Boundary
+
+A user request to implement, fix, refactor, or align repository content authorizes the file edits and tool-required commits necessary to perform that requested change.
+
+Do not infer permission for destructive reset, merge, production deployment, or release unless the user requests it or the execution environment explicitly defines that action as part of the requested operation.
+
+`RELEASE READY` means verification evidence is sufficient for the requested scope. It does not mean the product has been released or deployed.
+
+## Feature Compass
+
+Use `CURRENT_ITERATION.md` as a compact orientation layer for meaningful tracked work. It should make these facts obvious without reconstructing conversation history:
+
+`Feature Shape -> Current Position -> Delta -> Evidence -> Next Move`
+
+Rules:
+
+- Keep it compact; do not duplicate the full specification.
+- Update it when meaningful work changes the state of an existing tracked iteration.
+- Do not create or rename a product iteration without user intent establishing that scope.
+- The agent may move the recorded engineering position through IMPLEMENT, VERIFY, QUALITY GATES, and RELEASE READY when evidence supports it.
+- Do not mark work RELEASED or DEPLOYED without actual evidence of that action.
+- Do not force iteration tracking for trivial edits where it adds no orientation value.
+
+## Verification And Quality Gates
+
+Verification must target observable behavior and the risk boundary of the change.
+
+Default progression:
+
+1. Inspect or add the narrowest relevant test/evidence.
 2. Implement the smallest useful slice.
-3. Run the narrow relevant test.
-4. Broaden verification only when the risk boundary requires it.
+3. Run focused verification.
+4. Broaden to typecheck, lint, integration, browser, build, Compose, or other gates only when the affected boundary justifies it.
 
-Do not report browser/runtime/deployment confidence from unit tests alone.
+Test-first is useful when it clarifies behavior or prevents a regression, but do not force RED -> GREEN ceremony when a different verification path is more efficient and equally reliable.
 
-## Verification Menu
+Never claim browser, runtime, migration, deployment, PDF/TTE, or end-to-end confidence from unit tests alone. Use `.agents/DEVELOPMENT.md` for available commands and report skipped gates explicitly.
 
-Frontend:
+High-risk areas include authentication, role/OPD authorization, TTE credentials, PDF signing/verification, public archive access, notifications, persistence invariants, and Prisma migrations. Include negative-path verification when those boundaries change.
 
-```sh
-cd client
-pnpm typecheck
-pnpm lint
-pnpm test
-pnpm test:e2e:critical
-```
+## Code Quality
 
-Backend:
+Optimize for the smallest correct, clear, maintainable change.
 
-```sh
-cd server
-pnpm typecheck
-pnpm lint
-pnpm test
-pnpm test:core-unit
-pnpm test:integration:docker
-```
+- Follow existing repository conventions before introducing a new pattern.
+- Keep behavior ownership explicit.
+- Prefer self-explanatory names, types, and contracts.
+- Document WHY, constraints, invariants, compatibility, concurrency, security, or non-obvious operational behavior; do not add comments that merely translate code.
+- Remove dead code made obsolete by the requested change, but do not perform unrelated cleanup.
+- Treat every new dependency as additional operated code; add one only when its value justifies its maintenance, security, and blast-radius cost.
 
-Compose/runtime:
+## Retrospective Rule
 
-```sh
-docker compose --env-file .env config
-docker compose --env-file .env build
-docker compose --env-file .env up -d
-docker compose --env-file .env ps
-docker compose --env-file .env logs -f frontend backend
-```
+Do not run a retrospective after every small change.
 
-Use focused tests for narrow changes and disclose unrun gates in the final response.
+Use one after a sprint/release, significant rework or failure, repeated delivery friction, or an explicit user request. Base it on evidence:
 
-## Frontend UX Direction
+`Evidence -> Bottleneck -> Root Cause -> Small Improvement -> Verify`
+
+Retrospective output should improve the delivery system, not become a status report or ceremony.
+
+## Frontend Product Direction
 
 - Build the usable workflow screen first, not a marketing shell.
 - Keep operational screens dense, clear, and role-oriented.
 - Prefer existing UI primitives and lucide-react icons.
-- Avoid generic decorative gradients, oversized cards, and AI-styled filler copy.
+- Avoid generic decorative gradients, oversized cards, and filler copy.
 - For SOP authoring, prefer a preview-centered workbench and contextual editing over a tall wizard.
-- Ensure mobile and desktop layouts do not overlap, truncate critical text, or shift unexpectedly.
+- Ensure mobile and desktop layouts preserve critical information and interaction stability.
 
 ## Security And Data Integrity
 
-- Treat authentication, role access, OPD ownership, TTE credentials, PDF signing, public archive access, notifications, and Prisma migrations as high-risk areas.
-- Preserve credential boundaries: JWT secrets, TTE encryption secret, and database credentials must not be exposed in client code or committed.
-- When touching TTE/PDF code, verify PIN hashing, P12 passphrase encryption, versioned ciphertext, signing output, and verification paths.
-- When touching multi-role data access, add tests for cross-role and cross-OPD denial cases.
+- Never expose or commit real secret values from root `.env`, `server/.env`, or other environment state.
+- Preserve credential boundaries for JWT, TTE encryption, and database credentials.
+- When touching TTE/PDF behavior, verify the relevant hashing, encryption, ciphertext/versioning, signing output, and verification path.
+- When touching multi-role data access, verify cross-role and cross-OPD denial behavior.
+- Keep database invariants aligned with `server/prisma/DB-INVARIANTS.md` when persistence invariants change.
 
-## Reporting
+## Final Reporting
 
-Final reports should include:
+For meaningful changes, report only decision-useful evidence:
 
+- What behavior or repository rule changed.
 - Files changed.
 - Verification run and exact result.
-- Any skipped gates or assumptions.
-- Whether the change is local only, committed, pushed, deployed, or not.
+- Skipped gates, unresolved risks, or assumptions.
+- Current lifecycle/iteration position when tracked.
+- The single next meaningful action, if one remains.
+- Whether the state is local/committed/release-ready/deployed only when supported by evidence.
