@@ -75,62 +75,46 @@ jobs:
           node <<'NODE'
           const { PrismaClient } = require('./src/generated/prisma')
           const { PrismaMariaDb } = require('@prisma/adapter-mariadb')
-
-          const adapter = new PrismaMariaDb({
-            host: process.env.DATABASE_HOST,
-            port: Number(process.env.DATABASE_PORT),
-            user: process.env.DATABASE_USER,
-            password: process.env.DATABASE_PASSWORD,
-            database: process.env.DATABASE_NAME,
-            connectionLimit: 4,
+          const prisma = new PrismaClient({
+            adapter: new PrismaMariaDb({
+              host: process.env.DATABASE_HOST,
+              port: Number(process.env.DATABASE_PORT),
+              user: process.env.DATABASE_USER,
+              password: process.env.DATABASE_PASSWORD,
+              database: process.env.DATABASE_NAME,
+              connectionLimit: 4,
+            }),
           })
-          const prisma = new PrismaClient({ adapter })
 
-          const triggers = [
-            `CREATE TRIGGER trg_detailsoppelaksana_pelaksana_opd_insert
-             BEFORE INSERT ON DetailSOPPelaksana
-             FOR EACH ROW
-             BEGIN
-               IF (SELECT p.opdId FROM Pelaksana p WHERE p.pelaksanaId = NEW.pelaksanaId) <>
-                  (SELECT s.opdId FROM DetailSOP d JOIN SOP s ON s.sopId = d.sopId
-                   WHERE d.detailSopId = NEW.detailSopId LIMIT 1) THEN
-                 SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Pelaksana swimlane harus dari OPD yang sama dengan SOP';
-               END IF;
-             END`,
-            `CREATE TRIGGER trg_detailsoppelaksana_pelaksana_opd_update
-             BEFORE UPDATE ON DetailSOPPelaksana
-             FOR EACH ROW
-             BEGIN
-               IF (SELECT p.opdId FROM Pelaksana p WHERE p.pelaksanaId = NEW.pelaksanaId) <>
-                  (SELECT s.opdId FROM DetailSOP d JOIN SOP s ON s.sopId = d.sopId
-                   WHERE d.detailSopId = NEW.detailSopId LIMIT 1) THEN
-                 SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Pelaksana swimlane harus dari OPD yang sama dengan SOP';
-               END IF;
-             END`,
-            `CREATE TRIGGER trg_langkahsop_pelaksana_opd_insert
-             BEFORE INSERT ON LangkahSOP
-             FOR EACH ROW
-             BEGIN
-               IF (SELECT p.opdId FROM Pelaksana p WHERE p.pelaksanaId = NEW.pelaksanaId) <>
-                  (SELECT s.opdId FROM DetailSOP d JOIN SOP s ON s.sopId = d.sopId
-                   WHERE d.detailSopId = NEW.detailSopId LIMIT 1) THEN
-                 SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Pelaksana langkah harus dari OPD yang sama dengan SOP';
-               END IF;
-             END`,
-            `CREATE TRIGGER trg_langkahsop_pelaksana_opd_update
-             BEFORE UPDATE ON LangkahSOP
-             FOR EACH ROW
-             BEGIN
-               IF (SELECT p.opdId FROM Pelaksana p WHERE p.pelaksanaId = NEW.pelaksanaId) <>
-                  (SELECT s.opdId FROM DetailSOP d JOIN SOP s ON s.sopId = d.sopId
-                   WHERE d.detailSopId = NEW.detailSopId LIMIT 1) THEN
-                 SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Pelaksana langkah harus dari OPD yang sama dengan SOP';
-               END IF;
-             END`,
-          ]
+          const triggerFor = (name, action, table, message) => `
+            CREATE TRIGGER ${name}
+            BEFORE ${action} ON ${table}
+            FOR EACH ROW
+            BEGIN
+              IF (SELECT p.opdId FROM Pelaksana p WHERE p.pelaksanaId = NEW.pelaksanaId) <>
+                 (SELECT s.opdId FROM DetailSOP d JOIN SOP s ON s.sopId = d.sopId
+                  WHERE d.detailSopId = NEW.detailSopId LIMIT 1) THEN
+                SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = '${message}';
+              END IF;
+            END`
 
           async function main() {
-            for (const trigger of triggers) await prisma.$executeRawUnsafe(trigger)
+            await prisma.$executeRawUnsafe(triggerFor(
+              'trg_detailsoppelaksana_pelaksana_opd_insert', 'INSERT', 'DetailSOPPelaksana',
+              'Pelaksana swimlane harus dari OPD yang sama dengan SOP',
+            ))
+            await prisma.$executeRawUnsafe(triggerFor(
+              'trg_detailsoppelaksana_pelaksana_opd_update', 'UPDATE', 'DetailSOPPelaksana',
+              'Pelaksana swimlane harus dari OPD yang sama dengan SOP',
+            ))
+            await prisma.$executeRawUnsafe(triggerFor(
+              'trg_langkahsop_pelaksana_opd_insert', 'INSERT', 'LangkahSOP',
+              'Pelaksana langkah harus dari OPD yang sama dengan SOP',
+            ))
+            await prisma.$executeRawUnsafe(triggerFor(
+              'trg_langkahsop_pelaksana_opd_update', 'UPDATE', 'LangkahSOP',
+              'Pelaksana langkah harus dari OPD yang sama dengan SOP',
+            ))
           }
 
           main().finally(() => prisma.$disconnect()).catch((error) => {
@@ -146,16 +130,16 @@ jobs:
           const assert = require('node:assert/strict')
           const { PrismaClient } = require('./src/generated/prisma')
           const { PrismaMariaDb } = require('@prisma/adapter-mariadb')
-
-          const adapter = new PrismaMariaDb({
-            host: process.env.DATABASE_HOST,
-            port: Number(process.env.DATABASE_PORT),
-            user: process.env.DATABASE_USER,
-            password: process.env.DATABASE_PASSWORD,
-            database: process.env.DATABASE_NAME,
-            connectionLimit: 4,
+          const prisma = new PrismaClient({
+            adapter: new PrismaMariaDb({
+              host: process.env.DATABASE_HOST,
+              port: Number(process.env.DATABASE_PORT),
+              user: process.env.DATABASE_USER,
+              password: process.env.DATABASE_PASSWORD,
+              database: process.env.DATABASE_NAME,
+              connectionLimit: 4,
+            }),
           })
-          const prisma = new PrismaClient({ adapter })
 
           const ids = {
             opdA: '11111111-1111-1111-1111-111111111111',
@@ -204,8 +188,8 @@ jobs:
                 pelaksanaId: ids.actorB,
               },
             })
-            const before = await prisma.langkahSOP.findUnique({ where: { langkahSopId: ids.step } })
-            assert.equal(before.pelaksanaId, ids.actorB)
+            const step = await prisma.langkahSOP.findUnique({ where: { langkahSopId: ids.step } })
+            assert.equal(step.pelaksanaId, ids.actorB)
           }
 
           main().finally(() => prisma.$disconnect()).catch((error) => {
@@ -223,7 +207,10 @@ jobs:
           pnpm prisma generate
           mv prisma/migrations prisma/migrations-all
           mkdir prisma/migrations
+          mkdir prisma/migrations/00000000000000_rehearsal_baseline
+          touch prisma/migrations/00000000000000_rehearsal_baseline/migration.sql
           cp -R prisma/migrations-all/20260901111500_global_pelaksana_catalog prisma/migrations/
+          pnpm prisma migrate resolve --applied 00000000000000_rehearsal_baseline
           pnpm prisma migrate deploy
 
       - name: Assert dedup snapshots uniqueness and swimlane trigger
@@ -233,16 +220,16 @@ jobs:
           const assert = require('node:assert/strict')
           const { PrismaClient } = require('./src/generated/prisma')
           const { PrismaMariaDb } = require('@prisma/adapter-mariadb')
-
-          const adapter = new PrismaMariaDb({
-            host: process.env.DATABASE_HOST,
-            port: Number(process.env.DATABASE_PORT),
-            user: process.env.DATABASE_USER,
-            password: process.env.DATABASE_PASSWORD,
-            database: process.env.DATABASE_NAME,
-            connectionLimit: 4,
+          const prisma = new PrismaClient({
+            adapter: new PrismaMariaDb({
+              host: process.env.DATABASE_HOST,
+              port: Number(process.env.DATABASE_PORT),
+              user: process.env.DATABASE_USER,
+              password: process.env.DATABASE_PASSWORD,
+              database: process.env.DATABASE_NAME,
+              connectionLimit: 4,
+            }),
           })
-          const prisma = new PrismaClient({ adapter })
 
           const ids = {
             opdB: '22222222-2222-2222-2222-222222222222',
@@ -269,10 +256,7 @@ jobs:
             const step = await prisma.langkahSOP.findUnique({ where: { langkahSopId: ids.step } })
             assert.equal(step.pelaksanaId, ids.actorA, 'LangkahSOP must be rewired to canonical actor')
 
-            const lanes = await prisma.detailSOPPelaksana.findMany({
-              where: { detailSopId: ids.detail },
-              orderBy: { urutan: 'asc' },
-            })
+            const lanes = await prisma.detailSOPPelaksana.findMany({ where: { detailSopId: ids.detail } })
             assert.deepEqual(
               lanes.map((lane) => lane.pelaksanaId),
               [ids.actorA],
@@ -308,10 +292,7 @@ jobs:
             )
 
             await expectRejected(
-              () =>
-                prisma.pelaksana.create({
-                  data: { opdId: ids.opdB, nama: 'Renamed Actor' },
-                }),
+              () => prisma.pelaksana.create({ data: { opdId: ids.opdB, nama: 'Renamed Actor' } }),
               'global actor name uniqueness must reject duplicate names across OPD shadows',
             )
 
@@ -319,20 +300,19 @@ jobs:
               data: { opdId: ids.opdB, nama: 'Other Actor' },
             })
             await expectRejected(
-              () =>
-                prisma.langkahSOP.create({
-                  data: {
-                    detailSopId: ids.detail,
-                    kegiatan: 'Invalid actor',
-                    urutan: 2,
-                    kelengkapan: '-',
-                    keluaran: '-',
-                    waktu: 1,
-                    satuanWaktu: 'm',
-                    keterangan: '-',
-                    pelaksanaId: otherActor.pelaksanaId,
-                  },
-                }),
+              () => prisma.langkahSOP.create({
+                data: {
+                  detailSopId: ids.detail,
+                  kegiatan: 'Invalid actor',
+                  urutan: 2,
+                  kelengkapan: '-',
+                  keluaran: '-',
+                  waktu: 1,
+                  satuanWaktu: 'm',
+                  keterangan: '-',
+                  pelaksanaId: otherActor.pelaksanaId,
+                },
+              }),
               'step actor must already be selected as a swimlane for the same DetailSOP',
             )
           }
