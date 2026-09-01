@@ -104,8 +104,8 @@ export function ProcessWorkQueuePage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   const ownerProcessIds = useMemo(
-    () => new Set(processes.filter((process) => process.ownerId === user?.penggunaId).map((process) => process.processId)),
-    [processes, user?.penggunaId],
+    () => new Set(processes.filter((process) => process.ownerId === user?.id).map((process) => process.processId)),
+    [processes, user?.id],
   )
   const processRows = useMemo(
     () => (list as ProcessAwareSopRow[]).filter((row) => row.processId != null),
@@ -154,7 +154,7 @@ export function ProcessWorkQueuePage() {
           </div>
         ) : (
           <EmptyState
-            icon={ClipboardCheck}
+            icon={<ClipboardCheck />}
             title="Tidak ada tindakan saat ini"
             description="Draft, revisi, atau review Process Owner yang membutuhkan Anda akan muncul di sini."
           />
