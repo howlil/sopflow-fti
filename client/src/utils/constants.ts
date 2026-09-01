@@ -57,6 +57,7 @@ export const ROUTES = {
   /** Platform administration; independent from legacy workflow role routes. */
   ADMIN: {
     PROCESSES: "/admin/processes",
+    AUTHORITIES: "/admin/authorities",
   },
   APPROVAL: {
     INBOX: "/approval",
