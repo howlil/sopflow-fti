@@ -75,6 +75,44 @@ Typical progression:
 
 Do not run every available gate by default if the change is bounded and narrower evidence is sufficient. Do not skip a broader gate when the affected boundary specifically requires it.
 
+## Lean CI Baseline
+
+CI is a fast feedback gate, not a second release pipeline.
+
+Default push/PR CI is package-scoped and path-triggered so unrelated packages do not run. Stale runs should be cancelled when a newer commit supersedes them.
+
+Server default CI may run only deterministic checks that need no external service:
+
+1. dependency install from lockfile
+2. Prisma schema validation and client generation
+3. TypeScript typecheck
+4. core unit tests
+5. focused target-domain unit tests not yet included in the core unit script
+
+Client default CI may run:
+
+1. dependency install from lockfile
+2. production build / generated route refresh
+3. generated route-tree consistency check when the generated file is tracked
+4. TypeScript typecheck
+5. unit/component tests
+
+Do **not** add the following to every push/PR by default:
+
+- Docker or Compose startup
+- MariaDB-backed integration tests
+- Playwright/browser E2E
+- full end-to-end business journeys
+- coverage collection
+- deployment, release, or production smoke tests
+- expensive duplicated build/test matrices
+
+Escalate to integration, E2E, Docker/runtime, migration rehearsal, or release checks only when the changed risk boundary actually requires that evidence, when a repeated escaped defect demonstrates a gap, or when a release-specific workflow is explicitly being verified.
+
+Do not make a known noisy/pre-existing repository-wide lint baseline a required CI gate. Prefer targeted lint during implementation; promote broader lint to required CI only after the baseline is clean or a stable changed-files lint strategy exists.
+
+Keep default CI small enough that developers treat it as immediate feedback rather than a queue. If a deterministic default gate becomes materially slow, first remove duplication, scope by package/path, cancel superseded runs, or split independent jobs in parallel before dropping useful correctness evidence.
+
 ## Testing Guidance
 
 - Backend Jest root is `server/src`; many focused tests are colocated with modules.
