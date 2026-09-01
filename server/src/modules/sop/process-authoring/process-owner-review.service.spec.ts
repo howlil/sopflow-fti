@@ -14,11 +14,20 @@ const user = {
   sesiTokenVersion: 1,
 };
 
-function makeService(options?: { owner?: boolean; status?: StatusSOP }) {
+function makeService(options?: { owner?: boolean; status?: StatusSOP; transitionCount?: number }) {
+  const tx = {
+    detailSOP: {
+      updateMany: jest.fn().mockResolvedValue({ count: options?.transitionCount ?? 1 }),
+    },
+    logEditSOP: {
+      create: jest.fn().mockResolvedValue({}),
+    },
+  };
   const prisma = {
     processSopBinding: {
       findUnique: jest.fn().mockResolvedValue({ processId: 'process-a' }),
     },
+    $transaction: jest.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
   } as unknown as PrismaService;
   const processContext = {
     assertCanAuthor: jest.fn().mockResolvedValue({ processId: 'process-a' }),
@@ -50,7 +59,6 @@ function makeService(options?: { owner?: boolean; status?: StatusSOP }) {
       lampiranPeralatanPerlengkapan: [{ teks: 'x' }],
       lampiranPencatatanPendataan: [{ teks: 'x' }],
     }),
-    updateDetailSopStatus: jest.fn().mockResolvedValue(undefined),
   } as unknown as SopCatalogRepository;
   const authoring = {
     getWorkbench: jest.fn().mockResolvedValue({ detail: { id: 'detail-a' }, langkah: [] }),
@@ -58,28 +66,31 @@ function makeService(options?: { owner?: boolean; status?: StatusSOP }) {
 
   return {
     service: new ProcessOwnerReviewService(prisma, processContext, repository, authoring),
-    prisma,
     processContext,
     repository,
     authoring,
+    tx,
   };
 }
 
 describe('ProcessOwnerReviewService', () => {
   it('submits a Process SOP directly into Process Owner review without legacy evaluation intake', async () => {
-    const { service, repository } = makeService();
+    const { service, tx } = makeService();
 
     await service.submitForReview(user, 'detail-a');
 
-    expect(repository.updateDetailSopStatus).toHaveBeenCalledWith({
-      detailSopId: 'detail-a',
-      status: StatusSOP.SEDANG_DIEVALUASI,
-      userId: 'user-1',
+    expect(tx.detailSOP.updateMany).toHaveBeenCalledWith({
+      where: { detailSopId: 'detail-a', status: StatusSOP.DRAFT },
+      data: {
+        status: StatusSOP.SEDANG_DIEVALUASI,
+        terakhirDieditOlehId: 'user-1',
+      },
     });
+    expect(tx.logEditSOP.create).toHaveBeenCalled();
   });
 
   it('allows only the Process Owner to return a submitted SOP for revision', async () => {
-    const { service, processContext, repository } = makeService({
+    const { service, processContext, tx } = makeService({
       owner: true,
       status: StatusSOP.SEDANG_DIEVALUASI,
     });
@@ -87,29 +98,42 @@ describe('ProcessOwnerReviewService', () => {
     await service.review(user, 'detail-a', ProcessReviewDecision.REVISION);
 
     expect(processContext.assertCanReview).toHaveBeenCalledWith('user-1', 'process-a');
-    expect(repository.updateDetailSopStatus).toHaveBeenCalledWith({
-      detailSopId: 'detail-a',
-      status: StatusSOP.REVISI_DARI_EVALUATOR,
-      userId: 'user-1',
+    expect(tx.detailSOP.updateMany).toHaveBeenCalledWith({
+      where: { detailSopId: 'detail-a', status: StatusSOP.SEDANG_DIEVALUASI },
+      data: {
+        status: StatusSOP.REVISI_DARI_EVALUATOR,
+        terakhirDieditOlehId: 'user-1',
+      },
     });
   });
 
   it('maps Process Owner acceptance to the transitional ready-for-approval status', async () => {
-    const { service, repository } = makeService({
-      status: StatusSOP.SEDANG_DIEVALUASI,
-    });
+    const { service, tx } = makeService({ status: StatusSOP.SEDANG_DIEVALUASI });
 
     await service.review(user, 'detail-a', ProcessReviewDecision.ACCEPT);
 
-    expect(repository.updateDetailSopStatus).toHaveBeenCalledWith({
-      detailSopId: 'detail-a',
-      status: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
-      userId: 'user-1',
+    expect(tx.detailSOP.updateMany).toHaveBeenCalledWith({
+      where: { detailSopId: 'detail-a', status: StatusSOP.SEDANG_DIEVALUASI },
+      data: {
+        status: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
+        terakhirDieditOlehId: 'user-1',
+      },
     });
   });
 
   it('rejects review decisions outside the submitted Process Owner review state', async () => {
     const { service } = makeService({ status: StatusSOP.DRAFT });
+
+    await expect(service.review(user, 'detail-a', ProcessReviewDecision.ACCEPT)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+  });
+
+  it('rejects a stale concurrent review decision instead of overwriting the winner', async () => {
+    const { service } = makeService({
+      status: StatusSOP.SEDANG_DIEVALUASI,
+      transitionCount: 0,
+    });
 
     await expect(service.review(user, 'detail-a', ProcessReviewDecision.ACCEPT)).rejects.toBeInstanceOf(
       ConflictException,

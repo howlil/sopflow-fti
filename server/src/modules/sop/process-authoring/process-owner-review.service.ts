@@ -2,11 +2,12 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import type { JwtAccessPayload } from '../../../common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { assertDetailSopEditable } from '../../../common/status/sop-editable.util';
-import { StatusSOP } from '../../../generated/prisma';
+import { BagianSOP, StatusSOP } from '../../../generated/prisma';
 import { ProcessContextService } from '../../core/process/process-context.service';
+import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
 import { assertSopWorkbenchCompleteForSiapDievaluasi } from '../catalog/sop-completeness.validator';
 import { SopCatalogRepository } from '../catalog/sop-catalog.repository';
-import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
+import { appendOrCreateLogSession } from '../collaboration/log-edit-session.helper';
 import { ProcessReviewDecision } from './dto/process-review-decision.dto';
 import { ProcessSopAuthoringService } from './process-sop-authoring.service';
 
@@ -46,9 +47,10 @@ export class ProcessOwnerReviewService {
 
     // Transitional persisted status. For Process-bound SOPs this means
     // "submitted / under Process Owner review", not centralized evaluator ownership.
-    await this.sopCatalogRepository.updateDetailSopStatus({
+    await this.transitionStatus({
       detailSopId: context.detailSopId,
-      status: StatusSOP.SEDANG_DIEVALUASI,
+      expectedStatus: statusContext.status,
+      targetStatus: StatusSOP.SEDANG_DIEVALUASI,
       userId: user.sub,
     });
 
@@ -81,13 +83,47 @@ export class ProcessOwnerReviewService {
         ? StatusSOP.REVISI_DARI_EVALUATOR
         : StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR;
 
-    await this.sopCatalogRepository.updateDetailSopStatus({
+    await this.transitionStatus({
       detailSopId: context.detailSopId,
-      status: targetStatus,
+      expectedStatus: StatusSOP.SEDANG_DIEVALUASI,
+      targetStatus,
       userId: user.sub,
     });
 
     return this.processSopAuthoringService.getWorkbench(user, context.detailSopId, logsLimit);
+  }
+
+  private async transitionStatus(params: {
+    detailSopId: string;
+    expectedStatus: StatusSOP;
+    targetStatus: StatusSOP;
+    userId: string;
+  }): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.detailSOP.updateMany({
+        where: {
+          detailSopId: params.detailSopId,
+          status: params.expectedStatus,
+        },
+        data: {
+          status: params.targetStatus,
+          terakhirDieditOlehId: params.userId,
+        },
+      });
+      if (updated.count !== 1) {
+        throw new ConflictException(
+          'Status SOP berubah saat aksi diproses. Muat ulang dokumen lalu ulangi keputusan.',
+        );
+      }
+      await appendOrCreateLogSession({
+        tx,
+        detailSopId: params.detailSopId,
+        penggunaId: params.userId,
+        bagian: BagianSOP.STATUS,
+        fields: ['status'],
+        discrete: true,
+      });
+    });
   }
 
   private async resolveTargetContext(detailOrSopId: string): Promise<{
