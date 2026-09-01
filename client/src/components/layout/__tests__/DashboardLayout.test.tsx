@@ -71,14 +71,14 @@ describe('DashboardLayout desktop sidebar', () => {
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe('false')
   })
 
-  it('memprioritaskan label Process pada route SOP yang sama', () => {
+  it('memprioritaskan queue Process di atas menu role legacy', () => {
     mockProcesses = [{ processId: 'process-1' }]
 
     render(<DashboardLayout />)
 
     expect(screen.getAllByRole('link', { name: 'Beranda Kerja' })).not.toHaveLength(0)
-    expect(screen.getAllByRole('link', { name: 'SOP Proses' })).not.toHaveLength(0)
-    expect(screen.queryByRole('link', { name: 'SOP' })).toBeNull()
+    expect(screen.getAllByRole('link', { name: 'Pekerjaan SOP' })).not.toHaveLength(0)
+    expect(screen.getAllByRole('link', { name: 'SOP' })).not.toHaveLength(0)
   })
 
   it('menampilkan entry persetujuan dari kewenangan organisasi', () => {
