@@ -4,7 +4,23 @@ import { fileURLToPath } from 'node:url'
 
 const clientDir = fileURLToPath(new URL('..', import.meta.url))
 const journeyDir = path.join(clientDir, 'e2e', 'journeys')
-const expectedIds = ['J01', 'J02', 'J03', 'J04', 'J05', 'J06', 'J07', 'J08', 'J09', 'J10', 'J11']
+const expectedIds = [
+  'J01',
+  'J02',
+  'J03',
+  'J04',
+  'J05',
+  'J06',
+  'J07',
+  'J08',
+  'J09',
+  'J10',
+  'J11',
+  'J12',
+  'J13',
+  'J14',
+  'J15',
+]
 const mutationTokens = [
   'apiPost(',
   'apiPatch(',
@@ -32,7 +48,7 @@ for (const file of files) {
   const absolute = path.join(journeyDir, file)
   const content = fs.readFileSync(absolute, 'utf8')
 
-  const testIds = [...content.matchAll(/\btest\(\s*['"`](J(?:0[1-9]|1[01]))\b/g)].map((match) => match[1])
+  const testIds = [...content.matchAll(/\btest\(\s*['"`](J(?:0[1-9]|1[0-5]))\b/g)].map((match) => match[1])
   for (const id of testIds) {
     occurrences.get(id)?.push(file)
   }
