@@ -1,6 +1,6 @@
 import { test, expect } from '../fixtures/business-test'
 import { targetUsers, users } from '../fixtures/users'
-import { apiGet } from '../support/api'
+import { apiGet, toApiUrl } from '../support/api'
 import { expectNoAppShellError, waitForAppReady } from '../support/app'
 import { seedReadyProcessSop } from '../support/fti-process-preconditions'
 
@@ -57,11 +57,15 @@ test.describe('End-to-End Business Journey — Department context isolation', ()
       })
 
       const unrelatedApi = await roleApi(targetUsers.otherDepartmentMember)
-      const unrelatedResponse = await unrelatedApi.get(`/process-sop/workbench/${sop.detailSopId}`)
+      const unrelatedResponse = await unrelatedApi.get(
+        toApiUrl(`/process-sop/workbench/${sop.detailSopId}`),
+      )
       expect(unrelatedResponse.status()).toBe(403)
 
       const superAdminApi = await roleApi(users.pjEvaluator)
-      const superAdminResponse = await superAdminApi.get(`/process-sop/workbench/${sop.detailSopId}`)
+      const superAdminResponse = await superAdminApi.get(
+        toApiUrl(`/process-sop/workbench/${sop.detailSopId}`),
+      )
       expect(superAdminResponse.status()).toBe(403)
     })
   })
