@@ -8,7 +8,7 @@ import {
 } from '@playwright/test'
 
 import { apiBaseURL } from '../support/api'
-import type { E2eUser, RoleKey } from './users'
+import type { E2eUser } from './users'
 
 const browserApiBaseURL =
   process.env.E2E_BROWSER_API_BASE_URL ?? apiBaseURL.replace('127.0.0.1', 'localhost')
@@ -46,21 +46,27 @@ interface BusinessWorkerFixtures {
   roleStorageState: RoleStorageStateFactory
 }
 
+function identityKey(user: E2eUser): string {
+  return user.email.trim().toLowerCase()
+}
+
 /**
  * Fixture khusus business-journey.
  *
- * Satu login dibuat per role per worker. Browser memakai storage state asli dari
+ * Satu login dibuat per identity per worker. Browser memakai storage state asli dari
  * host login, sedangkan API precondition/audit memakai Cookie header dari respons
- * login yang sama. Dengan begitu host-only cookie tidak dipalsukan dan rate limit
- * produksi tidak dilonggarkan hanya untuk test.
+ * login yang sama. Identity key sengaja memakai email, bukan legacy role, karena
+ * beberapa identity FTI dapat memiliki role akun yang sama tetapi Process/authority
+ * capability yang berbeda.
  */
 export const test = base.extend<BusinessTestFixtures, BusinessWorkerFixtures>({
   roleAuth: [
     async ({}, use) => {
-      const bundles = new Map<RoleKey, RoleAuthBundle>()
+      const bundles = new Map<string, RoleAuthBundle>()
 
       await use(async (user) => {
-        const existing = bundles.get(user.role)
+        const key = identityKey(user)
+        const existing = bundles.get(key)
         if (existing) return existing
 
         const authContext = await playwrightRequest.newContext({ baseURL: browserApiBaseURL })
@@ -73,7 +79,9 @@ export const test = base.extend<BusinessTestFixtures, BusinessWorkerFixtures>({
           })
           if (!login.ok()) {
             const body = await login.text().catch(() => '')
-            throw new Error(`Precondition auth ${user.role} gagal (${login.status()}): ${body}`)
+            throw new Error(
+              `Precondition auth ${user.roleLabel} <${user.email}> gagal (${login.status()}): ${body}`,
+            )
           }
 
           const browserStorageState = await authContext.storageState()
@@ -84,7 +92,9 @@ export const test = base.extend<BusinessTestFixtures, BusinessWorkerFixtures>({
             .filter(Boolean)
             .join('; ')
           if (!cookieHeader) {
-            throw new Error(`Precondition auth ${user.role} tidak mengembalikan Set-Cookie`)
+            throw new Error(
+              `Precondition auth ${user.roleLabel} <${user.email}> tidak mengembalikan Set-Cookie`,
+            )
           }
 
           const api = await playwrightRequest.newContext({
@@ -95,11 +105,13 @@ export const test = base.extend<BusinessTestFixtures, BusinessWorkerFixtures>({
           if (!me.ok()) {
             const body = await me.text().catch(() => '')
             await api.dispose()
-            throw new Error(`Cookie API ${user.role} gagal (${me.status()}): ${body}`)
+            throw new Error(
+              `Cookie API ${user.roleLabel} <${user.email}> gagal (${me.status()}): ${body}`,
+            )
           }
 
           const bundle = { api, browserStorageState }
-          bundles.set(user.role, bundle)
+          bundles.set(key, bundle)
           return bundle
         } finally {
           await authContext.dispose()
@@ -160,7 +172,7 @@ export const test = base.extend<BusinessTestFixtures, BusinessWorkerFixtures>({
     })
 
     const runtimeErrors = sessions.flatMap((session) =>
-      session.runtimeErrors.map((message) => `${session.user.role}: ${message}`),
+      session.runtimeErrors.map((message) => `${session.user.email}: ${message}`),
     )
 
     await Promise.allSettled(sessions.map((session) => session.context.close()))
