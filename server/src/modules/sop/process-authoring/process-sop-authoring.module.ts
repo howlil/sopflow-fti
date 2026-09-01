@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ProcessModule } from '../../core/process/process.module';
+import { NotificationModule } from '../../notifications/reminders/notification.module';
 import { SopCatalogModule } from '../catalog/sop-catalog.module';
 import { PelaksanaModule } from '../pelaksana/pelaksana.module';
 import { ProcessBoundSopGuard } from './process-bound-sop.guard';
@@ -12,7 +13,7 @@ import { ProcessSopAuthoringController } from './process-sop-authoring.controlle
 import { ProcessSopAuthoringService } from './process-sop-authoring.service';
 
 @Module({
-  imports: [ProcessModule, SopCatalogModule, PelaksanaModule],
+  imports: [ProcessModule, NotificationModule, SopCatalogModule, PelaksanaModule],
   controllers: [
     ProcessSopAuthoringController,
     ProcessOwnerReviewController,
