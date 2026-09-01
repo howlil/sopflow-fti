@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { z } from 'zod'
 import { RouteErrorPage } from '@/components/ui/route-error'
-import { getRoleDefaultLandingPath } from '@/utils/role-routing'
+import { ROUTES } from '@/utils/constants'
 import { getRole, ensureAuthHydrated, syncAuthFromCookie } from '@/stores/authStore'
 
 const homeSearchSchema = z.object({
@@ -35,13 +35,8 @@ export const Route = createFileRoute('/')({
     if (!getRole()) {
       await syncAuthFromCookie()
     }
-    const userRole = getRole()
-    if (!userRole) {
-      return
-    }
-    const targetRoute = getRoleDefaultLandingPath(userRole)
-    if (targetRoute) {
-      throw redirect({ to: targetRoute })
+    if (getRole()) {
+      throw redirect({ to: ROUTES.WORK })
     }
   },
   component: HomeRoutePage,
