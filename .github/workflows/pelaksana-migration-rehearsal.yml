@@ -63,11 +63,81 @@ jobs:
       - name: Restore Sprint 3 Prisma state
         run: git restore --source=6889e0b0fc8b49d6b8a839e6f28a5536b16f8dd3 --staged --worktree server/prisma
 
-      - name: Apply pre-Sprint-4 migration chain
+      - name: Materialize Sprint 3 schema baseline
         working-directory: server
         run: |
           pnpm prisma generate
-          pnpm prisma migrate deploy
+          pnpm prisma db push --accept-data-loss
+
+      - name: Install legacy same-OPD Pelaksana triggers
+        working-directory: server
+        run: |
+          node <<'NODE'
+          const { PrismaClient } = require('./src/generated/prisma')
+          const { PrismaMariaDb } = require('@prisma/adapter-mariadb')
+
+          const adapter = new PrismaMariaDb({
+            host: process.env.DATABASE_HOST,
+            port: Number(process.env.DATABASE_PORT),
+            user: process.env.DATABASE_USER,
+            password: process.env.DATABASE_PASSWORD,
+            database: process.env.DATABASE_NAME,
+            connectionLimit: 4,
+          })
+          const prisma = new PrismaClient({ adapter })
+
+          const triggers = [
+            `CREATE TRIGGER trg_detailsoppelaksana_pelaksana_opd_insert
+             BEFORE INSERT ON DetailSOPPelaksana
+             FOR EACH ROW
+             BEGIN
+               IF (SELECT p.opdId FROM Pelaksana p WHERE p.pelaksanaId = NEW.pelaksanaId) <>
+                  (SELECT s.opdId FROM DetailSOP d JOIN SOP s ON s.sopId = d.sopId
+                   WHERE d.detailSopId = NEW.detailSopId LIMIT 1) THEN
+                 SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Pelaksana swimlane harus dari OPD yang sama dengan SOP';
+               END IF;
+             END`,
+            `CREATE TRIGGER trg_detailsoppelaksana_pelaksana_opd_update
+             BEFORE UPDATE ON DetailSOPPelaksana
+             FOR EACH ROW
+             BEGIN
+               IF (SELECT p.opdId FROM Pelaksana p WHERE p.pelaksanaId = NEW.pelaksanaId) <>
+                  (SELECT s.opdId FROM DetailSOP d JOIN SOP s ON s.sopId = d.sopId
+                   WHERE d.detailSopId = NEW.detailSopId LIMIT 1) THEN
+                 SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Pelaksana swimlane harus dari OPD yang sama dengan SOP';
+               END IF;
+             END`,
+            `CREATE TRIGGER trg_langkahsop_pelaksana_opd_insert
+             BEFORE INSERT ON LangkahSOP
+             FOR EACH ROW
+             BEGIN
+               IF (SELECT p.opdId FROM Pelaksana p WHERE p.pelaksanaId = NEW.pelaksanaId) <>
+                  (SELECT s.opdId FROM DetailSOP d JOIN SOP s ON s.sopId = d.sopId
+                   WHERE d.detailSopId = NEW.detailSopId LIMIT 1) THEN
+                 SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Pelaksana langkah harus dari OPD yang sama dengan SOP';
+               END IF;
+             END`,
+            `CREATE TRIGGER trg_langkahsop_pelaksana_opd_update
+             BEFORE UPDATE ON LangkahSOP
+             FOR EACH ROW
+             BEGIN
+               IF (SELECT p.opdId FROM Pelaksana p WHERE p.pelaksanaId = NEW.pelaksanaId) <>
+                  (SELECT s.opdId FROM DetailSOP d JOIN SOP s ON s.sopId = d.sopId
+                   WHERE d.detailSopId = NEW.detailSopId LIMIT 1) THEN
+                 SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Pelaksana langkah harus dari OPD yang sama dengan SOP';
+               END IF;
+             END`,
+          ]
+
+          async function main() {
+            for (const trigger of triggers) await prisma.$executeRawUnsafe(trigger)
+          }
+
+          main().finally(() => prisma.$disconnect()).catch((error) => {
+            console.error(error)
+            process.exit(1)
+          })
+          NODE
 
       - name: Seed cross-OPD duplicate fixture
         working-directory: server
@@ -147,10 +217,13 @@ jobs:
       - name: Restore Sprint 4 Prisma state
         run: git restore --source="$GITHUB_SHA" --staged --worktree server/prisma
 
-      - name: Apply Sprint 4 migration
+      - name: Apply only Sprint 4 migration to baseline
         working-directory: server
         run: |
           pnpm prisma generate
+          mv prisma/migrations prisma/migrations-all
+          mkdir prisma/migrations
+          cp -R prisma/migrations-all/20260901111500_global_pelaksana_catalog prisma/migrations/
           pnpm prisma migrate deploy
 
       - name: Assert dedup snapshots uniqueness and swimlane trigger
