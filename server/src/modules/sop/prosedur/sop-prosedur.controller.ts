@@ -8,6 +8,7 @@ import {
   Patch,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -21,8 +22,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type ApiSuccessResponse, Roles, UseJwtAndRolesGuards } from '../../../common';
-import { PeranPengguna } from '../../../generated/prisma';
+import { type ApiSuccessResponse, JwtAuthGuard } from '../../../common';
 import {
   ACCESS_TOKEN_COOKIE_NAME,
   type JwtAccessPayload,
@@ -33,16 +33,15 @@ import { SopProsedurService } from './sop-prosedur.service';
 
 @ApiTags('SOP')
 @Controller('sop/langkah')
-@UseJwtAndRolesGuards()
+@UseGuards(JwtAuthGuard)
 export class SopProsedurController {
   constructor(private readonly sopProsedurService: SopProsedurService) {}
 
   @Patch(':detailSopId')
-  @Roles(PeranPengguna.PENYUSUN, PeranPengguna.PJ_PENYUSUN)
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
   @ApiOperation({
     summary:
-      'PATCH prosedur SOP penyusun (jalur pelaksana DetailSOPPelaksana + LangkahSOP). Param :detailSopId boleh DetailSOP atau SOP header (versi terbaru dipakai). Ganti semua per bagian bila dikirim; aman untuk simpan otomatis tertunda.',
+      'PATCH prosedur SOP. Process-bound SOP memakai Process Owner/Member authorization; SOP legacy mempertahankan compatibility penyusun + OPD.',
   })
   @ApiQuery({
     name: 'logsLimit',
@@ -51,8 +50,8 @@ export class SopProsedurController {
     schema: { default: 100, minimum: 1, maximum: 500 },
   })
   @ApiResponse({ status: 200, type: PenyusunWorkbenchDataDto })
-  @ApiBadRequestResponse({ description: 'Validasi DTO gagal / referensi tempId tidak konsisten' })
-  @ApiConflictResponse({ description: 'Konflik integritas (mis. pelaksana lintas OPD)' })
+  @ApiBadRequestResponse({ description: 'Validasi DTO gagal / actor atau tempId tidak konsisten' })
+  @ApiConflictResponse({ description: 'Konflik integritas prosedur' })
   @ApiForbiddenResponse()
   @ApiNotFoundResponse({ description: 'DetailSOP tidak ditemukan' })
   async updateProsedur(
