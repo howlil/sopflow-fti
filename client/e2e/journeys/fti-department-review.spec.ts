@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/business-test'
 import { targetUsers } from '../fixtures/users'
+import { toApiUrl } from '../support/api'
 import {
   expectProcessDraftInMemberQueue,
   expectProcessReviewInOwnerQueue,
@@ -45,7 +46,9 @@ test.describe('End-to-End Business Journey — Department Process owner review',
       await expectProcessRevisionInMemberQueue(member.page, sop.title)
 
       const unrelatedApi = await roleApi(targetUsers.otherDepartmentMember)
-      const response = await unrelatedApi.get(`/process-sop/workbench/${sop.detailSopId}`)
+      const response = await unrelatedApi.get(
+        toApiUrl(`/process-sop/workbench/${sop.detailSopId}`),
+      )
       expect(response.status()).toBe(403)
     })
   })
