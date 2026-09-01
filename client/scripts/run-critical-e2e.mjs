@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 const clientDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const serverDir = resolve(clientDir, '..', 'server')
-const journeyIds = ['J01', 'J02', 'J03', 'J04', 'J05', 'J06', 'J07']
+const journeyIds = ['J01', 'J02', 'J03', 'J04', 'J05', 'J06', 'J07', 'J08']
 
 function run(command, args, cwd, extraEnv = {}) {
   const result = spawnSync(command, args, {
@@ -44,9 +44,9 @@ for (const journeyId of journeyIds) {
     clientDir,
     {
       E2E_SEED: 'false',
-      // roleAuth di business fixture sudah membuktikan login untuk role yang benar-benar
+      // roleAuth di business fixture sudah membuktikan login untuk identity yang benar-benar
       // dipakai journey. Login preflight global per proses hanya menggandakan request
-      // auth dan dapat memicu rate limit ketika J01-J07 dijalankan terisolasi.
+      // auth dan dapat memicu rate limit ketika journey dijalankan terisolasi.
       E2E_SKIP_LOGIN_PREFLIGHT: 'true',
       E2E_TEST_RUN_ID: `${journeyId}-${Date.now()}`,
     },
