@@ -210,6 +210,37 @@ Members may:
 
 Membership is contextual. Being a member of one Process Team must not automatically grant author/review rights to unrelated processes.
 
+## Global Procedure Actor Catalog
+
+`Pelaksana` is the canonical reusable vocabulary for procedure/swimlane actors such as `Dosen`, `Mahasiswa`, or `Admin Akademik`.
+
+Catalog identity is global to the FTI application. A Pelaksana catalog row is not owned by an OPD, Department, Faculty, Process, Process Team, or individual SOP.
+
+Canonical separation:
+
+```text
+Global Pelaksana Catalog
+  -> reusable actor identity / current label
+
+SOP Version
+  -> selects Pelaksana entries as swimlanes
+  -> snapshots the actor labels used by that version
+
+Procedure Step
+  -> may reference only an actor selected by that same SOP version
+```
+
+Rules:
+
+- Process/organizational scope determines who may author the SOP, not which Pelaksana catalog entries exist.
+- Any active authenticated user may create or edit Pelaksana catalog entries; this permission does not make the user a Process Owner, reviewer, or approver.
+- New catalog mutations must retain actual creator/latest-editor attribution. Unknown legacy attribution remains unknown rather than being fabricated.
+- Historical/versioned SOP rendering must use its stable actor-label snapshot. Renaming a global catalog entry must not rewrite wording in an already snapshotted SOP version.
+- Usage of a Pelaksana belongs to the SOP-version/swimlane relationship; it does not transfer ownership of the global catalog row to that Process or SOP.
+- A procedure step may use a Pelaksana only when that actor is selected as a swimlane for the same SOP version.
+- Exact duplicates may be consolidated when identity is unambiguous after normalized comparison. Do not fuzzy-merge merely similar actor labels.
+- Legacy `Pelaksana.opdId`, while it remains physically present during migration, is a compatibility shadow rather than target ownership or authorization semantics.
+
 ## Workflow Actors vs Organizational Positions
 
 Keep workflow capability separate from organizational position.
@@ -483,6 +514,14 @@ Treat these as canonical unless explicitly changed by the user:
 19. When a Super Admin also holds a Process or organizational authority, workflow permission derives from that separate assignment/authority.
 20. Super Admin must not be an implicit fallback from Faculty/Department final-approver resolution.
 21. Exceptional administrative repair must remain explicit/audited and must not fabricate workflow/TTE history.
+22. `Pelaksana` catalog identity is global and reusable; it is not owned by OPD, Faculty, Department, Process, Process Team, or SOP.
+23. Selection of a Pelaksana into an SOP version is a usage relationship, not catalog ownership.
+24. Procedure steps may reference only Pelaksana selected into the same SOP version's swimlane set.
+25. Historical SOP versions use snapshotted Pelaksana labels; later catalog renames must not rewrite historical/versioned wording.
+26. New Pelaksana mutations retain actual creator/latest-editor attribution; unknown legacy attribution stays unknown.
+27. Active authenticated users may maintain the global Pelaksana catalog without gaining Process review or approval authority from that maintenance permission.
+28. Legacy `Pelaksana.opdId` is a compatibility shadow until contract cleanup, not target authorization or ownership.
+29. Duplicate Pelaksana consolidation must be identity-safe; exact normalized duplicates may consolidate, but fuzzy/ambiguous near-duplicates must not be auto-merged.
 
 ## Legacy Implementation vs Target Domain
 
