@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { PlatformAdminGuard } from './guards/platform-admin.guard';
 import { HealthController } from './health.controller';
 import { HealthService } from './health.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -17,10 +18,17 @@ import { SecurityRateLimiterService } from './security/security-rate-limiter.ser
   providers: [
     JwtAuthGuard,
     RolesGuard,
+    PlatformAdminGuard,
     CsrfProtectionService,
     HealthService,
     SecurityRateLimiterService,
   ],
-  exports: [JwtAuthGuard, RolesGuard, CsrfProtectionService, SecurityRateLimiterService],
+  exports: [
+    JwtAuthGuard,
+    RolesGuard,
+    PlatformAdminGuard,
+    CsrfProtectionService,
+    SecurityRateLimiterService,
+  ],
 })
 export class CommonModule {}

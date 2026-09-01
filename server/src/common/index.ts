@@ -4,6 +4,7 @@
  */
 export { Roles, UseJwtAndRolesGuards } from './decorators/roles.decorator';
 export { JwtAuthGuard } from './guards/jwt-auth.guard';
+export { PlatformAdminGuard } from './guards/platform-admin.guard';
 export { RolesGuard } from './guards/roles.guard';
 export { createDefaultValidationPipe } from './pipes/default-validation.pipe';
 

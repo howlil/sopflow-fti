@@ -5,7 +5,7 @@
 import type { CookieOptions } from 'express';
 import ms from 'ms';
 import type { StringValue } from 'ms';
-import type { PeranPengguna } from '../../../../generated/prisma';
+import type { PeranPengguna, PlatformRole } from '../../../../generated/prisma';
 import type { JwtAccessPayload } from '../../../../common/types/jwt-access-payload.type';
 
 const DEFAULT_TIMESPAN = '15m' as const satisfies StringValue;
@@ -26,10 +26,6 @@ function durationMsFromString(timespan: string): number | null {
   }
 }
 
-/**
- * Menghitung durasi token akses: `jsonwebtoken` menerima string timespan, tetapi parsing bisa gagal
- * bila nilai env aneh; memberi **expiresIn berupa detik (integer)** menghindari cabang string di library.
- */
 export function resolveAccessTokenExpiry(raw: unknown): {
   expiresInSeconds: number;
   maxAgeMs: number;
@@ -95,7 +91,6 @@ export function buildAccessTokenCookieOptions(
   };
 }
 
-/** Opsi `res.clearCookie` yang selaras dengan `buildAccessTokenCookieOptions` (tanpa `maxAge`). */
 export function buildClearAccessTokenCookieOptions(
   isProduction: boolean,
 ): Pick<CookieOptions, 'path' | 'httpOnly' | 'sameSite' | 'secure'> {
@@ -172,6 +167,7 @@ export type PublicPengguna = {
   readonly email: string;
   readonly nama: string;
   readonly peran: PeranPengguna;
+  readonly platformRole: PlatformRole;
   readonly opdId: string;
   readonly nip: string;
   readonly jabatan: string;
