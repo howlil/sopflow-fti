@@ -6,6 +6,7 @@ on:
       - feat/global-pelaksana-catalog
     paths:
       - '.github/workflows/pelaksana-migration-rehearsal.yml'
+      - 'server/prisma/migrations/20260901111500_global_pelaksana_catalog/migration.sql'
 
 permissions:
   contents: read
