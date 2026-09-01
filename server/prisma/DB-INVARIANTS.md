@@ -14,7 +14,7 @@ Dokumen ini merangkum aturan bisnis yang tidak cukup dijelaskan oleh foreign key
 
 ## FTI Platform Role dan Process Foundation
 
-Sprint 2 menambahkan model FTI secara additive; invariant legacy OPD di bawah tetap berlaku sampai slice migrasi berikutnya memindahkan ownership SOP.
+Model FTI ditambahkan secara additive; invariant legacy OPD tetap berlaku pada compatibility path sampai slice migrasi terkait memindahkan ownership/authority secara eksplisit.
 
 - `Pengguna.platformRole` adalah axis administrasi platform yang terpisah dari `Pengguna.peran`. Nilai default adalah `USER`.
 - `SUPER_ADMIN` tidak mengubah atau membypass `PeranPengguna`, Process relationship, review authority, final approval, atau TTE authority.
@@ -26,7 +26,7 @@ Sprint 2 menambahkan model FTI secara additive; invariant legacy OPD di bawah te
 - Owner dan seluruh member yang ditugaskan harus merupakan pengguna aktif pada saat mutasi Process.
 - Assignment pada Process A tidak memberikan relationship pada Process B.
 
-Model `Process` belum menjadi owner persistence untuk `SOP` pada Sprint 2. `SOP.opdId` tetap dipertahankan sampai vertical slice SOP ownership melakukan cutover secara eksplisit.
+`ProcessSopBinding` adalah compatibility seam untuk SOP target-path. Jika sebuah SOP memiliki binding Process, authoring/mutasi procedure ditentukan oleh relationship pengguna terhadap Process tersebut, bukan sekadar legacy role atau kesamaan `opdId`. SOP yang belum memiliki binding masih dapat menggunakan compatibility authorization sampai slice legacy contract cleanup.
 
 ## Transisi Status DetailSOP
 
@@ -84,9 +84,17 @@ Invariant concurrency ini diuji terhadap MariaDB nyata pada `test/integration/da
 
 ## Invariant Pelaksana dan Langkah SOP
 
-- `Pelaksana` unik per OPD berdasarkan pasangan `(opdId, nama)`.
-- `DetailSOPPelaksana.pelaksanaId` harus berasal dari OPD yang sama dengan SOP pemilik `detailSopId`.
-- `LangkahSOP.pelaksanaId` harus berasal dari OPD yang sama dengan SOP pemilik `detailSopId`.
+Target semantics Sprint 4:
+
+- `Pelaksana` adalah katalog aktor prosedur global yang reusable. Identity katalog tidak dimiliki OPD, Department, Faculty, Process, atau Process Team.
+- `Pelaksana.nama` unik secara global melalui index migration `Pelaksana_nama_global_key`.
+- `Pelaksana.opdId` masih ada sebagai compatibility shadow legacy. Field ini bukan lagi ownership/authorization boundary untuk target Process-bound procedure path.
+- Exact duplicate lintas OPD dikonsolidasikan hanya berdasarkan normalized identity `LOWER(TRIM(nama))`; migration tidak melakukan fuzzy/semantic merge untuk near-duplicate yang ambigu.
+- Riwayat creator/editor lama yang tidak diketahui tidak boleh difabrikasi. `PelaksanaAuditAttribution.createdById` dan `updatedById` boleh `NULL` untuk legacy rows; mutation baru menyimpan attribution aktual.
+- Pemakaian Pelaksana pada satu versi SOP direpresentasikan oleh `DetailSOPPelaksana`; ini adalah usage relationship, bukan ownership katalog.
+- `DetailSOPPelaksanaSnapshot.namaSnapshot` menyimpan label stabil pada document-version boundary. Perubahan nama katalog setelah itu tidak boleh mengubah wording historis/versioned SOP.
+- `LangkahSOP.pelaksanaId` wajib menunjuk Pelaksana yang sudah dipilih pada `DetailSOPPelaksana` untuk `detailSopId` yang sama. Invariant ini dikunci oleh trigger `trg_langkahsop_pelaksana_swimlane_insert` dan `trg_langkahsop_pelaksana_swimlane_update`.
+- Trigger legacy yang memaksa Pelaksana se-OPD dengan SOP (`trg_detailsoppelaksana_pelaksana_opd_*` dan `trg_langkahsop_pelaksana_opd_*`) dipensiunkan pada migration Sprint 4 sebelum cross-OPD duplicate references direwire.
 - `LangkahSOP.langkahSelanjutnyaYaId` dan `langkahSelanjutnyaTidakId`, jika terisi, harus menunjuk langkah pada `DetailSOP` yang sama.
 - Untuk payload prosedur, service memastikan `KEPUTUSAN` hanya menerima cabang Ya/Tidak yang merujuk langkah dikenal, sedangkan non-keputusan tidak memakai cabang.
 
@@ -106,4 +114,8 @@ Invariant concurrency ini diuji terhadap MariaDB nyata pada `test/integration/da
 
 ## Verifikasi Migration-backed
 
-Constraint yang berasal dari raw SQL migration—termasuk trigger dan CHECK constraint—tidak boleh diverifikasi menggunakan `prisma db push`, karena `db push` hanya menyinkronkan schema Prisma dan tidak mereplay raw migration SQL. Integration test dan CI menggunakan migration chain (`prisma migrate reset`/`prisma migrate deploy`) sebelum menjalankan invariant test.
+Constraint yang berasal dari raw SQL migration—termasuk trigger dan CHECK constraint—tidak boleh dianggap terbukti hanya dengan `prisma db push`, karena `db push` menyinkronkan schema Prisma tetapi tidak mereplay raw migration SQL.
+
+Untuk Sprint 4, targeted migration rehearsal boleh menggunakan Sprint-3 schema baseline yang dimaterialisasi dengan `db push`, **hanya** untuk membentuk pre-migration relational shape; legacy Pelaksana triggers yang relevan harus dipasang eksplisit, lalu migration Sprint 4 sendiri wajib dijalankan oleh Prisma migrate engine dan diverifikasi dengan assertion terhadap dedup/rewrite/snapshot/global uniqueness/new swimlane trigger. Ini tidak menggantikan full historical migration-chain health.
+
+Full migration-chain/integration verification tetap merupakan gate terpisah ketika perubahan memang menyentuh atau memperbaiki migration history secara keseluruhan.
