@@ -36,8 +36,8 @@ Out of scope:
 ```text
 Target E2E Identity + Fixture Foundation    VERIFIED + INTEGRATED
 Contextual Entry + Navigation Journey       VERIFIED + INTEGRATED
-Process Work + Owner Review Journey         ACTIVE / RUNTIME GATE
-Final Approval + Notification Journey       PLANNED
+Process Work + Owner Review Journey         VERIFIED + INTEGRATED
+Final Approval + Notification Journey       ACTIVE / RUNTIME GATE
 TTE/Public Integrity Boundary               PLANNED
 Milestone Gate                              PENDING
 ```
@@ -45,7 +45,7 @@ Milestone Gate                              PENDING
 Current branch:
 
 ```text
-m3-process-owner-review
+m3-final-approval-notification
 ```
 
 ## Integrated Evidence
@@ -60,7 +60,7 @@ Server CI: 33548230152       PASS
 Migration Smoke: 33548230125 PASS
 ```
 
-Contextual browser runtime:
+Contextual entry/navigation:
 
 ```text
 PR #4
@@ -68,50 +68,55 @@ merge: c8d892b6ae226e5d8f7b268cfd2c1b0339d13525
 FTI Critical E2E: 33549078870 PASS
 ```
 
-J08 proves in real Chromium + Nest + migrated/seeded MariaDB:
+Process work + owner review:
 
-- Process Owner -> Process work capability, legacy workflow nav isolated;
-- Process Member -> Process work without final-approval capability;
-- Dean -> contextual approval/TTE without Process authoring capability;
-- Head of Department -> contextual approval/TTE without Process authoring capability;
-- no page/app-shell errors.
+```text
+PR #5
+merge: ece289ae27bfa4de6b8187b2dafe4464f55ed444
+Client CI: 33551088103 PASS
+FTI Critical E2E: 33551087697 PASS
+```
 
-The first J08 runtime attempt exposed only E2E wiring: Vite dev targeted port 3000 while the test backend used 3001. CI now sets `VITE_API_BASE_URL` explicitly; production auth/cookie behavior was not changed.
+J09 proves in Chromium + Nest + migrated/seeded MariaDB:
 
-## Active Slice — J09 Process Owner Review
+- Process Member sees Process draft in `/work/queue` and submits it through the existing workspace;
+- Process Owner receives the work as `Review Process Owner` and can request revision;
+- Process Member receives the same SOP back as `Perlu revisi`;
+- the protected workspace implementation remains unchanged.
+
+The first J09 runtime attempt exposed only an E2E fixture contract mismatch: generated `namaPelaksana` exceeded the API maximum of 15 characters. The fixture was shortened; no production behavior changed.
+
+## Active Slice — J10 Final Approval + Notification
 
 Precondition:
 
-- create one complete Process-bound SOP as the target Process Member through existing public APIs;
-- keep it in `DRAFT`;
-- setup mutations live outside the journey spec;
-- do not modify the protected Edit SOP workspace implementation.
+- create one complete Faculty Process SOP using the J09 target fixture;
+- submit it to Process Owner review via API because Member submit is already browser-verified by J09;
+- keep Owner `ACCEPT`, notification consumption, and Dean approval as browser actions.
 
 Browser behavior under test:
 
 ```text
-Process Member /work/queue
-  -> sees Draft + Lanjutkan SOP
-  -> opens existing workspace
-  -> Kirim untuk review
+Process Owner
+  -> opens SOP under review
+  -> Terima
+  -> SOP becomes Siap untuk persetujuan
 
-Process Owner /work/queue
-  -> sees Review Process Owner + Review SOP
-  -> opens existing workspace
-  -> Minta revisi
-
-Process Member /work/queue
-  -> sees Perlu revisi + Lanjutkan SOP
+Dean
+  -> receives FINAL_APPROVAL_REQUESTED notification
+  -> notification routes to /approval
+  -> sees Faculty · Dekan authority row
+  -> Setujui
+  -> SOP becomes Persetujuan akhir tercatat · siap TTE
 ```
 
-This slice intentionally chooses `REVISION`, not `ACCEPT`, so final-approval recipient/notification behavior remains owned by the next vertical slice.
+J10 intentionally stops before `Tanda tangani`. PDF generation, PIN/TTE signing, transition to `BERLAKU`, and public integrity remain owned by the next slice.
 
 Runtime gate:
 
-- J09 registered beside J01–J08 in the existing audited critical set;
-- local critical runner keeps per-journey DB reset behavior;
-- path-scoped FTI CI executes J08 + J09 against one disposable target stack;
-- J08 is read-only and J09's mutations do not alter Process/authority capability counts asserted by J08.
+- J10 registered beside J01–J09 in the existing audited critical set;
+- local critical runner includes J10 with per-journey DB reset;
+- path-scoped FTI CI executes J08–J10 on one disposable MariaDB/Nest/Chromium stack.
 
 ## Guardrail
 
@@ -119,8 +124,8 @@ The protected Edit SOP workspace may be exercised as existing user-visible behav
 
 ## Stop Conditions
 
-Stop/escalate if J09 requires changing approved workflow semantics, weakening authorization/security, destructive migration, public-contract change, or modifying the protected workspace implementation.
+Stop/escalate if J10 requires changing approved workflow semantics, weakening authorization/security, destructive migration, public-contract change, or modifying the protected workspace implementation.
 
 ## Next Move
 
-Run J08 + J09 in the path-scoped FTI browser gate. Fix only observed test/fixture/runtime defects. Integrate J09 when green, then proceed to contextual final approval + notification.
+Run J08–J10 in the path-scoped FTI browser gate. Fix only observed test/fixture/runtime defects. Integrate J10 when green, then proceed to the TTE/Public Integrity boundary.
