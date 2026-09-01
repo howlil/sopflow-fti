@@ -4,7 +4,23 @@ import { fileURLToPath } from 'node:url'
 
 const clientDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const serverDir = resolve(clientDir, '..', 'server')
-const journeyIds = ['J01', 'J02', 'J03', 'J04', 'J05', 'J06', 'J07', 'J08', 'J09', 'J10', 'J11']
+const journeyIds = [
+  'J01',
+  'J02',
+  'J03',
+  'J04',
+  'J05',
+  'J06',
+  'J07',
+  'J08',
+  'J09',
+  'J10',
+  'J11',
+  'J12',
+  'J13',
+  'J14',
+  'J15',
+]
 
 function run(command, args, cwd, extraEnv = {}) {
   const result = spawnSync(command, args, {
