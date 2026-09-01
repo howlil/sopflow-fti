@@ -6,7 +6,7 @@ import type { SopOfficialPdfService } from '../../sop/pdf/sop-official-pdf.servi
 import type { SopPdfStorageService } from '../../sop/pdf/sop-pdf-storage.service';
 import type { TteRepository } from '../shared/repository/tte.repository';
 import type { TtePublicUrlResolver } from '../shared/utils/tte-public-url.resolver';
-import type { ProcessTteRepository } from './process-tte.repository';
+import type { ProcessTteRepository, ProcessTteSigningContext } from './process-tte.repository';
 import type { TtePdfSigningService } from './tte-pdf-signing.service';
 import { ProcessTteService } from './process-tte.service';
 
@@ -18,7 +18,7 @@ const user: JwtAccessPayload = {
   peran: PeranPengguna.PENYUSUN,
 };
 
-const context = {
+const context: ProcessTteSigningContext = {
   detailSopId: '00000000-0000-4000-8000-000000000010',
   sopId: '00000000-0000-4000-8000-000000000011',
   opdId: '00000000-0000-4000-8000-000000000012',
@@ -34,11 +34,9 @@ const context = {
   },
 };
 
-type TestSigningContext = typeof context;
-
 function createService(overrides?: {
   contextResult?: unknown;
-  context?: TestSigningContext;
+  context?: ProcessTteSigningContext;
   finalizeResult?: unknown;
 }) {
   const signingContext = overrides?.context ?? context;
@@ -119,7 +117,7 @@ describe('ProcessTteService', () => {
   });
 
   it('menolak signer yang bukan pengguna yang memberi final approval, tanpa melihat legacy role', async () => {
-    const otherContext = {
+    const otherContext: ProcessTteSigningContext = {
       ...context,
       approval: { ...context.approval, approvedById: '00000000-0000-4000-8000-000000000099' },
     };
@@ -152,7 +150,7 @@ describe('ProcessTteService', () => {
   });
 
   it('menandatangani Department Process SOP dengan Head of Department authority snapshot', async () => {
-    const departmentContext: TestSigningContext = {
+    const departmentContext: ProcessTteSigningContext = {
       ...context,
       approval: {
         ...context.approval,
