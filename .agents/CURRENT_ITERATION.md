@@ -1,297 +1,326 @@
 # Current Iteration
 
-Iteration: Sprint 2 — FTI Process Ownership Foundation
+Iteration: Sprint 3 — Process-Owned SOP Authoring
 Delivery State: IMPLEMENTED_AWAITING_VERIFICATION
+Branch: `feat/process-owned-sop-authoring`
 Created: 2026-09-01
 
 ## Feature Shape
 
-Sprint 2 establishes the first usable target-domain foundation without replacing the legacy SOP workflow:
+Sprint 3 moves the first SOP authoring path from legacy OPD/global-role ownership toward contextual Process ownership without migrating review, final approval, or TTE.
 
-- `SUPER_ADMIN` is a platform role, not workflow authority;
-- Process has `FACULTY | DEPARTMENT` scope;
-- every Process has exactly one Process Owner and one or more Process Members;
-- Super Admin can manage Process, Department, owner, and members from the client;
-- legacy OPD/evaluation/TTE paths remain intact during migration.
+Implemented target path:
+
+```text
+Process Owner / Process Member
+-> sees assigned Processes
+-> selects Process
+-> creates SOP
+-> SOP is bound to Process
+-> list/workbench/header authorization uses Process relationship
+```
+
+Compatibility path remains for legacy SOPs and later workflow stages.
 
 ## Current Position
 
 `VERIFY -> QUALITY GATES`
 
-Implementation is present on branch `feat/fti-process-foundation`.
-
 ## Evidence Present
 
-- additive Prisma foundation for `PlatformRole`, `Department`, `Process`, and Process membership;
-- dedicated platform-admin authorization boundary;
-- Process/Department/team server contract;
-- Super Admin client administration route and Process management UI;
-- focused Process service and Platform Admin guard tests added;
-- DB invariants updated for the additive target-domain foundation;
-- lean path-scoped Server CI and Client CI added;
-- CI intentionally excludes default Docker/MariaDB integration, Playwright/E2E, deploy/release, coverage, and known noisy repository-wide lint.
+- current-user Process context exists without a global `PROCESS_OWNER` role;
+- additive `ProcessSopBinding` associates new target-path SOPs with a Process;
+- target SOP create/list/workbench/header authorization uses Process Owner/Member relationship;
+- Process-bound SOPs do not remain authorable merely because another user shares the legacy OPD;
+- client create/list flow consumes the Process contract and requires Process selection;
+- Process-assigned users can discover the target SOP authoring surface without granting access to unrelated legacy Penyusun pages;
+- transitional Process-bound SOP guard protects legacy SOP mutation routes for Process-bound documents;
+- public SOP routes remain outside that guard;
+- Prisma validate/generate and server typecheck passed in CI on the Sprint 3 line;
+- an observed core-unit run executed 523 passing assertions; two legacy fixtures initially failed TypeScript compilation because Sprint 2 added required `platformRole`, and those fixtures were corrected with minimal `PlatformRole.USER` deltas;
+- focused Process/authoring authorization tests exist;
+- integration/E2E were intentionally not made default gates.
 
-## Remaining Before Sprint 2 Can Close
+## Remaining Before Sprint 3 Can Close
 
-- observe an actual CI run and fix any real compile/test/build failures;
-- verify TanStack route generation keeps the committed route tree synchronized;
-- establish an explicit non-self-service bootstrap/provisioning path for the first `SUPER_ADMIN` without turning a legacy workflow role into platform authority;
-- report exact verification evidence before marking RELEASE READY.
+- observe final Server CI and Client CI after the latest authorization hardening;
+- ensure `process-bound-sop.guard.spec.ts` is included in the focused CI command;
+- update database invariant documentation for `ProcessSopBinding` and Process-owned authoring;
+- inspect migration SQL and run one targeted migration/invariant rehearsal only if the persistence invariant cannot be proven by schema/unit evidence;
+- final diff/self-review and exact verification report.
 
 Do not merge, release, or deploy merely because implementation exists.
+
+## Resolved Blocker For Next Procedure Slice
+
+Legacy `Pelaksana` is currently OPD-owned and therefore duplicates the same procedure actor vocabulary across organizational boundaries.
+
+The target product decision is:
+
+```text
+Pelaksana = global reusable procedure-actor catalog
+```
+
+It is not owned by OPD, Department, Process, Faculty, or a Process Team.
+
+Examples such as `Dosen`, `Mahasiswa`, `Admin Akademik`, `Kepala Departemen`, and `Dekan` should be reusable by any SOP that needs that procedure actor.
+
+Usage context belongs to the SOP/version, not to the global catalog row.
+
+New catalog mutations must retain attribution:
+
+```text
+createdById
+createdAt
+updatedById
+updatedAt
+```
+
+Any active authenticated user may create or edit catalog entries; this permission must not be tied to `SUPER_ADMIN`, a legacy global role, Department, or Process ownership.
+
+Historical/versioned SOP rendering must not change retroactively when a global catalog label is edited. SOP usage therefore requires a stable snapshot of the displayed actor label at the document-version boundary.
 
 ---
 
 # Planned Next Iteration
 
-Iteration: Sprint 3 — Process-Owned SOP Authoring
+Iteration: Sprint 4 — Global Pelaksana Catalog & Process-Native Procedure Authoring
 Status: PLANNED_NEXT
 
-Sprint 3 becomes active only after Sprint 2 exits verification.
+Sprint 4 becomes active after Sprint 3 verification closes.
 
 ## Sprint Goal
 
-Move the first SOP authoring slice from OPD/global-role ownership toward Process-context ownership end to end, without migrating review, final approval, TTE, or the entire legacy workflow.
+Remove OPD ownership from the target Pelaksana semantics and make procedure actors globally reusable, auditable, and safe for versioned SOP documents, while completing the Process-owned procedure-authoring path end to end.
 
 Success means:
 
 ```text
-Process Owner / Process Member
--> chooses an assigned Process
--> creates a new SOP owned by that Process
--> sees Process-owned SOPs they are allowed to author
--> opens and edits the draft
--> another unrelated Process user cannot access/edit it
+active authenticated user
+-> can create/reuse/edit global Pelaksana catalog entries
+-> creator/editor attribution is visible and persisted
+
+Process Owner / Member
+-> opens Process-owned SOP draft
+-> selects reusable Pelaksana for that SOP version
+-> builds swimlanes / procedure steps
+-> another Department or Process can reuse the same Pelaksana catalog row
+-> editing the global label later does not rewrite historical SOP wording
 ```
 
-The server establishes only the smallest stable Process-authoring contract, and the client consumes each contract immediately. Do not accumulate a backend-only migration backlog.
+## Product And Data Rules
 
-## Current Legacy Boundary To Replace
+Canonical target semantics for this sprint:
 
-Today authoring still assumes:
-
-```text
-SOP.opdId
-+ user OPD
-+ global PENYUSUN / PJ_PENYUSUN role
-```
-
-Current create/list/workbench behavior resolves access through `UserOpdAccessService`, while the target domain requires contextual Process membership.
-
-Sprint 3 changes the ownership/authoring seam only.
+1. `Pelaksana` is global reusable procedure vocabulary.
+2. `Pelaksana` has no target ownership by OPD, Department, Faculty, Process, or Process Team.
+3. Any active authenticated user may create or edit Pelaksana catalog entries.
+4. Catalog mutations persist creator and latest-editor attribution plus timestamps.
+5. SOP/version usage stores a stable actor-label snapshot; global catalog edits do not retroactively mutate historical/versioned SOP content.
+6. A procedure step may use only a Pelaksana selected into that same SOP version's swimlane/context.
+7. Existing legacy OPD data must be migrated without fabricating creator/editor history.
+8. Existing duplicate labels across OPDs should be consolidated only when identity is unambiguous; ambiguous near-duplicates must be surfaced rather than silently merged.
+9. Deletion policy is not expanded in this sprint. Do not introduce unrestricted deletion of catalog rows that are referenced by SOP history.
 
 ## Delivery Strategy
 
 Use:
 
-`Expand -> Contextual Policy Seam -> Client Consume -> Verify -> Next Slice`
+`Expand -> Contract -> Client Consume -> Migrate References -> Cut Over -> Verify`
+
+Do not perform a backend-only rewrite first.
 
 For each slice:
 
 ```text
-small server contract/policy
--> focused unit evidence
--> client API/query/UI immediately consumes it
--> type/build/unit verification
--> next slice
+small server/schema seam
+-> focused unit/schema evidence
+-> client immediately consumes it
+-> next seam
 ```
 
 Server should remain at most one small contract ahead of the client.
 
 ## Planned Vertical Slices
 
-### Slice A — My Process Context
+### Slice A — Global Catalog Contract + Audit Attribution
 
-Goal: give an authenticated user a canonical view of Processes in which they participate.
+Goal: expose target Pelaksana semantics without first deleting legacy OPD fields.
 
-Server:
+Server/schema:
 
-- expose the minimum current-user Process context required for authoring;
-- return contextual relationship (`OWNER` or `MEMBER`) rather than inventing a global `PROCESS_OWNER` role;
-- ordinary users see only Processes they participate in;
-- Super Admin does not become a Process participant implicitly.
+- expand the current persistence model or introduce the smallest reversible compatibility representation needed for global semantics;
+- persist `createdById`, `updatedById`, `createdAt`, `updatedAt` for new catalog mutations;
+- legacy rows with unknowable historical creator/editor must remain explicitly unknown/null during backfill rather than fabricating an actor;
+- list/create/edit authorization requires an active authenticated user, not a special workflow/platform role;
+- do not drop legacy `opdId` in the first step merely to make the schema look clean.
 
 Client immediately follows:
 
-- add Process context/query typing;
-- expose Process selection where SOP authoring starts;
-- do not redesign unrelated legacy navigation yet.
+- Pelaksana catalog becomes a global reusable list rather than OPD-filtered list;
+- create/edit is available to authenticated users who reach the procedure-authoring context;
+- show creator/latest-editor attribution where useful without turning the UI into an audit dashboard.
 
 Exit evidence:
 
 ```text
-Owner of Process A -> sees Process A
-Member of Process A -> sees Process A
-unrelated user -> does not see Process A
-Super Admin only -> does not automatically see Process A as author
+Dept A user creates "Dosen"
+Dept B user can reuse "Dosen"
+Dept B does not need a duplicate row
+SUPER_ADMIN is not required
+creator/editor attribution persists
 ```
 
-### Slice B — Process-Owned SOP Create + List
+### Slice B — SOP-Version Usage Snapshot
 
-Goal: make new target-path SOP ownership explicit.
+Goal: separate mutable global catalog identity from immutable/versioned SOP wording.
 
-Server:
+Target behavior:
 
-- introduce the smallest additive association from SOP to Process;
-- new target-path create request identifies `processId`;
-- service validates that caller is Process Owner or Process Member;
-- Process association becomes authoritative for target-path authoring authorization;
-- legacy SOP rows remain readable through the existing compatibility path;
-- do not bulk-map all historical SOPs in this sprint.
+```text
+Global Pelaksana
+  nama = "Dosen Pengampu"
+
+DetailSOP version 1 usage snapshot
+  nama = "Dosen"
+```
+
+Server/schema:
+
+- add the smallest snapshot field/representation at the SOP-version swimlane boundary;
+- when a Pelaksana is selected for a DetailSOP, copy the current display label into the version usage record;
+- rendering existing SOP versions uses the snapshot, not the mutable current catalog label;
+- backfill existing usage snapshots from the label that exists at migration time.
 
 Client immediately follows:
 
-- create SOP form includes Process selection from the caller's allowed Processes;
-- created/listed target SOP shows its Process context;
-- client does not infer access from legacy role labels.
+- procedure editor selects from the global catalog;
+- selected swimlanes render from the SOP-version usage context;
+- editing catalog metadata does not silently rename already-bound SOP versions.
+
+### Slice C — Process-Native Procedure Authorization
+
+Goal: finish the part Sprint 3 could not safely migrate because of the same-OPD Pelaksana invariant.
+
+Server:
+
+- Process Owner/Member authorization controls procedure/diagram draft mutations for Process-bound SOPs;
+- remove the target-path assumption that selected Pelaksana must share `SOP.opdId`;
+- constrain `LangkahSOP` actor usage to a Pelaksana selected into the same `DetailSOP` swimlane/context;
+- preserve status/editability and branch-integrity invariants;
+- legacy unbound SOPs may continue through compatibility behavior until contract cleanup.
+
+Client immediately follows:
+
+- existing procedure editor is reused;
+- actor picker uses global Pelaksana catalog;
+- Process member from a different legacy OPD can still author the Process-owned SOP when the Process relationship allows it;
+- no duplicate editor is introduced.
 
 Exit evidence:
 
 ```text
-Process A member + processId=A -> create allowed
-unrelated user + processId=A -> denied
-Super Admin only + processId=A -> denied
-new SOP -> persisted Process association
+Process A member -> edit Process A procedure
+same actor "Dosen" -> reusable by Process B
+same-OPD unrelated user -> denied
+selected actor not in this DetailSOP -> rejected
 ```
 
-### Slice C — Process-Aware Draft Workbench
+### Slice D — Legacy Data Consolidation + Cutover Proof
 
-Goal: move draft read/edit authorization for target-path SOPs to Process membership.
+Goal: remove the legacy OPD ownership constraint from the proven target path without a blind destructive rewrite.
 
-Server:
+Migration work:
 
-- when an SOP is Process-owned, workbench/header/procedure draft mutations authorize through Process relationship;
-- legacy SOPs with no target association continue through legacy OPD compatibility behavior;
-- preserve existing editability/status invariants;
-- do not alter review/evaluation/final-approval transitions.
+- inventory current Pelaksana labels and references before consolidation;
+- identify exact/unambiguous duplicates across OPDs;
+- redirect DetailSOP/swimlane/step references to one canonical global actor when identity is unambiguous;
+- preserve all SOP-version snapshots;
+- retire the same-OPD trigger/validation only after the target relation/invariant is in place;
+- keep any physical legacy ownership column as nullable/deprecated compatibility data if dropping it would increase migration risk; physical cleanup can happen in a later contract sprint.
 
-Client immediately follows:
+Do not silently merge ambiguous labels that merely look similar.
 
-- reuse the existing SOP editor rather than building a second editor;
-- Process Owner and Members can open/edit target drafts;
-- UI displays Process context sufficiently to avoid ambiguity;
-- legacy SOP editor behavior remains available during migration.
-
-Exit evidence:
+Cutover proof:
 
 ```text
-Process A member -> can edit Process A draft
-Process B member -> cannot edit Process A draft
-Process Owner -> can author/edit like a member
-status/editability rules remain unchanged
+one global actor identity
+-> reusable across Process/Department/Faculty SOPs
+-> historical SOP labels stable
+-> current Process authorization controls editing
+-> no OPD-based actor-ownership requirement on the target path
 ```
-
-### Slice D — Authoring Boundary Cutover Proof
-
-Goal: prove Process-owned SOP authoring is isolated from the still-legacy review path.
-
-Verify:
-
-- target-path create/list/edit uses Process authorization;
-- legacy SOP rows still work through legacy compatibility authorization;
-- Process-owned draft cannot accidentally enter legacy evaluator flow merely because the user has a legacy role;
-- no new workflow authority is granted by `SUPER_ADMIN`;
-- no broad evaluator/TTE changes are introduced.
-
-At the end of Sprint 3 the intended boundary is:
-
-```text
-TARGET PATH
-Process relationship
--> SOP create/list/edit
-
-LEGACY PATH
-OPD/global roles
--> retained review/evaluation/TTE compatibility
-```
-
-Sprint 4 can then move the **submit/review** boundary from legacy evaluator semantics to Process Owner review.
-
-## Critical Compatibility Decision Gate
-
-Current `SOP.opdId` is required and many legacy paths still assume it is authoritative.
-
-Do not silently invent a Process-to-OPD mapping or reinterpret Process scope as OPD ownership.
-
-Before implementing Slice B, inspect all write/read dependencies of `SOP.opdId` and choose the smallest reversible compatibility representation that allows target Process ownership without contaminating target semantics.
-
-Candidate techniques may include an additive nullable target association and an explicit compatibility projection/adapter, but the implementation must not:
-
-- make Process taxonomy equal organizational hierarchy;
-- make creator OPD the new product ownership rule merely because the legacy column exists;
-- bulk-remap historical SOPs without an unambiguous mapping;
-- drop or reinterpret existing OPD data destructively.
-
-If the only implementation requires ambiguous data ownership or destructive migration, stop and surface the decision.
-
-## Explicit Non-Goals
-
-Do not in Sprint 3:
-
-- remove `OPD`, `opdId`, `PENYUSUN`, or `PJ_PENYUSUN` globally;
-- migrate Process Owner review yet;
-- remove evaluator/PJ Evaluator workflow;
-- change Dean/Kadep final approval;
-- change TTE authority/signature behavior;
-- migrate all historical SOPs;
-- change public archive ownership/routing;
-- redesign Pelaksana/Peraturan ownership unless required to keep the Process-owned draft usable;
-- add generic RBAC/ABAC, workflow engines, event buses, or configurable approval chains;
-- make integration/E2E mandatory for every commit.
 
 ## Verification Strategy
 
-Default fast feedback:
+Default fast gates remain lean.
 
 Server:
 
-- Prisma validate/generate when schema changes;
-- focused Process/SOP authorization unit tests;
-- affected-package typecheck;
-- targeted lint when useful;
-- existing lean CI.
+- Prisma validate/generate;
+- typecheck;
+- focused Pelaksana catalog/audit/snapshot authorization unit tests;
+- focused Process procedure authorization tests;
+- lean Server CI.
 
 Client:
 
-- build / route generation;
 - typecheck;
-- focused unit/component evidence where behavior exists;
-- existing lean CI.
+- build/route generation;
+- focused catalog/procedure component tests where useful;
+- lean Client CI.
 
-Escalate only when justified:
+Escalate only where migration risk justifies it:
 
-- because Sprint 3 changes persistence, inspect migration SQL and perform a targeted MariaDB migration/invariant rehearsal before closing the sprint if the invariant depends on DB behavior;
-- use one targeted browser journey only when UI integration reaches a risk that component/build evidence cannot prove;
-- do not run the entire integration or E2E suite by default.
+- run one targeted MariaDB migration rehearsal because this sprint changes existing relational constraints/references;
+- verify duplicate consolidation and snapshot backfill using migration-specific assertions;
+- do not run the full integration suite by default;
+- do not add broad Playwright/E2E by default;
+- use at most one targeted browser journey only if build/component evidence cannot prove the procedure interaction boundary.
 
-## Sprint 3 Stop Conditions
+## Explicit Non-Goals
 
-Stop and surface if implementation requires:
+Do not in Sprint 4:
 
-- ambiguous historical SOP-to-Process mapping;
-- destructive migration;
-- public API contract break that cannot be made additive;
-- a new security/authority boundary not already approved;
-- Process ownership to be inferred from OPD/Department semantics that are not canonical;
-- changes to evaluation/TTE merely to make draft authoring compile.
+- migrate Process Owner review/evaluator semantics;
+- change submit/review status behavior;
+- change Dean/Kadep final approval;
+- change TTE authority/signing;
+- migrate public archive grouping;
+- add generic RBAC/ABAC or workflow engines;
+- build a full audit-history/revision subsystem for Pelaksana unless later required; creator/latest-editor attribution is sufficient for this sprint;
+- invent a delete/merge administration feature for catalog entries;
+- drop legacy OPD columns before target references and migration evidence are proven;
+- make integration/E2E mandatory for ordinary commits.
 
-## Expected Next Sprint After Sprint 3
+## Stop Conditions
 
-Sprint 4 — Process Owner Review
+Stop and surface if:
+
+- duplicate Pelaksana records cannot be consolidated without ambiguous semantic choices;
+- preserving historical SOP wording requires rewriting signed/effective document history;
+- migration requires destructive reference loss;
+- Process-native procedure editing requires changing review/approval/TTE semantics;
+- the only solution requires making Pelaksana owned by Department/Process again;
+- a public/API compatibility break cannot be made additive.
+
+## Expected Next Sprint After Sprint 4
+
+Sprint 5 — Process Owner Review
 
 ```text
-Process Member / Owner
--> submit draft
+Process Owner / Member
+-> submit Process-owned SOP
 -> Process Owner review
    -> revision
    -> accepted / ready for final approval
 ```
 
-That sprint should replace the relevant evaluator semantics only for the proven Process-owned path, while preserving final approval/TTE until the following slice.
+The previous roadmap placed Process Owner Review in Sprint 4. It moves to Sprint 5 because procedure authoring must first be free of the legacy OPD-owned Pelaksana constraint; otherwise the review slice would build on an incorrect ownership boundary.
 
 ## Tracking Rules
 
-- Sprint 2 remains the active iteration until verification closes it.
-- Sprint 3 is a planned next iteration, not active implementation state yet.
+- Sprint 3 remains active until its verification closes.
+- Sprint 4 is planned next and must not be reported as implemented yet.
 - Keep work oriented around `Feature Shape -> Current Position -> Delta -> Evidence -> Next Move`.
-- Do not upgrade implementation state to merged/release-ready/released/deployed without evidence.
+- Do not merge, release, or deploy without explicit authorization and evidence.
