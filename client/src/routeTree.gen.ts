@@ -13,6 +13,7 @@ import { Route as PjEvaluatorRouteRouteImport } from './routes/pj-evaluator/rout
 import { Route as PenyusunRouteRouteImport } from './routes/penyusun/route'
 import { Route as KepalaOpdRouteRouteImport } from './routes/kepala-opd/route'
 import { Route as EvaluatorRouteRouteImport } from './routes/evaluator/route'
+import { Route as ApprovalRouteRouteImport } from './routes/approval/route'
 import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PjEvaluatorIndexRouteImport } from './routes/pj-evaluator/index'
@@ -21,6 +22,7 @@ import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as KepalaOpdIndexRouteImport } from './routes/kepala-opd/index'
 import { Route as EvaluatorIndexRouteImport } from './routes/evaluator/index'
 import { Route as ArsipIndexRouteImport } from './routes/arsip/index'
+import { Route as ApprovalIndexRouteImport } from './routes/approval/index'
 import { Route as PjEvaluatorEvaluasiRouteRouteImport } from './routes/pj-evaluator/evaluasi/route'
 import { Route as EvaluatorEvaluasiRouteRouteImport } from './routes/evaluator/evaluasi/route'
 import { Route as ValidasiPdfIndexRouteImport } from './routes/validasi/pdf/index'
@@ -41,6 +43,7 @@ import { Route as EvaluatorMeIndexRouteImport } from './routes/evaluator/me/inde
 import { Route as EvaluatorEvaluasiIndexRouteImport } from './routes/evaluator/evaluasi/index'
 import { Route as ArsipOpdIdIndexRouteImport } from './routes/arsip/$opdId/index'
 import { Route as AdminProcessesIndexRouteImport } from './routes/admin/processes/index'
+import { Route as AdminAuthoritiesIndexRouteImport } from './routes/admin/authorities/index'
 import { Route as PjEvaluatorEvaluasiIdRouteImport } from './routes/pj-evaluator/evaluasi/$id'
 import { Route as PenyusunSopIdRouteImport } from './routes/penyusun/sop/$id'
 import { Route as KepalaOpdSopIdRouteImport } from './routes/kepala-opd/sop/$id'
@@ -69,6 +72,11 @@ const KepalaOpdRouteRoute = KepalaOpdRouteRouteImport.update({
 const EvaluatorRouteRoute = EvaluatorRouteRouteImport.update({
   id: '/evaluator',
   path: '/evaluator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApprovalRouteRoute = ApprovalRouteRouteImport.update({
+  id: '/approval',
+  path: '/approval',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRouteRoute = AdminRouteRouteImport.update({
@@ -110,6 +118,11 @@ const ArsipIndexRoute = ArsipIndexRouteImport.update({
   id: '/arsip/',
   path: '/arsip/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApprovalIndexRoute = ApprovalIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ApprovalRouteRoute,
 } as any)
 const PjEvaluatorEvaluasiRouteRoute =
   PjEvaluatorEvaluasiRouteRouteImport.update({
@@ -216,6 +229,11 @@ const AdminProcessesIndexRoute = AdminProcessesIndexRouteImport.update({
   path: '/processes/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminAuthoritiesIndexRoute = AdminAuthoritiesIndexRouteImport.update({
+  id: '/authorities/',
+  path: '/authorities/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const PjEvaluatorEvaluasiIdRoute = PjEvaluatorEvaluasiIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -269,12 +287,14 @@ const EvaluatorEvaluasiPengajuanIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteRouteWithChildren
+  '/approval': typeof ApprovalRouteRouteWithChildren
   '/evaluator': typeof EvaluatorRouteRouteWithChildren
   '/kepala-opd': typeof KepalaOpdRouteRouteWithChildren
   '/penyusun': typeof PenyusunRouteRouteWithChildren
   '/pj-evaluator': typeof PjEvaluatorRouteRouteWithChildren
   '/evaluator/evaluasi': typeof EvaluatorEvaluasiRouteRouteWithChildren
   '/pj-evaluator/evaluasi': typeof PjEvaluatorEvaluasiRouteRouteWithChildren
+  '/approval/': typeof ApprovalIndexRoute
   '/arsip/': typeof ArsipIndexRoute
   '/evaluator/': typeof EvaluatorIndexRoute
   '/kepala-opd/': typeof KepalaOpdIndexRoute
@@ -286,6 +306,7 @@ export interface FileRoutesByFullPath {
   '/kepala-opd/sop/$id': typeof KepalaOpdSopIdRoute
   '/penyusun/sop/$id': typeof PenyusunSopIdRoute
   '/pj-evaluator/evaluasi/$id': typeof PjEvaluatorEvaluasiIdRoute
+  '/admin/authorities/': typeof AdminAuthoritiesIndexRoute
   '/admin/processes/': typeof AdminProcessesIndexRoute
   '/arsip/$opdId/': typeof ArsipOpdIdIndexRoute
   '/evaluator/evaluasi/': typeof EvaluatorEvaluasiIndexRoute
@@ -312,6 +333,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteRouteWithChildren
+  '/approval': typeof ApprovalIndexRoute
   '/arsip': typeof ArsipIndexRoute
   '/evaluator': typeof EvaluatorIndexRoute
   '/kepala-opd': typeof KepalaOpdIndexRoute
@@ -323,6 +345,7 @@ export interface FileRoutesByTo {
   '/kepala-opd/sop/$id': typeof KepalaOpdSopIdRoute
   '/penyusun/sop/$id': typeof PenyusunSopIdRoute
   '/pj-evaluator/evaluasi/$id': typeof PjEvaluatorEvaluasiIdRoute
+  '/admin/authorities': typeof AdminAuthoritiesIndexRoute
   '/admin/processes': typeof AdminProcessesIndexRoute
   '/arsip/$opdId': typeof ArsipOpdIdIndexRoute
   '/evaluator/evaluasi': typeof EvaluatorEvaluasiIndexRoute
@@ -350,12 +373,14 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteRouteWithChildren
+  '/approval': typeof ApprovalRouteRouteWithChildren
   '/evaluator': typeof EvaluatorRouteRouteWithChildren
   '/kepala-opd': typeof KepalaOpdRouteRouteWithChildren
   '/penyusun': typeof PenyusunRouteRouteWithChildren
   '/pj-evaluator': typeof PjEvaluatorRouteRouteWithChildren
   '/evaluator/evaluasi': typeof EvaluatorEvaluasiRouteRouteWithChildren
   '/pj-evaluator/evaluasi': typeof PjEvaluatorEvaluasiRouteRouteWithChildren
+  '/approval/': typeof ApprovalIndexRoute
   '/arsip/': typeof ArsipIndexRoute
   '/evaluator/': typeof EvaluatorIndexRoute
   '/kepala-opd/': typeof KepalaOpdIndexRoute
@@ -367,6 +392,7 @@ export interface FileRoutesById {
   '/kepala-opd/sop/$id': typeof KepalaOpdSopIdRoute
   '/penyusun/sop/$id': typeof PenyusunSopIdRoute
   '/pj-evaluator/evaluasi/$id': typeof PjEvaluatorEvaluasiIdRoute
+  '/admin/authorities/': typeof AdminAuthoritiesIndexRoute
   '/admin/processes/': typeof AdminProcessesIndexRoute
   '/arsip/$opdId/': typeof ArsipOpdIdIndexRoute
   '/evaluator/evaluasi/': typeof EvaluatorEvaluasiIndexRoute
@@ -395,12 +421,14 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/approval'
     | '/evaluator'
     | '/kepala-opd'
     | '/penyusun'
     | '/pj-evaluator'
     | '/evaluator/evaluasi'
     | '/pj-evaluator/evaluasi'
+    | '/approval/'
     | '/arsip/'
     | '/evaluator/'
     | '/kepala-opd/'
@@ -412,6 +440,7 @@ export interface FileRouteTypes {
     | '/kepala-opd/sop/$id'
     | '/penyusun/sop/$id'
     | '/pj-evaluator/evaluasi/$id'
+    | '/admin/authorities/'
     | '/admin/processes/'
     | '/arsip/$opdId/'
     | '/evaluator/evaluasi/'
@@ -438,6 +467,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/approval'
     | '/arsip'
     | '/evaluator'
     | '/kepala-opd'
@@ -449,6 +479,7 @@ export interface FileRouteTypes {
     | '/kepala-opd/sop/$id'
     | '/penyusun/sop/$id'
     | '/pj-evaluator/evaluasi/$id'
+    | '/admin/authorities'
     | '/admin/processes'
     | '/arsip/$opdId'
     | '/evaluator/evaluasi'
@@ -475,12 +506,14 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/approval'
     | '/evaluator'
     | '/kepala-opd'
     | '/penyusun'
     | '/pj-evaluator'
     | '/evaluator/evaluasi'
     | '/pj-evaluator/evaluasi'
+    | '/approval/'
     | '/arsip/'
     | '/evaluator/'
     | '/kepala-opd/'
@@ -492,6 +525,7 @@ export interface FileRouteTypes {
     | '/kepala-opd/sop/$id'
     | '/penyusun/sop/$id'
     | '/pj-evaluator/evaluasi/$id'
+    | '/admin/authorities/'
     | '/admin/processes/'
     | '/arsip/$opdId/'
     | '/evaluator/evaluasi/'
@@ -519,6 +553,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRouteRoute: typeof AdminRouteRouteWithChildren
+  ApprovalRouteRoute: typeof ApprovalRouteRouteWithChildren
   EvaluatorRouteRoute: typeof EvaluatorRouteRouteWithChildren
   KepalaOpdRouteRoute: typeof KepalaOpdRouteRouteWithChildren
   PenyusunRouteRoute: typeof PenyusunRouteRouteWithChildren
@@ -559,6 +594,13 @@ declare module '@tanstack/react-router' {
       path: '/evaluator'
       fullPath: '/evaluator'
       preLoaderRoute: typeof EvaluatorRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/approval': {
+      id: '/approval'
+      path: '/approval'
+      fullPath: '/approval'
+      preLoaderRoute: typeof ApprovalRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -616,6 +658,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/arsip/'
       preLoaderRoute: typeof ArsipIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/approval/': {
+      id: '/approval/'
+      path: '/'
+      fullPath: '/approval/'
+      preLoaderRoute: typeof ApprovalIndexRouteImport
+      parentRoute: typeof ApprovalRouteRoute
     }
     '/pj-evaluator/evaluasi': {
       id: '/pj-evaluator/evaluasi'
@@ -757,6 +806,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProcessesIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/authorities/': {
+      id: '/admin/authorities/'
+      path: '/authorities'
+      fullPath: '/admin/authorities/'
+      preLoaderRoute: typeof AdminAuthoritiesIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/pj-evaluator/evaluasi/$id': {
       id: '/pj-evaluator/evaluasi/$id'
       path: '/$id'
@@ -824,15 +880,29 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteRouteChildren {
+  AdminAuthoritiesIndexRoute: typeof AdminAuthoritiesIndexRoute
   AdminProcessesIndexRoute: typeof AdminProcessesIndexRoute
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminAuthoritiesIndexRoute: AdminAuthoritiesIndexRoute,
   AdminProcessesIndexRoute: AdminProcessesIndexRoute,
 }
 
 const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
   AdminRouteRouteChildren,
+)
+
+interface ApprovalRouteRouteChildren {
+  ApprovalIndexRoute: typeof ApprovalIndexRoute
+}
+
+const ApprovalRouteRouteChildren: ApprovalRouteRouteChildren = {
+  ApprovalIndexRoute: ApprovalIndexRoute,
+}
+
+const ApprovalRouteRouteWithChildren = ApprovalRouteRoute._addFileChildren(
+  ApprovalRouteRouteChildren,
 )
 
 interface EvaluatorEvaluasiRouteRouteChildren {
@@ -958,6 +1028,7 @@ const PjEvaluatorRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRouteRoute: AdminRouteRouteWithChildren,
+  ApprovalRouteRoute: ApprovalRouteRouteWithChildren,
   EvaluatorRouteRoute: EvaluatorRouteRouteWithChildren,
   KepalaOpdRouteRoute: KepalaOpdRouteRouteWithChildren,
   PenyusunRouteRoute: PenyusunRouteRouteWithChildren,
