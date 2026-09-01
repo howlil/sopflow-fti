@@ -83,9 +83,9 @@ export function ProcessApprovalPage() {
         <DataSurface.Root>
           <DataSurface.Header>
             <div className="space-y-0.5">
-              <h2 className="text-sm font-semibold text-foreground">SOP dalam scope kewenangan Anda</h2>
+              <h2 className="text-sm font-semibold text-foreground">SOP dalam kewenangan Anda</h2>
               <p className="text-sm text-secondary-foreground">
-                Faculty scope disetujui Dean; Department scope disetujui Kepala Departemen terkait. Setelah final approval, pemegang authority yang sama menyelesaikan TTE agar SOP menjadi BERLAKU.
+                Persetujuan akhir mengikuti lingkup Process: Dekan untuk Process fakultas dan Kepala Departemen untuk Process departemen. Setelah disetujui, pemegang kewenangan yang sama menyelesaikan TTE agar SOP berlaku.
               </p>
             </div>
           </DataSurface.Header>
@@ -101,7 +101,7 @@ export function ProcessApprovalPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-medium text-foreground">{row.judul}</h3>
                       <span className="rounded-full border border-border px-2 py-0.5 text-xs text-secondary-foreground">
-                        {row.scope === 'FACULTY' ? 'Faculty · Dean' : `${row.departmentNama ?? 'Department'} · Kadep`}
+                        {row.scope === 'FACULTY' ? 'Fakultas · Dekan' : `${row.departmentNama ?? 'Departemen'} · Kepala Departemen`}
                       </span>
                     </div>
                     <p className="text-sm text-secondary-foreground">
@@ -110,7 +110,7 @@ export function ProcessApprovalPage() {
                     {row.approval ? (
                       <p className="inline-flex items-center gap-1 text-xs font-medium text-secondary-foreground">
                         <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
-                        Final approval tercatat · siap TTE
+                        Persetujuan akhir tercatat · siap TTE
                       </p>
                     ) : (
                       <p className="text-xs text-secondary-foreground">Menunggu persetujuan akhir</p>
@@ -146,7 +146,7 @@ export function ProcessApprovalPage() {
           open={selected !== null}
           onOpenChange={(open) => { if (!open) setSelectedId(null) }}
           title="Setujui SOP ini?"
-          description={selected ? `${selected.judul} akan dicatat sebagai telah mendapat final approval dan selanjutnya menunggu TTE dari authority yang sama.` : ''}
+          description={selected ? `${selected.judul} akan dicatat sebagai telah disetujui dan selanjutnya menunggu TTE dari pemegang kewenangan yang sama.` : ''}
           confirmLabel="Ya, setujui"
           onConfirm={async () => {
             if (!selected || isApproving) return
@@ -164,7 +164,7 @@ export function ProcessApprovalPage() {
         open={signing !== null}
         onOpenChange={(open) => { if (!open) setSigningId(null) }}
         title="Tanda Tangan SOP — PIN TTE"
-        description={signing ? `Masukkan PIN TTE untuk mengesahkan ${signing.judul}. Setelah berhasil, versi ini menjadi BERLAKU.` : ''}
+        description={signing ? `Masukkan PIN TTE untuk mengesahkan ${signing.judul}. Setelah berhasil, versi ini mulai berlaku.` : ''}
         onConfirm={handlePinConfirm}
         confirmLabel="Tanda Tangani"
       />
