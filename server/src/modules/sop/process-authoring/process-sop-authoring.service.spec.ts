@@ -107,4 +107,38 @@ describe('ProcessSopAuthoringService', () => {
       processNama: 'Tugas Akhir',
     });
   });
+
+  it('does not expose legacy unbound SOPs to a non-authoring global role', async () => {
+    const prisma = {
+      processSopBinding: { findMany: jest.fn().mockResolvedValue([]) },
+    } as unknown as PrismaService;
+    const processContext = {
+      listForUser: jest.fn().mockResolvedValue([]),
+    } as unknown as ProcessContextService;
+    const repository = {
+      findDaftarAll: jest.fn().mockResolvedValue([]),
+    } as unknown as SopCatalogRepository;
+    const catalogService = {
+      listForCurrentUser: jest.fn(),
+    } as unknown as SopCatalogService;
+    const service = new ProcessSopAuthoringService(
+      prisma,
+      processContext,
+      repository,
+      catalogService,
+    );
+
+    const rows = await service.listForCurrentUser(
+      {
+        sub: 'evaluator-1',
+        email: 'evaluator@example.test',
+        peran: PeranPengguna.EVALUATOR,
+        sesiTokenVersion: 1,
+      },
+      undefined,
+    );
+
+    expect(rows).toEqual([]);
+    expect(catalogService.listForCurrentUser).not.toHaveBeenCalled();
+  });
 });
