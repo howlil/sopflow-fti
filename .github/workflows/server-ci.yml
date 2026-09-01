@@ -60,5 +60,5 @@ jobs:
       - name: Core unit tests
         run: pnpm test:core-unit
 
-      - name: FTI process foundation unit tests
-        run: pnpm exec jest platform-admin.guard.spec.ts process.service.spec.ts --runInBand
+      - name: FTI target-domain unit tests
+        run: pnpm exec jest platform-admin.guard.spec.ts process.service.spec.ts process-context.service.spec.ts process-sop-authoring.service.spec.ts --runInBand
