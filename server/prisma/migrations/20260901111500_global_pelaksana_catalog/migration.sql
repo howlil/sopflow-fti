@@ -33,6 +33,13 @@ CREATE TABLE `DetailSOPPelaksanaSnapshot` (
     FOREIGN KEY (`pelaksanaId`) REFERENCES `Pelaksana` (`pelaksanaId`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- Retire legacy OPD ownership constraints before cross-OPD duplicate rewiring.
+-- Migration execution is the controlled cutover boundary; the replacement invariant is installed below.
+DROP TRIGGER IF EXISTS `trg_detailsoppelaksana_pelaksana_opd_insert`;
+DROP TRIGGER IF EXISTS `trg_detailsoppelaksana_pelaksana_opd_update`;
+DROP TRIGGER IF EXISTS `trg_langkahsop_pelaksana_opd_insert`;
+DROP TRIGGER IF EXISTS `trg_langkahsop_pelaksana_opd_update`;
+
 -- Normalize names before detecting exact semantic duplicates.
 UPDATE `Pelaksana` SET `nama` = TRIM(`nama`);
 
@@ -82,12 +89,6 @@ INSERT INTO `DetailSOPPelaksanaSnapshot`
 SELECT d.`detailSopId`, d.`pelaksanaId`, p.`nama`, d.`createdAt`, d.`updatedAt`
 FROM `DetailSOPPelaksana` d
 JOIN `Pelaksana` p ON p.`pelaksanaId` = d.`pelaksanaId`;
-
--- Retire legacy OPD ownership constraints.
-DROP TRIGGER IF EXISTS `trg_detailsoppelaksana_pelaksana_opd_insert`;
-DROP TRIGGER IF EXISTS `trg_detailsoppelaksana_pelaksana_opd_update`;
-DROP TRIGGER IF EXISTS `trg_langkahsop_pelaksana_opd_insert`;
-DROP TRIGGER IF EXISTS `trg_langkahsop_pelaksana_opd_update`;
 
 -- New invariant: a procedure step may only reference an actor selected into the same DetailSOP swimlane.
 DROP TRIGGER IF EXISTS `trg_langkahsop_pelaksana_swimlane_insert`;
