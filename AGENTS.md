@@ -8,14 +8,15 @@ It is intentionally thin. Do not duplicate the operating rules here. The canonic
 
 Before making a meaningful repository change, read the relevant `.agents` sources in this order:
 
-1. `.agents/AGENTS.md` — canonical engineering lifecycle, authority split, scope rules, stop conditions, verification, quality, and agent behavior.
+1. `.agents/AGENTS.md` — canonical milestone lifecycle, authority split, scope rules, stop conditions, verification, quality, and agent behavior.
 2. `.agents/PROJECT.md` — durable SOPFlow FTI product/domain truth, approved invariants, architecture/domain boundaries, and legacy-to-target migration direction.
-3. `.agents/CURRENT_ITERATION.md` — active Feature Compass: current feature shape, position, delta, evidence, and next move.
-4. `.agents/CODE_PATTERNS.md` — repository-specific implementation conventions, backend/frontend patterns, naming, state ownership, transactions, and refactor thresholds.
-5. `.agents/GIT_STRATEGY.md` — branch, commit, PR, merge, history-safety, CI, and release-state rules.
-6. `.agents/DEVELOPMENT.md` — setup, commands, testing, migration, and runtime verification guidance.
+3. `.agents/PROTECTED_SURFACES.md` — user-protected product surfaces that must not be modified without an explicit request targeting that surface.
+4. `.agents/CURRENT_ITERATION.md` — active Feature Compass: current milestone/slice, position, delta, evidence, and next move.
+5. `.agents/CODE_PATTERNS.md` — repository-specific implementation conventions, backend/frontend patterns, naming, state ownership, transactions, and refactor thresholds.
+6. `.agents/GIT_STRATEGY.md` — branch, commit, integration, history-safety, CI, and release-state rules.
+7. `.agents/DEVELOPMENT.md` — setup, commands, testing, migration, and runtime verification guidance.
 
-Read only as much as needed for the task, but do not skip a source whose boundary is materially affected.
+Read only as much as needed for the task, but do not skip a source whose boundary is materially affected. For any frontend, SOP authoring, routing, layout, or workflow UI change, `PROTECTED_SURFACES.md` is mandatory reading.
 
 ## Canonical Authority
 
@@ -27,6 +28,7 @@ current user instruction
 -> this root AGENTS.md gateway
 -> .agents/AGENTS.md
 -> .agents/PROJECT.md
+-> .agents/PROTECTED_SURFACES.md
 -> .agents/CURRENT_ITERATION.md
 -> .agents/CODE_PATTERNS.md
 -> .agents/GIT_STRATEGY.md
@@ -44,19 +46,19 @@ These instructions apply regardless of agent/vendor/tool, including but not limi
 
 Do not create a parallel workflow merely because a particular agent platform has its own planning or memory mechanism.
 
-Agent-specific configuration may adapt execution mechanics, but must not override the repository's approved product semantics, engineering lifecycle, authority boundaries, code patterns, or Git strategy unless the user explicitly instructs otherwise.
+Agent-specific configuration may adapt execution mechanics, but must not override the repository's approved product semantics, protected surfaces, engineering lifecycle, authority boundaries, code patterns, or Git strategy unless the user explicitly instructs otherwise.
 
 ## Operating Principle
 
 Use the canonical lifecycle from `.agents/AGENTS.md`:
 
-`USER INTENT -> UNDERSTAND -> BOUND -> SPECIFY -> DESIGN -> IMPLEMENT -> VERIFY -> QUALITY GATES -> RELEASE READY -> STOP`
+`USER INTENT -> UNDERSTAND -> BOUND -> MILESTONE PLAN -> EXECUTE SLICES CONTINUOUSLY -> MILESTONE GATE -> RELEASE READY -> STOP`
 
-Stages may be fused for small/unambiguous work. Do not turn this lifecycle into mandatory ceremony.
+Plan at milestone boundaries. Execute continuously at slice boundaries. Integrate at logical-change boundaries.
 
 Default execution shape:
 
-`Problem -> Required Behavior/Contract -> Smallest Vertical Slice -> Implementation -> Evidence -> Next Move`
+`Milestone Outcome -> Smallest Slice -> Logical Change -> Evidence -> Integrate -> Next Slice`
 
 ## Scope And Autonomy
 
@@ -67,9 +69,10 @@ Do not:
 - invent product requirements;
 - expand scope for speculative best practice;
 - preserve legacy OPD semantics when they conflict with `.agents/PROJECT.md`;
+- modify a protected surface unless the current user request explicitly targets that surface;
 - perform unrelated refactors;
 - introduce architecture/framework abstractions without demonstrated need;
-- treat green tests as permission to merge, release, or deploy;
+- infer release or production deployment authority from green tests or integration;
 - discard unrelated working-tree changes;
 - perform destructive migration/reset/history operations without explicit authorization.
 
@@ -80,8 +83,8 @@ Do autonomously:
 - implement the smallest coherent vertical slice;
 - test/debug/verify;
 - make local refactors required by the change;
-- produce tool-required coherent commits when repository mutation was requested;
-- update `.agents/CURRENT_ITERATION.md` when an already-established meaningful iteration changes state.
+- integrate coherent logical changes when the approved milestone and repository Git rules allow it;
+- update `.agents/CURRENT_ITERATION.md` as milestone/slice state changes.
 
 ## Source Placement
 
@@ -94,7 +97,10 @@ HOW agents operate
 WHAT the product/domain is
 -> .agents/PROJECT.md
 
-WHERE the active iteration is
+WHAT must not be modified without explicit user direction
+-> .agents/PROTECTED_SURFACES.md
+
+WHERE the active milestone/slice is
 -> .agents/CURRENT_ITERATION.md
 
 HOW recurring code should be shaped
@@ -115,9 +121,7 @@ Before claiming completion, report evidence proportional to the task and disting
 
 ```text
 implemented
-committed
-PR-ready
-merged
+integrated
 release-ready
 released
 deployed
