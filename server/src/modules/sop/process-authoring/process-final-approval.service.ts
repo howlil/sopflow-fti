@@ -8,6 +8,7 @@ import {
   StatusSOP,
 } from '../../../generated/prisma';
 import { OrganizationalAuthorityService } from '../../core/process/organizational-authority.service';
+import { mapWorkbenchPayload } from '../catalog/sop-catalog.mapper';
 import { SopCatalogRepository } from '../catalog/sop-catalog.repository';
 
 @Injectable()
@@ -128,6 +129,24 @@ export class ProcessFinalApprovalService {
       canApprove: resolved.holderId === user.sub,
       approval,
     };
+  }
+
+  async getDocumentForCurrentApprover(user: JwtAccessPayload, detailOrSopId: string) {
+    const context = await this.resolveTargetContext(detailOrSopId);
+    await this.authorityService.assertCanApprove(user.sub, context.processId);
+    const row = await this.sopCatalogRepository.findWorkbenchPayloadByDetailOrSopId(
+      context.detailSopId,
+      0,
+    );
+    if (row === null) {
+      throw new NotFoundException('DetailSOP tidak ditemukan');
+    }
+    if (row.status !== StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR) {
+      throw new ConflictException(
+        `SOP tidak berada pada tahap final approval/TTE (status saat ini: ${String(row.status)})`,
+      );
+    }
+    return mapWorkbenchPayload(row);
   }
 
   async approve(user: JwtAccessPayload, detailOrSopId: string) {
