@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -9,14 +10,18 @@ import { extractDbInvariantMessage } from '../../../common/prisma/prisma-db-inva
 import { isPrismaUniqueConstraintError } from '../../../common/prisma/prisma-error.util';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { assertDetailSopEditable } from '../../../common/status/sop-editable.util';
-import { StatusSOP } from '../../../generated/prisma';
+import { PeranPengguna, StatusSOP } from '../../../generated/prisma';
 import { ProcessContextService } from '../../core/process/process-context.service';
 import type { ListSopQueryDto } from '../catalog/dto/list-sop-query.dto';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
 import type { SopDaftarRowDto } from '../catalog/dto/sop-daftar-row.dto';
 import type { UpdateSopHeaderDto } from '../catalog/dto/update-sop-header.dto';
 import { mapDaftarRow } from '../catalog/sop-catalog.mapper';
-import { SopCatalogRepository, type SopDaftarListFilters, type UpdateSopHeaderRepoInput } from '../catalog/sop-catalog.repository';
+import {
+  SopCatalogRepository,
+  type SopDaftarListFilters,
+  type UpdateSopHeaderRepoInput,
+} from '../catalog/sop-catalog.repository';
 import { assertSopCatalogRepoOk } from '../catalog/sop-catalog-repo-error.util';
 import { SopCatalogService } from '../catalog/sop-catalog.service';
 import type { CreateProcessSopDto } from './dto/create-process-sop.dto';
@@ -40,8 +45,11 @@ export class ProcessSopAuthoringService {
     query?: ListSopQueryDto,
   ): Promise<ProcessAwareSopRow[]> {
     const filters = this.normalizeFilters(query);
+    const legacyRowsPromise = this.isLegacyAuthoringRole(user)
+      ? this.sopCatalogService.listForCurrentUser(user, query)
+      : Promise.resolve([] as SopDaftarRowDto[]);
     const [legacyRows, myProcesses, allBindings, allRows] = await Promise.all([
-      this.sopCatalogService.listForCurrentUser(user, query),
+      legacyRowsPromise,
       this.processContextService.listForUser(user.sub),
       this.prisma.processSopBinding.findMany({ select: { sopId: true, processId: true } }),
       this.sopCatalogRepository.findDaftarAll(filters),
@@ -156,6 +164,7 @@ export class ProcessSopAuthoringService {
   ): Promise<PenyusunWorkbenchDataDto> {
     const context = await this.resolveBinding(detailOrSopId);
     if (context.binding === null) {
+      this.assertLegacyAuthoringRole(user);
       return this.sopCatalogService.getPenyusunWorkbench(user, detailOrSopId, logsLimit);
     }
     const process = await this.processContextService.assertCanAuthor(
@@ -177,6 +186,7 @@ export class ProcessSopAuthoringService {
   ): Promise<PenyusunWorkbenchDataDto> {
     const context = await this.resolveBinding(detailOrSopId);
     if (context.binding === null) {
+      this.assertLegacyAuthoringRole(user);
       return this.sopCatalogService.updatePenyusunHeader(user, detailOrSopId, dto, logsLimit);
     }
     const process = await this.processContextService.assertCanAuthor(
@@ -231,6 +241,18 @@ export class ProcessSopAuthoringService {
       where: { sopId: resolved.sopId },
     });
     return { resolved, binding };
+  }
+
+  private isLegacyAuthoringRole(user: JwtAccessPayload): boolean {
+    return user.peran === PeranPengguna.PENYUSUN || user.peran === PeranPengguna.PJ_PENYUSUN;
+  }
+
+  private assertLegacyAuthoringRole(user: JwtAccessPayload): void {
+    if (!this.isLegacyAuthoringRole(user)) {
+      throw new ForbiddenException(
+        'SOP legacy hanya dapat diakses dari authoring oleh Penyusun atau PJ Penyusun',
+      );
+    }
   }
 
   private withProcessContext(
