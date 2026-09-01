@@ -39,82 +39,28 @@ const DESKTOP_SIDEBAR_STORAGE_KEY = "ui:desktop-sidebar-collapsed";
 /** Legacy compatibility navigation. Contextual capability items are composed before these entries. */
 const SIDEBAR_ITEMS: Record<RoleKey, AppSidebarItem[]> = {
   PJ_EVALUATOR: [
-    {
-      to: ROUTES.PJ_EVALUATOR.GRAFIK_EVALUASI,
-      label: "Grafik Evaluasi",
-      icon: BarChart3,
-    },
-    {
-      to: ROUTES.PJ_EVALUATOR.OPD,
-      label: "OPD",
-      icon: Building2,
-    },
-    {
-      to: ROUTES.PJ_EVALUATOR.PENYUSUN,
-      label: "Penyusun",
-      icon: UserPlus,
-    },
-    {
-      to: ROUTES.PJ_EVALUATOR.EVALUATOR,
-      label: "Evaluator",
-      icon: Users,
-    },
-    {
-      to: ROUTES.PJ_EVALUATOR.EVALUASI,
-      label: "Evaluasi SOP",
-      icon: FileCheck,
-    },
+    { to: ROUTES.PJ_EVALUATOR.GRAFIK_EVALUASI, label: "Grafik Evaluasi", icon: BarChart3 },
+    { to: ROUTES.PJ_EVALUATOR.OPD, label: "OPD", icon: Building2 },
+    { to: ROUTES.PJ_EVALUATOR.PENYUSUN, label: "Penyusun", icon: UserPlus },
+    { to: ROUTES.PJ_EVALUATOR.EVALUATOR, label: "Evaluator", icon: Users },
+    { to: ROUTES.PJ_EVALUATOR.EVALUASI, label: "Evaluasi SOP", icon: FileCheck },
   ],
   PENYUSUN: [
-    {
-      to: ROUTES.PENYUSUN.SOP,
-      label: "SOP",
-      icon: FileText,
-    },
-    {
-      to: ROUTES.PENYUSUN.PELAKSANA,
-      label: "Pelaksana SOP",
-      icon: UserCog,
-    },
-    {
-      to: ROUTES.PENYUSUN.PERATURAN,
-      label: "Peraturan",
-      icon: BookOpen,
-    },
+    { to: ROUTES.PENYUSUN.SOP, label: "SOP", icon: FileText },
+    { to: ROUTES.PENYUSUN.PELAKSANA, label: "Pelaksana SOP", icon: UserCog },
+    { to: ROUTES.PENYUSUN.PERATURAN, label: "Peraturan", icon: BookOpen },
   ],
   PJ_PENYUSUN: [
-    {
-      to: ROUTES.PENYUSUN.SOP,
-      label: "SOP",
-      icon: FileText,
-    },
-    {
-      to: ROUTES.PENYUSUN.PELAKSANA,
-      label: "Pelaksana SOP",
-      icon: UserCog,
-    },
-    {
-      to: ROUTES.PENYUSUN.PERATURAN,
-      label: "Peraturan",
-      icon: BookOpen,
-    },
-    {
-      to: ROUTES.PENYUSUN.PJ_PENYUSUN_BERITA_ACARA,
-      label: "Berita Acara",
-      icon: FileSignature,
-    },
+    { to: ROUTES.PENYUSUN.SOP, label: "SOP", icon: FileText },
+    { to: ROUTES.PENYUSUN.PELAKSANA, label: "Pelaksana SOP", icon: UserCog },
+    { to: ROUTES.PENYUSUN.PERATURAN, label: "Peraturan", icon: BookOpen },
+    { to: ROUTES.PENYUSUN.PJ_PENYUSUN_BERITA_ACARA, label: "Berita Acara", icon: FileSignature },
   ],
   KEPALA_OPD: [
     { to: ROUTES.KEPALA_OPD.SOP, label: "Pantau SOP", icon: FileText },
-    {
-      to: ROUTES.KEPALA_OPD.PENGAJUAN,
-      label: "Pengajuan SOP",
-      icon: FileCheck,
-    },
+    { to: ROUTES.KEPALA_OPD.PENGAJUAN, label: "Pengajuan SOP", icon: FileCheck },
   ],
-  EVALUATOR: [
-    { to: ROUTES.EVALUATOR.EVALUASI, label: "Evaluasi SOP", icon: FileCheck },
-  ],
+  EVALUATOR: [{ to: ROUTES.EVALUATOR.EVALUASI, label: "Evaluasi SOP", icon: FileCheck }],
 };
 
 function isActivePath(pathname: string, itemTo: string): boolean {
@@ -144,7 +90,7 @@ export function DashboardLayout() {
   const contextualItems: AppSidebarItem[] = [
     { to: ROUTES.WORK, label: "Beranda Kerja", icon: House },
     ...(myProcesses.length > 0
-      ? [{ to: ROUTES.PENYUSUN.SOP, label: "SOP Proses", icon: FileText }]
+      ? [{ to: ROUTES.WORK_QUEUE, label: "Pekerjaan SOP", icon: FileText }]
       : []),
     ...(myAuthorities.length > 0
       ? [{ to: ROUTES.APPROVAL.INBOX, label: "Persetujuan & TTE", icon: ShieldCheck }]
@@ -157,7 +103,7 @@ export function DashboardLayout() {
       : []),
   ];
 
-  // Contextual capability navigation wins duplicate routes; legacy global-role routes remain compatibility fallback.
+  // Contextual capability navigation is primary. Legacy global-role routes remain compatibility fallback.
   const sidebarItems = mergeNavigationItems(contextualItems, roleSidebarItems);
   const activeItem = sidebarItems.find(({ to }) => isActivePath(pathname, to));
 
@@ -167,9 +113,7 @@ export function DashboardLayout() {
 
   useEffect(() => {
     try {
-      setDesktopNavOpen(
-        window.localStorage.getItem(DESKTOP_SIDEBAR_STORAGE_KEY) !== "true",
-      );
+      setDesktopNavOpen(window.localStorage.getItem(DESKTOP_SIDEBAR_STORAGE_KEY) !== "true");
     } catch {
       // Preferensi visual tetap opsional ketika storage browser tidak tersedia.
     }
@@ -178,10 +122,7 @@ export function DashboardLayout() {
   const handleDesktopSidebarOpenChange = (open: boolean) => {
     setDesktopNavOpen(open);
     try {
-      window.localStorage.setItem(
-        DESKTOP_SIDEBAR_STORAGE_KEY,
-        String(!open),
-      );
+      window.localStorage.setItem(DESKTOP_SIDEBAR_STORAGE_KEY, String(!open));
     } catch {
       // Sidebar tetap dapat digunakan walau storage browser diblokir.
     }
@@ -196,11 +137,7 @@ export function DashboardLayout() {
         Lewati ke konten utama
       </a>
 
-      <nav
-        data-print-hide
-        className="shrink-0 border-b border-border bg-surface lg:hidden"
-        aria-label="Navigasi utama"
-      >
+      <nav data-print-hide className="shrink-0 border-b border-border bg-surface lg:hidden" aria-label="Navigasi utama">
         <div className="flex min-h-[var(--header-height)] items-center gap-3 px-4 md:px-5">
           <img src={logoSvg} alt={APP_DISPLAY_NAME} className="h-8 w-8 shrink-0" />
           <span className="min-w-0 flex-1 text-ui-body font-semibold text-foreground">
@@ -218,29 +155,15 @@ export function DashboardLayout() {
           </button>
         </div>
       </nav>
+
       {isMobileNavOpen ? (
         <div className="fixed inset-0 z-overlay lg:hidden" data-print-hide>
-          <button
-            type="button"
-            className="absolute inset-0 bg-gray-950/40"
-            aria-label="Tutup navigasi"
-            onClick={() => setIsMobileNavOpen(false)}
-          />
-          <div
-            id="mobile-main-navigation"
-            className="relative flex h-full w-[248px] flex-col border-r border-border bg-surface shadow-overlay"
-          >
+          <button type="button" className="absolute inset-0 bg-gray-950/40" aria-label="Tutup navigasi" onClick={() => setIsMobileNavOpen(false)} />
+          <div id="mobile-main-navigation" className="relative flex h-full w-[248px] flex-col border-r border-border bg-surface shadow-overlay">
             <div className="flex h-[var(--header-height)] shrink-0 items-center gap-2.5 border-b border-border px-3">
               <img src={logoSvg} alt="" aria-hidden className="h-8 w-8 shrink-0" />
-              <span className="min-w-0 flex-1 text-ui-body font-semibold text-foreground">
-                {APP_DISPLAY_NAME}
-              </span>
-              <button
-                type="button"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-control text-secondary-foreground hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                aria-label="Tutup navigasi"
-                onClick={() => setIsMobileNavOpen(false)}
-              >
+              <span className="min-w-0 flex-1 text-ui-body font-semibold text-foreground">{APP_DISPLAY_NAME}</span>
+              <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-control text-secondary-foreground hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Tutup navigasi" onClick={() => setIsMobileNavOpen(false)}>
                 <X className="h-5 w-5" aria-hidden />
               </button>
             </div>
@@ -264,10 +187,7 @@ export function DashboardLayout() {
                 ))}
               </div>
             </div>
-            <SidebarUserMenu
-              collapsed={false}
-              onNavigate={() => setIsMobileNavOpen(false)}
-            />
+            <SidebarUserMenu collapsed={false} onNavigate={() => setIsMobileNavOpen(false)} />
           </div>
         </div>
       ) : null}
@@ -282,10 +202,7 @@ export function DashboardLayout() {
       <div suppressHydrationWarning className="flex-1 flex flex-col min-w-0 min-h-0">
         <PageHeaderProvider>
           <HeaderBar />
-          <main
-            id="main-content"
-            className="relative flex-1 overflow-auto bg-background scrollbar-hide"
-          >
+          <main id="main-content" className="relative flex-1 overflow-auto bg-background scrollbar-hide">
             <div data-scroll-content className="min-h-full p-4 md:p-5 lg:p-6">
               <div data-app-content className="w-full">
                 <Outlet />
