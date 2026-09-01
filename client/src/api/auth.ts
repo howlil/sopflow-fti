@@ -54,6 +54,7 @@ import { useAuthStore, ensureAuthHydrated, mapPublicDataToAuthUser } from "@/sto
 import { useToast, showErrorMessages } from "@/hooks/useToast";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { navigateToAppPath, resolvePostLoginPath } from "@/utils/role-routing";
+import { ROUTES } from "@/utils/constants";
 
 export function useAuth() {
   const navigate = useNavigate();
@@ -72,12 +73,15 @@ export function useAuth() {
 
       showToast(`Selamat datang, ${u.nama}!`, "success");
 
+      const resolveLanding = () =>
+        redirect ? resolvePostLoginPath(redirect, u.peran) : ROUTES.WORK;
+
       try {
         await ensureAuthHydrated(1000);
-        navigateToAppPath(navigate, resolvePostLoginPath(redirect, u.peran));
+        navigateToAppPath(navigate, resolveLanding());
       } catch {
         setTimeout(() => {
-          navigateToAppPath(navigate, resolvePostLoginPath(redirect, u.peran));
+          navigateToAppPath(navigate, resolveLanding());
         }, 100);
       }
     },
