@@ -1,6 +1,6 @@
 import { test, expect } from '../fixtures/business-test'
 import { targetUsers, users } from '../fixtures/users'
-import { apiGet } from '../support/api'
+import { apiGet, toApiUrl } from '../support/api'
 import {
   acceptProcessSopViaUi,
   approveProcessSopViaUi,
@@ -54,7 +54,7 @@ test.describe('End-to-End Business Journey — Department final approval', () =>
       const deniedUsers = [targetUsers.dean, targetUsers.otherHeadOfDepartment, users.pjEvaluator]
       for (const user of deniedUsers) {
         const api = await roleApi(user)
-        const response = await api.post(`/process-approval/${sop.detailSopId}/approve`)
+        const response = await api.post(toApiUrl(`/process-approval/${sop.detailSopId}/approve`))
         expect(response.status()).toBe(403)
       }
     })
