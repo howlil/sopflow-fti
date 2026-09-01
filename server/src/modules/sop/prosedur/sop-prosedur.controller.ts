@@ -28,6 +28,7 @@ import {
   type JwtAccessPayload,
 } from '../../core/auth/helpers/auth.shared';
 import { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
+import { PelaksanaSnapshotService } from '../pelaksana/pelaksana-snapshot.service';
 import { UpdateSopProsedurDto } from './dto/update-sop-prosedur.dto';
 import { SopProsedurService } from './sop-prosedur.service';
 
@@ -35,7 +36,10 @@ import { SopProsedurService } from './sop-prosedur.service';
 @Controller('sop/langkah')
 @UseGuards(JwtAuthGuard)
 export class SopProsedurController {
-  constructor(private readonly sopProsedurService: SopProsedurService) {}
+  constructor(
+    private readonly sopProsedurService: SopProsedurService,
+    private readonly pelaksanaSnapshotService: PelaksanaSnapshotService,
+  ) {}
 
   @Patch(':detailSopId')
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
@@ -69,7 +73,7 @@ export class SopProsedurController {
     return {
       message: 'Prosedur SOP berhasil diperbarui',
       success: true,
-      data,
+      data: await this.pelaksanaSnapshotService.applyToWorkbench(data),
     };
   }
 }
