@@ -26,7 +26,7 @@ function labelPeran(peran: PeranTTE): string {
 function waitForPrintPaint(): Promise<void> {
   return new Promise((resolve) => {
     requestAnimationFrame(() => {
-      requestAnimation(() => resolve());
+      requestAnimationFrame(() => resolve());
     });
   });
 }
