@@ -4,6 +4,7 @@ import { LoginPage } from '@/pages/login/LoginPage'
 import { RouteErrorPage } from '@/components/ui/route-error'
 import { useAuthStore, ensureAuthHydrated, syncAuthFromCookie } from '@/stores/authStore'
 import { redirectArgsFromAppPath, resolvePostLoginPath } from '@/utils/role-routing'
+import { ROUTES } from '@/utils/constants'
 
 const loginSearchSchema = z.object({
   redirect: z.string().optional(),
@@ -21,7 +22,9 @@ export const Route = createFileRoute('/login/')({
     if (!user) {
       return;
     }
-    const path = resolvePostLoginPath(search.redirect, user.peran);
+    const path = search.redirect
+      ? resolvePostLoginPath(search.redirect, user.peran)
+      : ROUTES.WORK;
     throw redirect(redirectArgsFromAppPath(path));
   },
   component: LoginPage,
