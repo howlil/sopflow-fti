@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -132,13 +131,18 @@ describe('Pengujian TteProfilService', () => {
       });
     });
 
-    it('seharusnya menolak peran aktif yang tidak mendukung TTE', async () => {
+    it('seharusnya menyediakan profil kredensial untuk peran legacy non-TTE tanpa memberi authority tanda tangan', async () => {
       const repo = createRepoMock({
         findPenggunaAktif: jest.fn().mockResolvedValue(pengguna(PeranPengguna.PENYUSUN)),
         findKredensial: jest.fn().mockResolvedValue(kredensial),
       });
 
-      await expect(service(repo).getProfil(user)).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(service(repo).getProfil(user)).resolves.toEqual(
+        expect.objectContaining({
+          userId: user.sub,
+          peran: PeranPengguna.PENYUSUN,
+        }),
+      );
     });
   });
 
