@@ -97,10 +97,9 @@ export const sopApi = {
   hapusSopDraftAwal: (detailSopId: string) =>
     unwrapApiData(apiClient.delete<ApiSuccessResponse<null>>(`/sop/${detailSopId}/draft`)),
 
-  findPelaksana: (opdId: string) =>
-    unwrapApiData(
-      apiClient.get<ApiSuccessResponse<Pelaksana[]>>(`/pelaksana?opdId=${encodeURIComponent(opdId)}`),
-    ),
+  // Parameter dipertahankan sementara agar consumer legacy tidak pecah; server mengabaikan OPD.
+  findPelaksana: (_legacyOpdId: string) =>
+    unwrapApiData(apiClient.get<ApiSuccessResponse<Pelaksana[]>>('/pelaksana')),
 
   createPelaksana: (payload: CreatePelaksanaDto) =>
     unwrapApiData(apiClient.post<ApiSuccessResponse<Pelaksana>>('/pelaksana', payload)),
