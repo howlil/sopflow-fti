@@ -1,0 +1,64 @@
+name: Server CI
+
+on:
+  push:
+    paths:
+      - 'server/**'
+      - '.github/workflows/server-ci.yml'
+  pull_request:
+    paths:
+      - 'server/**'
+      - '.github/workflows/server-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    defaults:
+      run:
+        working-directory: server
+    env:
+      # Prisma config requires a password even for validate/generate; no DB service is started.
+      DATABASE_PASSWORD: ci-not-used
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate Prisma schema
+        run: pnpm prisma validate
+
+      - name: Generate Prisma client
+        run: pnpm prisma generate
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Core unit tests
+        run: pnpm test:core-unit
+
+      - name: FTI process foundation unit tests
+        run: pnpm exec jest platform-admin.guard.spec.ts process.service.spec.ts --runInBand
