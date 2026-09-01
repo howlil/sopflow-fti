@@ -6,6 +6,7 @@ import type {
   InAppNotificationDto,
   NotificationKind,
   NotificationSummaryDto,
+  ProcessInAppNotificationDto,
 } from '@/types/dto/notifications.dto'
 
 export const notificationApi = {
@@ -32,6 +33,32 @@ export const notificationApi = {
     unwrapApiData(
       apiClient.post<ApiSuccessResponse<NotificationSummaryDto & { updated: number }>>(
         '/notifications/read-all',
+      ),
+    ),
+
+  processSummary: () =>
+    unwrapApiData(
+      apiClient.get<ApiSuccessResponse<NotificationSummaryDto>>('/notifications/process/summary'),
+    ),
+
+  processList: (limit = 10) =>
+    unwrapApiData(
+      apiClient.get<ApiSuccessResponse<ProcessInAppNotificationDto[]>>(
+        `/notifications/process${buildQueryString({ limit })}`,
+      ),
+    ),
+
+  markProcessRead: (processNotificationId: string) =>
+    unwrapApiData(
+      apiClient.post<ApiSuccessResponse<NotificationSummaryDto>>(
+        `/notifications/process/${encodeURIComponent(processNotificationId)}/read`,
+      ),
+    ),
+
+  markAllProcessRead: () =>
+    unwrapApiData(
+      apiClient.post<ApiSuccessResponse<NotificationSummaryDto & { updated: number }>>(
+        '/notifications/process/read-all',
       ),
     ),
 }
