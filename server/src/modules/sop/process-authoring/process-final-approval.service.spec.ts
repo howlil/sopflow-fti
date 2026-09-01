@@ -7,7 +7,7 @@ import { ProcessFinalApprovalService } from './process-final-approval.service';
 
 const user = { sub: 'dean-1', peran: 'PENYUSUN' } as never;
 
-function makeService(status = StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR) {
+function makeService(status: StatusSOP = StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR) {
   const prisma = {
     processSopBinding: {
       findUnique: jest.fn().mockResolvedValue({ processId: 'process-a' }),
