@@ -26,7 +26,9 @@ export class ProcessBoundSopGuard implements CanActivate {
       Request & { user?: JwtAccessPayload; params: Record<string, string | undefined> }
     >();
 
-    if (!/(^|\/)sop(\/|$)/.test(request.path)) return true;
+    const isLegacySopPath = /(^|\/)sop(\/|$)/.test(request.path);
+    const isPublicSopPath = /(^|\/)sop\/public(\/|$)/.test(request.path);
+    if (!isLegacySopPath || isPublicSopPath) return true;
 
     const candidateId =
       request.params.detailSopId ?? request.params.detailOrSopId ?? request.params.id;
