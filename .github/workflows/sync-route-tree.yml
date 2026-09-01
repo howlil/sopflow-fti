@@ -1,0 +1,56 @@
+name: Sync Route Tree
+
+on:
+  push:
+    branches:
+      - feat/global-pelaksana-catalog
+    paths:
+      - '.github/workflows/sync-route-tree.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    defaults:
+      run:
+        working-directory: client
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: feat/global-pelaksana-catalog
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: client/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Regenerate routes
+        run: pnpm build
+
+      - name: Commit generated route tree
+        run: |
+          if git diff --quiet -- src/routeTree.gen.ts; then
+            echo 'routeTree.gen.ts already current'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/routeTree.gen.ts
+          git commit -m 'chore(client): sync generated route tree'
+          git push origin HEAD:feat/global-pelaksana-catalog
