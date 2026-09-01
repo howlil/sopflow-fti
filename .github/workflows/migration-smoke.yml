@@ -1,0 +1,153 @@
+name: Migration Smoke
+
+on:
+  push:
+    paths:
+      - 'server/prisma/migrations/**'
+      - 'server/prisma/*.prisma'
+      - 'server/prisma.config.ts'
+      - '.github/workflows/migration-smoke.yml'
+  pull_request:
+    paths:
+      - 'server/prisma/migrations/**'
+      - 'server/prisma/*.prisma'
+      - 'server/prisma.config.ts'
+      - '.github/workflows/migration-smoke.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: migration-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: server
+    env:
+      DATABASE_HOST: 127.0.0.1
+      DATABASE_PORT: 3307
+      DATABASE_USER: sop_test
+      DATABASE_PASSWORD: sop_test_password
+      DATABASE_NAME: sop_biro_organisasi_test
+      DATABASE_URL: mysql://sop_test:sop_test_password@127.0.0.1:3307/sop_biro_organisasi_test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start runtime-matched MariaDB
+        run: |
+          docker run --detach \
+            --name sop-migration-smoke-db \
+            --publish 3307:3306 \
+            --env MARIADB_ROOT_PASSWORD=root_test_password \
+            --env MARIADB_DATABASE=sop_biro_organisasi_test \
+            --env MARIADB_USER=sop_test \
+            --env MARIADB_PASSWORD=sop_test_password \
+            --env TZ=Asia/Jakarta \
+            mariadb:11.4 \
+            --lower_case_table_names=1
+
+      - name: Wait for MariaDB
+        run: |
+          for attempt in $(seq 1 60); do
+            if docker exec sop-migration-smoke-db healthcheck.sh --connect --innodb_initialized >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs sop-migration-smoke-db
+          exit 1
+
+      - name: Validate Prisma schema
+        run: pnpm prisma validate
+
+      - name: Apply full migration chain
+        run: pnpm prisma migrate deploy
+
+      - name: Verify migration status
+        run: pnpm prisma migrate status
+
+      - name: Verify migration history completeness
+        run: |
+          expected="$(find prisma/migrations -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
+          applied="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM sop_biro_organisasi_test._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL")"
+          failed="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM sop_biro_organisasi_test._prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL")"
+
+          test "$applied" = "$expected" || {
+            echo "Expected $expected applied migrations, got $applied"
+            exit 1
+          }
+          test "$failed" = "0" || {
+            echo "Found $failed unresolved failed migration(s)"
+            exit 1
+          }
+
+      - name: Verify Prisma schema is represented by migrations
+        run: pnpm prisma migrate diff --exit-code --from-config-datasource --to-schema=prisma
+
+      - name: Verify Process scope database invariant
+        run: |
+          trigger_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = 'sop_biro_organisasi_test' AND TRIGGER_NAME IN ('trg_process_scope_department_insert', 'trg_process_scope_department_update')")"
+          test "$trigger_count" = "2" || {
+            echo "Expected Process scope INSERT/UPDATE triggers"
+            exit 1
+          }
+
+          docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -e "
+            SET FOREIGN_KEY_CHECKS=0;
+            INSERT INTO \`Process\` (processId, nama, scope, departmentId, ownerId, createdAt, updatedAt)
+            VALUES ('00000000-0000-0000-0000-000000000001', 'CI Faculty', 'FACULTY', NULL, '00000000-0000-0000-0000-000000000099', NOW(3), NOW(3));
+            INSERT INTO \`Process\` (processId, nama, scope, departmentId, ownerId, createdAt, updatedAt)
+            VALUES ('00000000-0000-0000-0000-000000000002', 'CI Department', 'DEPARTMENT', '00000000-0000-0000-0000-000000000098', '00000000-0000-0000-0000-000000000099', NOW(3), NOW(3));
+            SET FOREIGN_KEY_CHECKS=1;
+          "
+
+          expect_scope_rejection() {
+            set +e
+            output="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -e "$1" 2>&1)"
+            status=$?
+            set -e
+            if [ "$status" -eq 0 ]; then
+              echo "Expected Process scope invariant rejection"
+              exit 1
+            fi
+            printf '%s\n' "$output" | grep -q 'Process scope and departmentId are inconsistent' || {
+              printf '%s\n' "$output"
+              echo "Process write failed for an unexpected reason"
+              exit 1
+            }
+          }
+
+          expect_scope_rejection "SET FOREIGN_KEY_CHECKS=0; INSERT INTO \`Process\` (processId, nama, scope, departmentId, ownerId, createdAt, updatedAt) VALUES ('00000000-0000-0000-0000-000000000003', 'Invalid Faculty', 'FACULTY', '00000000-0000-0000-0000-000000000098', '00000000-0000-0000-0000-000000000099', NOW(3), NOW(3));"
+          expect_scope_rejection "SET FOREIGN_KEY_CHECKS=0; INSERT INTO \`Process\` (processId, nama, scope, departmentId, ownerId, createdAt, updatedAt) VALUES ('00000000-0000-0000-0000-000000000004', 'Invalid Department', 'DEPARTMENT', NULL, '00000000-0000-0000-0000-000000000099', NOW(3), NOW(3));"
+          expect_scope_rejection "SET FOREIGN_KEY_CHECKS=0; UPDATE \`Process\` SET departmentId = '00000000-0000-0000-0000-000000000098' WHERE processId = '00000000-0000-0000-0000-000000000001';"
+
+      - name: Database logs on failure
+        if: failure()
+        run: docker logs sop-migration-smoke-db || true
+
+      - name: Stop migration database
+        if: always()
+        run: docker rm --force sop-migration-smoke-db || true
