@@ -83,7 +83,7 @@ function WorkRow({
             ? 'Menunggu keputusan Anda sebagai Process Owner.'
             : isAuthoring
               ? 'Dapat dilanjutkan oleh Process Owner atau Member.'
-              : 'Tidak memerlukan tindakan authoring saat ini.'}
+              : 'Tidak memerlukan tindakan penyusunan atau review saat ini.'}
         </p>
         <Button asChild size="sm" variant={isOwnerReview ? 'default' : 'outline'} className="shrink-0 gap-1.5">
           <Link to={ROUTES.PENYUSUN.DETAIL_SOP} params={{ id: targetId }}>
@@ -129,9 +129,9 @@ export function ProcessWorkQueuePage() {
     <ListPageLayout title="Pekerjaan SOP" breadcrumb={null}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-foreground">Queue Process Anda</p>
+          <p className="text-sm font-medium text-foreground">Daftar kerja Process Anda</p>
           <p className="mt-1 text-xs text-secondary-foreground">
-            Aksi ditentukan oleh hubungan Anda sebagai Process Owner atau Member, bukan role legacy akun.
+            Tindakan ditentukan oleh tanggung jawab Anda sebagai Process Owner atau Member.
           </p>
         </div>
         <Button className="gap-2" onClick={() => setIsCreateOpen(true)} disabled={processes.length === 0}>
@@ -156,7 +156,7 @@ export function ProcessWorkQueuePage() {
           <EmptyState
             icon={<ClipboardCheck />}
             title="Tidak ada tindakan saat ini"
-            description="Draft, revisi, atau review Process Owner yang membutuhkan Anda akan muncul di sini."
+            description="Draft, revisi, atau review Process Owner yang memerlukan tindakan Anda akan muncul di sini."
           />
         )}
       </section>
