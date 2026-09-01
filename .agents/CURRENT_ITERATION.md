@@ -35,8 +35,8 @@ Out of scope:
 
 ```text
 Milestone plan
-  -> Target E2E Identity + Fixture Foundation    ACTIVE
-  -> Contextual Entry + Navigation Journey       PLANNED
+  -> Target E2E Identity + Fixture Foundation    VERIFIED + INTEGRATED
+  -> Contextual Entry + Navigation Journey       ACTIVE / RUNTIME GATE
   -> Process Work + Owner Review Journey         PLANNED
   -> Final Approval + Notification Journey       PLANNED
   -> TTE/Public Integrity Boundary               PLANNED
@@ -46,34 +46,61 @@ Milestone plan
 Current branch:
 
 ```text
-m3-critical-journey-foundation
+m3-contextual-entry-runtime
 ```
 
-## Evidence / Gap
+## Delivered Evidence
 
-M2 is release-ready and its unit/CI gates are green, but the existing browser journey set is still centered on legacy role/evaluation flows. There is no dedicated Process-native critical browser journey for `/work` / `/work/queue` / Process Owner review / contextual authority.
+Foundation logical change:
 
-The existing E2E seed contains five legacy-role identities only. The shared business fixture also caches authentication by legacy role, which is insufficient for multiple target identities that may intentionally share the same transitional legacy role while holding different Process/authority capabilities.
+```text
+PR #3
+merge: ad96c4532fc1f944d50def1638d21183c23c29aa
+Client CI: 33548230111       PASS
+Server CI: 33548230152       PASS
+Migration Smoke: 33548230125 PASS
+```
+
+Foundation now provides:
+
+- four dedicated target identities: Process Owner, Process Member, Dean, Head of Department;
+- deterministic Faculty + Department Process context;
+- deterministic Process membership and organizational authority assignments;
+- identity-keyed shared E2E authentication instead of legacy-role-keyed sessions;
+- J08 registered in the existing audited critical journey set;
+- Migration Smoke validation of the target seed against the full migrated MariaDB schema.
+
+The initial seed-validation smoke run exposed a missing `prisma generate` step in Migration Smoke. The workflow was corrected and the final run passed. No production schema change was required.
 
 ## Active Slice
 
-### Target E2E Identity + Fixture Foundation
+### Contextual Entry + Navigation Runtime Gate
 
-Required behavior:
+J08 already expresses the required browser assertions. The remaining gap is automated runtime proof.
 
-- preserve all existing legacy E2E identities and expectations;
-- add separate target-specific users instead of repurposing legacy accounts;
-- seed deterministic Process/Process Team/organizational-authority context using existing production schema and invariants;
-- key shared authentication cache by concrete identity, not legacy role;
-- add the first target browser proof for `/work` capability/navigation isolation;
-- do not alter production authorization or navigation to accommodate tests.
+Current logical change adds one path-scoped GitHub Actions gate that:
 
-Verification:
+- provisions disposable MariaDB 11.4;
+- generates Prisma client;
+- resets through the real migration chain and loads the target E2E seed;
+- starts the Nest backend with committed test-only environment values;
+- installs Chromium;
+- audits the critical journey registry;
+- executes only J08 in Chromium;
+- captures backend logs on failure;
+- does not run on unrelated repository changes.
 
-- server seed TypeScript/Prisma compatibility;
-- frontend E2E TypeScript compatibility;
-- focused target browser journey in Docker-backed E2E environment when available;
-- existing relevant auth/role-access journeys must remain compatible.
+J08 must prove:
+
+- Process Owner sees Process work as primary and no legacy `SOP` workflow navigation;
+- Process Member sees Process work but no final-approval capability;
+- Dean sees contextual approval/TTE but no Process authoring capability;
+- Head of Department sees contextual approval/TTE but no Process authoring capability;
+- no browser page errors or application-shell errors occur.
+
+## Guardrail
+
+The protected Edit SOP workspace remains outside M3 changes. Do not modify it to make E2E easier.
 
 ## Stop Conditions
 
@@ -81,4 +108,4 @@ Stop/escalate if target journey coverage requires changing approved workflow beh
 
 ## Next Move
 
-Implement target-specific seed identities and relationships, make the business E2E auth cache identity-safe, then add the first contextual `/work` navigation/isolation journey.
+Verify the new path-scoped FTI Critical E2E workflow on J08, integrate it when green, then start the Process Work + Owner Review journey slice.
