@@ -63,7 +63,5 @@ Required production-style values include:
 
 ## Known Checkout Notes
 
-- The root was not a Git repository when this `.agents` folder was created.
-- README references `docs/*`, but no root `docs` folder was present at creation time.
-- `client/playwright-report` and `client/test-results` exist locally and may be generated artifacts.
-- Sprint 1 removes Wago/WhatsApp transport integration and keeps notifications in-app only.
+- README references `docs/*`, but no root `docs` folder is present in the current repository root listing.
+- `client/playwright-report` and `client/test-results` may exist locally as generated artifacts.
