@@ -144,9 +144,9 @@ jobs:
         working-directory: client
         run: pnpm test:e2e:audit
 
-      - name: Run FTI target journeys J08-J09
+      - name: Run FTI target journeys J08-J10
         working-directory: client
-        run: node scripts/run-e2e.mjs journeys --grep 'J0[89]\b' --project=chromium
+        run: node scripts/run-e2e.mjs journeys --grep 'J(08|09|10)\b' --project=chromium
 
       - name: Backend logs on failure
         if: failure()
