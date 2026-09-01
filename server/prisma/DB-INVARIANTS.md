@@ -28,6 +28,17 @@ Model FTI ditambahkan secara additive; invariant legacy OPD tetap berlaku pada c
 
 `ProcessSopBinding` adalah compatibility seam untuk SOP target-path. Jika sebuah SOP memiliki binding Process, authoring/mutasi procedure ditentukan oleh relationship pengguna terhadap Process tersebut, bukan sekadar legacy role atau kesamaan `opdId`. SOP yang belum memiliki binding masih dapat menggunakan compatibility authorization sampai slice legacy contract cleanup.
 
+## Contextual Final Approval
+
+- `OrganizationalAuthorityAssignment` menyimpan holder kewenangan organisasi yang aktif untuk final approval target-path.
+- Authority `DEAN` berlaku untuk Process scope `FACULTY`.
+- Authority `HEAD_OF_DEPARTMENT` selalu dikunci ke satu `departmentId` dan hanya berlaku untuk Process scope `DEPARTMENT` pada Department tersebut.
+- `SUPER_ADMIN` boleh memelihara konfigurasi authority, tetapi `platformRole = SUPER_ADMIN` tidak memberikan hak final approval dan tidak boleh menjadi workflow bypass.
+- `ProcessFinalApproval` adalah evidence satu-per-`DetailSOP` bahwa holder authority yang ter-resolve menyetujui versi SOP Process-bound tersebut.
+- Hanya versi `DetailSOP` terbaru dari SOP Process-bound yang dapat memperoleh contextual final approval. Versi lama yang pernah berada pada status siap approval ditolak setelah versi yang lebih baru tersedia.
+- SOP tanpa `ProcessSopBinding` tetap berada pada compatibility workflow dan tidak masuk contextual final-approval path.
+- Final approval tidak membuat `DetailSOP` menjadi `BERLAKU`. TTE dan effective-state transition tetap merupakan boundary terpisah.
+
 ## Transisi Status DetailSOP
 
 Transisi manual lewat endpoint status hanya memperbolehkan:
