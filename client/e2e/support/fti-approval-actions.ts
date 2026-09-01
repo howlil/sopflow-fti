@@ -64,13 +64,13 @@ export async function approveProcessSopViaUi(
   const titleHeading = page.getByRole('heading', { name: title, exact: true })
   await expect(titleHeading).toBeVisible()
 
-  const row = titleHeading.locator(
+  const pendingRow = titleHeading.locator(
     'xpath=ancestor::div[.//button[normalize-space(.)="Setujui"]][1]',
   )
-  await expect(row.getByText(authorityLabel, { exact: true })).toBeVisible()
-  await expect(row.getByText('Menunggu persetujuan akhir', { exact: true })).toBeVisible()
+  await expect(pendingRow.getByText(authorityLabel, { exact: true })).toBeVisible()
+  await expect(pendingRow.getByText('Menunggu persetujuan akhir', { exact: true })).toBeVisible()
 
-  const approve = row.getByRole('button', { name: 'Setujui', exact: true })
+  const approve = pendingRow.getByRole('button', { name: 'Setujui', exact: true })
   await expect(approve).toBeEnabled()
   await approve.click()
 
@@ -79,10 +79,17 @@ export async function approveProcessSopViaUi(
   await dialog.getByRole('button', { name: 'Ya, setujui', exact: true }).click()
   await expect(dialog).toBeHidden({ timeout: 15_000 })
 
-  await expect(row.getByText('Persetujuan akhir tercatat · siap TTE', { exact: true })).toBeVisible({
-    timeout: 15_000,
-  })
-  await expect(row.getByRole('button', { name: 'Tanda tangani', exact: true })).toBeVisible()
+  // Approval rerenders the row and removes the Setujui button. Reacquire the
+  // post-transition row from its new stable action instead of reusing a locator
+  // whose predicate describes the previous state.
+  const approvedHeading = page.getByRole('heading', { name: title, exact: true })
+  const approvedRow = approvedHeading.locator(
+    'xpath=ancestor::div[.//button[normalize-space(.)="Tanda tangani"]][1]',
+  )
+  await expect(
+    approvedRow.getByText('Persetujuan akhir tercatat · siap TTE', { exact: true }),
+  ).toBeVisible({ timeout: 15_000 })
+  await expect(approvedRow.getByRole('button', { name: 'Tanda tangani', exact: true })).toBeVisible()
   await expectNoAppShellError(page)
 }
 
