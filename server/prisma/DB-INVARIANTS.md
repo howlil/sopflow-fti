@@ -19,7 +19,7 @@ Model FTI ditambahkan secara additive; invariant legacy OPD tetap berlaku pada c
 - `Pengguna.platformRole` adalah axis administrasi platform yang terpisah dari `Pengguna.peran`. Nilai default adalah `USER`.
 - `SUPER_ADMIN` tidak mengubah atau membypass `PeranPengguna`, Process relationship, review authority, final approval, atau TTE authority.
 - `Process.scope = FACULTY` wajib memiliki `departmentId = NULL`.
-- `Process.scope = DEPARTMENT` wajib memiliki satu `departmentId` valid. Kombinasi scope/context ini dikunci oleh CHECK constraint migration dan juga divalidasi service.
+- `Process.scope = DEPARTMENT` wajib memiliki satu `departmentId` valid. Kombinasi scope/context ini dikunci oleh trigger `trg_process_scope_department_insert` dan `trg_process_scope_department_update`, serta divalidasi service. Trigger digunakan karena MariaDB/MySQL menolak `departmentId` dipakai bersamaan dalam CHECK dan foreign-key referential action pada migration foundation.
 - Setiap `Process` memiliki tepat satu `ownerId` melalui FK wajib ke `Pengguna`.
 - Setiap `Process` harus memiliki minimal satu `ProcessMember`. Minimum ini divalidasi service pada create/update; composite primary key `(processId, penggunaId)` mencegah membership duplikat.
 - Process Owner tidak diduplikasi sebagai `ProcessMember`; owner dan member adalah dua relationship contextual yang berbeda.
@@ -114,8 +114,12 @@ Target semantics Sprint 4:
 
 ## Verifikasi Migration-backed
 
-Constraint yang berasal dari raw SQL migration—termasuk trigger dan CHECK constraint—tidak boleh dianggap terbukti hanya dengan `prisma db push`, karena `db push` menyinkronkan schema Prisma tetapi tidak mereplay raw migration SQL.
+Constraint yang berasal dari raw SQL migration—termasuk trigger dan CHECK constraint—tidak boleh dianggap terbukti hanya dengan `prisma db push`, `prisma validate`, atau `prisma generate`, karena perintah tersebut tidak mereplay historical raw migration SQL terhadap engine database nyata.
+
+Dedicated Migration Smoke menjalankan full committed migration chain pada runtime-matched MariaDB 11.4 dengan `--lower_case_table_names=1`, memverifikasi `prisma migrate status`, memastikan tidak ada unresolved failed migration, dan menjalankan assertion terhadap critical raw-SQL invariants. Gate ini path-scoped untuk migration/schema/config changes dan bukan full application integration suite.
+
+Untuk Process foundation, Migration Smoke wajib membuktikan trigger `trg_process_scope_department_insert` dan `trg_process_scope_department_update` menerima kombinasi scope/context valid serta menolak INSERT/UPDATE invalid.
 
 Untuk Sprint 4, targeted migration rehearsal boleh menggunakan Sprint-3 schema baseline yang dimaterialisasi dengan `db push`, **hanya** untuk membentuk pre-migration relational shape; legacy Pelaksana triggers yang relevan harus dipasang eksplisit, lalu migration Sprint 4 sendiri wajib dijalankan oleh Prisma migrate engine dan diverifikasi dengan assertion terhadap dedup/rewrite/snapshot/global uniqueness/new swimlane trigger. Ini tidak menggantikan full historical migration-chain health.
 
-Full migration-chain/integration verification tetap merupakan gate terpisah ketika perubahan memang menyentuh atau memperbaiki migration history secara keseluruhan.
+Broad Prisma-schema-versus-database drift saat ini memiliki historical baseline terpisah dan tidak menjadi required Migration Smoke gate sampai baseline tersebut dibersihkan. Jangan menyamakan drift debt itu dengan kegagalan mengeksekusi migration chain.
