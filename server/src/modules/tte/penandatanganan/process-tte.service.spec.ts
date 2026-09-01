@@ -34,23 +34,29 @@ const context = {
   },
 };
 
+type TestSigningContext = typeof context;
+
 function createService(overrides?: {
   contextResult?: unknown;
+  context?: TestSigningContext;
   finalizeResult?: unknown;
 }) {
+  const signingContext = overrides?.context ?? context;
   const processRepo = {
-    findSigningContext: jest.fn().mockResolvedValue(overrides?.contextResult ?? { ok: true, context }),
+    findSigningContext: jest.fn().mockResolvedValue(
+      overrides?.contextResult ?? { ok: true, context: signingContext },
+    ),
     prepareDocument: jest.fn().mockResolvedValue({
       ok: true,
-      item: { ...context, dokumenTteId: 'doc-1', hashDokumen: 'a'.repeat(64) },
+      item: { ...signingContext, dokumenTteId: 'doc-1', hashDokumen: 'a'.repeat(64) },
     }),
     finalizeWithArtifact: jest.fn().mockResolvedValue(
       overrides?.finalizeResult ?? {
         ok: true,
-        detailSopId: context.detailSopId,
+        detailSopId: signingContext.detailSopId,
         dokumenTteId: 'doc-1',
-        authority: OrganizationalAuthority.DEAN,
-        authorityKey: 'DEAN',
+        authority: signingContext.approval.authority,
+        authorityKey: signingContext.approval.authorityKey,
       },
     ),
   } as unknown as jest.Mocked<ProcessTteRepository>;
@@ -59,7 +65,7 @@ function createService(overrides?: {
       penggunaId: user.sub,
       nama: 'Dekan FTI',
       peran: PeranPengguna.PENYUSUN,
-      opdId: context.opdId,
+      opdId: signingContext.opdId,
     }),
     findKredensial: jest.fn().mockResolvedValue({ hashPin: 'hash', updatedAt: new Date() }),
   } as unknown as jest.Mocked<TteRepository>;
@@ -128,7 +134,7 @@ describe('ProcessTteService', () => {
     await expect(service.sign(user, context.detailSopId, dto)).rejects.toThrow(ConflictException);
   });
 
-  it('menandatangani approved Process SOP dan meneruskan authority snapshot ke hasil', async () => {
+  it('menandatangani Faculty Process SOP dan meneruskan Dean authority snapshot ke hasil', async () => {
     const { service, processRepo, signer } = createService();
     const result = await service.sign(user, context.detailSopId, dto);
 
@@ -141,6 +147,32 @@ describe('ProcessTteService', () => {
     expect(result).toEqual(expect.objectContaining({
       detailSopId: context.detailSopId,
       authority: OrganizationalAuthority.DEAN,
+      status: StatusSOP.BERLAKU,
+    }));
+  });
+
+  it('menandatangani Department Process SOP dengan Head of Department authority snapshot', async () => {
+    const departmentContext: TestSigningContext = {
+      ...context,
+      approval: {
+        ...context.approval,
+        authority: OrganizationalAuthority.HEAD_OF_DEPARTMENT,
+        authorityKey: 'HEAD_OF_DEPARTMENT:00000000-0000-4000-8000-000000000020',
+      },
+    };
+    const { service, processRepo } = createService({ context: departmentContext });
+
+    const result = await service.sign(user, departmentContext.detailSopId, dto);
+
+    expect(processRepo.prepareDocument).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detailOrSopId: departmentContext.detailSopId,
+        userId: user.sub,
+      }),
+    );
+    expect(result).toEqual(expect.objectContaining({
+      authority: OrganizationalAuthority.HEAD_OF_DEPARTMENT,
+      authorityKey: departmentContext.approval.authorityKey,
       status: StatusSOP.BERLAKU,
     }));
   });
