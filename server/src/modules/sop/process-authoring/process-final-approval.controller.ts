@@ -42,11 +42,14 @@ export class ProcessFinalApprovalController {
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,
   ): Promise<ApiSuccessResponse<unknown>> {
-    const workbench = await this.service.getDocumentForCurrentApprover(req.user, detailOrSopId);
+    const document = await this.service.getDocumentForCurrentApprover(req.user, detailOrSopId);
     return {
       message: 'Dokumen final approval berhasil diambil',
       success: true,
-      data: await this.pelaksanaSnapshotService.applyToWorkbench(workbench),
+      data: {
+        ...document,
+        workbench: await this.pelaksanaSnapshotService.applyToWorkbench(document.workbench),
+      },
     };
   }
 
