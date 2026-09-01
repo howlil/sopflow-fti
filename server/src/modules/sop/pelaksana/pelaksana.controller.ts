@@ -9,21 +9,18 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
-  Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiCookieAuth,
-  ApiForbiddenResponse,
   ApiOperation,
   ApiParam,
-  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type ApiSuccessResponse, Roles, UseJwtAndRolesGuards } from '../../../common';
-import { PeranPengguna } from '../../../generated/prisma';
+import { type ApiSuccessResponse, JwtAuthGuard } from '../../../common';
 import {
   ACCESS_TOKEN_COOKIE_NAME,
   type JwtAccessPayload,
@@ -35,22 +32,16 @@ import { PelaksanaService } from './pelaksana.service';
 
 @ApiTags('Pelaksana')
 @Controller('pelaksana')
-@UseJwtAndRolesGuards()
-@Roles(PeranPengguna.PENYUSUN, PeranPengguna.PJ_PENYUSUN)
+@UseGuards(JwtAuthGuard)
 export class PelaksanaController {
   constructor(private readonly pelaksanaService: PelaksanaService) {}
 
   @Get()
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
-  @ApiOperation({ summary: 'Daftar pelaksana per OPD' })
-  @ApiQuery({ name: 'opdId', required: false, format: 'uuid' })
+  @ApiOperation({ summary: 'Daftar global actor/pelaksana SOP' })
   @ApiResponse({ status: 200, type: [PelaksanaResponseDto] })
-  @ApiForbiddenResponse()
-  async list(
-    @Req() req: Request & { user: JwtAccessPayload },
-    @Query('opdId') opdId?: string,
-  ): Promise<ApiSuccessResponse<PelaksanaResponseDto[]>> {
-    const data = await this.pelaksanaService.list(req.user, opdId);
+  async list(): Promise<ApiSuccessResponse<PelaksanaResponseDto[]>> {
+    const data = await this.pelaksanaService.list();
     return {
       message: 'Daftar pelaksana berhasil diambil',
       success: true,
@@ -61,7 +52,7 @@ export class PelaksanaController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
-  @ApiOperation({ summary: 'Tambah pelaksana untuk OPD pengguna' })
+  @ApiOperation({ summary: 'Tambah actor/pelaksana ke katalog global' })
   @ApiResponse({ status: 201, type: PelaksanaResponseDto })
   async create(
     @Req() req: Request & { user: JwtAccessPayload },
@@ -77,7 +68,7 @@ export class PelaksanaController {
 
   @Patch(':id')
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
-  @ApiOperation({ summary: 'Perbarui nama pelaksana' })
+  @ApiOperation({ summary: 'Perbarui actor/pelaksana global' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiResponse({ status: 200, type: PelaksanaResponseDto })
   async update(
@@ -96,7 +87,7 @@ export class PelaksanaController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
-  @ApiOperation({ summary: 'Hapus pelaksana jika tidak direferensikan' })
+  @ApiOperation({ summary: 'Hapus actor/pelaksana global jika belum direferensikan SOP' })
   @ApiParam({ name: 'id', format: 'uuid' })
   async remove(
     @Req() req: Request & { user: JwtAccessPayload },
