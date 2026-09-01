@@ -70,7 +70,7 @@ export async function seedReadyProcessSop(
   const relatedFixture = sopFixture(`${prefix}-REL`)
 
   const pelaksana = await apiPost<Pelaksana>(memberApi, '/pelaksana', {
-    namaPelaksana: `Pelaksana ${fixture.suffix}`,
+    namaPelaksana: `P-${fixture.suffix.slice(-12)}`,
   })
   const peraturan = await apiPost<Peraturan>(memberApi, '/peraturan', {
     namaPeraturan: `Peraturan FTI E2E ${fixture.suffix}`,
