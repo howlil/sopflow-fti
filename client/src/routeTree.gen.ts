@@ -25,6 +25,7 @@ import { Route as KepalaOpdIndexRouteImport } from './routes/kepala-opd/index'
 import { Route as EvaluatorIndexRouteImport } from './routes/evaluator/index'
 import { Route as ArsipIndexRouteImport } from './routes/arsip/index'
 import { Route as ApprovalIndexRouteImport } from './routes/approval/index'
+import { Route as WorkQueueRouteImport } from './routes/work/queue'
 import { Route as PjEvaluatorEvaluasiRouteRouteImport } from './routes/pj-evaluator/evaluasi/route'
 import { Route as EvaluatorEvaluasiRouteRouteImport } from './routes/evaluator/evaluasi/route'
 import { Route as ValidasiPdfIndexRouteImport } from './routes/validasi/pdf/index'
@@ -135,6 +136,11 @@ const ApprovalIndexRoute = ApprovalIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => ApprovalRouteRoute,
+} as any)
+const WorkQueueRoute = WorkQueueRouteImport.update({
+  id: '/queue',
+  path: '/queue',
+  getParentRoute: () => WorkRouteRoute,
 } as any)
 const PjEvaluatorEvaluasiRouteRoute =
   PjEvaluatorEvaluasiRouteRouteImport.update({
@@ -307,6 +313,7 @@ export interface FileRoutesByFullPath {
   '/work': typeof WorkRouteRouteWithChildren
   '/evaluator/evaluasi': typeof EvaluatorEvaluasiRouteRouteWithChildren
   '/pj-evaluator/evaluasi': typeof PjEvaluatorEvaluasiRouteRouteWithChildren
+  '/work/queue': typeof WorkQueueRoute
   '/approval/': typeof ApprovalIndexRoute
   '/arsip/': typeof ArsipIndexRoute
   '/evaluator/': typeof EvaluatorIndexRoute
@@ -347,6 +354,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteRouteWithChildren
+  '/work/queue': typeof WorkQueueRoute
   '/approval': typeof ApprovalIndexRoute
   '/arsip': typeof ArsipIndexRoute
   '/evaluator': typeof EvaluatorIndexRoute
@@ -396,6 +404,7 @@ export interface FileRoutesById {
   '/work': typeof WorkRouteRouteWithChildren
   '/evaluator/evaluasi': typeof EvaluatorEvaluasiRouteRouteWithChildren
   '/pj-evaluator/evaluasi': typeof PjEvaluatorEvaluasiRouteRouteWithChildren
+  '/work/queue': typeof WorkQueueRoute
   '/approval/': typeof ApprovalIndexRoute
   '/arsip/': typeof ArsipIndexRoute
   '/evaluator/': typeof EvaluatorIndexRoute
@@ -446,6 +455,7 @@ export interface FileRouteTypes {
     | '/work'
     | '/evaluator/evaluasi'
     | '/pj-evaluator/evaluasi'
+    | '/work/queue'
     | '/approval/'
     | '/arsip/'
     | '/evaluator/'
@@ -486,6 +496,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/work/queue'
     | '/approval'
     | '/arsip'
     | '/evaluator'
@@ -534,6 +545,7 @@ export interface FileRouteTypes {
     | '/work'
     | '/evaluator/evaluasi'
     | '/pj-evaluator/evaluasi'
+    | '/work/queue'
     | '/approval/'
     | '/arsip/'
     | '/evaluator/'
@@ -702,6 +714,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/approval/'
       preLoaderRoute: typeof ApprovalIndexRouteImport
       parentRoute: typeof ApprovalRouteRoute
+    }
+    '/work/queue': {
+      id: '/work/queue'
+      path: '/queue'
+      fullPath: '/work/queue'
+      preLoaderRoute: typeof WorkQueueRouteImport
+      parentRoute: typeof WorkRouteRoute
     }
     '/pj-evaluator/evaluasi': {
       id: '/pj-evaluator/evaluasi'
@@ -1063,10 +1082,12 @@ const PjEvaluatorRouteRouteWithChildren =
   PjEvaluatorRouteRoute._addFileChildren(PjEvaluatorRouteRouteChildren)
 
 interface WorkRouteRouteChildren {
+  WorkQueueRoute: typeof WorkQueueRoute
   WorkIndexRoute: typeof WorkIndexRoute
 }
 
 const WorkRouteRouteChildren: WorkRouteRouteChildren = {
+  WorkQueueRoute: WorkQueueRoute,
   WorkIndexRoute: WorkIndexRoute,
 }
 

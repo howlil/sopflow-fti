@@ -4,15 +4,22 @@ import {
   resolveNotificationStreamUrl,
 } from '@/api/notifications'
 import { useAuthStore } from '@/stores/authStore'
-import type {
-  InAppNotificationDto,
-  NotificationKind,
-} from '@/types/dto/notifications.dto'
+import type { NotificationItem } from '@/types/dto/notifications.dto'
 
 type NotificationState = {
-  items: InAppNotificationDto[]
+  items: NotificationItem[]
   unreadCount: number
   loading: boolean
+}
+
+function sortNotifications(items: NotificationItem[], limit: number): NotificationItem[] {
+  return items
+    .sort((a, b) => {
+      if (a.readAt === null && b.readAt !== null) return -1
+      if (a.readAt !== null && b.readAt === null) return 1
+      return Date.parse(b.createdAt) - Date.parse(a.createdAt)
+    })
+    .slice(0, limit)
 }
 
 export function useInAppNotifications(limit = 10) {
@@ -33,12 +40,25 @@ export function useInAppNotifications(limit = 10) {
     requestId.current = currentRequest
     setState((current) => ({ ...current, loading: true }))
     try {
-      const [summary, items] = await Promise.all([
+      const [legacySummary, legacyItems, processSummary, processItems] = await Promise.all([
         notificationApi.summary(),
         notificationApi.list(limit),
+        notificationApi.processSummary(),
+        notificationApi.processList(limit),
       ])
       if (requestId.current === currentRequest) {
-        setState({ items, unreadCount: summary.unreadCount, loading: false })
+        const items = sortNotifications(
+          [
+            ...legacyItems.map((item) => ({ ...item, source: 'LEGACY' as const })),
+            ...processItems.map((item) => ({ ...item, source: 'PROCESS' as const })),
+          ],
+          limit,
+        )
+        setState({
+          items,
+          unreadCount: legacySummary.unreadCount + processSummary.unreadCount,
+          loading: false,
+        })
       }
     } catch {
       if (requestId.current === currentRequest) {
@@ -71,26 +91,34 @@ export function useInAppNotifications(limit = 10) {
     return () => window.removeEventListener('focus', handleFocus)
   }, [reload, userId])
 
-  const markRead = useCallback(async (pengajuanEvaluasiId: string, jenis: NotificationKind) => {
-    const summary = await notificationApi.markRead(pengajuanEvaluasiId, jenis)
+  const markRead = useCallback(async (item: NotificationItem) => {
+    if (item.readAt) return
+    if (item.source === 'PROCESS') {
+      await notificationApi.markProcessRead(item.processNotificationId)
+    } else {
+      await notificationApi.markRead(item.pengajuanEvaluasiId, item.jenis)
+    }
     const readAt = new Date().toISOString()
     setState((current) => ({
       ...current,
-      unreadCount: summary.unreadCount,
-      items: current.items.map((item) =>
-        item.pengajuanEvaluasiId === pengajuanEvaluasiId && item.jenis === jenis
-          ? { ...item, readAt: item.readAt ?? readAt }
-          : item,
-      ),
+      unreadCount: Math.max(0, current.unreadCount - 1),
+      items: current.items.map((candidate) => {
+        const matches = candidate.source === 'PROCESS'
+          ? item.source === 'PROCESS' && candidate.processNotificationId === item.processNotificationId
+          : item.source === 'LEGACY' &&
+            candidate.pengajuanEvaluasiId === item.pengajuanEvaluasiId &&
+            candidate.jenis === item.jenis
+        return matches ? { ...candidate, readAt } : candidate
+      }),
     }))
   }, [])
 
   const markAllRead = useCallback(async () => {
-    const summary = await notificationApi.markAllRead()
+    await Promise.all([notificationApi.markAllRead(), notificationApi.markAllProcessRead()])
     const readAt = new Date().toISOString()
     setState((current) => ({
       ...current,
-      unreadCount: summary.unreadCount,
+      unreadCount: 0,
       items: current.items.map((item) => ({ ...item, readAt: item.readAt ?? readAt })),
     }))
   }, [])

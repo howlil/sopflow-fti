@@ -54,7 +54,7 @@ export function WorkHomePage() {
     useMyOrganizationalAuthorities()
 
   const ownerCount = user
-    ? processes.filter((process) => process.ownerId === user.penggunaId).length
+    ? processes.filter((process) => process.ownerId === user.id).length
     : 0
   const memberCount = Math.max(processes.length - ownerCount, 0)
   const legacyLanding = user ? getRoleDefaultLandingPath(user.peran) : undefined

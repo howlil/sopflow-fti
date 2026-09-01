@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { Bell, CheckCheck, Inbox, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -9,7 +10,31 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useInAppNotifications } from '@/hooks/useInAppNotifications'
+import type { NotificationItem } from '@/types/dto/notifications.dto'
 import { formatDateId } from '@/utils/format-date'
+
+function NotificationContent({ item }: { item: NotificationItem }) {
+  return (
+    <>
+      <span
+        className={
+          item.readAt
+            ? 'mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-border'
+            : 'mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-primary'
+        }
+      />
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium text-foreground">{item.title}</span>
+        <span className="mt-0.5 block whitespace-normal text-xs leading-5 text-secondary-foreground">
+          {item.preview}
+        </span>
+        <span className="mt-1 block text-[11px] text-muted-foreground">
+          {formatDateId(item.createdAt)}
+        </span>
+      </span>
+    </>
+  )
+}
 
 export function NotificationBell() {
   const { items, unreadCount, loading, reload, markRead, markAllRead } =
@@ -66,36 +91,37 @@ export function NotificationBell() {
               <span>Tidak ada notifikasi</span>
             </div>
           ) : (
-            items.map((item) => (
-              <DropdownMenuItem
-                key={`${item.pengajuanEvaluasiId}:${item.jenis}`}
-                className="items-start gap-2 px-2 py-2"
-                onSelect={() => {
-                  if (!item.readAt) {
-                    void markRead(item.pengajuanEvaluasiId, item.jenis)
-                  }
-                }}
-              >
-                <span
-                  className={
-                    item.readAt
-                      ? 'mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-border'
-                      : 'mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-primary'
-                  }
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium text-foreground">
-                    {item.title}
-                  </span>
-                  <span className="mt-0.5 block whitespace-normal text-xs leading-5 text-secondary-foreground">
-                    {item.preview}
-                  </span>
-                  <span className="mt-1 block text-[11px] text-muted-foreground">
-                    {formatDateId(item.createdAt)}
-                  </span>
-                </span>
-              </DropdownMenuItem>
-            ))
+            items.map((item) => {
+              const key = item.source === 'PROCESS'
+                ? `process:${item.processNotificationId}`
+                : `legacy:${item.pengajuanEvaluasiId}:${item.jenis}`
+              const handleSelect = () => {
+                if (!item.readAt) void markRead(item)
+              }
+
+              if (item.source === 'PROCESS') {
+                return (
+                  <DropdownMenuItem key={key} className="p-0" onSelect={handleSelect}>
+                    <Link
+                      to={item.actionHref}
+                      className="flex w-full items-start gap-2 px-2 py-2"
+                    >
+                      <NotificationContent item={item} />
+                    </Link>
+                  </DropdownMenuItem>
+                )
+              }
+
+              return (
+                <DropdownMenuItem
+                  key={key}
+                  className="items-start gap-2 px-2 py-2"
+                  onSelect={handleSelect}
+                >
+                  <NotificationContent item={item} />
+                </DropdownMenuItem>
+              )
+            })
           )}
         </div>
       </DropdownMenuContent>
