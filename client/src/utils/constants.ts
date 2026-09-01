@@ -41,6 +41,7 @@ export const ROLE_LABELS: Record<RoleKey, string> = {
 export const ROUTES = {
   HOME: "/",
   WORK: "/work",
+  WORK_QUEUE: "/work/queue",
   /** Halaman publik verifikasi pengesahan TTE (scan QR, tanpa login). */
   VALIDASI: {
     PENGESAHAN_PREFIX: "/validasi/pengesahan",
