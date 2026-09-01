@@ -2,58 +2,36 @@ import { validate } from 'class-validator';
 import { CreatePelaksanaDto } from './create-pelaksana.dto';
 import { UpdatePelaksanaDto } from './update-pelaksana.dto';
 
-describe('Pengujian DTO Pelaksana', () => {
-  const validUuid = '11111111-1111-4111-8111-111111111111';
-
-  it('seharusnya menerima create tanpa opdId karena OPD dapat diambil dari user', async () => {
+describe('DTO Pelaksana global catalog', () => {
+  it('accepts a reusable actor name without organizational ownership fields', async () => {
     const dto = new CreatePelaksanaDto();
-    Object.assign(dto, { namaPelaksana: 'Staf A' });
-
+    Object.assign(dto, { namaPelaksana: 'Dosen' });
     await expect(validate(dto)).resolves.toHaveLength(0);
   });
 
-  it('seharusnya menerima create dengan opdId UUID valid', async () => {
-    const dto = new CreatePelaksanaDto();
-    Object.assign(dto, { opdId: validUuid, namaPelaksana: 'Staf A' });
-
-    await expect(validate(dto)).resolves.toHaveLength(0);
-  });
-
-  it('seharusnya menolak create dengan opdId bukan UUID', async () => {
-    const dto = new CreatePelaksanaDto();
-    Object.assign(dto, { opdId: 'opd-1', namaPelaksana: 'Staf A' });
-
-    const errors = await validate(dto);
-    expect(errors.map((error) => error.property)).toContain('opdId');
-  });
-
-  it('seharusnya menolak namaPelaksana kosong pada create dan update', async () => {
+  it('rejects empty actor names on create and update', async () => {
     const createDto = new CreatePelaksanaDto();
     Object.assign(createDto, { namaPelaksana: '' });
     const updateDto = new UpdatePelaksanaDto();
     Object.assign(updateDto, { namaPelaksana: '' });
 
-    await expect(validate(createDto)).resolves.toEqual(
-      expect.arrayContaining([expect.objectContaining({ property: 'namaPelaksana' })]),
-    );
-    await expect(validate(updateDto)).resolves.toEqual(
-      expect.arrayContaining([expect.objectContaining({ property: 'namaPelaksana' })]),
-    );
+    expect((await validate(createDto)).map((error) => error.property)).toContain('namaPelaksana');
+    expect((await validate(updateDto)).map((error) => error.property)).toContain('namaPelaksana');
   });
 
-  it('seharusnya menolak namaPelaksana lebih dari 255 karakter', async () => {
-    const dto = new UpdatePelaksanaDto();
-    Object.assign(dto, { namaPelaksana: 'x'.repeat(256) });
+  it('enforces the current database-backed 15 character actor label limit', async () => {
+    const valid = new UpdatePelaksanaDto();
+    Object.assign(valid, { namaPelaksana: 'x'.repeat(15) });
+    await expect(validate(valid)).resolves.toHaveLength(0);
 
-    const errors = await validate(dto);
-    expect(errors.map((error) => error.property)).toContain('namaPelaksana');
+    const invalid = new UpdatePelaksanaDto();
+    Object.assign(invalid, { namaPelaksana: 'x'.repeat(16) });
+    expect((await validate(invalid)).map((error) => error.property)).toContain('namaPelaksana');
   });
 
-  it('seharusnya menolak namaPelaksana bukan string', async () => {
+  it('rejects non-string actor names', async () => {
     const dto = new UpdatePelaksanaDto();
     Object.assign(dto, { namaPelaksana: 123 });
-
-    const errors = await validate(dto);
-    expect(errors.map((error) => error.property)).toContain('namaPelaksana');
+    expect((await validate(dto)).map((error) => error.property)).toContain('namaPelaksana');
   });
 });
