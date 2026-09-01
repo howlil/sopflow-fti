@@ -32,6 +32,7 @@ export class ProcessFinalApprovalService {
           assignment.departmentId !== null,
       )
       .map((assignment) => assignment.departmentId as string);
+    if (!isDean && departmentIds.length === 0) return [];
 
     const processes = await this.prisma.process.findMany({
       where: {
@@ -61,14 +62,12 @@ export class ProcessFinalApprovalService {
 
     const bindingBySopId = new Map(bindings.map((binding) => [binding.sopId, binding]));
     const details = await this.prisma.detailSOP.findMany({
-      where: {
-        sopId: { in: bindings.map((binding) => binding.sopId) },
-        status: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
-      },
+      where: { sopId: { in: bindings.map((binding) => binding.sopId) } },
       select: {
         detailSopId: true,
         sopId: true,
         nomorSOP: true,
+        status: true,
         versi: true,
         updatedAt: true,
         sop: { select: { judul: true } },
@@ -80,15 +79,17 @@ export class ProcessFinalApprovalService {
     for (const detail of details) {
       if (!latestBySopId.has(detail.sopId)) latestBySopId.set(detail.sopId, detail);
     }
-    const latest = [...latestBySopId.values()];
-    const approvals = latest.length === 0
+    const readyLatest = [...latestBySopId.values()].filter(
+      (detail) => detail.status === StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
+    );
+    const approvals = readyLatest.length === 0
       ? []
       : await this.prisma.processFinalApproval.findMany({
-          where: { detailSopId: { in: latest.map((detail) => detail.detailSopId) } },
+          where: { detailSopId: { in: readyLatest.map((detail) => detail.detailSopId) } },
         });
     const approvalByDetail = new Map(approvals.map((approval) => [approval.detailSopId, approval]));
 
-    return latest.map((detail) => {
+    return readyLatest.map((detail) => {
       const binding = bindingBySopId.get(detail.sopId);
       if (!binding) throw new Error('Process SOP binding disappeared while listing approval queue');
       const process = processById.get(binding.processId);
@@ -169,6 +170,17 @@ export class ProcessFinalApprovalService {
     const resolved = await this.sopCatalogRepository.findDetailIdByDetailOrSopId(detailOrSopId);
     if (resolved === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
+    }
+    const latest = await this.prisma.detailSOP.findFirst({
+      where: { sopId: resolved.sopId },
+      orderBy: { versi: 'desc' },
+      select: { detailSopId: true },
+    });
+    if (latest === null) {
+      throw new NotFoundException('DetailSOP terbaru tidak ditemukan');
+    }
+    if (latest.detailSopId !== resolved.detailSopId) {
+      throw new ConflictException('Final approval hanya dapat diberikan pada versi SOP terbaru');
     }
     const binding = await this.prisma.processSopBinding.findUnique({
       where: { sopId: resolved.sopId },
