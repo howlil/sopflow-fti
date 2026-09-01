@@ -1,6 +1,6 @@
 import type { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
-import { PeranPengguna } from '../../../generated/prisma';
+import { PeranPengguna, PlatformRole } from '../../../generated/prisma';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import {
@@ -25,6 +25,7 @@ describe('Pengujian AuthController', () => {
     email: 'tester@example.test',
     nama: 'Tester',
     peran: PeranPengguna.PENYUSUN,
+    platformRole: PlatformRole.USER,
     opdId: 'opd-1',
     nip: '198001012009011001',
     jabatan: 'Staf',

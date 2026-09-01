@@ -100,7 +100,8 @@ const users: readonly SeedUser[] = [
 ];
 
 async function main(): Promise<void> {
-  const password = process.env.E2E_SEED_PASSWORD ?? process.env.SEED_DEFAULT_PASSWORD ?? DEFAULT_PASSWORD;
+  const password =
+    process.env.E2E_SEED_PASSWORD ?? process.env.SEED_DEFAULT_PASSWORD ?? DEFAULT_PASSWORD;
   const hash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
   await prisma.$transaction(async (tx) => {
@@ -125,12 +126,16 @@ async function main(): Promise<void> {
       });
 
       await tx.riwayatOpdPengguna.create({
-        data: { penggunaId: created.penggunaId, opdId: created.opdId, isAktif: true },
+        data: {
+          penggunaId: created.penggunaId,
+          opdId: created.opdId,
+          isAktif: true,
+        },
       });
     }
   });
 
-  console.log('E2E seed selesai: legacy roles tetap ada; PJ Evaluator seed juga memegang platform SUPER_ADMIN.');
+  console.log('E2E seed selesai: 2 OPD, 5 role utama, dan 1 platform SUPER_ADMIN.');
 }
 
 main()

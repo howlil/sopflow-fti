@@ -65,7 +65,11 @@ export class ProcessService {
 
     const scope = dto.scope ?? current.scope;
     const requestedDepartment =
-      dto.departmentId !== undefined ? dto.departmentId : current.departmentId;
+      dto.departmentId !== undefined
+        ? dto.departmentId
+        : dto.scope === OrganizationalScope.FACULTY
+          ? null
+          : current.departmentId;
     const departmentId = await this.resolveDepartment(scope, requestedDepartment);
     const ownerId = dto.ownerId ?? current.ownerId;
     const memberIds = this.normalizeMemberIds(

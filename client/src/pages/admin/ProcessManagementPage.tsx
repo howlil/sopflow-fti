@@ -81,12 +81,16 @@ export function ProcessManagementPage() {
       departmentId: form.scope === 'FACULTY' ? null : form.departmentId,
       memberIds: form.memberIds.filter((id) => id !== form.ownerId),
     }
-    if (editingId) {
-      await updateProcess({ processId: editingId, payload })
-    } else {
-      await createProcess(payload)
+    try {
+      if (editingId) {
+        await updateProcess({ processId: editingId, payload })
+      } else {
+        await createProcess(payload)
+      }
+      resetForm()
+    } catch {
+      // useMutationWithToast owns the user-facing error message; preserve form state for correction.
     }
-    resetForm()
   }
 
   return (
@@ -262,8 +266,12 @@ export function ProcessManagementPage() {
                   variant="outline"
                   disabled={departmentName.trim().length < 2 || isSaving}
                   onClick={async () => {
-                    await createDepartment(departmentName.trim())
-                    setDepartmentName('')
+                    try {
+                      await createDepartment(departmentName.trim())
+                      setDepartmentName('')
+                    } catch {
+                      // Toast already reports the error; keep the input for correction.
+                    }
                   }}
                 >
                   Tambah
