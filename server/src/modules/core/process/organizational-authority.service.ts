@@ -8,6 +8,8 @@ export interface ResolvedOrganizationalAuthority {
   departmentId: string | null;
   holderId: string;
   holderName: string;
+  holderNip: string;
+  holderJabatan: string;
   processId: string;
   processName: string;
   scope: OrganizationalScope;
@@ -129,7 +131,7 @@ export class OrganizationalAuthorityService {
     }
     const holder = await this.prisma.pengguna.findFirst({
       where: { penggunaId: assignment.holderId, deletedAt: null },
-      select: { penggunaId: true, nama: true },
+      select: { penggunaId: true, nama: true, nip: true, jabatan: true },
     });
     if (holder === null) {
       throw new ConflictException('Pemegang organizational authority tidak aktif');
@@ -140,6 +142,8 @@ export class OrganizationalAuthorityService {
       departmentId: process.departmentId,
       holderId: holder.penggunaId,
       holderName: holder.nama,
+      holderNip: holder.nip,
+      holderJabatan: holder.jabatan,
       processId: process.processId,
       processName: process.nama,
       scope: process.scope,
