@@ -2,141 +2,101 @@
 
 ## Shape
 
-**Milestone:** M3 — FTI Critical Journey Hardening  
+**Milestone:** M4 — Department Workflow Parity & Isolation  
 **State:** ACTIVE  
 **Integration branch:** `master`
 
-Outcome: prove the M2 FTI-native workflow through deterministic target-specific integration/browser journeys so regressions in contextual navigation, Process authorization, Process Owner review, contextual final approval, notifications, and TTE handoff are caught without relying on legacy evaluator-role journeys.
+Outcome: prove that Department-scoped Process SOPs execute the same FTI-native lifecycle as Faculty-scoped SOPs while final approval, notifications, TTE authority, and Process access remain isolated to the relevant Department.
 
-M3 is a reliability/verification milestone. It must not change approved product semantics merely to make tests easier.
+M4 closes a committed product parity gap. It must not introduce a new approval tier, generic approval engine, SUPER_ADMIN workflow bypass, destructive legacy cleanup, or protected Edit SOP workspace changes.
+
+## Previous Milestone Closure
+
+M3 — FTI Critical Journey Hardening is complete and integrated.
+
+```text
+PR #7 merge: 397d1d8ab7741e2496229d1d1a1fdf05edace7f5
+Client CI: 33553070911       PASS
+FTI Critical E2E: 33553070917 PASS (J08-J11)
+implemented: YES
+verified: YES
+integrated: YES
+release/deploy: intentionally skipped by user direction
+```
 
 ## Boundaries
 
 In scope:
 
-- target identities/fixtures for Process Owner, Process Member, Dean, and Head of Department;
-- authenticated contextual entry/navigation isolation;
-- Process work queue + Process authorization;
-- Process Member submit and Process Owner review/revision;
-- contextual final-approval handoff + notifications;
-- TTE/public-integrity boundary using the real existing signing harness;
-- path-scoped browser-runtime CI proportional to target FTI surfaces.
+- deterministic Department A / Department B target fixtures;
+- Department Process relationship isolation;
+- Department Member submit and relevant Process Owner review/revision;
+- contextual final approval and notification resolution to the relevant Head of Department;
+- denial for Dean, unrelated Head of Department, unrelated Process Member, and SUPER_ADMIN where the capability is not granted by the relevant dimension;
+- real contextual TTE signing and public handoff for a Department SOP;
+- path-scoped FTI critical browser coverage J12-J15 while preserving J08-J11.
 
 Out of scope:
 
-- new product features/workflow states;
-- destructive legacy cleanup;
-- changed Process ownership/final-authority semantics;
-- authentication/authorization/TTE bypasses for tests;
-- release/deployment work;
-- protected Edit SOP workspace behavior changes.
+- new workflow states/features;
+- third approval level;
+- configurable approval chains;
+- destructive legacy schema/route cleanup;
+- public archive IA redesign;
+- production release/deployment;
+- protected Edit SOP workspace implementation changes.
 
 ## Position
 
 ```text
-Target E2E Identity + Fixture Foundation    VERIFIED + INTEGRATED
-Contextual Entry + Navigation Journey       VERIFIED + INTEGRATED
-Process Work + Owner Review Journey         VERIFIED + INTEGRATED
-Final Approval + Notification Journey       VERIFIED + INTEGRATED
-TTE/Public Integrity Boundary               ACTIVE / RUNTIME GATE
-Milestone Gate                              PENDING
+Department Context & Isolation              ACTIVE
+Department Owner Review                     PLANNED
+Kadep Final Approval + Notification          PLANNED
+Kadep TTE + Public Integrity                 PLANNED
+Milestone Gate                               PENDING
 ```
 
 Current branch:
 
 ```text
-m3-tte-public-integrity
+m4-department-parity
 ```
 
-## Integrated Evidence
+## Slice Plan
 
-Foundation:
+### J12 — Department Context Isolation
+
+Prove two Department contexts are deterministic and isolated. A member from Department A must not gain access to Department B work. Heads of Department see only their own authority context. SUPER_ADMIN remains administrative, not workflow-authorized.
+
+### J13 — Department Process Review
+
+Department Member creates/submits a complete Process SOP, relevant Process Owner receives it, requests revision, and the same Department Member receives the revision work back. Unrelated Process membership must not authorize workbench access.
+
+### J14 — Department Final Approval
+
+Relevant Process Owner ACCEPT resolves `FINAL_APPROVAL_REQUESTED` to the relevant Head of Department. Dean and unrelated Head of Department must not approve the Department SOP. The relevant Head approves and leaves it ready for TTE.
+
+### J15 — Department TTE/Public Integrity
+
+Relevant Head of Department uses the real existing TTE credential/signing path. Successful signing transitions the Department SOP to `BERLAKU`, persists the official artifact, and exposes the SOP through the public archive without internal workflow/evaluation data.
+
+## Verification
+
+Milestone gate requires evidence proportional to changed risk:
 
 ```text
-PR #3
-merge: ad96c4532fc1f944d50def1638d21183c23c29aa
-Client CI: 33548230111       PASS
-Server CI: 33548230152       PASS
-Migration Smoke: 33548230125 PASS
+Client CI
+Server CI when server code changes
+Migration Smoke for seed/schema/migration-relevant changes
+FTI Critical E2E J08-J15
+Protected Edit SOP implementation unchanged
+No unresolved authorization/TTE/public-integrity stop condition
 ```
-
-Contextual entry/navigation:
-
-```text
-PR #4
-merge: c8d892b6ae226e5d8f7b268cfd2c1b0339d13525
-FTI Critical E2E: 33549078870 PASS
-```
-
-Process work + owner review:
-
-```text
-PR #5
-merge: ece289ae27bfa4de6b8187b2dafe4464f55ed444
-Client CI: 33551088103 PASS
-FTI Critical E2E: 33551087697 PASS
-```
-
-Final approval + notification:
-
-```text
-PR #6
-merge: e46b0cf73a1ba2db8ef13b176571b46e6efa6f8f
-Client CI: 33551654000 PASS
-FTI Critical E2E: 33551654201 PASS
-```
-
-J10 proves in real Chromium + Nest + migrated/seeded MariaDB:
-
-- Process Owner ACCEPT moves a Faculty Process SOP to contextual final approval;
-- Dean receives the target Process notification and follows it to `/approval`;
-- the approval row resolves to `Fakultas · Dekan`;
-- Dean final approval succeeds and leaves the SOP ready for TTE.
-
-## Active Slice — J11 Process TTE + Public Handoff
-
-Precondition:
-
-- create one complete Faculty Process SOP;
-- submit to Process Owner, ACCEPT, and final-approve via API because those actions are already browser-verified by J09/J10;
-- prepare Dean TTE credentials using the existing `/tte/profil/setup/generate` flow;
-- do not mock or bypass signing.
-
-Browser behavior under test:
-
-```text
-Dean /approval
-  -> Persetujuan akhir tercatat · siap TTE
-  -> Tanda tangani
-  -> PIN TTE
-  -> real Process TTE signing
-
-Process Member /work/queue
-  -> SOP status BerLaku
-
-Public /arsip
-  -> Process SOP appears publicly
-  -> preview exposes no internal evaluation data
-```
-
-The FTI runtime gate enables `PDF_SIGNING_ENABLED=true` only in its disposable test environment so J11 exercises the actual personal-P12 signing path. Production configuration is unchanged.
-
-J11 does not duplicate the full PKCS#7 verification suite already owned by J07. Its purpose is to prove that the contextual Process workflow reaches the same signed/public boundary correctly.
-
-Runtime gate:
-
-- J11 registered beside J01–J10 in the audited critical set;
-- local critical runner includes J11 with per-journey DB reset;
-- path-scoped FTI CI executes J08–J11 against one disposable MariaDB/Nest/Chromium stack with real PDF signing enabled.
 
 ## Guardrail
 
-The protected Edit SOP workspace may be exercised as existing user-visible behavior by E2E tests, but its implementation/layout/interaction contract must not be modified to make tests pass.
-
-## Stop Conditions
-
-Stop/escalate if J11 requires changing approved workflow semantics, weakening authorization/TTE security, destructive migration, public-contract change, or modifying the protected workspace implementation.
+The protected Edit SOP workspace may be exercised by browser journeys but must not be modified to make M4 pass.
 
 ## Next Move
 
-Run J08–J11. Fix only observed test/fixture/runtime defects. Integrate J11 when green, then execute the M3 milestone gate and stop.
+Implement deterministic two-Department target fixtures and J12 isolation proof, then continue J13-J15 without starting a new planning cycle.
