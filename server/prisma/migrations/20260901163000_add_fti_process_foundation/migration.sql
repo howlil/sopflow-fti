@@ -24,13 +24,33 @@ CREATE TABLE `Process` (
   PRIMARY KEY (`processId`),
   INDEX `Process_scope_departmentId_idx` (`scope`, `departmentId`),
   INDEX `Process_ownerId_idx` (`ownerId`),
-  CONSTRAINT `Process_scope_department_check`
-    CHECK ((`scope` = 'FACULTY' AND `departmentId` IS NULL) OR (`scope` = 'DEPARTMENT' AND `departmentId` IS NOT NULL)),
   CONSTRAINT `Process_departmentId_fkey`
     FOREIGN KEY (`departmentId`) REFERENCES `Department`(`departmentId`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `Process_ownerId_fkey`
     FOREIGN KEY (`ownerId`) REFERENCES `Pengguna`(`penggunaId`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+DROP TRIGGER IF EXISTS `trg_process_scope_department_insert`;
+CREATE TRIGGER `trg_process_scope_department_insert`
+BEFORE INSERT ON `Process`
+FOR EACH ROW
+BEGIN
+  IF (NEW.`scope` = 'FACULTY' AND NEW.`departmentId` IS NOT NULL)
+     OR (NEW.`scope` = 'DEPARTMENT' AND NEW.`departmentId` IS NULL) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Process scope and departmentId are inconsistent';
+  END IF;
+END;
+
+DROP TRIGGER IF EXISTS `trg_process_scope_department_update`;
+CREATE TRIGGER `trg_process_scope_department_update`
+BEFORE UPDATE ON `Process`
+FOR EACH ROW
+BEGIN
+  IF (NEW.`scope` = 'FACULTY' AND NEW.`departmentId` IS NOT NULL)
+     OR (NEW.`scope` = 'DEPARTMENT' AND NEW.`departmentId` IS NULL) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Process scope and departmentId are inconsistent';
+  END IF;
+END;
 
 CREATE TABLE `ProcessMember` (
   `processId` CHAR(36) NOT NULL,
