@@ -1,14 +1,16 @@
+import type { PeranPengguna } from '../../../../generated/prisma';
+
 export type {
   PdfSigningStatusResponse,
   SignPdfResponse,
   VerifyPdfResponse,
 } from '../../penandatanganan/tte-pdf-signing.service';
 
-/** Respons profil TTE untuk klien — PIN disimpan di baris `Pengguna`. */
+/** Respons profil kredensial TTE. Authority tanda tangan tidak diturunkan dari field ini. */
 export type TteProfilResponse = {
   readonly id: string;
   readonly userId: string;
-  readonly peran: 'KEPALA_OPD' | 'PJ_EVALUATOR' | 'PJ_PENYUSUN';
+  readonly peran: PeranPengguna;
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly hasP12: boolean;
