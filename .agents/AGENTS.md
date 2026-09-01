@@ -1,6 +1,16 @@
 # SOPFlow Agent Operating Contract
 
-This file is the repository-local operating contract for software-engineering agents working on SOPFlow. Keep it lean: durable project/domain facts belong in `PROJECT.md`, commands and verification details in `DEVELOPMENT.md`, and live iteration state in `CURRENT_ITERATION.md`.
+This file is the repository-local operating contract for software-engineering agents working on SOPFlow.
+
+Keep concerns separated:
+
+- durable product/domain truth -> `PROJECT.md`
+- recurring implementation conventions -> `CODE_PATTERNS.md`
+- Git/branch/commit/PR/merge behavior -> `GIT_STRATEGY.md`
+- commands and verification execution -> `DEVELOPMENT.md`
+- live iteration orientation -> `CURRENT_ITERATION.md`
+
+Do not duplicate those files here unless the rule is an operating invariant that agents must apply across all work.
 
 ## Instruction And State Sources
 
@@ -9,13 +19,17 @@ When instructions conflict, follow this order:
 1. User request in the current conversation.
 2. System, harness, and tool instructions loaded by the session.
 3. Root `AGENTS.md` if one exists in the current checkout.
-4. `.agents/AGENTS.md`.
-5. `.agents/PROJECT.md` for durable product/domain facts and architecture boundaries.
-6. `.agents/CURRENT_ITERATION.md` for active scope and iteration state.
-7. `.agents/DEVELOPMENT.md` for commands, setup, and verification details.
-8. Source files, tests, package scripts, migrations, and README as implementation evidence.
+4. `.agents/AGENTS.md` for canonical engineering behavior and authority.
+5. `.agents/PROJECT.md` for approved durable product/domain truth and architecture boundaries.
+6. `.agents/CURRENT_ITERATION.md` for active feature/iteration state.
+7. `.agents/CODE_PATTERNS.md` for repository-specific implementation conventions.
+8. `.agents/GIT_STRATEGY.md` for Git/branch/commit/PR/merge behavior.
+9. `.agents/DEVELOPMENT.md` for setup, commands, and verification execution.
+10. Source files, tests, package scripts, migrations, and README as implementation evidence.
 
 The actual checkout is the source of truth for current implementation state. `PROJECT.md` is the source of truth for the approved target FTI domain when legacy implementation terminology conflicts with the target model.
+
+A local code pattern is evidence, not permission to preserve a legacy product assumption that conflicts with `PROJECT.md`.
 
 ## Canonical Engineering Lifecycle
 
@@ -31,7 +45,7 @@ Default execution shape:
 
 `Problem -> Required Behavior/Contract -> Smallest Vertical Slice -> Implementation -> Evidence -> Next Move`
 
-Do not turn this into mandatory documents, tickets, or ceremonies when the task is already clear.
+Do not turn this into mandatory documents, tickets, plans, branches, PRs, or ceremonies when the task is already clear and those artifacts do not reduce risk.
 
 ## Authority Split
 
@@ -52,14 +66,15 @@ Do not turn this into mandatory documents, tickets, or ceremonies when the task 
 
 Within approved behavior and boundaries, act autonomously on:
 
-- Repository inspection and targeted discovery.
-- Implementation design inside approved boundaries.
-- Coding and debugging.
-- Test selection and execution.
-- Verification and quality gates.
-- Implementation-level decisions.
-- Local refactoring required by the requested change.
-- Maintaining accurate implementation evidence and iteration orientation.
+- repository inspection and targeted discovery;
+- implementation design inside approved boundaries;
+- coding and debugging;
+- test selection and execution;
+- verification and quality gates;
+- implementation-level decisions;
+- local refactoring required by the requested change;
+- coherent tool-required commits needed to persist requested repository edits;
+- maintaining accurate implementation evidence and iteration orientation.
 
 Do not ask for approval for routine implementation choices that preserve approved behavior, contracts, ownership, and architecture boundaries.
 
@@ -68,8 +83,8 @@ Do not ask for approval for routine implementation choices that preserve approve
 - Do not introduce features, behavior, permissions, requirements, or product decisions the user did not request.
 - Do not expand scope because of best practice, optimization, cleanup, future need, or speculative extensibility.
 - If a missing requirement would materially change observable behavior, data, public contracts, permissions, security, ownership, or architecture, surface it instead of guessing.
-- If the requested behavior is clear, implement it without turning routine engineering choices into user decisions.
-- User-owned acceptance criteria do not require formal ceremony. When explicit acceptance criteria are absent but requested behavior is clear, verify against that observable behavior and existing contracts rather than inventing new product requirements.
+- If requested behavior is clear, implement it without turning routine engineering choices into user decisions.
+- User-owned acceptance criteria do not require formal ceremony. When explicit acceptance criteria are absent but requested behavior is clear, verify against that observable behavior and existing approved contracts rather than inventing new product requirements.
 
 ## Understand, Bound, And Specify
 
@@ -108,41 +123,43 @@ Prefer lower coupling, smaller change surface, fewer new dependencies/abstractio
 
 A material change to service/module boundaries, data ownership, public contracts, security boundaries, communication patterns, consistency model, or infrastructure requires explicit user direction/approval.
 
+Repository-specific implementation shape is defined more concretely in `CODE_PATTERNS.md`.
+
 ## Minimum Change Rule
 
 Implement the smallest coherent vertical slice that satisfies the requested behavior.
 
 Guardrails:
 
-- Modify only what the requirement needs.
-- Preserve unrelated behavior and files.
-- Do not rename unrelated symbols.
-- Do not reorganize unrelated files or directories.
-- Do not clean adjacent code merely because it is visible.
-- Do not add speculative abstractions or future-proof extension points.
-- Do not upgrade unrelated dependencies.
-- Do not change unrelated observable behavior.
-- Reuse existing patterns before introducing architecture.
-- Remove dead code directly created or made obsolete by the requested change.
-- Keep change surface proportional to the requirement.
+- modify only what the requirement needs;
+- preserve unrelated behavior and files;
+- do not rename unrelated symbols;
+- do not reorganize unrelated files/directories;
+- do not clean adjacent code merely because it is visible;
+- do not add speculative abstractions or future-proof extension points;
+- do not upgrade unrelated dependencies;
+- do not change unrelated observable behavior;
+- reuse existing patterns before introducing architecture;
+- remove dead code directly created or made obsolete by the requested change;
+- keep change surface proportional to the requirement.
 
 Prefer a vertical slice that produces observable behavior over building horizontal layers that are not yet usable.
 
 ## Repository Boundaries
 
-Use `.agents/PROJECT.md` as the durable repository and target-domain map. Preserve these high-level ownership rules unless the user explicitly changes them.
+Use `PROJECT.md` as the durable repository and target-domain map and `CODE_PATTERNS.md` for implementation structure.
 
-Frontend:
+Frontend boundaries:
 
 - API transport belongs in `client/src/api`; shared API helpers belong in `client/src/lib/api`.
 - Reusable UI primitives belong in `client/src/components/ui`.
 - Workflow/page behavior belongs under `client/src/pages`; route wiring belongs under `client/src/routes`.
 - Preserve TanStack Router conventions and avoid hand-editing generated route output unless the local workflow requires it.
 
-Backend:
+Backend boundaries:
 
 - Nest modules belong under `server/src/modules`.
-- Preserve existing controller/service/repository ownership for business behavior and persistence unless the scoped refactor deliberately moves that ownership.
+- Preserve existing controller/service/repository ownership for behavior and persistence unless the scoped refactor deliberately moves that ownership.
 - Shared cross-cutting behavior belongs under `server/src/common`.
 - Prisma schema and migrations belong under `server/prisma`.
 - Do not edit generated Prisma client output as the source change.
@@ -154,28 +171,40 @@ Existing implementation modules:
 - TTE: `server/src/modules/tte` and corresponding client TTE surfaces.
 - Notifications: `server/src/modules/notifications`.
 
-During the FTI refactor, legacy names such as `OPD`, `KEPALA_OPD`, `EVALUATOR`, and `PJ_EVALUATOR` are implementation evidence, not automatically target product concepts. Do not perform blind terminology replacement; follow the conceptual migration rules in `PROJECT.md`.
+During the FTI refactor, legacy names such as `OPD`, `KEPALA_OPD`, `EVALUATOR`, and `PJ_EVALUATOR` are implementation evidence, not automatically target product concepts. Do not perform blind terminology replacement; follow the conceptual migration rules in `PROJECT.md` and target naming conventions in `CODE_PATTERNS.md`.
 
 ## Stop Conditions
 
 Stop implementation and surface the decision when any of these becomes necessary:
 
-- The request contradicts existing required behavior or an approved product invariant.
-- A destructive migration or destructive state reset is required.
-- A public contract must materially change.
-- A security boundary must materially change.
-- Data ownership must materially change.
-- Service/module boundaries, communication patterns, consistency model, or infrastructure require a material architecture change.
+- the request contradicts existing required behavior or an approved product invariant;
+- a destructive migration or destructive state reset is required;
+- a public contract must materially change;
+- a security boundary must materially change;
+- data ownership must materially change;
+- service/module boundaries, communication patterns, consistency model, or infrastructure require a material architecture change.
 
 Do not use stop conditions for normal implementation uncertainty that can be resolved by inspecting the repository.
 
-## Repository Mutation And Release Boundary
+## Repository Mutation And Git Boundary
 
 A user request to implement, fix, refactor, or align repository content authorizes the file edits and tool-required commits necessary to perform that requested change.
 
-Do not infer permission for destructive reset, merge, production deployment, or release unless the user requests it or the execution environment explicitly defines that action as part of the requested operation.
+Git behavior is governed by `GIT_STRATEGY.md`.
 
-`RELEASE READY` means verification evidence is sufficient for the requested scope. It does not mean the product has been released or deployed.
+Do not infer permission for:
+
+- destructive reset or cleanup;
+- force push or unrelated history rewrite;
+- merge;
+- production deployment;
+- release.
+
+unless the user requests it or the execution environment explicitly defines that action as part of the current request.
+
+Branch/PR usage should be proportional to risk. Do not introduce branch or PR ceremony for a bounded change when it does not improve review/integration safety.
+
+`RELEASE READY` means verification evidence is sufficient for the requested scope. It does not mean the product has been merged, released, or deployed.
 
 ## Feature Compass
 
@@ -185,13 +214,13 @@ Use `CURRENT_ITERATION.md` as a compact orientation layer for meaningful tracked
 
 Rules:
 
-- Keep it compact; do not duplicate the full specification or `PROJECT.md`.
-- Update it when meaningful work changes the state of an existing tracked iteration.
-- Do not create or rename a product iteration without user intent establishing that scope.
-- The agent may move the recorded engineering position through IMPLEMENT, VERIFY, QUALITY GATES, and RELEASE READY when evidence supports it.
-- Do not mark work RELEASED or DEPLOYED without actual evidence.
-- Do not force iteration tracking for trivial edits where it adds no orientation value.
-- Always keep the single next meaningful action obvious when an iteration remains active.
+- keep it compact; do not duplicate the full specification or `PROJECT.md`;
+- update it when meaningful work changes the state of an existing tracked iteration;
+- do not create or rename a product iteration without user intent establishing that scope;
+- the agent may move recorded engineering position through IMPLEMENT, VERIFY, QUALITY GATES, and RELEASE READY when evidence supports it;
+- do not mark work RELEASED or DEPLOYED without actual evidence;
+- do not force iteration tracking for trivial edits where it adds no orientation value;
+- always keep the single next meaningful action obvious when an iteration remains active.
 
 ## Feedback And Iteration Rule
 
@@ -199,13 +228,13 @@ Treat user feedback as new product evidence, not as a reason to defend the previ
 
 When the user changes or corrects direction:
 
-1. Identify the delta from the currently approved behavior.
-2. Inspect the affected implementation/domain assumptions.
+1. Identify the delta from currently approved behavior.
+2. Inspect affected implementation/domain assumptions.
 3. Apply the smallest coherent correction.
 4. Re-verify the changed risk boundary.
 5. Update `PROJECT.md` only for durable product/domain truth and `CURRENT_ITERATION.md` only for live iteration state.
 
-Do not rewrite unrelated work or restart the entire lifecycle when the feedback is a bounded correction.
+Do not rewrite unrelated work or restart the entire lifecycle when feedback is a bounded correction.
 
 ## Verification And Quality Gates
 
@@ -214,16 +243,16 @@ Verification must target observable behavior and the risk boundary of the change
 Default progression:
 
 1. Inspect existing evidence/tests at the owning boundary.
-2. Add or update the narrowest useful test/evidence when needed.
+2. Add/update the narrowest useful test or evidence when needed.
 3. Implement the smallest useful slice.
 4. Run focused verification.
 5. Broaden to typecheck, lint, integration, browser, build, Compose, migration, or other gates only when the affected boundary justifies it.
 
 Test-first is useful when it clarifies behavior or prevents a regression, but do not force RED -> GREEN ceremony when another verification path is faster and equally reliable.
 
-Test observable behavior and contracts rather than implementation trivia. Avoid tests whose only purpose is freezing an incidental internal structure.
+Test observable behavior and contracts rather than implementation trivia. Avoid tests whose only purpose is freezing incidental internal structure.
 
-Never claim browser, runtime, migration, deployment, PDF/TTE, or end-to-end confidence from unit tests alone. Use `.agents/DEVELOPMENT.md` for available commands and report skipped gates explicitly.
+Never claim browser, runtime, migration, deployment, PDF/TTE, CI, or end-to-end confidence from unit tests alone. Use `DEVELOPMENT.md` for available commands and report skipped gates explicitly.
 
 High-risk areas include authentication, Process Team membership/authorization, Faculty-vs-Department scope resolution, final-approver authorization, legacy OPD migration boundaries, TTE credentials, PDF signing/verification, public archive access, notifications, persistence invariants, and Prisma migrations. Include negative-path verification when those boundaries change.
 
@@ -233,17 +262,19 @@ Optimize for the smallest correct, clear, maintainable change. Code quality supp
 
 Core invariants:
 
-- Preserve required behavior.
-- Keep ownership clear.
-- Keep dependencies intentional.
-- Follow repository conventions.
-- Prefer the simplest reasonable design.
-- Avoid unnecessary abstractions/dependencies.
-- Avoid unrelated refactoring.
-- Remove dead code made obsolete by the change.
-- Keep change surface proportional to the requirement.
+- preserve required behavior;
+- keep ownership clear;
+- keep dependencies intentional;
+- follow repository conventions;
+- prefer the simplest reasonable design;
+- avoid unnecessary abstractions/dependencies;
+- avoid unrelated refactoring;
+- remove dead code made obsolete by the change;
+- keep change surface proportional to the requirement.
 
-Organize code by behavior and ownership before directory aesthetics. Split files/modules only when it improves ownership, navigation, dependency boundaries, or independent changeability. Avoid arbitrary line-count splitting and dumping grounds such as generic `utils`, `helpers`, or `common` without clear ownership.
+Detailed recurring patterns, backend/frontend layering, naming, state ownership, transaction guidance, FTI domain coding conventions, and refactor thresholds live in `CODE_PATTERNS.md`.
+
+Do not duplicate those patterns here.
 
 ## Code Documentation
 
@@ -293,11 +324,13 @@ Choose the smallest improvement likely to remove the observed bottleneck. Retros
 - For SOP authoring, prefer a preview-centered workbench and contextual editing over a tall wizard.
 - Ensure mobile and desktop layouts preserve critical information and interaction stability.
 
+Implementation details for frontend server/client state, API boundaries, components, and naming live in `CODE_PATTERNS.md`.
+
 ## Security And Data Integrity
 
 - Never expose or commit real secret values from root `.env`, `server/.env`, or other environment state.
 - Preserve credential boundaries for JWT, TTE encryption, and database credentials.
-- When touching TTE/PDF behavior, verify the relevant hashing, encryption, ciphertext/versioning, signing output, authority resolution, and verification path.
+- When touching TTE/PDF behavior, verify hashing, encryption, ciphertext/versioning, signing output, authority resolution, and verification path as relevant.
 - When touching contextual access, verify denial across unrelated Process Teams and inappropriate Faculty/Department scopes, not only successful paths.
 - During legacy migration, verify old `opdId`-based assumptions do not accidentally grant cross-process or wrong-scope access.
 - Keep database invariants aligned with `server/prisma/DB-INVARIANTS.md` when persistence invariants change.
@@ -306,12 +339,12 @@ Choose the smallest improvement likely to remove the observed bottleneck. Retros
 
 For meaningful changes, report only decision-useful evidence:
 
-- What behavior or repository rule changed.
-- Files changed.
-- Verification run and exact result.
-- Skipped gates, unresolved risks, or assumptions.
-- Current lifecycle/iteration position when tracked.
-- The single next meaningful action, if one remains.
-- Whether the state is local, committed, release-ready, released, or deployed only when supported by evidence.
+- what behavior or repository rule changed;
+- files changed;
+- verification run and exact result;
+- skipped gates, unresolved risks, or assumptions;
+- current lifecycle/iteration position when tracked;
+- the single next meaningful action, if one remains;
+- whether state is local, committed, PR-ready, merged, release-ready, released, or deployed only when supported by evidence.
 
 Avoid narrating routine implementation steps or producing a long status report when a concise evidence summary is sufficient.
