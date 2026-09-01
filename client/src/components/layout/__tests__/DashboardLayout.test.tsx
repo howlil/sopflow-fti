@@ -71,22 +71,38 @@ describe('DashboardLayout desktop sidebar', () => {
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe('false')
   })
 
-  it('memprioritaskan queue Process di atas menu role legacy', () => {
+  it('mengisolasi workflow role lama ketika akun memiliki Process', () => {
     mockProcesses = [{ processId: 'process-1' }]
 
     render(<DashboardLayout />)
 
     expect(screen.getAllByRole('link', { name: 'Beranda Kerja' })).not.toHaveLength(0)
     expect(screen.getAllByRole('link', { name: 'Pekerjaan SOP' })).not.toHaveLength(0)
-    expect(screen.getAllByRole('link', { name: 'SOP' })).not.toHaveLength(0)
+    expect(screen.queryByRole('link', { name: 'SOP' })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Pelaksana SOP' })).not.toHaveLength(0)
+    expect(screen.getAllByRole('link', { name: 'Peraturan' })).not.toHaveLength(0)
   })
 
-  it('menampilkan entry persetujuan dari kewenangan organisasi', () => {
+  it('mengisolasi workflow role lama ketika akun memiliki kewenangan organisasi', () => {
     mockAuthorities = [{ authorityKey: 'DEAN' }]
 
     render(<DashboardLayout />)
 
     expect(screen.getAllByRole('link', { name: 'Persetujuan & TTE' })).not.toHaveLength(0)
+    expect(screen.queryByRole('link', { name: 'SOP' })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Pelaksana SOP' })).not.toHaveLength(0)
+    expect(screen.getAllByRole('link', { name: 'Peraturan' })).not.toHaveLength(0)
+  })
+
+  it('mempertahankan menu role lama sebagai fallback saat belum ada konteks target', () => {
+    render(<DashboardLayout />)
+
+    expect(screen.getAllByRole('link', { name: 'Beranda Kerja' })).not.toHaveLength(0)
+    expect(screen.getAllByRole('link', { name: 'SOP' })).not.toHaveLength(0)
+    expect(screen.getAllByRole('link', { name: 'Pelaksana SOP' })).not.toHaveLength(0)
+    expect(screen.getAllByRole('link', { name: 'Peraturan' })).not.toHaveLength(0)
+    expect(screen.queryByRole('link', { name: 'Pekerjaan SOP' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Persetujuan & TTE' })).not.toBeInTheDocument()
   })
 
   it('memulihkan preferensi sidebar yang tersimpan', async () => {
