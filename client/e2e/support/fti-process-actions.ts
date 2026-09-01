@@ -14,9 +14,16 @@ async function expectWorkQueueRow(
   await waitForAppReady(page)
 
   await expect(page.getByRole('heading', { name: 'Pekerjaan SOP' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: params.title })).toBeVisible()
-  await expect(page.getByText(params.statusLabel, { exact: true })).toBeVisible()
-  await expect(page.getByRole('link', { name: params.actionLabel, exact: true })).toBeVisible()
+  const titleHeading = page.getByRole('heading', { name: params.title, exact: true })
+  await expect(titleHeading).toBeVisible()
+
+  // Multiple target journeys intentionally share one runtime database in CI.
+  // Scope status/action assertions to the card identified by this unique SOP title.
+  const row = titleHeading.locator(
+    `xpath=ancestor::div[.//a[normalize-space(.)="${params.actionLabel}"]][1]`,
+  )
+  await expect(row.getByText(params.statusLabel, { exact: true })).toBeVisible()
+  await expect(row.getByRole('link', { name: params.actionLabel, exact: true })).toBeVisible()
   await expectNoAppShellError(page)
 }
 
