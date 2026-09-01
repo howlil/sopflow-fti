@@ -14,6 +14,7 @@ import {
   X,
   Workflow,
   ShieldCheck,
+  House,
 } from "lucide-react";
 import { useMyProcesses } from "@/api/process-context";
 import { useMyOrganizationalAuthorities } from "@/api/organizational-authority";
@@ -35,7 +36,7 @@ import { toNavigationRole } from "@/utils/role-key";
 
 const DESKTOP_SIDEBAR_STORAGE_KEY = "ui:desktop-sidebar-collapsed";
 
-/** Item pertama per peran harus selaras dengan @/utils/role-routing ROLE_DEFAULT_LANDING (redirect setelah login & `/`). */
+/** Legacy compatibility navigation. Contextual capability items are composed before these entries. */
 const SIDEBAR_ITEMS: Record<RoleKey, AppSidebarItem[]> = {
   PJ_EVALUATOR: [
     {
@@ -120,6 +121,15 @@ function isActivePath(pathname: string, itemTo: string): boolean {
   return pathname.startsWith(itemTo.replace("/$id", ""));
 }
 
+function mergeNavigationItems(...groups: AppSidebarItem[][]): AppSidebarItem[] {
+  const seen = new Set<string>();
+  return groups.flat().filter((item) => {
+    if (seen.has(item.to)) return false;
+    seen.add(item.to);
+    return true;
+  });
+}
+
 export function DashboardLayout() {
   const { pathname } = useLocation();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
@@ -130,29 +140,25 @@ export function DashboardLayout() {
   const setDesktopNavOpen = useUIStore((state) => state.setSidebarOpen);
   const navRole = user?.peran !== undefined ? toNavigationRole(user.peran) : undefined;
   const roleSidebarItems = navRole !== undefined ? SIDEBAR_ITEMS[navRole] ?? [] : [];
-  const alreadyHasAuthoringItem = roleSidebarItems.some((item) => item.to === ROUTES.PENYUSUN.SOP);
-  const processAuthoringItems: AppSidebarItem[] =
-    myProcesses.length > 0 && !alreadyHasAuthoringItem
-      ? [{ to: ROUTES.PENYUSUN.SOP, label: "SOP Process", icon: FileText }]
-      : [];
-  const approvalItems: AppSidebarItem[] =
-    myAuthorities.length > 0
-      ? [{ to: ROUTES.APPROVAL.INBOX, label: "Persetujuan Akhir", icon: ShieldCheck }]
-      : [];
-  const platformAdminItems: AppSidebarItem[] =
-    user?.platformRole === "SUPER_ADMIN"
+
+  const contextualItems: AppSidebarItem[] = [
+    { to: ROUTES.WORK, label: "Beranda Kerja", icon: House },
+    ...(myProcesses.length > 0
+      ? [{ to: ROUTES.PENYUSUN.SOP, label: "SOP Proses", icon: FileText }]
+      : []),
+    ...(myAuthorities.length > 0
+      ? [{ to: ROUTES.APPROVAL.INBOX, label: "Persetujuan & TTE", icon: ShieldCheck }]
+      : []),
+    ...(user?.platformRole === "SUPER_ADMIN"
       ? [
-          { to: ROUTES.ADMIN.PROCESSES, label: "Process FTI", icon: Workflow },
-          { to: ROUTES.ADMIN.AUTHORITIES, label: "Authority FTI", icon: ShieldCheck },
+          { to: ROUTES.ADMIN.PROCESSES, label: "Proses FTI", icon: Workflow },
+          { to: ROUTES.ADMIN.AUTHORITIES, label: "Kewenangan Organisasi", icon: ShieldCheck },
         ]
-      : [];
-  // Legacy role navigation remains intact; Process authoring, organizational authority, and platform admin are independent axes.
-  const sidebarItems = [
-    ...roleSidebarItems,
-    ...processAuthoringItems,
-    ...approvalItems,
-    ...platformAdminItems,
+      : []),
   ];
+
+  // Contextual capability navigation wins duplicate routes; legacy global-role routes remain compatibility fallback.
+  const sidebarItems = mergeNavigationItems(contextualItems, roleSidebarItems);
   const activeItem = sidebarItems.find(({ to }) => isActivePath(pathname, to));
 
   useEffect(() => {
