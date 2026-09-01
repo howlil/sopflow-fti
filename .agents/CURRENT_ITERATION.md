@@ -3,100 +3,79 @@
 ## Shape
 
 **Milestone:** M4 — Department Workflow Parity & Isolation  
-**State:** ACTIVE  
+**State:** RELEASE_READY  
 **Integration branch:** `master`
 
-Outcome: prove that Department-scoped Process SOPs execute the same FTI-native lifecycle as Faculty-scoped SOPs while final approval, notifications, TTE authority, and Process access remain isolated to the relevant Department.
+Outcome achieved: Department-scoped Process SOPs execute the same FTI-native lifecycle as Faculty-scoped SOPs while final approval, notifications, TTE authority, and Process access remain isolated to the relevant Department.
 
-M4 closes a committed product parity gap. It must not introduce a new approval tier, generic approval engine, SUPER_ADMIN workflow bypass, destructive legacy cleanup, or protected Edit SOP workspace changes.
-
-## Previous Milestone Closure
-
-M3 — FTI Critical Journey Hardening is complete and integrated.
-
-```text
-PR #7 merge: 397d1d8ab7741e2496229d1d1a1fdf05edace7f5
-Client CI: 33553070911       PASS
-FTI Critical E2E: 33553070917 PASS (J08-J11)
-implemented: YES
-verified: YES
-integrated: YES
-release/deploy: intentionally skipped by user direction
-```
-
-## Boundaries
-
-In scope:
-
-- deterministic Department A / Department B target fixtures;
-- Department Process relationship isolation;
-- Department Member submit and relevant Process Owner review/revision;
-- contextual final approval and notification resolution to the relevant Head of Department;
-- denial for Dean, unrelated Head of Department, unrelated Process Member, and SUPER_ADMIN where the capability is not granted by the relevant dimension;
-- real contextual TTE signing and public handoff for a Department SOP;
-- path-scoped FTI critical browser coverage J12-J15 while preserving J08-J11.
-
-Out of scope:
-
-- new workflow states/features;
-- third approval level;
-- configurable approval chains;
-- destructive legacy schema/route cleanup;
-- public archive IA redesign;
-- production release/deployment;
-- protected Edit SOP workspace implementation changes.
+M4 introduced no new approval tier, generic approval engine, SUPER_ADMIN workflow bypass, destructive legacy cleanup, or protected Edit SOP workspace change.
 
 ## Position
 
 ```text
-Department Context & Isolation              ACTIVE
-Department Owner Review                     PLANNED
-Kadep Final Approval + Notification          PLANNED
-Kadep TTE + Public Integrity                 PLANNED
-Milestone Gate                               PENDING
+Department Context & Isolation               INTEGRATED
+Department Owner Review                      INTEGRATED
+Kadep Final Approval + Notification           INTEGRATED
+Kadep TTE + Public Integrity                  INTEGRATED
+Milestone Gate                                PASS
 ```
 
-Current branch:
-
-```text
-m4-department-parity
-```
-
-## Slice Plan
+## Integrated Journeys
 
 ### J12 — Department Context Isolation
 
-Prove two Department contexts are deterministic and isolated. A member from Department A must not gain access to Department B work. Heads of Department see only their own authority context. SUPER_ADMIN remains administrative, not workflow-authorized.
+Two deterministic Department contexts prove Process relationship and organizational-authority isolation. Department A actors do not gain Department B workflow access, and SUPER_ADMIN remains administrative rather than workflow-authorized.
 
 ### J13 — Department Process Review
 
-Department Member creates/submits a complete Process SOP, relevant Process Owner receives it, requests revision, and the same Department Member receives the revision work back. Unrelated Process membership must not authorize workbench access.
+A Department Member submits a Process SOP, the relevant Process Owner reviews it and can return it for revision, and unrelated Process membership does not authorize workbench access.
 
 ### J14 — Department Final Approval
 
-Relevant Process Owner ACCEPT resolves `FINAL_APPROVAL_REQUESTED` to the relevant Head of Department. Dean and unrelated Head of Department must not approve the Department SOP. The relevant Head approves and leaves it ready for TTE.
+Process Owner acceptance resolves `FINAL_APPROVAL_REQUESTED` to the relevant Head of Department. Dean, unrelated Head of Department, and SUPER_ADMIN cannot approve the Department SOP; the relevant Head can approve it for TTE.
 
 ### J15 — Department TTE/Public Integrity
 
-Relevant Head of Department uses the real existing TTE credential/signing path. Successful signing transitions the Department SOP to `BERLAKU`, persists the official artifact, and exposes the SOP through the public archive without internal workflow/evaluation data.
+The relevant Head of Department uses the existing real TTE path. Signing transitions the SOP to `BERLAKU`, persists the official artifact, and exposes the SOP through the public archive without internal workflow/evaluation data.
 
-## Verification
+## Milestone Gate Evidence
 
-Milestone gate requires evidence proportional to changed risk:
+Integrated through PR #9 using squash merge:
 
 ```text
-Client CI
-Server CI when server code changes
-Migration Smoke for seed/schema/migration-relevant changes
-FTI Critical E2E J08-J15
-Protected Edit SOP implementation unchanged
-No unresolved authorization/TTE/public-integrity stop condition
+source head:       77f7f8eaa38247aa6b533e84917cfdcd17a90b4d
+master merge:      c644b5a86a66153ef3934fabaebf69413a7fc735
+Client CI:         33559540503 PASS
+Server CI:         33559540442 PASS
+Migration Smoke:   33559540449 PASS
+FTI Critical E2E:  33559540423 PASS (J08-J15)
 ```
+
+Protected Edit SOP evidence:
+
+```text
+client/src/pages/penyusun/sop/detail/DetailSOPPenyusun.tsx
+branch/master blob: 9f699be21dbb45759693dc8ecb0d29d3f4d194fd
+unchanged: YES
+```
+
+## Delivery State
+
+```text
+implemented: YES
+verified: YES
+integrated: YES
+release-ready: YES
+released: NO
+deployed: NO
+```
+
+Release/deploy remain intentionally outside M4 scope.
 
 ## Guardrail
 
-The protected Edit SOP workspace may be exercised by browser journeys but must not be modified to make M4 pass.
+The protected Edit SOP workspace remains protected. Future work must not alter it unless the current user instruction explicitly targets that surface.
 
 ## Next Move
 
-Implement deterministic two-Department target fixtures and J12 isolation proof, then continue J13-J15 without starting a new planning cycle.
+STOP. M4 is complete and release-ready. Await explicit user intent before defining or starting another milestone.
