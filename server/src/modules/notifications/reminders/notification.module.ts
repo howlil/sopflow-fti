@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ProcessNotificationController } from '../process/process-notification.controller';
+import { ProcessNotificationService } from '../process/process-notification.service';
 import { InAppNotificationController } from './in-app-notification.controller';
 import { InAppNotificationService } from './in-app-notification.service';
 import { NotificationEventsService } from './notification-events.service';
@@ -11,7 +13,7 @@ import { NotificationReminderSchedulerService } from './notification-reminder-sc
 
 @Module({
   imports: [ScheduleModule.forRoot()],
-  controllers: [InAppNotificationController],
+  controllers: [InAppNotificationController, ProcessNotificationController],
   providers: [
     NotificationEventsService,
     ReminderMessageFactory,
@@ -20,6 +22,8 @@ import { NotificationReminderSchedulerService } from './notification-reminder-sc
     NotificationReminderReconcilerService,
     InAppNotificationService,
     NotificationReminderSchedulerService,
+    ProcessNotificationService,
   ],
+  exports: [ProcessNotificationService],
 })
 export class NotificationModule {}
