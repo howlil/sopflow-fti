@@ -12,6 +12,7 @@ import { OpdModule } from './modules/core/opd/opd.module';
 import { PenggunaModule } from './modules/core/pengguna/pengguna.module';
 import { PenyusunModule } from './modules/core/penyusun/penyusun.module';
 import { PeraturanModule } from './modules/core/peraturan/peraturan.module';
+import { ProcessModule } from './modules/core/process/process.module';
 import { EvaluasiGrafikModule } from './modules/evaluation/grafik/evaluasi-grafik.module';
 import { EvaluasiNilaiModule } from './modules/evaluation/nilai/evaluasi-nilai.module';
 import { EvaluasiUmpanBalikModule } from './modules/evaluation/umpan-balik/evaluasi-umpan-balik.module';
@@ -51,6 +52,7 @@ import { NotificationModule } from './modules/notifications/reminders/notificati
     EvaluatorModule,
     KepalaOpdModule,
     PenyusunModule,
+    ProcessModule,
     SopCatalogModule,
     SopPublicModule,
     SopProsedurModule,
