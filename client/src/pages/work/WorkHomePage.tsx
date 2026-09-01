@@ -69,8 +69,8 @@ export function WorkHomePage() {
           {user?.nama ? `Halo, ${user.nama}` : 'Akses kerja FTI'}
         </p>
         <p className="mt-1 max-w-3xl text-sm text-secondary-foreground">
-          Akses di halaman ini berasal dari hubungan Anda dengan Process, kewenangan organisasi,
-          dan administrasi platform. Peran legacy tetap tersedia hanya untuk kebutuhan kompatibilitas.
+          Akses kerja mengikuti tanggung jawab Anda pada Process, kewenangan organisasi,
+          dan administrasi platform.
         </p>
       </section>
 
@@ -83,7 +83,7 @@ export function WorkHomePage() {
           {processes.length > 0 ? (
             <CapabilityCard
               title="Pekerjaan SOP"
-              description={`${ownerCount} Process sebagai Owner · ${memberCount} sebagai Member. Draft, revisi, dan review yang memerlukan Anda dikumpulkan dalam satu queue.`}
+              description={`${ownerCount} Process sebagai Owner · ${memberCount} sebagai Member. Draft, revisi, dan review yang memerlukan tindakan Anda tersedia dalam satu daftar kerja.`}
               to={ROUTES.WORK_QUEUE}
               action="Buka Pekerjaan SOP"
               icon={FileText}
@@ -103,7 +103,7 @@ export function WorkHomePage() {
           {user?.platformRole === 'SUPER_ADMIN' ? (
             <CapabilityCard
               title="Administrasi FTI"
-              description="Kelola Process, Process Team, dan assignment kewenangan organisasi tanpa memperoleh workflow bypass."
+              description="Kelola Process, tim Process, dan penugasan kewenangan organisasi."
               to={ROUTES.ADMIN.PROCESSES}
               action="Buka Administrasi"
               icon={Workflow}
@@ -112,8 +112,8 @@ export function WorkHomePage() {
 
           {!hasContextualCapability && legacyLanding ? (
             <CapabilityCard
-              title="Area Kompatibilitas"
-              description="Akun ini belum memiliki assignment Process atau kewenangan organisasi target. Akses workflow lama tetap tersedia selama masa transisi."
+              title="Akses Kerja"
+              description="Belum ada penugasan Process atau kewenangan organisasi untuk akun ini. Gunakan menu yang tersedia sesuai akses akun Anda."
               to={legacyLanding}
               action="Buka Area Akun"
               icon={Users}
