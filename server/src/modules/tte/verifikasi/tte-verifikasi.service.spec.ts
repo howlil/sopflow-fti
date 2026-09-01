@@ -1,13 +1,15 @@
 import { NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { TteVerifikasiService } from './tte-verifikasi.service';
+import { JenisDokumenTte, OrganizationalAuthority, PeranPengguna } from '../../../generated/prisma';
 import { TteRepository } from '../shared/repository/tte.repository';
 import { TtePublicUrlResolver } from '../shared/utils/tte-public-url.resolver';
-import { PeranPengguna, JenisDokumenTte } from '../../../generated/prisma';
+import type { ProcessTteVerificationRepository } from './process-tte-verification.repository';
+import { TteVerifikasiService } from './tte-verifikasi.service';
 
 describe('Pengujian TteVerifikasiService', () => {
   let service: TteVerifikasiService;
   let mockTteRepository: Partial<TteRepository>;
+  let mockProcessVerificationRepository: jest.Mocked<Pick<ProcessTteVerificationRepository, 'findApprovalForSignedDetail'>>;
   let mockConfigService: Partial<ConfigService>;
 
   const defaultRiwayatRow = {
@@ -35,7 +37,9 @@ describe('Pengujian TteVerifikasiService', () => {
     mockTteRepository = {
       findRiwayatPengesahanByUserAndDokumen: jest.fn(),
     };
-
+    mockProcessVerificationRepository = {
+      findApprovalForSignedDetail: jest.fn().mockResolvedValue(null),
+    };
     mockConfigService = {
       get: jest.fn((key: string) => {
         if (key === 'PUBLIC_APP_ORIGIN') return 'https://verify.example.com';
@@ -46,14 +50,13 @@ describe('Pengujian TteVerifikasiService', () => {
     service = new TteVerifikasiService(
       mockTteRepository as TteRepository,
       new TtePublicUrlResolver(mockConfigService as ConfigService),
+      mockProcessVerificationRepository as unknown as ProcessTteVerificationRepository,
     );
   });
 
   describe('getPengesahanPublic', () => {
     it('seharusnya melempar NotFoundException jika data tidak ditemukan (False Case)', async () => {
-      (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue(
-        null,
-      );
+      (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue(null);
 
       await expect(service.getPengesahanPublic('dok-123', 'user-123')).rejects.toBeInstanceOf(
         NotFoundException,
@@ -63,7 +66,7 @@ describe('Pengujian TteVerifikasiService', () => {
     it('seharusnya melempar NotFoundException jika relasi dokumenTte putus/null (Worst Case)', async () => {
       (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue({
         ...defaultRiwayatRow,
-        dokumenTte: null, // orphan
+        dokumenTte: null,
       });
 
       await expect(service.getPengesahanPublic('dok-123', 'user-123')).rejects.toBeInstanceOf(
@@ -74,7 +77,7 @@ describe('Pengujian TteVerifikasiService', () => {
     it('seharusnya melempar NotFoundException jika relasi profil user putus/null (Worst Case)', async () => {
       (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue({
         ...defaultRiwayatRow,
-        user: null, // missing user profile
+        user: null,
       });
 
       await expect(service.getPengesahanPublic('dok-123', 'user-123')).rejects.toBeInstanceOf(
@@ -105,15 +108,15 @@ describe('Pengujian TteVerifikasiService', () => {
       const result = await service.getPengesahanPublic('dok-123', 'user-123');
       expect(result.dokumen.sopDetailId).toBeUndefined();
       expect(result.dokumen.pengajuanEvaluasiId).toBeUndefined();
+      expect(mockProcessVerificationRepository.findApprovalForSignedDetail).not.toHaveBeenCalled();
     });
 
     it('seharusnya memakai payload JSON ketika origin publik tidak dapat ditentukan', async () => {
-      const emptyConfigService = {
-        get: jest.fn().mockReturnValue(undefined),
-      };
+      const emptyConfigService = { get: jest.fn().mockReturnValue(undefined) };
       const serviceTanpaOrigin = new TteVerifikasiService(
         mockTteRepository as TteRepository,
         new TtePublicUrlResolver(emptyConfigService as unknown as ConfigService),
+        mockProcessVerificationRepository as unknown as ProcessTteVerificationRepository,
       );
       (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue(
         defaultRiwayatRow,
@@ -126,7 +129,43 @@ describe('Pengujian TteVerifikasiService', () => {
       });
     });
 
-    it('seharusnya mengembalikan mapping response dengan lengkap (Success Case)', async () => {
+    it('menampilkan Dean dari ProcessFinalApproval, bukan legacy account role', async () => {
+      (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue({
+        ...defaultRiwayatRow,
+        peran: PeranPengguna.PENYUSUN,
+      });
+      mockProcessVerificationRepository.findApprovalForSignedDetail.mockResolvedValue({
+        authority: OrganizationalAuthority.DEAN,
+        authorityKey: 'DEAN',
+        approvedById: 'user-123',
+      });
+
+      const result = await service.getPengesahanPublic('dok-123', 'user-123');
+
+      expect(result.peran).toBe(PeranPengguna.PENYUSUN);
+      expect(result.authority).toBe(OrganizationalAuthority.DEAN);
+      expect(result.authorityLabel).toBe('Dekan');
+      expect(mockProcessVerificationRepository.findApprovalForSignedDetail).toHaveBeenCalledWith(
+        'sop-1',
+        'user-123',
+      );
+    });
+
+    it('menampilkan Kepala Departemen dari approval evidence untuk Department Process', async () => {
+      (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue(
+        defaultRiwayatRow,
+      );
+      mockProcessVerificationRepository.findApprovalForSignedDetail.mockResolvedValue({
+        authority: OrganizationalAuthority.HEAD_OF_DEPARTMENT,
+        authorityKey: 'HEAD_OF_DEPARTMENT:department-a',
+        approvedById: 'user-123',
+      });
+
+      const result = await service.getPengesahanPublic('dok-123', 'user-123');
+      expect(result.authorityLabel).toBe('Kepala Departemen');
+    });
+
+    it('seharusnya mengembalikan mapping response dengan lengkap untuk legacy signature', async () => {
       (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue(
         defaultRiwayatRow,
       );
@@ -153,6 +192,7 @@ describe('Pengujian TteVerifikasiService', () => {
         },
         qrVerificationUrl: 'https://verify.example.com/tte/verifikasi-dokumen/dok-123?h=abc123hash',
       });
+      expect(result.authority).toBeUndefined();
       expect(result.dokumen.pengajuanEvaluasiId).toBeUndefined();
     });
   });
