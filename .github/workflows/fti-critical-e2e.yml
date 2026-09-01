@@ -1,0 +1,160 @@
+name: FTI Critical E2E
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/fti-critical-e2e.yml'
+      - 'client/e2e/**'
+      - 'client/scripts/run-e2e.mjs'
+      - 'client/scripts/run-critical-e2e.mjs'
+      - 'client/scripts/audit-e2e-journeys.mjs'
+      - 'client/src/pages/work/**'
+      - 'client/src/pages/approval/**'
+      - 'client/src/components/layout/**'
+      - 'client/src/api/process-*.ts'
+      - 'client/src/api/organizational-authority.ts'
+      - 'client/src/stores/authStore.ts'
+      - 'server/src/modules/core/auth/**'
+      - 'server/src/modules/core/process/**'
+      - 'server/src/modules/sop/process-authoring/**'
+      - 'server/src/modules/notifications/process/**'
+      - 'server/prisma/seed-e2e.ts'
+      - 'server/prisma/*.prisma'
+      - 'server/prisma/migrations/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fti-critical-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contextual-entry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_HOST: 127.0.0.1
+      DATABASE_PORT: 3308
+      DATABASE_USER: sop_test
+      DATABASE_PASSWORD: sop_test_password
+      DATABASE_NAME: sop_biro_organisasi_test
+      DATABASE_URL: mysql://sop_test:sop_test_password@127.0.0.1:3308/sop_biro_organisasi_test
+      NODE_ENV: test
+      PORT: 3001
+      JWT_SECRET: this-is-a-super-secret-key-that-is-at-least-32-characters-long-for-test
+      JWT_EXPIRATION: 15m
+      JWT_REFRESH_EXPIRATION: 7d
+      TTE_ENCRYPTION_SECRET: this-is-a-dedicated-tte-encryption-secret-for-test-only
+      PUBLIC_APP_ORIGIN: http://localhost:5173
+      PDF_SIGNING_ENABLED: 'false'
+      E2E_BASE_URL: http://localhost:5173
+      E2E_API_BASE_URL: http://127.0.0.1:3001/api/v1
+      E2E_API_HEALTH_URL: http://127.0.0.1:3001/api/health
+      E2E_BROWSER_API_BASE_URL: http://localhost:3001/api/v1
+      E2E_SKIP_LOGIN_PREFLIGHT: 'true'
+      E2E_SEED: 'false'
+      E2E_CRITICAL: 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            server/pnpm-lock.yaml
+            client/pnpm-lock.yaml
+
+      - name: Install server dependencies
+        working-directory: server
+        run: pnpm install --frozen-lockfile
+
+      - name: Install client dependencies
+        working-directory: client
+        run: pnpm install --frozen-lockfile
+
+      - name: Start disposable MariaDB
+        run: |
+          docker run --detach \
+            --name sop-fti-e2e-db \
+            --publish 3308:3306 \
+            --env MARIADB_ROOT_PASSWORD=root_test_password \
+            --env MARIADB_DATABASE=sop_biro_organisasi_test \
+            --env MARIADB_USER=sop_test \
+            --env MARIADB_PASSWORD=sop_test_password \
+            --env TZ=Asia/Jakarta \
+            mariadb:11.4 \
+            --lower_case_table_names=1
+
+      - name: Wait for MariaDB
+        run: |
+          for attempt in $(seq 1 60); do
+            if docker exec sop-fti-e2e-db healthcheck.sh --connect --innodb_initialized >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs sop-fti-e2e-db
+          exit 1
+
+      - name: Prepare target E2E database
+        working-directory: server
+        run: |
+          pnpm prisma generate
+          pnpm prisma migrate reset --force
+          pnpm db:seed:e2e
+
+      - name: Start backend
+        working-directory: server
+        run: |
+          pnpm start > /tmp/sop-fti-e2e-server.log 2>&1 &
+          echo $! > /tmp/sop-fti-e2e-server.pid
+
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent "$E2E_API_HEALTH_URL" >/dev/null; then
+              exit 0
+            fi
+            if ! kill -0 "$(cat /tmp/sop-fti-e2e-server.pid)" 2>/dev/null; then
+              cat /tmp/sop-fti-e2e-server.log
+              exit 1
+            fi
+            sleep 2
+          done
+
+          cat /tmp/sop-fti-e2e-server.log
+          exit 1
+
+      - name: Install Chromium
+        working-directory: client
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Audit critical journey registry
+        working-directory: client
+        run: pnpm test:e2e:audit
+
+      - name: Run J08 contextual entry journey
+        working-directory: client
+        run: node scripts/run-e2e.mjs journeys --grep 'J08\b' --project=chromium
+
+      - name: Backend logs on failure
+        if: failure()
+        run: cat /tmp/sop-fti-e2e-server.log || true
+
+      - name: Stop test services
+        if: always()
+        run: |
+          if [ -f /tmp/sop-fti-e2e-server.pid ]; then
+            kill "$(cat /tmp/sop-fti-e2e-server.pid)" 2>/dev/null || true
+          fi
+          docker rm --force sop-fti-e2e-db || true
