@@ -1,10 +1,6 @@
 import { test, expect } from '../fixtures/business-test'
 import { targetUsers } from '../fixtures/users'
 
-async function expectNoLegacyWorkflowEntry(page: Awaited<ReturnType<Parameters<typeof test>[0]>> extends never ? never : never) {
-  void page
-}
-
 test.describe('FTI contextual entry', () => {
   test('Process Owner masuk ke beranda kerja dengan capability Process tanpa menu workflow legacy', async ({ roleSession }) => {
     const { page } = await roleSession(targetUsers.processOwner)
