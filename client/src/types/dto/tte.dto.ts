@@ -1,4 +1,9 @@
-export type PeranTTE = "KEPALA_OPD" | "PJ_EVALUATOR" | "PJ_PENYUSUN";
+export type PeranTTE =
+  | "KEPALA_OPD"
+  | "PJ_EVALUATOR"
+  | "PJ_PENYUSUN"
+  | "EVALUATOR"
+  | "PENYUSUN";
 
 /** Profil TTE dari GET/POST `/tte/profil` — PIN disimpan di server pada data pengguna. */
 export interface TteProfil {
@@ -162,6 +167,8 @@ export interface TtePengesahanPublic {
   dokumenTteId: string;
   ditandatanganiPada: string;
   peran: PeranTTE;
+  authority?: 'DEAN' | 'HEAD_OF_DEPARTMENT';
+  authorityLabel?: string;
   penandatangan: {
     nama: string;
     nip: string;
@@ -221,4 +228,26 @@ export interface TandaTanganiSopPengajuanResponse {
   pengajuanEvaluasiId: string;
   totalSopDitandatangani: number;
   ditandatanganiPada: string;
+}
+
+export interface TandaTanganiProcessSopDto {
+  pin: string;
+  nomorDokumen: string;
+  judulDokumen: string;
+  pdfBase64: string;
+}
+
+export interface TandaTanganiProcessSopMutationDto {
+  detailSopId: string;
+  payload: TandaTanganiProcessSopDto;
+}
+
+export interface TandaTanganiProcessSopResponse {
+  detailSopId: string;
+  dokumenTteId: string;
+  authority: 'DEAN' | 'HEAD_OF_DEPARTMENT';
+  authorityKey: string;
+  status: 'BERLAKU';
+  ditandatanganiPada: string;
+  tanggalEfektif: string;
 }
