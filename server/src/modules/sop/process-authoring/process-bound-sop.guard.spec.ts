@@ -24,6 +24,20 @@ describe('ProcessBoundSopGuard', () => {
     expect((jwt.canActivate as jest.Mock)).not.toHaveBeenCalled();
   });
 
+  it('is a no-op for public SOP routes', async () => {
+    const jwt = { canActivate: jest.fn() } as unknown as JwtAuthGuard;
+    const prisma = {} as PrismaService;
+    const processContext = {} as ProcessContextService;
+    const guard = new ProcessBoundSopGuard(jwt, prisma, processContext);
+
+    await expect(
+      guard.canActivate(
+        contextFor({ path: '/api/sop/public/dokumen/detail-1', params: { id: 'detail-1' } }),
+      ),
+    ).resolves.toBe(true);
+    expect((jwt.canActivate as jest.Mock)).not.toHaveBeenCalled();
+  });
+
   it('requires Process authoring access when a legacy penyusun touches a bound SOP', async () => {
     const request = {
       path: '/api/sop/langkah/detail-1',
