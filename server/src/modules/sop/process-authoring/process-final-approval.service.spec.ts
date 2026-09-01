@@ -9,6 +9,9 @@ const user = { sub: 'dean-1', peran: 'PENYUSUN' } as never;
 
 function makeService(status: StatusSOP = StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR) {
   const prisma = {
+    detailSOP: {
+      findFirst: jest.fn().mockResolvedValue({ detailSopId: 'detail-a' }),
+    },
     processSopBinding: {
       findUnique: jest.fn().mockResolvedValue({ processId: 'process-a' }),
     },
@@ -66,5 +69,16 @@ describe('ProcessFinalApprovalService', () => {
     const { service } = makeService(StatusSOP.SEDANG_DIEVALUASI);
 
     await expect(service.approve(user, 'detail-a')).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('rejects direct approval of an older SOP version', async () => {
+    const { service, prisma, authority } = makeService();
+    (prisma.detailSOP.findFirst as jest.Mock).mockResolvedValue({ detailSopId: 'detail-newer' });
+
+    await expect(service.approve(user, 'detail-a')).rejects.toThrow(
+      'Final approval hanya dapat diberikan pada versi SOP terbaru',
+    );
+    expect(authority.assertCanApprove).not.toHaveBeenCalled();
+    expect(prisma.processFinalApproval.create).not.toHaveBeenCalled();
   });
 });
