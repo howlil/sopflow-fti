@@ -1,4 +1,4 @@
-import type { PeranPengguna } from '../../../../generated/prisma';
+import type { OrganizationalAuthority, PeranPengguna } from '../../../../generated/prisma';
 
 export type {
   PdfSigningStatusResponse,
@@ -45,7 +45,10 @@ export type TtePengesahanPublicResponse = {
   readonly userId: string;
   readonly dokumenTteId: string;
   readonly ditandatanganiPada: string;
-  readonly peran: 'KEPALA_OPD' | 'PJ_EVALUATOR' | 'PJ_PENYUSUN';
+  /** Compatibility account role. Do not use this field as Process-bound approval authority. */
+  readonly peran: PeranPengguna;
+  readonly authority?: OrganizationalAuthority;
+  readonly authorityLabel?: 'Dekan' | 'Kepala Departemen';
   readonly penandatangan: {
     readonly nama: string;
     readonly nip: string;
