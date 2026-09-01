@@ -4,13 +4,29 @@ Dokumen ini merangkum aturan bisnis yang tidak cukup dijelaskan oleh foreign key
 
 ## Sumber Kebenaran OPD Aktif Pengguna
 
-`Pengguna.opdId` adalah sumber kebenaran OPD aktif pengguna.
+`Pengguna.opdId` adalah sumber kebenaran OPD aktif pengguna selama legacy OPD workflow masih menjadi implementasi aktif.
 
 `RiwayatOpdPengguna` menyimpan histori pasangan pengguna dan OPD. Field `isAktif` hanya penanda tampilan riwayat yang disinkronkan oleh service:
 
 - Saat pengguna dibuat, service membuat riwayat OPD aktif sesuai `Pengguna.opdId`.
 - Saat pengguna pindah OPD, service mengubah `Pengguna.opdId`, menonaktifkan seluruh riwayat OPD pengguna, lalu mengaktifkan baris riwayat OPD tujuan.
 - Jika terjadi perbedaan, aplikasi harus mempercayai `Pengguna.opdId` dan memperbaiki `RiwayatOpdPengguna.isAktif`.
+
+## FTI Platform Role dan Process Foundation
+
+Sprint 2 menambahkan model FTI secara additive; invariant legacy OPD di bawah tetap berlaku sampai slice migrasi berikutnya memindahkan ownership SOP.
+
+- `Pengguna.platformRole` adalah axis administrasi platform yang terpisah dari `Pengguna.peran`. Nilai default adalah `USER`.
+- `SUPER_ADMIN` tidak mengubah atau membypass `PeranPengguna`, Process relationship, review authority, final approval, atau TTE authority.
+- `Process.scope = FACULTY` wajib memiliki `departmentId = NULL`.
+- `Process.scope = DEPARTMENT` wajib memiliki satu `departmentId` valid. Kombinasi scope/context ini dikunci oleh CHECK constraint migration dan juga divalidasi service.
+- Setiap `Process` memiliki tepat satu `ownerId` melalui FK wajib ke `Pengguna`.
+- Setiap `Process` harus memiliki minimal satu `ProcessMember`. Minimum ini divalidasi service pada create/update; composite primary key `(processId, penggunaId)` mencegah membership duplikat.
+- Process Owner tidak diduplikasi sebagai `ProcessMember`; owner dan member adalah dua relationship contextual yang berbeda.
+- Owner dan seluruh member yang ditugaskan harus merupakan pengguna aktif pada saat mutasi Process.
+- Assignment pada Process A tidak memberikan relationship pada Process B.
+
+Model `Process` belum menjadi owner persistence untuk `SOP` pada Sprint 2. `SOP.opdId` tetap dipertahankan sampai vertical slice SOP ownership melakukan cutover secara eksplisit.
 
 ## Transisi Status DetailSOP
 
