@@ -14,7 +14,6 @@ import { GenerateP12Dto } from '../shared/dto/generate-p12.dto';
 import { UploadP12Dto } from '../shared/dto/upload-p12.dto';
 import { SetupTteGenerateDto } from '../shared/dto/setup-tte-generate.dto';
 import { SetupTteUploadDto } from '../shared/dto/setup-tte-upload.dto';
-import { mapTtePeranResponse } from '../shared/utils/tte-support';
 import { decryptP12Passphrase, encryptP12Passphrase } from '../shared/utils/tte-crypto.util';
 import { generatePersonalP12 } from '../shared/utils/generate-p12.util';
 import { loadTrustedCertificatesFromP12 } from '../shared/utils/pdf-signing-certificate.util';
@@ -132,10 +131,6 @@ export class TteProfilService {
     return this.buildProfilResponse(pengguna, row);
   }
 
-  /**
-   * Setup awal TTE: buat sertifikat P12 otomatis + set PIN dalam satu operasi.
-   * Tidak membutuhkan PIN lama — auth via JWT (setup pertama kali).
-   */
   async setupTteGenerate(
     user: JwtAccessPayload,
     dto: SetupTteGenerateDto,
@@ -173,10 +168,6 @@ export class TteProfilService {
     return this.buildProfilResponse(pengguna, row);
   }
 
-  /**
-   * Setup awal TTE: unggah P12 dari BSrE + set PIN dalam satu operasi.
-   * Tidak membutuhkan PIN lama — auth via JWT (setup pertama kali).
-   */
   async setupTteWithUpload(
     user: JwtAccessPayload,
     dto: SetupTteUploadDto,
@@ -275,7 +266,7 @@ export class TteProfilService {
       id: pengguna.penggunaId,
       userId: pengguna.penggunaId,
       hasP12: Boolean(row.p12Base64),
-      peran: mapTtePeranResponse(pengguna.peran),
+      peran: pengguna.peran,
       createdAt: row.updatedAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
       user: {
