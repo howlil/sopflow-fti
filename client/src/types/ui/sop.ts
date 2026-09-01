@@ -90,4 +90,33 @@ export interface SopItem {
   judul: string;
   opdId: string;
   status: string;
+  nomorSOP?: string;
+  author?: string;
+  peraturanId?: string;
+  tanggal?: string;
+  terakhirDiperbarui?: string;
+  lastEditedBy?: string;
+  lastEditedAt?: string;
+  versi?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PelaksanaRow {
+  id: string;
+  nama: string;
+  opdId?: string;
+  urutan?: number;
+}
+
+export interface SOPTemplate {
+  id?: string;
+  judul: string;
+  opdId: string;
+  kode?: string;
+  opd?: string;
+  kategori?: string;
+  versi?: number;
+  logoInstansi?: string;
+  namaLembaga?: string;
 }
