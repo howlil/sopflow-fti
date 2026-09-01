@@ -6,6 +6,7 @@ import { SetPageHeader } from "@/components/layout/PageHeaderProvider";
 import { useAuth } from "@/api/auth";
 import { useOpd } from "@/api/opd";
 import { useTTEProfil } from "@/api/tte";
+import { useMyOrganizationalAuthorities } from "@/api/organizational-authority";
 import { useAppRole } from "@/hooks/useAppRole";
 import { roleMendukungTte } from "@/utils/role-routing";
 import { TteSetupSection } from "@/pages/akun/components/TteSetupSection";
@@ -97,7 +98,9 @@ function PasswordInput({
 export function ProfilSayaPage() {
   const { user, role, getRoleLabel, getRoleNip, getRoleDisplayName } = useAppRole();
   const { changePassword, isChangingPassword, updateMyPhone, isUpdatingMyPhone } = useAuth();
-  const tteEnabled = roleMendukungTte(role);
+  const { data: myAuthorities = [] } = useMyOrganizationalAuthorities();
+  // Credential availability is not signing authority. Contextual Dean/Kadep may hold any legacy account role.
+  const tteEnabled = roleMendukungTte(role) || myAuthorities.length > 0;
   const { data: profile, isLoading: isProfilLoading } = useTTEProfil({ enabled: tteEnabled });
   const { list: opdList } = useOpd();
 
