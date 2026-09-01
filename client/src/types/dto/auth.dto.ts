@@ -1,4 +1,4 @@
-import type { PeranPengguna } from "@/types/dto/access.dto";
+import type { PeranPengguna, PlatformRole } from "@/types/dto/access.dto";
 
 export interface LoginRequest {
   email: string;
@@ -23,6 +23,7 @@ export interface PublicPenggunaLoginData {
   email: string;
   nama: string;
   peran: PeranPengguna;
+  platformRole: PlatformRole;
   opdId: string;
   nip: string;
   jabatan: string;

@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import * as bcrypt from 'bcrypt';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
-import { PeranPengguna, PrismaClient } from '../src/generated/prisma';
+import { PeranPengguna, PlatformRole, PrismaClient } from '../src/generated/prisma';
 
 const DEFAULT_PASSWORD = '@Password123:)';
 const BCRYPT_SALT_ROUNDS = 10;
@@ -37,6 +37,7 @@ type SeedUser = {
   email: string;
   nama: string;
   peran: PeranPengguna;
+  platformRole?: PlatformRole;
   nip: string;
   jabatan: string;
   pangkat: string;
@@ -49,6 +50,7 @@ const users: readonly SeedUser[] = [
     email: 'pjevaluator@gmail.com',
     nama: 'PJ Evaluator E2E',
     peran: PeranPengguna.PJ_EVALUATOR,
+    platformRole: PlatformRole.SUPER_ADMIN,
     nip: '198501012009011000',
     jabatan: 'PJ Evaluator SOP',
     pangkat: 'Pembina',
@@ -98,8 +100,7 @@ const users: readonly SeedUser[] = [
 ];
 
 async function main(): Promise<void> {
-  const password =
-    process.env.E2E_SEED_PASSWORD ?? process.env.SEED_DEFAULT_PASSWORD ?? DEFAULT_PASSWORD;
+  const password = process.env.E2E_SEED_PASSWORD ?? process.env.SEED_DEFAULT_PASSWORD ?? DEFAULT_PASSWORD;
   const hash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
   await prisma.$transaction(async (tx) => {
@@ -113,6 +114,7 @@ async function main(): Promise<void> {
           email: user.email,
           nama: user.nama,
           peran: user.peran,
+          platformRole: user.platformRole ?? PlatformRole.USER,
           nip: user.nip,
           jabatan: user.jabatan,
           pangkat: user.pangkat,
@@ -123,16 +125,12 @@ async function main(): Promise<void> {
       });
 
       await tx.riwayatOpdPengguna.create({
-        data: {
-          penggunaId: created.penggunaId,
-          opdId: created.opdId,
-          isAktif: true,
-        },
+        data: { penggunaId: created.penggunaId, opdId: created.opdId, isAktif: true },
       });
     }
   });
 
-  console.log('E2E seed selesai: 2 OPD dan 5 role utama.');
+  console.log('E2E seed selesai: legacy roles tetap ada; PJ Evaluator seed juga memegang platform SUPER_ADMIN.');
 }
 
 main()

@@ -11,6 +11,9 @@ export type RoleKey =
 /** Alias semantik: nilai yang sama dengan kolom `Pengguna.peran` di database. */
 export type PeranPengguna = RoleKey;
 
+/** Axis administrasi platform; sengaja terpisah dari workflow role legacy. */
+export type PlatformRole = "SUPER_ADMIN" | "USER";
+
 export type PermissionKey =
   | "view_dashboard"
   | "manage_sop"
