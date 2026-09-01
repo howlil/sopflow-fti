@@ -27,6 +27,38 @@ Inspect failed migration
   -> prisma migrate deploy
 ```
 
+## Incident Procedure — `20260901163000_add_fti_process_foundation`
+
+Use the dedicated recovery script when this migration is the unresolved failed row and the deployment is blocked by the observed `3823` / `P3018` / `P3009` incident:
+
+```sh
+bash server/prisma/recovery/20260901163000_add_fti_process_foundation.sh --inspect
+```
+
+`--inspect` is read-only. It verifies the unresolved migration row and inspects the live partial schema. It fails closed when existing `Department`, `Process`, or `ProcessMember` structures are ambiguous rather than dropping or rewriting them.
+
+Before applying recovery, ensure the backend image contains the fixed trigger-based migration. Rebuild/update the backend image when needed; the script also checks this and stops if the image still contains the old failing migration.
+
+Apply the bounded fix-forward only after inspection succeeds:
+
+```sh
+bash server/prisma/recovery/20260901163000_add_fti_process_foundation.sh --apply
+```
+
+The script:
+
+1. verifies the database service is healthy;
+2. verifies exactly one unresolved failed row exists for this migration;
+3. validates any already-applied `Pengguna.platformRole`, `Department`, `Process`, and `ProcessMember` state;
+4. creates only missing Process-foundation objects required by the intended migration end-state;
+5. installs the trigger-based Process scope invariant;
+6. verifies all four Process/ProcessMember foreign keys and both scope triggers;
+7. proves an invalid Process scope INSERT is rejected;
+8. runs `prisma migrate resolve --applied 20260901163000_add_fti_process_foundation` only after end-state verification;
+9. runs `prisma migrate status` and resumes `prisma migrate deploy` for remaining migrations.
+
+The script does not run `migrate reset`, delete migration-history rows, drop existing domain tables, restart services, or deploy application images.
+
 ### 1. Identify the failed migration
 
 ```sh
@@ -103,4 +135,4 @@ The narrow exception is an actively failed migration that has not successfully c
 
 `prisma validate` and `prisma generate` validate the Prisma model but do not execute raw migration SQL.
 
-Changes under `prisma/migrations`, Prisma schema files, or `prisma.config.ts` require the dedicated migration smoke gate, which executes the complete migration chain against the same MariaDB major/minor image used by the production Compose runtime.
+Changes under `prisma/migrations`, Prisma schema files, migration recovery scripts, or `prisma.config.ts` require the dedicated migration smoke gate, which executes the complete migration chain against the same MariaDB major/minor image used by the production Compose runtime.
