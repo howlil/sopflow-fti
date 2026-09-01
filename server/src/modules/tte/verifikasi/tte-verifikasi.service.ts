@@ -12,7 +12,9 @@ export class TteVerifikasiService {
   constructor(
     private readonly tteRepository: TteRepository,
     private readonly publicUrlResolver: TtePublicUrlResolver,
-    private readonly processVerificationRepository: ProcessTteVerificationRepository,
+    // Optional only for isolated legacy unit construction. Nest runtime wires this provider;
+    // Process-bound verification fails closed when it is absent.
+    private readonly processVerificationRepository?: ProcessTteVerificationRepository,
   ) {}
 
   async getPengesahanPublic(
@@ -33,8 +35,11 @@ export class TteVerifikasiService {
       hashDokumen: row.dokumenTte.hashDokumen,
     });
 
+    if (row.dokumenTte.detailSopId && this.processVerificationRepository === undefined) {
+      throw new Error('Process TTE verification repository tidak tersedia');
+    }
     const processApproval = row.dokumenTte.detailSopId
-      ? await this.processVerificationRepository.findApprovalForSignedDetail(
+      ? await this.processVerificationRepository!.findApprovalForSignedDetail(
           row.dokumenTte.detailSopId,
           row.userId,
         )
