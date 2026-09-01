@@ -14,44 +14,43 @@ M3 is a reliability/verification milestone. It must not change approved product 
 
 In scope:
 
-- dedicated E2E identities/fixtures for Process Owner, Process Member, Dean, and Head of Department contexts;
-- target-context authenticated entry/navigation/isolation journeys;
-- Process-bound SOP work queue and authorization journeys;
-- Process Owner submit/review + contextual notification journey;
-- contextual final-approval handoff and authority isolation;
-- TTE handoff/public-integrity verification where the existing signing harness can prove it without weakening security boundaries;
-- critical-journey command/CI coverage proportional to the new tests.
+- target identities/fixtures for Process Owner, Process Member, Dean, and Head of Department;
+- authenticated contextual entry/navigation isolation;
+- Process work queue + Process authorization;
+- Process Member submit and Process Owner review/revision;
+- contextual final-approval handoff + notifications;
+- TTE/public-integrity boundary where the existing signing harness can prove it safely;
+- path-scoped browser-runtime CI proportional to target FTI surfaces.
 
 Out of scope:
 
-- new product features or workflow states;
-- destructive legacy schema/route cleanup;
-- changing Process ownership/final-authority semantics;
-- bypassing authentication, TTE, rate limits, or authorization for tests;
-- production deployment/release work;
+- new product features/workflow states;
+- destructive legacy cleanup;
+- changed Process ownership/final-authority semantics;
+- authentication/authorization/TTE bypasses for tests;
+- release/deployment work;
 - protected Edit SOP workspace behavior changes.
 
 ## Position
 
 ```text
-Milestone plan
-  -> Target E2E Identity + Fixture Foundation    VERIFIED + INTEGRATED
-  -> Contextual Entry + Navigation Journey       ACTIVE / RUNTIME GATE
-  -> Process Work + Owner Review Journey         PLANNED
-  -> Final Approval + Notification Journey       PLANNED
-  -> TTE/Public Integrity Boundary               PLANNED
-  -> Milestone Gate                              PENDING
+Target E2E Identity + Fixture Foundation    VERIFIED + INTEGRATED
+Contextual Entry + Navigation Journey       VERIFIED + INTEGRATED
+Process Work + Owner Review Journey         ACTIVE / RUNTIME GATE
+Final Approval + Notification Journey       PLANNED
+TTE/Public Integrity Boundary               PLANNED
+Milestone Gate                              PENDING
 ```
 
 Current branch:
 
 ```text
-m3-contextual-entry-runtime
+m3-process-owner-review
 ```
 
-## Delivered Evidence
+## Integrated Evidence
 
-Foundation logical change:
+Foundation:
 
 ```text
 PR #3
@@ -61,51 +60,67 @@ Server CI: 33548230152       PASS
 Migration Smoke: 33548230125 PASS
 ```
 
-Foundation now provides:
+Contextual browser runtime:
 
-- four dedicated target identities: Process Owner, Process Member, Dean, Head of Department;
-- deterministic Faculty + Department Process context;
-- deterministic Process membership and organizational authority assignments;
-- identity-keyed shared E2E authentication instead of legacy-role-keyed sessions;
-- J08 registered in the existing audited critical journey set;
-- Migration Smoke validation of the target seed against the full migrated MariaDB schema.
+```text
+PR #4
+merge: c8d892b6ae226e5d8f7b268cfd2c1b0339d13525
+FTI Critical E2E: 33549078870 PASS
+```
 
-The initial seed-validation smoke run exposed a missing `prisma generate` step in Migration Smoke. The workflow was corrected and the final run passed. No production schema change was required.
+J08 proves in real Chromium + Nest + migrated/seeded MariaDB:
 
-## Active Slice
+- Process Owner -> Process work capability, legacy workflow nav isolated;
+- Process Member -> Process work without final-approval capability;
+- Dean -> contextual approval/TTE without Process authoring capability;
+- Head of Department -> contextual approval/TTE without Process authoring capability;
+- no page/app-shell errors.
 
-### Contextual Entry + Navigation Runtime Gate
+The first J08 runtime attempt exposed only E2E wiring: Vite dev targeted port 3000 while the test backend used 3001. CI now sets `VITE_API_BASE_URL` explicitly; production auth/cookie behavior was not changed.
 
-J08 already expresses the required browser assertions. The remaining gap is automated runtime proof.
+## Active Slice — J09 Process Owner Review
 
-Current logical change adds one path-scoped GitHub Actions gate that:
+Precondition:
 
-- provisions disposable MariaDB 11.4;
-- generates Prisma client;
-- resets through the real migration chain and loads the target E2E seed;
-- starts the Nest backend with committed test-only environment values;
-- installs Chromium;
-- audits the critical journey registry;
-- executes only J08 in Chromium;
-- captures backend logs on failure;
-- does not run on unrelated repository changes.
+- create one complete Process-bound SOP as the target Process Member through existing public APIs;
+- keep it in `DRAFT`;
+- setup mutations live outside the journey spec;
+- do not modify the protected Edit SOP workspace implementation.
 
-J08 must prove:
+Browser behavior under test:
 
-- Process Owner sees Process work as primary and no legacy `SOP` workflow navigation;
-- Process Member sees Process work but no final-approval capability;
-- Dean sees contextual approval/TTE but no Process authoring capability;
-- Head of Department sees contextual approval/TTE but no Process authoring capability;
-- no browser page errors or application-shell errors occur.
+```text
+Process Member /work/queue
+  -> sees Draft + Lanjutkan SOP
+  -> opens existing workspace
+  -> Kirim untuk review
+
+Process Owner /work/queue
+  -> sees Review Process Owner + Review SOP
+  -> opens existing workspace
+  -> Minta revisi
+
+Process Member /work/queue
+  -> sees Perlu revisi + Lanjutkan SOP
+```
+
+This slice intentionally chooses `REVISION`, not `ACCEPT`, so final-approval recipient/notification behavior remains owned by the next vertical slice.
+
+Runtime gate:
+
+- J09 registered beside J01–J08 in the existing audited critical set;
+- local critical runner keeps per-journey DB reset behavior;
+- path-scoped FTI CI executes J08 + J09 against one disposable target stack;
+- J08 is read-only and J09's mutations do not alter Process/authority capability counts asserted by J08.
 
 ## Guardrail
 
-The protected Edit SOP workspace remains outside M3 changes. Do not modify it to make E2E easier.
+The protected Edit SOP workspace may be exercised as existing user-visible behavior by E2E tests, but its implementation/layout/interaction contract must not be modified to make tests pass.
 
 ## Stop Conditions
 
-Stop/escalate if target journey coverage requires changing approved workflow behavior, weakening authentication/authorization/TTE security, destructive migration, public-contract changes, or modifying the protected Edit SOP workspace.
+Stop/escalate if J09 requires changing approved workflow semantics, weakening authorization/security, destructive migration, public-contract change, or modifying the protected workspace implementation.
 
 ## Next Move
 
-Verify the new path-scoped FTI Critical E2E workflow on J08, integrate it when green, then start the Process Work + Owner Review journey slice.
+Run J08 + J09 in the path-scoped FTI browser gate. Fix only observed test/fixture/runtime defects. Integrate J09 when green, then proceed to contextual final approval + notification.
