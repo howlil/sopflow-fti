@@ -1,16 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Request } from 'express';
-import { buildTteQrPayload } from '../shared/utils/tte-verifikasi-qr.util';
-import { TtePublicUrlResolver } from '../shared/utils/tte-public-url.resolver';
-import { mapTtePeranResponse } from '../shared/utils/tte-support';
+import { OrganizationalAuthority } from '../../../generated/prisma';
 import { TteRepository } from '../shared/repository/tte.repository';
 import type { TtePengesahanPublicResponse } from '../shared/types/tte.types';
+import { buildTteQrPayload } from '../shared/utils/tte-verifikasi-qr.util';
+import { TtePublicUrlResolver } from '../shared/utils/tte-public-url.resolver';
+import { ProcessTteVerificationRepository } from './process-tte-verification.repository';
 
 @Injectable()
 export class TteVerifikasiService {
   constructor(
     private readonly tteRepository: TteRepository,
     private readonly publicUrlResolver: TtePublicUrlResolver,
+    private readonly processVerificationRepository: ProcessTteVerificationRepository,
   ) {}
 
   async getPengesahanPublic(
@@ -30,12 +32,30 @@ export class TteVerifikasiService {
       dokumenTteId: row.dokumenTte.dokumenTteId,
       hashDokumen: row.dokumenTte.hashDokumen,
     });
-    const peran = mapTtePeranResponse(row.peran);
+
+    const processApproval = row.dokumenTte.detailSopId
+      ? await this.processVerificationRepository.findApprovalForSignedDetail(
+          row.dokumenTte.detailSopId,
+          row.userId,
+        )
+      : null;
+    const authorityLabel = processApproval === null
+      ? undefined
+      : processApproval.authority === OrganizationalAuthority.DEAN
+        ? 'Dekan' as const
+        : 'Kepala Departemen' as const;
+
     return {
       userId: row.userId,
       dokumenTteId: row.dokumenTteId,
       ditandatanganiPada: row.ditandatanganiPada.toISOString(),
-      peran,
+      peran: row.peran,
+      ...(processApproval === null
+        ? {}
+        : {
+            authority: processApproval.authority,
+            authorityLabel,
+          }),
       penandatangan: {
         nama: row.user.nama,
         nip: row.user.nip,
