@@ -2,7 +2,7 @@
 
 This is the thin, agent-agnostic entrypoint for software-engineering work in this repository.
 
-Global canonical SWE instructions remain the primary operating reference and are **not duplicated here**. This file only maps those rules onto SOPFlow's repository knowledge, authority boundaries, and active state.
+Global canonical SWE instructions remain the primary operating reference and are **not duplicated here**. This file only maps those rules onto SOPFlow's repository knowledge, authority boundaries, active state, and task-specific implementation skills.
 
 ## Canonical Repository Sources
 
@@ -21,6 +21,17 @@ Optional repository overrides exist only when there is a concrete durable need. 
 
 Read only the sources relevant to the affected boundary, but **always inspect `CURRENT_ITERATION.md` when continuing active work**. Read `PROTECTED_SURFACES.md` before any change that can affect a listed surface.
 
+## Task-Specific Skills
+
+Use the implementation skill that matches the code being changed:
+
+- `.agents/skill/frontend/SKILL.md` — frontend implementation using existing React/TanStack/API/query/UI/testing patterns.
+- `.agents/skill/backend/SKILL.md` — backend implementation using existing NestJS/service/repository/Prisma/authorization/transaction/testing patterns.
+
+These skills are derived from the existing codebase and exist to keep implementation consistent. They do not override `PROJECT.md`, `ARCHITECTURE.md`, `DECISIONS.md`, `PROTECTED_SURFACES.md`, or the current user instruction.
+
+For a cross-stack vertical slice, read both skills, but keep behavior ownership on the correct side of the API boundary instead of duplicating policy in frontend and backend.
+
 ## Authority / Precedence
 
 When repository sources conflict, use:
@@ -31,6 +42,7 @@ explicit current user instruction
 -> ARCHITECTURE.md / applicable protected or security/design override
 -> CURRENT_ITERATION.md
 -> CODE_PATTERNS.md / QUALITY.md
+-> task-specific skill for the affected implementation boundary
 -> current code, tests, migrations, CI, package scripts as implementation evidence
 -> historical plans, PR descriptions, stale docs
 ```
@@ -85,4 +97,4 @@ The Edit SOP workspace is currently a durable protected surface. The exact seman
 
 Update only the canonical owner affected by durable change. Remove stale/duplicate repository guidance rather than preserving conflicting history.
 
-Do not add persistent task plans or extra `.agents/*.md` files unless a concrete durable repository complexity cannot fit one of the canonical owners.
+Task-specific implementation skills may exist under `.agents/skill/` when they encode recurring codebase-specific execution patterns. Do not use skills as parallel product specs, architecture docs, or iteration state.
