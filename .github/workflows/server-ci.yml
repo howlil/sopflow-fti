@@ -25,7 +25,6 @@ jobs:
       run:
         working-directory: server
     env:
-      # Prisma config requires a password even for validate/generate; no DB service is started.
       DATABASE_PASSWORD: ci-not-used
 
     steps:
@@ -61,4 +60,4 @@ jobs:
         run: pnpm test:core-unit
 
       - name: FTI target-domain unit tests
-        run: pnpm exec jest platform-admin.guard.spec.ts process.service.spec.ts process-context.service.spec.ts process-sop-authoring.service.spec.ts organizational-authority.service.spec.ts process-final-approval.service.spec.ts --runInBand
+        run: pnpm exec jest platform-admin.guard.spec.ts process.service.spec.ts process-context.service.spec.ts process-sop-authoring.service.spec.ts organizational-authority.service.spec.ts process-final-approval.service.spec.ts process-tte.service.spec.ts --runInBand
