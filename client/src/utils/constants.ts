@@ -58,6 +58,9 @@ export const ROUTES = {
   ADMIN: {
     PROCESSES: "/admin/processes",
   },
+  APPROVAL: {
+    INBOX: "/approval",
+  },
   PENYUSUN: {
     ME: "/penyusun/me",
     SOP: "/penyusun/sop",
