@@ -13,8 +13,10 @@ import {
   Menu,
   X,
   Workflow,
+  ShieldCheck,
 } from "lucide-react";
 import { useMyProcesses } from "@/api/process-context";
+import { useMyOrganizationalAuthorities } from "@/api/organizational-authority";
 import logoSvg from "@/assets/logo.svg";
 import { HeaderBar } from "@/components/layout/HeaderBar";
 import { PageHeaderProvider } from "@/components/layout/PageHeaderProvider";
@@ -123,6 +125,7 @@ export function DashboardLayout() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
   const { data: myProcesses = [] } = useMyProcesses();
+  const { data: myAuthorities = [] } = useMyOrganizationalAuthorities();
   const isDesktopNavOpen = useUIStore((state) => state.sidebarOpen);
   const setDesktopNavOpen = useUIStore((state) => state.setSidebarOpen);
   const navRole = user?.peran !== undefined ? toNavigationRole(user.peran) : undefined;
@@ -132,12 +135,21 @@ export function DashboardLayout() {
     myProcesses.length > 0 && !alreadyHasAuthoringItem
       ? [{ to: ROUTES.PENYUSUN.SOP, label: "SOP Process", icon: FileText }]
       : [];
+  const approvalItems: AppSidebarItem[] =
+    myAuthorities.length > 0
+      ? [{ to: ROUTES.APPROVAL.INBOX, label: "Persetujuan Akhir", icon: ShieldCheck }]
+      : [];
   const platformAdminItems: AppSidebarItem[] =
     user?.platformRole === "SUPER_ADMIN"
       ? [{ to: ROUTES.ADMIN.PROCESSES, label: "Process FTI", icon: Workflow }]
       : [];
-  // Legacy role navigation remains intact; Process authoring and platform admin are contextual/additional axes.
-  const sidebarItems = [...roleSidebarItems, ...processAuthoringItems, ...platformAdminItems];
+  // Legacy role navigation remains intact; Process authoring, organizational authority, and platform admin are independent axes.
+  const sidebarItems = [
+    ...roleSidebarItems,
+    ...processAuthoringItems,
+    ...approvalItems,
+    ...platformAdminItems,
+  ];
   const activeItem = sidebarItems.find(({ to }) => isActivePath(pathname, to));
 
   useEffect(() => {
@@ -175,7 +187,6 @@ export function DashboardLayout() {
         Lewati ke konten utama
       </a>
 
-      {/* Mobile nav */}
       <nav
         data-print-hide
         className="shrink-0 border-b border-border bg-surface lg:hidden"
@@ -259,7 +270,6 @@ export function DashboardLayout() {
         onOpenChange={handleDesktopSidebarOpenChange}
       />
 
-      {/* Main content */}
       <div suppressHydrationWarning className="flex-1 flex flex-col min-w-0 min-h-0">
         <PageHeaderProvider>
           <HeaderBar />
