@@ -31,10 +31,12 @@ export interface SOPDetailMetadata {
   implementQualification?: string | string[];
   equipment?: string | string[];
   recordData?: string | string[];
-  /** Nama untuk blok DISAHKAN OLEH (Kepala OPD). */
+  /** Nama pemegang authority untuk blok DISAHKAN OLEH. */
   picName?: string;
-  /** NIP untuk blok DISAHKAN OLEH. */
+  /** NIP pemegang authority untuk blok DISAHKAN OLEH. */
   picNumber?: string;
+  /** Label authority pada blok pengesahan, mis. Dekan atau Kepala Departemen. */
+  picRole?: string;
 }
 
 export interface ProsedurRow {
@@ -88,33 +90,4 @@ export interface SopItem {
   judul: string;
   opdId: string;
   status: string;
-  nomorSOP?: string;
-  author?: string;
-  peraturanId?: string;
-  tanggal?: string;
-  terakhirDiperbarui?: string;
-  lastEditedBy?: string;
-  lastEditedAt?: string;
-  versi?: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface PelaksanaRow {
-  id: string;
-  nama: string;
-  opdId?: string;
-  urutan?: number;
-}
-
-export interface SOPTemplate {
-  id?: string;
-  judul: string;
-  opdId: string;
-  kode?: string;
-  opd?: string;
-  kategori?: string;
-  versi?: number;
-  logoInstansi?: string;
-  namaLembaga?: string;
 }
