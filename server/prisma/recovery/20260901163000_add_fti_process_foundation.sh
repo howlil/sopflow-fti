@@ -135,7 +135,25 @@ if [[ "$process_exists" == "0" ]]; then
 fi
 
 info "installing Process scope triggers"
-db_exec "DELIMITER $$\nDROP TRIGGER IF EXISTS \`trg_process_scope_department_insert\`$$\nCREATE TRIGGER \`trg_process_scope_department_insert\` BEFORE INSERT ON \`Process\` FOR EACH ROW\nBEGIN\n  IF (NEW.\`scope\` = 'FACULTY' AND NEW.\`departmentId\` IS NOT NULL) OR (NEW.\`scope\` = 'DEPARTMENT' AND NEW.\`departmentId\` IS NULL) THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Process scope and departmentId are inconsistent';\n  END IF;\nEND$$\nDROP TRIGGER IF EXISTS \`trg_process_scope_department_update\`$$\nCREATE TRIGGER \`trg_process_scope_department_update\` BEFORE UPDATE ON \`Process\` FOR EACH ROW\nBEGIN\n  IF (NEW.\`scope\` = 'FACULTY' AND NEW.\`departmentId\` IS NOT NULL) OR (NEW.\`scope\` = 'DEPARTMENT' AND NEW.\`departmentId\` IS NULL) THEN\n    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Process scope and departmentId are inconsistent';\n  END IF;\nEND$$\nDELIMITER ;"
+cat <<'SQL' | "${compose[@]}" exec -T db sh -lc \
+  'mariadb -u"$MARIADB_USER" -p"$MARIADB_PASSWORD" "$MARIADB_DATABASE"'
+DELIMITER $$
+DROP TRIGGER IF EXISTS `trg_process_scope_department_insert`$$
+CREATE TRIGGER `trg_process_scope_department_insert` BEFORE INSERT ON `Process` FOR EACH ROW
+BEGIN
+  IF (NEW.`scope` = 'FACULTY' AND NEW.`departmentId` IS NOT NULL) OR (NEW.`scope` = 'DEPARTMENT' AND NEW.`departmentId` IS NULL) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Process scope and departmentId are inconsistent';
+  END IF;
+END$$
+DROP TRIGGER IF EXISTS `trg_process_scope_department_update`$$
+CREATE TRIGGER `trg_process_scope_department_update` BEFORE UPDATE ON `Process` FOR EACH ROW
+BEGIN
+  IF (NEW.`scope` = 'FACULTY' AND NEW.`departmentId` IS NOT NULL) OR (NEW.`scope` = 'DEPARTMENT' AND NEW.`departmentId` IS NULL) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Process scope and departmentId are inconsistent';
+  END IF;
+END$$
+DELIMITER ;
+SQL
 
 if [[ "$process_member_exists" == "0" ]]; then
   info "creating ProcessMember"
@@ -158,10 +176,13 @@ printf '%s\n' "$invalid_insert_output" | grep -q 'Process scope and departmentId
 info "marking ${MIGRATION_NAME} applied after verified fix-forward"
 prisma migrate resolve --applied "$MIGRATION_NAME"
 
-info "checking migration history"
-prisma migrate status
+info "verifying failed migration history is resolved"
+expect_eq "$(db_scalar "SELECT COUNT(*) FROM _prisma_migrations WHERE migration_name='${MIGRATION_NAME}' AND finished_at IS NULL AND rolled_back_at IS NULL")" "0" "failed migration row remains unresolved after migrate resolve"
 
 info "applying remaining migrations"
 prisma migrate deploy
+
+info "verifying final migration status"
+prisma migrate status
 
 info "recovery complete; migration history is unblocked"
