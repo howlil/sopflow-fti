@@ -5,6 +5,10 @@ import type { OrganizationalAuthorityService } from '../../core/process/organiza
 import type { SopCatalogRepository } from '../catalog/sop-catalog.repository';
 import { ProcessFinalApprovalService } from './process-final-approval.service';
 
+jest.mock('../catalog/sop-catalog.mapper', () => ({
+  mapWorkbenchPayload: jest.fn(() => ({ detail: { id: 'detail-a' }, langkah: [] })),
+}));
+
 const user = { sub: 'dean-1', peran: 'PENYUSUN' } as never;
 
 function makeService(status: StatusSOP = StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR) {
@@ -37,11 +41,16 @@ function makeService(status: StatusSOP = StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR) {
       sopId: 'sop-a',
     }),
     findLatestDetailStatusContext: jest.fn().mockResolvedValue({ status }),
+    findWorkbenchPayloadByDetailOrSopId: jest.fn().mockResolvedValue({
+      detailSopId: 'detail-a',
+      status,
+    }),
   } as unknown as SopCatalogRepository;
   return {
     service: new ProcessFinalApprovalService(prisma, authority, catalog),
     prisma,
     authority,
+    catalog,
   };
 }
 
@@ -63,6 +72,25 @@ describe('ProcessFinalApprovalService', () => {
         authorityKey: 'DEAN',
       }),
     });
+  });
+
+  it('allows the contextual approver to read the frozen SOP document without Process membership', async () => {
+    const { service, authority, catalog } = makeService();
+
+    await expect(service.getDocumentForCurrentApprover(user, 'detail-a')).resolves.toEqual({
+      detail: { id: 'detail-a' },
+      langkah: [],
+    });
+    expect(authority.assertCanApprove).toHaveBeenCalledWith('dean-1', 'process-a');
+    expect(catalog.findWorkbenchPayloadByDetailOrSopId).toHaveBeenCalledWith('detail-a', 0);
+  });
+
+  it('rejects document reads outside the final approval/TTE state', async () => {
+    const { service } = makeService(StatusSOP.SEDANG_DIEVALUASI);
+
+    await expect(service.getDocumentForCurrentApprover(user, 'detail-a')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
   });
 
   it('rejects approval before Process Owner accepted the SOP', async () => {
