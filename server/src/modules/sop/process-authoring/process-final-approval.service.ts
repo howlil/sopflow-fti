@@ -126,6 +126,8 @@ export class ProcessFinalApprovalService {
       authorityKey: resolved.authorityKey,
       holderId: resolved.holderId,
       holderName: resolved.holderName,
+      holderNip: resolved.holderNip,
+      holderJabatan: resolved.holderJabatan,
       canApprove: resolved.holderId === user.sub,
       approval,
     };
@@ -133,7 +135,7 @@ export class ProcessFinalApprovalService {
 
   async getDocumentForCurrentApprover(user: JwtAccessPayload, detailOrSopId: string) {
     const context = await this.resolveTargetContext(detailOrSopId);
-    await this.authorityService.assertCanApprove(user.sub, context.processId);
+    const authority = await this.authorityService.assertCanApprove(user.sub, context.processId);
     const row = await this.sopCatalogRepository.findWorkbenchPayloadByDetailOrSopId(
       context.detailSopId,
       0,
@@ -146,7 +148,17 @@ export class ProcessFinalApprovalService {
         `SOP tidak berada pada tahap final approval/TTE (status saat ini: ${String(row.status)})`,
       );
     }
-    return mapWorkbenchPayload(row);
+    return {
+      workbench: mapWorkbenchPayload(row),
+      authority: {
+        authority: authority.authority,
+        authorityKey: authority.authorityKey,
+        holderId: authority.holderId,
+        holderName: authority.holderName,
+        holderNip: authority.holderNip,
+        holderJabatan: authority.holderJabatan,
+      },
+    };
   }
 
   async approve(user: JwtAccessPayload, detailOrSopId: string) {
