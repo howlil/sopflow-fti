@@ -1,16 +1,27 @@
-/** Application constants. */
+/**
+ * Application Constants
+ * Source of truth for all constants
+ * Note: Types are imported from @/types/common
+ */
+
 import type { RoleKey } from "@/types/dto/access.dto";
 import { SOP_STATUS_FILTER_OPTIONS } from "@/lib/status";
 
+// ==================== CONSTANTS ====================
+
 export const LOCALE_ID = "id-ID" as const;
+
 export const DEFAULT_PAGE_SIZE = 10 as const;
 
+// ==================== QUERY DEFAULTS ====================
+
 export const STALE_TIME = {
-  SHORT: 2 * 60 * 1000,
-  MEDIUM: 5 * 60 * 1000,
-  LONG: 10 * 60 * 1000,
+  SHORT: 2 * 60 * 1000, // Volatile data (detail SOP, drafts)
+  MEDIUM: 5 * 60 * 1000, // Moderate changes (SOP lists, teams, OPD)
+  LONG: 10 * 60 * 1000, // Data stabil (grafik tahunan, referensi)
 } as const;
 
+/** Konstanta string — sama dengan enum Prisma `PeranPengguna`. */
 export const ROLES = {
   PJ_EVALUATOR: "PJ_EVALUATOR",
   EVALUATOR: "EVALUATOR",
@@ -29,10 +40,24 @@ export const ROLE_LABELS: Record<RoleKey, string> = {
 
 export const ROUTES = {
   HOME: "/",
-  VALIDASI: { PENGESAHAN_PREFIX: "/validasi/pengesahan", PDF: "/validasi/pdf" },
-  ARSIP: { PREFIX: "/arsip", OPD: "/arsip/$opdId", DOKUMEN: "/arsip/$opdId/$detailSopId" },
-  AUTH: { LOGIN: "/login" },
-  ADMIN: { PROCESSES: "/admin/processes" },
+  /** Halaman publik verifikasi pengesahan TTE (scan QR, tanpa login). */
+  VALIDASI: {
+    PENGESAHAN_PREFIX: "/validasi/pengesahan",
+    PDF: "/validasi/pdf",
+  },
+  /** Arsip SOP berlaku — akses tanpa login. */
+  ARSIP: {
+    PREFIX: "/arsip",
+    OPD: "/arsip/$opdId",
+    DOKUMEN: "/arsip/$opdId/$detailSopId",
+  },
+  AUTH: {
+    LOGIN: "/login",
+  },
+  /** Platform administration; independent from legacy workflow role routes. */
+  ADMIN: {
+    PROCESSES: "/admin/processes",
+  },
   PENYUSUN: {
     ME: "/penyusun/me",
     SOP: "/penyusun/sop",
@@ -58,6 +83,7 @@ export const ROUTES = {
     EVALUASI: "/pj-evaluator/evaluasi",
     DETAIL_EVALUASI: "/pj-evaluator/evaluasi/$id",
   },
+  /** Workspace peran EVALUATOR (bukan PJ dashboard). */
   EVALUATOR: {
     ME: "/evaluator/me",
     EVALUASI: "/evaluator/evaluasi",
