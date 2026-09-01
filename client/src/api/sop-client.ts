@@ -16,26 +16,28 @@ import type {
   UpdateStatusDto,
 } from '@/types/dto/sop.dto'
 
+export type CreateProcessSopRequestDto = CreateSopRequestDto & { processId: string }
+
 export const sopApi = {
   findAll: (params?: SopListQueryParams) =>
     unwrapApiData(
-      apiClient.get<ApiSuccessResponse<SopDaftarRow[]>>(`/sop${buildQueryString(params)}`),
+      apiClient.get<ApiSuccessResponse<SopDaftarRow[]>>(`/process-sop${buildQueryString(params)}`),
     ),
 
-  create: (payload: CreateSopRequestDto) =>
-    unwrapApiData(apiClient.post<ApiSuccessResponse<SopDaftarRow>>('/sop', payload)),
+  create: (payload: CreateProcessSopRequestDto) =>
+    unwrapApiData(apiClient.post<ApiSuccessResponse<SopDaftarRow>>('/process-sop', payload)),
 
   getPenyusunWorkbench: (detailSopId: string, params?: PenyusunWorkbenchQueryParams) =>
     unwrapApiData(
       apiClient.get<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/sop/penyusun-workbench/${detailSopId}${buildQueryString(params)}`,
+        `/process-sop/workbench/${detailSopId}${buildQueryString(params)}`,
       ),
     ),
 
   updateSopHeader: (detailSopId: string, payload: UpdateSopHeaderDto) =>
     unwrapApiData(
       apiClient.patch<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/sop/header/${detailSopId}`,
+        `/process-sop/header/${detailSopId}`,
         payload,
       ),
     ),
