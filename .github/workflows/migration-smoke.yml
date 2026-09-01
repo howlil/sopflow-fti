@@ -6,6 +6,7 @@ on:
       - 'server/prisma/migrations/**'
       - 'server/prisma/recovery/**'
       - 'server/prisma/*.prisma'
+      - 'server/prisma/seed-e2e.ts'
       - 'server/prisma.config.ts'
       - '.github/workflows/migration-smoke.yml'
   pull_request:
@@ -13,6 +14,7 @@ on:
       - 'server/prisma/migrations/**'
       - 'server/prisma/recovery/**'
       - 'server/prisma/*.prisma'
+      - 'server/prisma/seed-e2e.ts'
       - 'server/prisma.config.ts'
       - '.github/workflows/migration-smoke.yml'
 
@@ -151,6 +153,28 @@ jobs:
           expect_scope_rejection "SET FOREIGN_KEY_CHECKS=0; INSERT INTO \`Process\` (processId, nama, scope, departmentId, ownerId, createdAt, updatedAt) VALUES ('00000000-0000-0000-0000-000000000003', 'Invalid Faculty', 'FACULTY', '00000000-0000-0000-0000-000000000098', '00000000-0000-0000-0000-000000000099', NOW(3), NOW(3));"
           expect_scope_rejection "SET FOREIGN_KEY_CHECKS=0; INSERT INTO \`Process\` (processId, nama, scope, departmentId, ownerId, createdAt, updatedAt) VALUES ('00000000-0000-0000-0000-000000000004', 'Invalid Department', 'DEPARTMENT', NULL, '00000000-0000-0000-0000-000000000099', NOW(3), NOW(3));"
           expect_scope_rejection "SET FOREIGN_KEY_CHECKS=0; UPDATE \`Process\` SET departmentId = '00000000-0000-0000-0000-000000000098' WHERE processId = '00000000-0000-0000-0000-000000000001';"
+
+      - name: Validate target E2E seed against migrated schema
+        run: pnpm db:seed:e2e
+
+      - name: Verify target E2E context
+        run: |
+          target_users="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM sop_biro_organisasi_test.Pengguna WHERE email IN ('process.owner@gmail.com','process.member@gmail.com','dean.fti@gmail.com','kadep.if@gmail.com')")"
+          target_processes="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM sop_biro_organisasi_test.\`Process\` WHERE nama IN ('Pengelolaan Akademik FTI','Layanan Akademik Informatika')")"
+          target_authorities="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM sop_biro_organisasi_test.OrganizationalAuthorityAssignment")"
+
+          test "$target_users" = "4" || {
+            echo "Expected four target E2E identities, got $target_users"
+            exit 1
+          }
+          test "$target_processes" = "2" || {
+            echo "Expected two target E2E Processes, got $target_processes"
+            exit 1
+          }
+          test "$target_authorities" = "2" || {
+            echo "Expected two target E2E authority assignments, got $target_authorities"
+            exit 1
+          }
 
       - name: Database logs on failure
         if: failure()
