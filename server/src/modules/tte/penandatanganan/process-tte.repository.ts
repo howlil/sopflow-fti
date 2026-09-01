@@ -67,6 +67,8 @@ export type ProcessTteFinalizeResult =
   | ProcessTtePrepareFailure
   | { readonly ok?: false; readonly error: 'SOP_STATUS_DRIFT' };
 
+class ProcessTteStatusDriftError extends Error {}
+
 @Injectable()
 export class ProcessTteRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -111,7 +113,14 @@ export class ProcessTteRepository {
         ) {
           return { error: 'INVALID_DOC_PARENT' as const };
         }
-        await tx.dokumenTte.update({
+        const existingSignature = await tx.riwayatTandaTangan.findFirst({
+          where: { dokumenTteId: dokumen.dokumenTteId },
+          select: { userId: true },
+        });
+        if (existingSignature !== null) {
+          return { error: 'ALREADY_SIGNED' as const };
+        }
+        dokumen = await tx.dokumenTte.update({
           where: { dokumenTteId: dokumen.dokumenTteId },
           data: {
             nomorDokumen: params.nomorDokumen,
@@ -119,14 +128,6 @@ export class ProcessTteRepository {
             hashDokumen: params.hashDokumen,
           },
         });
-      }
-
-      const existingSignature = await tx.riwayatTandaTangan.findFirst({
-        where: { dokumenTteId: dokumen.dokumenTteId },
-        select: { userId: true },
-      });
-      if (existingSignature !== null) {
-        return { error: 'ALREADY_SIGNED' as const };
       }
 
       return {
@@ -152,107 +153,117 @@ export class ProcessTteRepository {
     pdfSizeBytes: number;
     signatureMetadata: PdfSignatureMetadataInput;
   }): Promise<ProcessTteFinalizeResult> {
-    return this.prisma.$transaction(async (tx) => {
-      const resolved = await this.resolveContext(tx, params.detailOrSopId);
-      if (!resolved.ok) return resolved;
-      const context = resolved.context;
-      if (context.approval.approvedById !== params.userId) {
-        return { error: 'FORBIDDEN_SIGNER' as const };
-      }
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const resolved = await this.resolveContext(tx, params.detailOrSopId);
+        if (!resolved.ok) return resolved;
+        const context = resolved.context;
+        if (context.approval.approvedById !== params.userId) {
+          return { error: 'FORBIDDEN_SIGNER' as const };
+        }
 
-      const dokumen = await tx.dokumenTte.findUnique({
-        where: { detailSopId: context.detailSopId },
-      });
-      if (
-        dokumen === null ||
-        dokumen.dokumenTteId !== params.dokumenTteId ||
-        dokumen.pengajuanEvaluasiId !== null ||
-        dokumen.jenisDokumen !== JenisDokumenTte.SOP_BERLAKU
-      ) {
-        return { error: 'INVALID_DOC_PARENT' as const };
-      }
-      const existingSignature = await tx.riwayatTandaTangan.findFirst({
-        where: { dokumenTteId: dokumen.dokumenTteId },
-        select: { userId: true },
-      });
-      if (existingSignature !== null) {
-        return { error: 'ALREADY_SIGNED' as const };
-      }
+        const dokumen = await tx.dokumenTte.findUnique({
+          where: { detailSopId: context.detailSopId },
+        });
+        if (
+          dokumen === null ||
+          dokumen.dokumenTteId !== params.dokumenTteId ||
+          dokumen.pengajuanEvaluasiId !== null ||
+          dokumen.jenisDokumen !== JenisDokumenTte.SOP_BERLAKU
+        ) {
+          return { error: 'INVALID_DOC_PARENT' as const };
+        }
+        const existingSignature = await tx.riwayatTandaTangan.findFirst({
+          where: { dokumenTteId: dokumen.dokumenTteId },
+          select: { userId: true },
+        });
+        if (existingSignature !== null) {
+          return { error: 'ALREADY_SIGNED' as const };
+        }
 
-      const replaced = await tx.detailSOP.findMany({
-        where: {
-          sopId: context.sopId,
-          detailSopId: { not: context.detailSopId },
-          status: StatusSOP.BERLAKU,
-        },
-        select: { detailSopId: true },
-      });
-      await tx.detailSOP.updateMany({
-        where: {
-          sopId: context.sopId,
-          detailSopId: { not: context.detailSopId },
-          status: StatusSOP.BERLAKU,
-        },
-        data: { status: StatusSOP.DIGANTIKAN },
-      });
-      await this.updatePdfStatusForDetailIds(
-        tx,
-        replaced.map((row) => row.detailSopId),
-        params.signedAt,
-      );
+        // The DB enforces at most one BERLAKU version with an immediate trigger,
+        // so the previous effective version must be superseded first. Any later
+        // compare-and-set failure MUST throw so the whole transaction rolls back.
+        const replaced = await tx.detailSOP.findMany({
+          where: {
+            sopId: context.sopId,
+            detailSopId: { not: context.detailSopId },
+            status: StatusSOP.BERLAKU,
+          },
+          select: { detailSopId: true },
+        });
+        await tx.detailSOP.updateMany({
+          where: {
+            sopId: context.sopId,
+            detailSopId: { not: context.detailSopId },
+            status: StatusSOP.BERLAKU,
+          },
+          data: { status: StatusSOP.DIGANTIKAN },
+        });
+        await this.updatePdfStatusForDetailIds(
+          tx,
+          replaced.map((row) => row.detailSopId),
+          params.signedAt,
+        );
 
-      const promoted = await tx.detailSOP.updateMany({
-        where: {
+        const promoted = await tx.detailSOP.updateMany({
+          where: {
+            detailSopId: context.detailSopId,
+            status: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
+          },
+          data: {
+            status: StatusSOP.BERLAKU,
+            terakhirDieditOlehId: params.userId,
+            tanggalEfektif: params.tanggalEfektif,
+          },
+        });
+        if (promoted.count !== 1) {
+          throw new ProcessTteStatusDriftError();
+        }
+
+        await tx.riwayatTandaTangan.create({
+          data: {
+            userId: params.userId,
+            dokumenTteId: dokumen.dokumenTteId,
+            peran: params.peran,
+            ditandatanganiPada: params.signedAt,
+            signatureValue: params.signatureMetadata.signatureValue,
+            signatureAlgorithm: params.signatureMetadata.signatureAlgorithm,
+            signatureFormat: params.signatureMetadata.signatureFormat,
+            certSerialNumber: params.signatureMetadata.certSerialNumber,
+            certIssuer: params.signatureMetadata.certIssuer,
+            certSubject: params.signatureMetadata.certSubject,
+            certFingerprint: params.signatureMetadata.certFingerprint,
+            certValidFrom: params.signatureMetadata.certValidFrom,
+            certValidTo: params.signatureMetadata.certValidTo,
+          },
+        });
+        await tx.$executeRaw`
+          UPDATE DokumenTte
+          SET pdfPath = ${params.pdfPath},
+              pdfSha256 = ${params.pdfSha256},
+              pdfSizeBytes = ${params.pdfSizeBytes},
+              pdfGeneratedAt = ${params.signedAt},
+              pdfPublishedAt = ${params.signedAt},
+              pdfRevokedAt = NULL,
+              pdfStatus = ${'PUBLISHED'}
+          WHERE dokumenTteId = ${dokumen.dokumenTteId}
+        `;
+
+        return {
+          ok: true as const,
           detailSopId: context.detailSopId,
-          status: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
-        },
-        data: {
-          status: StatusSOP.BERLAKU,
-          terakhirDieditOlehId: params.userId,
-          tanggalEfektif: params.tanggalEfektif,
-        },
+          dokumenTteId: dokumen.dokumenTteId,
+          authority: context.approval.authority,
+          authorityKey: context.approval.authorityKey,
+        };
       });
-      if (promoted.count !== 1) {
+    } catch (error) {
+      if (error instanceof ProcessTteStatusDriftError) {
         return { error: 'SOP_STATUS_DRIFT' as const };
       }
-
-      await tx.riwayatTandaTangan.create({
-        data: {
-          userId: params.userId,
-          dokumenTteId: dokumen.dokumenTteId,
-          peran: params.peran,
-          ditandatanganiPada: params.signedAt,
-          signatureValue: params.signatureMetadata.signatureValue,
-          signatureAlgorithm: params.signatureMetadata.signatureAlgorithm,
-          signatureFormat: params.signatureMetadata.signatureFormat,
-          certSerialNumber: params.signatureMetadata.certSerialNumber,
-          certIssuer: params.signatureMetadata.certIssuer,
-          certSubject: params.signatureMetadata.certSubject,
-          certFingerprint: params.signatureMetadata.certFingerprint,
-          certValidFrom: params.signatureMetadata.certValidFrom,
-          certValidTo: params.signatureMetadata.certValidTo,
-        },
-      });
-      await tx.$executeRaw`
-        UPDATE DokumenTte
-        SET pdfPath = ${params.pdfPath},
-            pdfSha256 = ${params.pdfSha256},
-            pdfSizeBytes = ${params.pdfSizeBytes},
-            pdfGeneratedAt = ${params.signedAt},
-            pdfPublishedAt = ${params.signedAt},
-            pdfRevokedAt = NULL,
-            pdfStatus = ${'PUBLISHED'}
-        WHERE dokumenTteId = ${dokumen.dokumenTteId}
-      `;
-
-      return {
-        ok: true as const,
-        detailSopId: context.detailSopId,
-        dokumenTteId: dokumen.dokumenTteId,
-        authority: context.approval.authority,
-        authorityKey: context.approval.authorityKey,
-      };
-    });
+      throw error;
+    }
   }
 
   private async resolveContext(
