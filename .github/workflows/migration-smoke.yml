@@ -4,12 +4,14 @@ on:
   push:
     paths:
       - 'server/prisma/migrations/**'
+      - 'server/prisma/recovery/**'
       - 'server/prisma/*.prisma'
       - 'server/prisma.config.ts'
       - '.github/workflows/migration-smoke.yml'
   pull_request:
     paths:
       - 'server/prisma/migrations/**'
+      - 'server/prisma/recovery/**'
       - 'server/prisma/*.prisma'
       - 'server/prisma.config.ts'
       - '.github/workflows/migration-smoke.yml'
@@ -55,6 +57,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Validate recovery scripts
+        run: find prisma/recovery -type f -name '*.sh' -print0 | xargs -0 -r -n1 bash -n
 
       - name: Start runtime-matched MariaDB
         run: |
