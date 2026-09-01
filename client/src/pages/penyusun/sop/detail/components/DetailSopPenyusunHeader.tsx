@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   AlertTriangle,
   Check,
@@ -8,6 +9,7 @@ import {
   MoreHorizontal,
   Printer,
   RefreshCcw,
+  RotateCcw,
   Save,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -24,6 +26,10 @@ import type { SOPDetailMetadata } from '@/types/ui/sop'
 import type { StatusSOP } from '@/types/dto/sop.dto'
 import type { SopHeaderAutosaveStatus } from '@/pages/penyusun/sop/hooks/use-sop-header-autosave'
 import { usePenyusunWorkbench } from '@/api/sop'
+import { useMyProcesses } from '@/api/process-context'
+import { processReviewApi, type ProcessReviewDecision } from '@/api/process-review'
+import { queryKeys } from '@/config/query-keys'
+import { useAuthStore } from '@/stores/authStore'
 import { useSopEditor } from '../SopEditorContext'
 import { useToast } from '@/hooks/useToast'
 import { printSopArsipFromPreviewProps } from '@/lib/print/pengajuan-print'
@@ -35,20 +41,15 @@ export interface DetailSOPPenyusunHeaderProps {
   currentSopStatusLabel: string
   isRevisionFlow: boolean
   primaryActionLabel: string
-  /** Di alur revisi: hanya PJ Penyusun yang melihat tombol kirim ulang. */
+  /** Di alur revisi legacy: hanya PJ Penyusun yang melihat tombol kirim ulang. */
   canShowKirimUlangAction?: boolean
-  /** Status autosave gabungan header + prosedur. */
   autosaveStatus?: SopHeaderAutosaveStatus
-  /** Handler untuk mencoba ulang autosave saat status `error`. */
   onRetryAutosave?: () => void | Promise<void>
+  /** Fallback action untuk SOP legacy yang belum terikat Process. */
   onComplete: () => void
-  /** Menonaktifkan tombol aksi utama (mis. saat POST kirim ulang evaluasi). */
   isPrimaryActionPending?: boolean
-  /** Mode lihat: sembunyikan autosave, Selesai, dan retry. */
   isReadOnly?: boolean
-  /** Pesan blokir kirim ulang (tindak lanjut belum SELESAI). */
   kirimUlangBlockingReason?: string | null
-  /** Tampilkan aksi buat versi baru dari versi terminal yang sedang dibuka. */
   canBuatVersiBaru?: boolean
   buatVersiBaruBlockingReason?: string | null
   onBuatVersiBaru?: () => void
@@ -64,32 +65,29 @@ interface AutosaveAppearance {
 function autosaveAppearance(status: SopHeaderAutosaveStatus): AutosaveAppearance | null {
   switch (status) {
     case 'pending':
-      return {
-        Icon: CloudUpload,
-        label: 'Perubahan menunggu disimpan',
-        className: 'text-secondary-foreground',
-      }
+      return { Icon: CloudUpload, label: 'Perubahan menunggu disimpan', className: 'text-secondary-foreground' }
     case 'saving':
-      return {
-        Icon: CloudUpload,
-        label: 'Menyimpan...',
-        className: 'text-secondary-foreground',
-      }
+      return { Icon: CloudUpload, label: 'Menyimpan...', className: 'text-secondary-foreground' }
     case 'saved':
-      return {
-        Icon: Check,
-        label: 'Tersimpan',
-        className: 'text-muted-foreground',
-      }
+      return { Icon: Check, label: 'Tersimpan', className: 'text-muted-foreground' }
     case 'error':
-      return {
-        Icon: CloudOff,
-        label: 'Gagal menyimpan',
-        className: 'text-danger',
-      }
+      return { Icon: CloudOff, label: 'Gagal menyimpan', className: 'text-danger' }
     case 'idle':
     default:
       return null
+  }
+}
+
+function processStatusLabel(status: StatusSOP, fallback: string): string {
+  switch (status) {
+    case 'SEDANG_DIEVALUASI':
+      return 'Review Process Owner'
+    case 'REVISI_DARI_EVALUATOR':
+      return 'Perlu revisi'
+    case 'MENUNGGU_TTD_PJ_EVALUATOR':
+      return 'Siap untuk persetujuan'
+    default:
+      return fallback
   }
 }
 
@@ -111,11 +109,36 @@ export function DetailSOPPenyusunHeader({
   onBuatVersiBaru,
   isBuatVersiBaruPending = false,
 }: DetailSOPPenyusunHeaderProps) {
-  const { sopDetailId } = useSopEditor()
+  const { sopDetailId, flushHeaderAutosave, flushProsedurAutosave } = useSopEditor()
   const { data: workbench, isLoading: isWorkbenchLoading } = usePenyusunWorkbench(sopDetailId)
+  const { data: myProcesses = [] } = useMyProcesses()
+  const currentUserId = useAuthStore((state) => state.user?.id)
+  const queryClient = useQueryClient()
   const { showToast } = useToast()
   const [isPrinting, setIsPrinting] = useState(false)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const [reviewDecision, setReviewDecision] = useState<ProcessReviewDecision | null>(null)
+  const [isProcessActionPending, setIsProcessActionPending] = useState(false)
+
+  const processSop = workbench?.detail.sop as
+    | (NonNullable<typeof workbench.detail.sop> & { processId?: string | null; processNama?: string | null })
+    | undefined
+  const processId = processSop?.processId ?? null
+  const isProcessWorkflow = processId !== null
+  const isProcessOwner =
+    processId !== null &&
+    currentUserId !== undefined &&
+    myProcesses.some(
+      (process) => process.processId === processId && process.ownerId === currentUserId,
+    )
+  const isWaitingForProcessReview = isProcessWorkflow && currentSopStatus === 'SEDANG_DIEVALUASI'
+  const displayedStatusLabel = isProcessWorkflow
+    ? processStatusLabel(currentSopStatus, currentSopStatusLabel)
+    : currentSopStatusLabel
+
+  const updateWorkbenchCache = (nextWorkbench: NonNullable<typeof workbench>) => {
+    queryClient.setQueryData(queryKeys.penyusunWorkbench(sopDetailId), nextWorkbench)
+  }
 
   const handlePrintSop = async () => {
     if (isWorkbenchLoading) return
@@ -144,21 +167,71 @@ export function DetailSOPPenyusunHeader({
     }
   }
 
+  const submitProcessReview = async () => {
+    setIsProcessActionPending(true)
+    try {
+      await Promise.all([flushHeaderAutosave(), flushProsedurAutosave()])
+      const nextWorkbench = await processReviewApi.submit(sopDetailId)
+      updateWorkbenchCache(nextWorkbench)
+      showToast('SOP berhasil dikirim ke Process Owner untuk review.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Gagal mengirim SOP untuk review'
+      showToast(message, 'error')
+    } finally {
+      setIsProcessActionPending(false)
+    }
+  }
+
+  const decideProcessReview = async (decision: ProcessReviewDecision) => {
+    setIsProcessActionPending(true)
+    try {
+      const nextWorkbench = await processReviewApi.decide(sopDetailId, decision)
+      updateWorkbenchCache(nextWorkbench)
+      showToast(
+        decision === 'ACCEPT'
+          ? 'SOP diterima dan siap menuju persetujuan akhir.'
+          : 'SOP dikembalikan ke Process Team untuk revisi.',
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Gagal menyimpan keputusan review'
+      showToast(message, 'error')
+    } finally {
+      setIsProcessActionPending(false)
+      setReviewDecision(null)
+    }
+  }
+
   const indicator = isReadOnly ? null : autosaveAppearance(autosaveStatus)
   const hasPrintAction = currentSopStatus === 'BERLAKU'
   const hasVersionAction = canBuatVersiBaru && onBuatVersiBaru !== undefined
   const hasSecondaryActions = hasPrintAction || hasVersionAction
   const documentTitle = metadata.nama ?? metadata.judul ?? 'SOP'
 
-  const confirmTitle = isRevisionFlow ? 'Kirim ulang evaluasi?' : 'Yakin SOP sudah siap?'
-  const confirmDescription = isRevisionFlow
-    ? (kirimUlangBlockingReason ??
-      'SOP akan dikirim ulang untuk evaluasi oleh tim evaluator. Pastikan semua perbaikan sudah tersimpan.')
-    : 'Status SOP akan diubah menjadi Menunggu pengajuan evaluasi. PJ Penyusun dapat membuka pengajuan evaluasi ke Biro Organisasi. Pastikan dokumen sudah lengkap sebelum melanjutkan.'
-  const confirmLabel = isRevisionFlow ? 'Ya, kirim ulang' : 'Ya, selesai'
+  const confirmTitle = isProcessWorkflow
+    ? isRevisionFlow
+      ? 'Kirim revisi untuk review?'
+      : 'Kirim SOP untuk review?'
+    : isRevisionFlow
+      ? 'Kirim ulang evaluasi?'
+      : 'Yakin SOP sudah siap?'
+  const confirmDescription = isProcessWorkflow
+    ? 'Dokumen akan dikunci sementara dan masuk ke review Process Owner. Pastikan semua perubahan sudah tersimpan.'
+    : isRevisionFlow
+      ? (kirimUlangBlockingReason ??
+        'SOP akan dikirim ulang untuk evaluasi oleh tim evaluator. Pastikan semua perbaikan sudah tersimpan.')
+      : 'Status SOP akan diubah menjadi Menunggu pengajuan evaluasi. PJ Penyusun dapat membuka pengajuan evaluasi ke Biro Organisasi. Pastikan dokumen sudah lengkap sebelum melanjutkan.'
+  const confirmLabel = isProcessWorkflow
+    ? 'Ya, kirim untuk review'
+    : isRevisionFlow
+      ? 'Ya, kirim ulang'
+      : 'Ya, selesai'
 
   const handleConfirmComplete = () => {
     setIsConfirmOpen(false)
+    if (isProcessWorkflow) {
+      void submitProcessReview()
+      return
+    }
     onComplete()
   }
 
@@ -169,12 +242,10 @@ export function DetailSOPPenyusunHeader({
           <h2 className="truncate text-sm font-semibold text-foreground">{documentTitle}</h2>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span>v{metadata.version || 1}</span>
-            {metadata.revisiDariVersi != null ? (
-              <span>Revisi dari v{metadata.revisiDariVersi}</span>
-            ) : null}
+            {metadata.revisiDariVersi != null ? <span>Revisi dari v{metadata.revisiDariVersi}</span> : null}
             <SopStatusBadge
               status={currentSopStatus}
-              label={currentSopStatusLabel}
+              label={displayedStatusLabel}
               showDomain={false}
               className="text-xs"
             />
@@ -210,38 +281,61 @@ export function DetailSOPPenyusunHeader({
             </Button>
           ) : null}
 
-          {!isReadOnly && (!isRevisionFlow || canShowKirimUlangAction) ? (
+          {!isReadOnly && (!isRevisionFlow || canShowKirimUlangAction || isProcessWorkflow) ? (
             <Button
               size="sm"
               className="h-8 gap-1.5 px-3 text-xs"
               onClick={() => setIsConfirmOpen(true)}
-              disabled={isPrimaryActionPending || Boolean(kirimUlangBlockingReason)}
-              title={kirimUlangBlockingReason ?? undefined}
+              disabled={
+                isPrimaryActionPending ||
+                isProcessActionPending ||
+                (!isProcessWorkflow && Boolean(kirimUlangBlockingReason))
+              }
+              title={!isProcessWorkflow ? (kirimUlangBlockingReason ?? undefined) : undefined}
             >
               <Check className="h-3.5 w-3.5" aria-hidden />
-              {isPrimaryActionPending ? 'Mengirim…' : primaryActionLabel}
+              {isPrimaryActionPending || isProcessActionPending
+                ? 'Mengirim…'
+                : isProcessWorkflow
+                  ? 'Kirim untuk review'
+                  : primaryActionLabel}
             </Button>
+          ) : null}
+
+          {isWaitingForProcessReview && isProcessOwner ? (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1.5 px-3 text-xs"
+                onClick={() => setReviewDecision('REVISION')}
+                disabled={isProcessActionPending}
+              >
+                <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+                Minta revisi
+              </Button>
+              <Button
+                size="sm"
+                className="h-8 gap-1.5 px-3 text-xs"
+                onClick={() => setReviewDecision('ACCEPT')}
+                disabled={isProcessActionPending}
+              >
+                <Check className="h-3.5 w-3.5" aria-hidden />
+                Terima
+              </Button>
+            </>
           ) : null}
 
           {hasSecondaryActions ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  aria-label="Aksi dokumen lainnya"
-                >
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" aria-label="Aksi dokumen lainnya">
                   <MoreHorizontal className="h-4 w-4" aria-hidden />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-[11rem]">
                 {hasPrintAction ? (
-                  <DropdownMenuItem
-                    disabled={isWorkbenchLoading || isPrinting}
-                    onSelect={() => void handlePrintSop()}
-                  >
+                  <DropdownMenuItem disabled={isWorkbenchLoading || isPrinting} onSelect={() => void handlePrintSop()}>
                     <Printer className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden />
                     {isPrinting ? 'Menyiapkan…' : 'Cetak PDF'}
                   </DropdownMenuItem>
@@ -262,22 +356,24 @@ export function DetailSOPPenyusunHeader({
         </div>
       </div>
 
-      {isRevisionFlow && !isReadOnly ? (
+      {isWaitingForProcessReview ? (
+        <div className="mt-2 border-t border-border pt-2 text-xs text-secondary-foreground">
+          {isProcessOwner
+            ? 'Dokumen menunggu keputusan Anda sebagai Process Owner.'
+            : 'Dokumen sedang direview oleh Process Owner dan untuk sementara bersifat read-only.'}
+        </div>
+      ) : isRevisionFlow && !isReadOnly ? (
         <div className="mt-2 flex gap-2 border-t border-border pt-2 text-xs text-secondary-foreground">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700" aria-hidden />
           <p>
-            {kirimUlangBlockingReason ? (
+            {isProcessWorkflow ? (
+              <>SOP dikembalikan oleh Process Owner. Selesaikan revisi lalu klik <span className="font-semibold">Kirim untuk review</span>.</>
+            ) : kirimUlangBlockingReason ? (
               kirimUlangBlockingReason
             ) : !canShowKirimUlangAction ? (
-              <>
-                SOP ini dikembalikan oleh evaluator untuk revisi. Selesaikan perbaikan, lalu minta{' '}
-                <span className="font-semibold">PJ Penyusun</span> mengirim ulang evaluasi.
-              </>
+              <>SOP ini dikembalikan oleh evaluator untuk revisi. Selesaikan perbaikan, lalu minta <span className="font-semibold">PJ Penyusun</span> mengirim ulang evaluasi.</>
             ) : (
-              <>
-                SOP ini dikembalikan oleh evaluator untuk revisi. Pastikan perbaikan tersimpan, lalu
-                klik <span className="font-semibold">Kirim ulang evaluasi</span>.
-              </>
+              <>SOP ini dikembalikan oleh evaluator untuk revisi. Pastikan perbaikan tersimpan, lalu klik <span className="font-semibold">Kirim ulang evaluasi</span>.</>
             )}
           </p>
         </div>
@@ -291,6 +387,24 @@ export function DetailSOPPenyusunHeader({
         confirmLabel={confirmLabel}
         cancelLabel="Batal"
         onConfirm={handleConfirmComplete}
+      />
+
+      <ConfirmDialog
+        open={reviewDecision !== null}
+        onOpenChange={(open) => {
+          if (!open) setReviewDecision(null)
+        }}
+        title={reviewDecision === 'ACCEPT' ? 'Terima SOP?' : 'Kembalikan untuk revisi?'}
+        description={
+          reviewDecision === 'ACCEPT'
+            ? 'SOP akan ditandai siap menuju persetujuan akhir. Tahap persetujuan Dean/Kadep belum dijalankan pada aksi ini.'
+            : 'SOP akan kembali dapat diedit oleh Process Team untuk memperbaiki dokumen.'
+        }
+        confirmLabel={reviewDecision === 'ACCEPT' ? 'Ya, terima' : 'Ya, minta revisi'}
+        cancelLabel="Batal"
+        onConfirm={() => {
+          if (reviewDecision !== null) void decideProcessReview(reviewDecision)
+        }}
       />
     </>
   )
