@@ -15,7 +15,7 @@ test.describe('End-to-End Business Journey — FTI contextual entry', () => {
       await expect(page.getByRole('heading', { name: 'Beranda Kerja' })).toBeVisible()
       await expect(page.getByRole('link', { name: 'Pekerjaan SOP', exact: true })).toBeVisible()
       await expect(
-        page.getByText('2 Process sebagai Owner · 0 sebagai Member.', { exact: false }),
+        page.getByText('3 Process sebagai Owner · 0 sebagai Member.', { exact: false }),
       ).toBeVisible()
       await expect(page.getByRole('link', { name: 'SOP', exact: true })).toHaveCount(0)
       await expect(page.getByRole('link', { name: 'Pelaksana SOP', exact: true })).toBeVisible()
