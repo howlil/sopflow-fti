@@ -2,6 +2,9 @@ import type { ReactNode } from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+let mockProcesses: Array<{ processId: string }> = []
+let mockAuthorities: Array<{ authorityKey: string }> = []
+
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ to, children, ...props }: { to: string; children: ReactNode }) => (
     <a href={to} {...props}>{children}</a>
@@ -11,10 +14,10 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 
 vi.mock('@/api/process-context', () => ({
-  useMyProcesses: () => ({ data: [] }),
+  useMyProcesses: () => ({ data: mockProcesses }),
 }))
 vi.mock('@/api/organizational-authority', () => ({
-  useMyOrganizationalAuthorities: () => ({ data: [] }),
+  useMyOrganizationalAuthorities: () => ({ data: mockAuthorities }),
 }))
 vi.mock('@/components/layout/HeaderBar', () => ({ HeaderBar: () => <div>Header</div> }))
 vi.mock('@/components/layout/PageHeaderProvider', () => ({
@@ -31,8 +34,8 @@ vi.mock('@/components/layout/SidebarUserMenu', () => ({
   ),
 }))
 vi.mock('@/stores/authStore', () => ({
-  useAuthStore: (selector: (state: { user: { peran: string } }) => unknown) =>
-    selector({ user: { peran: 'PENYUSUN' } }),
+  useAuthStore: (selector: (state: { user: { peran: string; platformRole: string } }) => unknown) =>
+    selector({ user: { peran: 'PENYUSUN', platformRole: 'USER' } }),
 }))
 vi.mock('@/utils/role-key', () => ({ toNavigationRole: () => 'PENYUSUN' }))
 
@@ -45,6 +48,8 @@ describe('DashboardLayout desktop sidebar', () => {
   beforeEach(() => {
     window.localStorage.clear()
     useUIStore.setState({ sidebarOpen: true })
+    mockProcesses = []
+    mockAuthorities = []
   })
 
   it('dapat ditutup, tetap menamai menu, dan dapat dibuka kembali', () => {
@@ -64,6 +69,24 @@ describe('DashboardLayout desktop sidebar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Perluas navigasi' }))
     expect(sidebar).toHaveAttribute('data-state', 'expanded')
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe('false')
+  })
+
+  it('memprioritaskan label Process pada route SOP yang sama', () => {
+    mockProcesses = [{ processId: 'process-1' }]
+
+    render(<DashboardLayout />)
+
+    expect(screen.getAllByRole('link', { name: 'Beranda Kerja' })).not.toHaveLength(0)
+    expect(screen.getAllByRole('link', { name: 'SOP Proses' })).not.toHaveLength(0)
+    expect(screen.queryByRole('link', { name: 'SOP' })).toBeNull()
+  })
+
+  it('menampilkan entry persetujuan dari kewenangan organisasi', () => {
+    mockAuthorities = [{ authorityKey: 'DEAN' }]
+
+    render(<DashboardLayout />)
+
+    expect(screen.getAllByRole('link', { name: 'Persetujuan & TTE' })).not.toHaveLength(0)
   })
 
   it('memulihkan preferensi sidebar yang tersimpan', async () => {
