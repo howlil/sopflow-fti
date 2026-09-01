@@ -1,0 +1,271 @@
+name: Pelaksana Migration Rehearsal
+
+on:
+  push:
+    branches:
+      - feat/global-pelaksana-catalog
+    paths:
+      - '.github/workflows/pelaksana-migration-rehearsal.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_HOST: 127.0.0.1
+      DATABASE_PORT: 3306
+      DATABASE_USER: sop_app
+      DATABASE_PASSWORD: rehearsal-pass
+      DATABASE_NAME: sop_biro_organisasi
+
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: rehearsal-root
+          MARIADB_DATABASE: sop_biro_organisasi
+          MARIADB_USER: sop_app
+          MARIADB_PASSWORD: rehearsal-pass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: server
+        run: pnpm install --frozen-lockfile
+
+      - name: Restore Sprint 3 Prisma state
+        run: git restore --source=6889e0b0fc8b49d6b8a839e6f28a5536b16f8dd3 --staged --worktree server/prisma
+
+      - name: Apply pre-Sprint-4 migration chain
+        working-directory: server
+        run: |
+          pnpm prisma generate
+          pnpm prisma migrate deploy
+
+      - name: Seed cross-OPD duplicate fixture
+        working-directory: server
+        run: |
+          node <<'NODE'
+          const assert = require('node:assert/strict')
+          const { PrismaClient } = require('./src/generated/prisma')
+          const { PrismaMariaDb } = require('@prisma/adapter-mariadb')
+
+          const adapter = new PrismaMariaDb({
+            host: process.env.DATABASE_HOST,
+            port: Number(process.env.DATABASE_PORT),
+            user: process.env.DATABASE_USER,
+            password: process.env.DATABASE_PASSWORD,
+            database: process.env.DATABASE_NAME,
+            connectionLimit: 4,
+          })
+          const prisma = new PrismaClient({ adapter })
+
+          const ids = {
+            opdA: '11111111-1111-1111-1111-111111111111',
+            opdB: '22222222-2222-2222-2222-222222222222',
+            actorA: '00000000-0000-0000-0000-000000000001',
+            actorB: 'ffffffff-ffff-ffff-ffff-fffffffffff2',
+            sop: '33333333-3333-3333-3333-333333333333',
+            detail: '44444444-4444-4444-4444-444444444444',
+            step: '55555555-5555-5555-5555-555555555555',
+          }
+
+          async function main() {
+            await prisma.oPD.create({ data: { opdId: ids.opdA, nama: 'Rehearsal OPD A' } })
+            await prisma.oPD.create({ data: { opdId: ids.opdB, nama: 'Rehearsal OPD B' } })
+            await prisma.pelaksana.create({
+              data: { pelaksanaId: ids.actorA, opdId: ids.opdA, nama: 'Shared Actor' },
+            })
+            await prisma.pelaksana.create({
+              data: { pelaksanaId: ids.actorB, opdId: ids.opdB, nama: ' shared actor ' },
+            })
+            await prisma.sOP.create({
+              data: { sopId: ids.sop, opdId: ids.opdB, judul: 'Migration rehearsal' },
+            })
+            await prisma.detailSOP.create({
+              data: {
+                detailSopId: ids.detail,
+                sopId: ids.sop,
+                nomorSOP: 'S4-REHEARSAL',
+                namaLembaga: 'FTI',
+              },
+            })
+            await prisma.detailSOPPelaksana.create({
+              data: { detailSopId: ids.detail, pelaksanaId: ids.actorB, urutan: 1 },
+            })
+            await prisma.langkahSOP.create({
+              data: {
+                langkahSopId: ids.step,
+                detailSopId: ids.detail,
+                kegiatan: 'Verify migration',
+                urutan: 1,
+                kelengkapan: '-',
+                keluaran: '-',
+                waktu: 1,
+                satuanWaktu: 'm',
+                keterangan: '-',
+                pelaksanaId: ids.actorB,
+              },
+            })
+            const before = await prisma.langkahSOP.findUnique({ where: { langkahSopId: ids.step } })
+            assert.equal(before.pelaksanaId, ids.actorB)
+          }
+
+          main().finally(() => prisma.$disconnect()).catch((error) => {
+            console.error(error)
+            process.exit(1)
+          })
+          NODE
+
+      - name: Restore Sprint 4 Prisma state
+        run: git restore --source="$GITHUB_SHA" --staged --worktree server/prisma
+
+      - name: Apply Sprint 4 migration
+        working-directory: server
+        run: |
+          pnpm prisma generate
+          pnpm prisma migrate deploy
+
+      - name: Assert dedup snapshots uniqueness and swimlane trigger
+        working-directory: server
+        run: |
+          node <<'NODE'
+          const assert = require('node:assert/strict')
+          const { PrismaClient } = require('./src/generated/prisma')
+          const { PrismaMariaDb } = require('@prisma/adapter-mariadb')
+
+          const adapter = new PrismaMariaDb({
+            host: process.env.DATABASE_HOST,
+            port: Number(process.env.DATABASE_PORT),
+            user: process.env.DATABASE_USER,
+            password: process.env.DATABASE_PASSWORD,
+            database: process.env.DATABASE_NAME,
+            connectionLimit: 4,
+          })
+          const prisma = new PrismaClient({ adapter })
+
+          const ids = {
+            opdB: '22222222-2222-2222-2222-222222222222',
+            actorA: '00000000-0000-0000-0000-000000000001',
+            detail: '44444444-4444-4444-4444-444444444444',
+            step: '55555555-5555-5555-5555-555555555555',
+          }
+
+          async function expectRejected(operation, label) {
+            let rejected = false
+            try {
+              await operation()
+            } catch {
+              rejected = true
+            }
+            assert.equal(rejected, true, label)
+          }
+
+          async function main() {
+            const actors = await prisma.pelaksana.findMany({ where: { nama: 'Shared Actor' } })
+            assert.equal(actors.length, 1, 'normalized duplicates must consolidate')
+            assert.equal(actors[0].pelaksanaId, ids.actorA, 'MIN pelaksanaId must remain canonical')
+
+            const step = await prisma.langkahSOP.findUnique({ where: { langkahSopId: ids.step } })
+            assert.equal(step.pelaksanaId, ids.actorA, 'LangkahSOP must be rewired to canonical actor')
+
+            const lanes = await prisma.detailSOPPelaksana.findMany({
+              where: { detailSopId: ids.detail },
+              orderBy: { urutan: 'asc' },
+            })
+            assert.deepEqual(
+              lanes.map((lane) => lane.pelaksanaId),
+              [ids.actorA],
+              'swimlane must contain canonical actor only',
+            )
+
+            const snapshot = await prisma.detailSOPPelaksanaSnapshot.findUnique({
+              where: {
+                detailSopId_pelaksanaId: {
+                  detailSopId: ids.detail,
+                  pelaksanaId: ids.actorA,
+                },
+              },
+            })
+            assert.equal(snapshot.namaSnapshot, 'Shared Actor', 'snapshot must be backfilled')
+
+            await prisma.pelaksana.update({
+              where: { pelaksanaId: ids.actorA },
+              data: { nama: 'Renamed Actor' },
+            })
+            const snapshotAfterRename = await prisma.detailSOPPelaksanaSnapshot.findUnique({
+              where: {
+                detailSopId_pelaksanaId: {
+                  detailSopId: ids.detail,
+                  pelaksanaId: ids.actorA,
+                },
+              },
+            })
+            assert.equal(
+              snapshotAfterRename.namaSnapshot,
+              'Shared Actor',
+              'catalog rename must not rewrite historical snapshot',
+            )
+
+            await expectRejected(
+              () =>
+                prisma.pelaksana.create({
+                  data: { opdId: ids.opdB, nama: 'Renamed Actor' },
+                }),
+              'global actor name uniqueness must reject duplicate names across OPD shadows',
+            )
+
+            const otherActor = await prisma.pelaksana.create({
+              data: { opdId: ids.opdB, nama: 'Other Actor' },
+            })
+            await expectRejected(
+              () =>
+                prisma.langkahSOP.create({
+                  data: {
+                    detailSopId: ids.detail,
+                    kegiatan: 'Invalid actor',
+                    urutan: 2,
+                    kelengkapan: '-',
+                    keluaran: '-',
+                    waktu: 1,
+                    satuanWaktu: 'm',
+                    keterangan: '-',
+                    pelaksanaId: otherActor.pelaksanaId,
+                  },
+                }),
+              'step actor must already be selected as a swimlane for the same DetailSOP',
+            )
+          }
+
+          main().finally(() => prisma.$disconnect()).catch((error) => {
+            console.error(error)
+            process.exit(1)
+          })
+          NODE
