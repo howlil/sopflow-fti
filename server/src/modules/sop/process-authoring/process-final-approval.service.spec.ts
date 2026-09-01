@@ -33,6 +33,10 @@ function makeService(status: StatusSOP = StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR) {
     assertCanApprove: jest.fn().mockResolvedValue({
       authority: OrganizationalAuthority.DEAN,
       authorityKey: 'DEAN',
+      holderId: 'dean-1',
+      holderName: 'Dekan FTI',
+      holderNip: '19800001',
+      holderJabatan: 'Dekan',
     }),
   } as unknown as OrganizationalAuthorityService;
   const catalog = {
@@ -78,8 +82,15 @@ describe('ProcessFinalApprovalService', () => {
     const { service, authority, catalog } = makeService();
 
     await expect(service.getDocumentForCurrentApprover(user, 'detail-a')).resolves.toEqual({
-      detail: { id: 'detail-a' },
-      langkah: [],
+      workbench: { detail: { id: 'detail-a' }, langkah: [] },
+      authority: {
+        authority: OrganizationalAuthority.DEAN,
+        authorityKey: 'DEAN',
+        holderId: 'dean-1',
+        holderName: 'Dekan FTI',
+        holderNip: '19800001',
+        holderJabatan: 'Dekan',
+      },
     });
     expect(authority.assertCanApprove).toHaveBeenCalledWith('dean-1', 'process-a');
     expect(catalog.findWorkbenchPayloadByDetailOrSopId).toHaveBeenCalledWith('detail-a', 0);
