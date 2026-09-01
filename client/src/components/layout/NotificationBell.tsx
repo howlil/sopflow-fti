@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import { Bell, CheckCheck, Inbox, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,6 +13,7 @@ import { useInAppNotifications } from '@/hooks/useInAppNotifications'
 import { formatDateId } from '@/utils/format-date'
 
 export function NotificationBell() {
+  const navigate = useNavigate()
   const { items, unreadCount, loading, reload, markRead, markAllRead } =
     useInAppNotifications(10)
 
@@ -68,11 +70,18 @@ export function NotificationBell() {
           ) : (
             items.map((item) => (
               <DropdownMenuItem
-                key={`${item.pengajuanEvaluasiId}:${item.jenis}`}
+                key={
+                  item.source === 'PROCESS'
+                    ? `process:${item.processNotificationId}`
+                    : `legacy:${item.pengajuanEvaluasiId}:${item.jenis}`
+                }
                 className="items-start gap-2 px-2 py-2"
                 onSelect={() => {
                   if (!item.readAt) {
-                    void markRead(item.pengajuanEvaluasiId, item.jenis)
+                    void markRead(item)
+                  }
+                  if (item.source === 'PROCESS') {
+                    void navigate({ to: item.actionHref })
                   }
                 }}
               >
