@@ -2,8 +2,7 @@
 
 Milestone: Process-bound SOP Workflow Cutover
 Delivery State: MILESTONE_ACTIVE
-Current Integration Branch: `master`
-Working Ref: `feat/contextual-final-approval`
+Integration Branch: `master`
 Created: 2026-09-01
 
 ## Milestone Shape
@@ -37,43 +36,43 @@ Milestone boundaries:
 
 | Slice | Outcome | State |
 | --- | --- | --- |
-| Process Foundation | FTI Process/Department/context foundation | COMPLETE |
-| Process-owned Authoring | Process Owner/Member contextual authoring | COMPLETE |
-| Global Pelaksana / Procedure Cutover | global reusable actor catalog + Process procedure authorization | COMPLETE |
-| Process Owner Review | Process Owner review/revision/accept path | COMPLETE |
-| Migration Reliability | runtime-matched migration smoke + failed-migration recovery | COMPLETE |
-| Contextual Final Approval | Dean/Kadep resolver, assignment, approver queue, approval evidence | VERIFIED_PENDING_INTEGRATION |
-| Contextual TTE / Effective-State Cutover | resolved Dean/Kadep signer -> TTE -> BERLAKU | NEXT |
+| Process Foundation | FTI Process/Department/context foundation | INTEGRATED |
+| Process-owned Authoring | Process Owner/Member contextual authoring | INTEGRATED |
+| Global Pelaksana / Procedure Cutover | global reusable actor catalog + Process procedure authorization | INTEGRATED |
+| Process Owner Review | Process Owner review/revision/accept path | INTEGRATED |
+| Migration Reliability | runtime-matched migration smoke + failed-migration recovery | INTEGRATED |
+| Contextual Final Approval | Dean/Kadep resolver, assignment, approver queue, approval evidence | INTEGRATED |
+| Contextual TTE / Effective-State Cutover | resolved Dean/Kadep signer -> TTE -> BERLAKU | ACTIVE |
 
-Historical sprint numbers are no longer the planning model; they are implementation history only.
+Historical sprint numbers are implementation history only and are no longer the planning model.
 
 ## Current Position
 
-`EXECUTE SLICES CONTINUOUSLY -> INTEGRATE VERIFIED LOGICAL CHANGE`
+`EXECUTE SLICES CONTINUOUSLY -> CONTEXTUAL TTE / EFFECTIVE-STATE CUTOVER`
 
-The Contextual Final Approval slice is verified. The immediate action is to integrate the accumulated verified branch stack into `master`, then continue directly with Contextual TTE without a new sprint-planning cycle.
+The previously accumulated verified stack is now integrated to `master`. The milestone continues directly with Contextual TTE; no new sprint plan or stacked sprint branch is required.
 
 ## Completed Delta
 
 ### Migration reliability
 
-- Added path-scoped Migration Smoke on runtime-matched MariaDB 11.4.
-- Full historical migration chain, migration history, and Process foundation invariants are verified.
-- Added fail-closed recovery for `20260901163000_add_fti_process_foundation` P3018/P3009 partial-state recovery.
+- Path-scoped Migration Smoke on runtime-matched MariaDB 11.4.
+- Full historical migration chain, migration history, and Process foundation invariants verified.
+- Fail-closed recovery for `20260901163000_add_fti_process_foundation` P3018/P3009 partial-state recovery.
 
 ### Contextual final approval
 
-- Added persistent organizational authority assignments for Dean and Department Heads.
+- Persistent organizational authority assignments for Dean and Department Heads.
 - Faculty Process resolves only to Dean; Department Process resolves only to that Department's Head.
 - `SUPER_ADMIN` may configure authority but receives no approval capability from platform role.
-- Added `ProcessFinalApproval` evidence and approver queue/read/approve APIs.
+- `ProcessFinalApproval` evidence and approver queue/read/approve APIs.
 - Only latest Process-bound SOP version is eligible; stale versions and legacy/unbound SOPs are excluded.
 - Final approval does not execute TTE or make SOP `BERLAKU`.
-- Added `/admin/authorities` and `/approval` client surfaces.
+- `/admin/authorities` and `/approval` client surfaces.
 
-## Evidence
+## Integrated Evidence
 
-Migration Smoke run `33522522783`: PASS for Contextual Final Approval persistence; full migration chain and history checks passed.
+Migration Smoke run `33522522783`: PASS for Contextual Final Approval persistence; full migration chain/history checks passed.
 
 Server CI run `33523846138`: PASS for final server implementation including stale-version protection.
 
@@ -85,11 +84,7 @@ Client CI run `33525633521`: PASS:
 - 91/91 test files;
 - 404 tests passed, 2 skipped.
 
-No Prisma schema/migration or production server/client behavior changed after those verified implementation revisions; subsequent changes are agent/delivery-state documentation.
-
-## Next Slice
-
-Contextual TTE / Effective-State Cutover.
+## Active Slice — Contextual TTE / Effective-State Cutover
 
 Required behavior:
 
@@ -104,7 +99,7 @@ ProcessFinalApproval exists
   -> previous BERLAKU version becomes DIGANTIKAN when applicable
 ```
 
-Risk boundaries to verify:
+Risk boundaries:
 
 - legacy `KEPALA_OPD` must not authorize Process-bound TTE;
 - SUPER_ADMIN must not bypass signer resolution;
@@ -126,7 +121,7 @@ Do not mark the milestone RELEASE READY until:
 
 ## Stop Conditions
 
-Stop continuous execution if the next slice requires:
+Stop continuous execution if the active slice requires:
 
 - changing approved legal/TTE product semantics;
 - destructive migration or historical reinterpretation;
@@ -136,4 +131,4 @@ Stop continuous execution if the next slice requires:
 
 ## Next Move
 
-Integrate the verified accumulated branch into `master`, update this state to `INTEGRATED`, then execute Contextual TTE as the next milestone slice. Do not create a new sprint plan or stacked sprint branch merely because the slice changes.
+Inspect the existing TTE signing path and replace legacy `KEPALA_OPD` authority only for Process-bound SOPs with the contextual Dean/Kadep resolver, preserving legacy/unbound compatibility and effective-state invariants.
