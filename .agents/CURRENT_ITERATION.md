@@ -1,110 +1,217 @@
 # Current Iteration
 
-Iteration: Sprint 5 — Process Owner Review
-Delivery State: VERIFIED_BRANCH
-Branch: `feat/process-owner-review`
+Iteration: Sprint 6 — Migration Reliability & Deployment Safety
+Delivery State: PLANNED
+Branch: not created yet
 Created: 2026-09-01
+
+## Why This Iteration Exists
+
+Sprint 5 is merged into `master`, but the first deployment attempt exposed a migration-chain failure before the next product slice could be considered safe to ship.
+
+Observed evidence:
+
+```text
+prisma migrate deploy
+  -> 20260901163000_add_fti_process_foundation
+  -> MySQL error 3823
+  -> P3018
+  -> subsequent deploy -> P3009 failed-migration block
+```
+
+The failing migration combined a `CHECK` using `Process.departmentId` with explicit FK referential actions on that same column. The source migration has been hotfixed to preserve the scope/department invariant through `BEFORE INSERT/UPDATE` triggers while retaining the intended foreign key actions.
+
+The existing default Server CI validates/generates Prisma and runs TypeScript/unit checks, but it does not execute the historical migration chain against a real database. Therefore this class of DDL failure was outside the evidence boundary of normal CI.
+
+This is now a proven delivery bottleneck, not speculative test coverage.
 
 ## Feature Shape
 
-Sprint 5 replaces the target centralized evaluator handoff for Process-bound SOPs with contextual Process Owner review while leaving legacy unbound SOPs on the compatibility workflow.
-
-Implemented target shape:
+Add a narrow migration-specific safety lane without turning normal CI into an integration pipeline.
 
 ```text
-Process Owner / Member
-  -> author Process-bound SOP
-  -> submit for review
+normal server change
+  -> existing fast Server CI
 
-Process Owner
-  -> review
-     -> request revision -> Process Team edits again
-     -> accept -> ready for final approval
+migration/schema-history change
+  -> existing fast Server CI
+  -> migration smoke lane
+       -> disposable MariaDB
+       -> apply full migration chain from empty DB
+       -> verify critical target invariants
 ```
 
-No global reviewer role, Super Admin bypass, Dean/Kadep approval, or TTE cutover is introduced in this sprint.
+Normal backend/client iteration must remain fast.
 
 ## Current Position
 
-`QUALITY GATES -> STOP`
+`UNDERSTAND -> BOUND -> SPECIFY -> DESIGN`
 
-Sprint 5 implementation is verified on its branch. It is not merged, released, or deployed.
+Sprint 6 is planned only. No Sprint 6 implementation branch exists yet.
 
-## Completed Delta
+## Sprint Goal
 
-- `ProcessContextService.assertCanReview` authorizes review only from the Process Owner relationship.
-- Process Owner and Process Members may submit a Process-bound SOP for review through the target Process API.
-- Process-bound submit bypasses legacy `PengajuanEvaluasi`; persisted `SEDANG_DIEVALUASI` is temporarily reused as the target “under Process Owner review” state.
-- Process Owner may return a submitted SOP for revision or accept it as ready for final approval.
-- Persisted `REVISI_DARI_EVALUATOR` is temporarily reused as target “returned for revision”.
-- Persisted `MENUNGGU_TTD_PJ_EVALUATOR` is temporarily reused as target “ready for final approval”.
-- Review status transitions are compare-and-set atomic and write the acting user to the existing discrete STATUS audit log in the same transaction.
-- Concurrent stale review decisions fail rather than overwriting the winning decision.
-- Client SOP editor uses Process-aware copy/actions for Process-bound SOPs and does not expose a final approval action in this sprint.
-- Legacy unbound SOPs continue using the existing evaluator compatibility path.
+Make migration failures such as the observed `3823` detectable before deployment and make failed-migration recovery explicit and repeatable, while adding no full integration/E2E burden to ordinary commits.
 
-## Transitional Status Mapping
+Success means:
+
+1. the complete committed Prisma migration chain applies successfully to the repository-supported MariaDB test engine from an empty database;
+2. migration-changing commits automatically run that proof;
+3. ordinary server commits do not pay the database-smoke cost;
+4. Process scope/department DB invariants are verified against the resulting database;
+5. production failed-migration recovery is documented as an explicit operational procedure, with no reset/destructive default;
+6. migration history edits/recovery semantics are documented so future agents do not treat `prisma validate` as proof of raw SQL compatibility.
+
+## Slice A — Full Migration Chain Smoke
+
+Add one dedicated migration verification command/workflow using the existing repository database baseline (`mariadb:11.4`).
+
+Expected flow:
 
 ```text
-Target semantic                 Persisted compatibility status
----------------------------------------------------------------
-Under Process Owner review      SEDANG_DIEVALUASI
-Returned for revision           REVISI_DARI_EVALUATOR
-Ready for final approval        MENUNGGU_TTD_PJ_EVALUATOR
+fresh MariaDB
+  -> pnpm install --frozen-lockfile
+  -> prisma migrate deploy
+  -> prisma migrate status
+  -> targeted invariant assertions
 ```
 
-These names are implementation compatibility seams, not target domain vocabulary.
+The smoke must execute the **full historical chain**, not only the latest migration, because ordering and accumulated raw SQL are part of the deployment contract.
 
-## Verification Evidence
+Do not run application integration suites in this lane.
 
-### Server
+## Slice B — Path-Scoped CI
 
-- Prisma validate/generate: PASS.
-- Typecheck: PASS.
-- Core unit suite: PASS.
-- Focused FTI target-domain unit tests: PASS.
-- Server CI run `33513647044`: PASS on commit `4f524321f758bfe7314cedcc65ab81b7c378ff5c`.
+Add a separate workflow rather than expanding every Server CI run.
 
-Focused review coverage includes:
+Trigger only when relevant inputs change, initially:
 
-- Process Member/Owner submit,
-- Process Owner-only review,
-- revision transition,
-- acceptance transition,
-- invalid-state rejection,
-- stale concurrent-decision rejection.
+```text
+server/prisma/migrations/**
+server/prisma/*.prisma
+server/prisma.config.ts
+migration-smoke workflow/script itself
+```
 
-### Client
+Properties:
 
-- Production build and route regeneration: PASS.
-- Generated route-tree consistency: PASS.
-- Typecheck: PASS.
-- Unit tests: PASS.
-- Client CI run `33514209001`: PASS on commit `4248b4fa6d2d849501819450588257ae85e662d5`.
+- cancel superseded runs;
+- strict timeout;
+- one MariaDB service only;
+- no browser;
+- no Docker Compose application stack;
+- no full Jest integration suite;
+- no coverage;
+- no deployment.
 
-## Verification Scope
+If only TypeScript/application code changes, this lane should not run.
 
-No Prisma schema or SQL migration changed in Sprint 5, so a database migration rehearsal was not required. Verification stayed at the affected server/client behavior and repository quality gates.
+## Slice C — Migration Invariant Proof
 
-## Residual Compatibility
+After the chain applies, verify at minimum:
 
-- Final approval resolver/authority execution remains unchanged; Dean/Kadep approval is not part of Sprint 5.
-- TTE remains on the legacy authority path.
-- Legacy SOPs without `ProcessSopBinding` still use centralized evaluator compatibility behavior.
-- Persisted legacy status names remain as temporary compatibility states for Process review.
-- Existing public archive grouping and publication behavior remain unchanged.
-- Existing historical migration-chain debt from Sprint 4 remains unrelated and unchanged.
+```text
+Process.scope = FACULTY
+  -> departmentId must be NULL
+
+Process.scope = DEPARTMENT
+  -> departmentId must be non-NULL and reference Department
+
+ProcessMember
+  -> Process/User foreign keys exist
+```
+
+For the hotfixed Process invariant, prove both INSERT and UPDATE rejection paths so the trigger replacement is evidence-backed rather than assumed.
+
+Keep these checks narrowly tied to raw-SQL invariants that Prisma schema validation cannot prove.
+
+## Slice D — Recovery Contract
+
+Document the production/staging failed-migration recovery contract around:
+
+```text
+P3018 / P3009
+  -> inspect actual partial state
+  -> choose explicit fix-forward or rollback path
+  -> prisma migrate resolve only after state matches the chosen path
+  -> prisma migrate status
+  -> migrate deploy
+```
+
+Rules:
+
+- never use `migrate reset` as production recovery;
+- never delete/edit `_prisma_migrations` rows manually as the default procedure;
+- do not blindly rerun a partially applied migration;
+- inspect which DDL statements committed before deciding recovery;
+- if a failed migration file must be corrected, source control and database recovery must converge on the same intended migration end-state;
+- migrations that have already been successfully applied in shared/production environments are immutable by default; prefer a new corrective migration rather than rewriting successful history.
+
+## Non-Goals
+
+Sprint 6 does **not** include:
+
+- Dean/Kadep final approval;
+- TTE migration;
+- evaluator cleanup;
+- full integration tests on every push;
+- browser E2E;
+- deployment automation;
+- production database mutation from CI;
+- resetting any existing environment;
+- migration squashing/rebaselining unless separate evidence proves it necessary.
+
+## Verification Plan
+
+Required evidence before closure:
+
+### Fast existing gates
+
+- Prisma validate/generate: PASS;
+- server typecheck: PASS;
+- existing core/focused unit suites: PASS.
+
+### Migration-specific gate
+
+- clean disposable MariaDB starts;
+- all committed migrations apply from empty DB;
+- `prisma migrate status` reports migration history synchronized;
+- Process scope trigger INSERT negative cases PASS;
+- Process scope trigger UPDATE negative cases PASS;
+- valid FACULTY/DEPARTMENT cases PASS;
+- migration workflow is path-scoped and does not run on unrelated client/server application-only changes.
+
+No full application integration/E2E suite is required unless the migration smoke uncovers a boundary that cannot be proven more narrowly.
+
+## Stop Conditions
+
+Stop and surface instead of inventing a fix if:
+
+- the full migration chain fails in an older unrelated migration;
+- recovery would require dropping or rewriting existing production data;
+- database engine/version behavior materially differs from the repository test engine;
+- successful historical migrations would need rewriting;
+- production migration state cannot be reconciled without knowing what DDL partially committed.
 
 ## Next Move
 
-Sprint 6 should implement the contextual final-approval boundary:
+Execute Sprint 6 on a dedicated branch from current `master`.
+
+First implementation action:
 
 ```text
+add reproducible migration-smoke command
+  -> prove full chain on MariaDB 11.4
+  -> then wire the same command into path-scoped CI
+```
+
+After Sprint 6 is verified and the current environment migration history is healthy, continue product work with:
+
+```text
+Sprint 7 — Contextual Final Approval
 READY FOR APPROVAL
   -> FACULTY -> DEKAN
   -> DEPARTMENT -> relevant KADEP
 ```
 
-That sprint should establish resolver authorization before TTE policy is cut over. TTE must execute the resolved authority, not define it.
-
-Do not merge, release, or deploy Sprint 5 without explicit user authorization.
+TTE remains after authority resolution; it must execute resolved authority rather than define it.
