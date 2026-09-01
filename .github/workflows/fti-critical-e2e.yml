@@ -51,6 +51,7 @@ jobs:
       TTE_ENCRYPTION_SECRET: this-is-a-dedicated-tte-encryption-secret-for-test-only
       PUBLIC_APP_ORIGIN: http://localhost:5173
       PDF_SIGNING_ENABLED: 'true'
+      SOP_PDF_STORAGE_DIR: /tmp/sop-fti-e2e-pdf
       VITE_API_BASE_URL: http://localhost:3001/api/v1
       E2E_BASE_URL: http://localhost:5173
       E2E_API_BASE_URL: http://127.0.0.1:3001/api/v1
@@ -161,3 +162,4 @@ jobs:
             kill "$(cat /tmp/sop-fti-e2e-server.pid)" 2>/dev/null || true
           fi
           docker rm --force sop-fti-e2e-db || true
+          rm -rf "$SOP_PDF_STORAGE_DIR"
