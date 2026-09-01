@@ -1,22 +1,28 @@
 # Current Iteration
 
 Iteration: Sprint 1
-Status: IMPLEMENTED_LOCAL
+Delivery State: IMPLEMENTED_LOCAL
 Created: 2026-09-01
 
-Scope: remove Wago/WhatsApp transport integration and keep notification delivery in-app only.
+## Feature Shape
 
-## Rules
+Remove Wago/WhatsApp notification transport integration and keep notification delivery in-app only.
 
-- Do not start a new iteration, rename an iteration, or mark delivery complete without an explicit user request.
-- If the user asks for current state or next step, inspect the actual checkout first.
-- If work is requested, scope it from the user's current request and update this file only when the user asks for iteration tracking.
+## Current Position
 
-## Current Setup Task
+`IMPLEMENT -> VERIFY -> QUALITY GATES`
 
-Sprint 1 was opened by user request on 2026-09-01.
+The scoped implementation is recorded as complete locally. Verification evidence exists for the affected server/client/config boundaries; no release or deployment is recorded here.
 
-## Local Verification
+## Delta
+
+- Wago/WhatsApp transport is removed from the Sprint 1 notification path.
+- Notification delivery remains in-app only.
+- Repository agent guidance now uses the canonical SWE lifecycle, authority split, minimum-change rule, stop conditions, Feature Compass, evidence-driven quality gates, and lean retrospective model.
+
+## Evidence
+
+Recorded verification for Sprint 1:
 
 - `server`: Prisma generate and validate passed.
 - `server`: typecheck passed.
@@ -25,4 +31,19 @@ Sprint 1 was opened by user request on 2026-09-01.
 - `client`: typecheck passed.
 - `root`: `docker compose --env-file .env config --quiet` passed.
 
-Full backend lint still has pre-existing unrelated violations outside Sprint 1 scope.
+Known unrelated condition:
+
+- Full backend lint still has pre-existing violations outside Sprint 1 scope.
+
+## Next Move
+
+For the product iteration, inspect any remaining scope-specific risk and move to `RELEASE READY` only when the available evidence is sufficient. Release/deploy remains a separate action and must not be inferred from implementation completion.
+
+## Tracking Rules
+
+- This file is an orientation layer, not a second development lifecycle.
+- Keep it compact: `Feature Shape -> Current Position -> Delta -> Evidence -> Next Move`.
+- Update it when meaningful work changes the state of this tracked iteration.
+- Do not create or rename a product iteration unless user intent establishes that scope.
+- The agent may advance engineering position through IMPLEMENT, VERIFY, QUALITY GATES, and RELEASE READY when evidence supports it.
+- Never mark work RELEASED or DEPLOYED without evidence that the action actually occurred.
