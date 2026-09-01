@@ -1,7 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { JwtAccessPayload } from '../../../common';
 import { isPrismaUniqueConstraintError } from '../../../common/prisma/prisma-error.util';
-import { UserOpdAccessService } from '../../core/opd/user-opd-access.service';
 import type { CreatePelaksanaDto } from './dto/create-pelaksana.dto';
 import type { PelaksanaResponseDto } from './dto/pelaksana-response.dto';
 import type { UpdatePelaksanaDto } from './dto/update-pelaksana.dto';
@@ -9,39 +8,25 @@ import { PelaksanaRepository, type PelaksanaRow } from './pelaksana.repository';
 
 @Injectable()
 export class PelaksanaService {
-  constructor(
-    private readonly pelaksanaRepository: PelaksanaRepository,
-    private readonly userOpdAccessService: UserOpdAccessService,
-  ) {}
+  constructor(private readonly pelaksanaRepository: PelaksanaRepository) {}
 
-  private mapRow(row: PelaksanaRow): PelaksanaResponseDto {
-    return {
-      id: row.pelaksanaId,
-      opdId: row.opdId,
-      namaPelaksana: row.nama,
-      createdAt: row.createdAt.toISOString(),
-      updatedAt: row.updatedAt.toISOString(),
-    };
-  }
-
-  private async resolveOpdIdOrThrow(
-    user: JwtAccessPayload,
-    bodyOrQueryOpdId?: string,
-  ): Promise<string> {
-    return this.userOpdAccessService.resolveOwnOpdAllowingOptionalQuery(user.sub, bodyOrQueryOpdId);
-  }
-
-  async list(user: JwtAccessPayload, queryOpdId?: string): Promise<PelaksanaResponseDto[]> {
-    const opdId = await this.resolveOpdIdOrThrow(user, queryOpdId);
-    const rows = await this.pelaksanaRepository.findManyByOpdId(opdId);
-    return rows.map((row) => this.mapRow(row));
+  async list(): Promise<PelaksanaResponseDto[]> {
+    return this.mapRows(await this.pelaksanaRepository.findAll());
   }
 
   async create(user: JwtAccessPayload, dto: CreatePelaksanaDto): Promise<PelaksanaResponseDto> {
-    const opdId = await this.resolveOpdIdOrThrow(user, dto.opdId);
+    const nama = dto.namaPelaksana.trim();
+    await this.assertNamaAvailable(nama);
+
+    // Temporary storage compatibility only: Pelaksana is globally reusable and is not owned by this OPD.
+    const opdShadowId = await this.pelaksanaRepository.findLegacyOpdShadowByPenggunaId(user.sub);
+    if (opdShadowId === null) {
+      throw new NotFoundException('Pengguna aktif tidak ditemukan');
+    }
+
     try {
-      const row = await this.pelaksanaRepository.create(opdId, dto.namaPelaksana);
-      return this.mapRow(row);
+      const row = await this.pelaksanaRepository.createGlobal(opdShadowId, nama, user.sub);
+      return (await this.mapRows([row]))[0];
     } catch (error) {
       this.rethrowUniqueNameConflict(error);
       throw error;
@@ -53,23 +38,28 @@ export class PelaksanaService {
     id: string,
     dto: UpdatePelaksanaDto,
   ): Promise<PelaksanaResponseDto> {
-    const opdId = await this.resolveOpdIdOrThrow(user, undefined);
-    const existing = await this.pelaksanaRepository.findByIdAndOpd(id, opdId);
+    const existing = await this.pelaksanaRepository.findById(id);
     if (existing === null) {
       throw new NotFoundException('Pelaksana tidak ditemukan');
     }
+
+    const nama = dto.namaPelaksana.trim();
+    const duplicate = await this.pelaksanaRepository.findByNama(nama);
+    if (duplicate !== null && duplicate.pelaksanaId !== id) {
+      throw new ConflictException('Pelaksana dengan nama tersebut sudah ada di katalog global');
+    }
+
     try {
-      const row = await this.pelaksanaRepository.updateNama(id, dto.namaPelaksana);
-      return this.mapRow(row);
+      const row = await this.pelaksanaRepository.updateNamaGlobal(id, nama, user.sub);
+      return (await this.mapRows([row]))[0];
     } catch (error) {
       this.rethrowUniqueNameConflict(error);
       throw error;
     }
   }
 
-  async remove(user: JwtAccessPayload, id: string): Promise<void> {
-    const opdId = await this.resolveOpdIdOrThrow(user, undefined);
-    const existing = await this.pelaksanaRepository.findByIdAndOpd(id, opdId);
+  async remove(_user: JwtAccessPayload, id: string): Promise<void> {
+    const existing = await this.pelaksanaRepository.findById(id);
     if (existing === null) {
       throw new NotFoundException('Pelaksana tidak ditemukan');
     }
@@ -83,9 +73,46 @@ export class PelaksanaService {
     await this.pelaksanaRepository.delete(id);
   }
 
+  private async assertNamaAvailable(nama: string): Promise<void> {
+    if ((await this.pelaksanaRepository.findByNama(nama)) !== null) {
+      throw new ConflictException('Pelaksana dengan nama tersebut sudah ada di katalog global');
+    }
+  }
+
+  private async mapRows(rows: PelaksanaRow[]): Promise<PelaksanaResponseDto[]> {
+    const attributions = await this.pelaksanaRepository.findAttributionByPelaksanaIds(
+      rows.map((row) => row.pelaksanaId),
+    );
+    const attributionById = new Map(attributions.map((item) => [item.pelaksanaId, item]));
+    const userIds = attributions.flatMap((item) =>
+      [item.createdById, item.updatedById].filter((id): id is string => id !== null),
+    );
+    const userNames = await this.pelaksanaRepository.findPenggunaNames(userIds);
+
+    return rows.map((row) => {
+      const attribution = attributionById.get(row.pelaksanaId);
+      const createdById = attribution?.createdById ?? null;
+      const updatedById = attribution?.updatedById ?? null;
+      return {
+        id: row.pelaksanaId,
+        namaPelaksana: row.nama,
+        createdBy:
+          createdById === null
+            ? null
+            : { id: createdById, nama: userNames.get(createdById) ?? 'Pengguna tidak tersedia' },
+        updatedBy:
+          updatedById === null
+            ? null
+            : { id: updatedById, nama: userNames.get(updatedById) ?? 'Pengguna tidak tersedia' },
+        createdAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+      };
+    });
+  }
+
   private rethrowUniqueNameConflict(error: unknown): void {
     if (isPrismaUniqueConstraintError(error)) {
-      throw new ConflictException('Pelaksana dengan nama tersebut sudah ada di OPD ini');
+      throw new ConflictException('Pelaksana dengan nama tersebut sudah ada di katalog global');
     }
   }
 }
