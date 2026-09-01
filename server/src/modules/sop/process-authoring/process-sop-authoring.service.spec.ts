@@ -1,4 +1,4 @@
-import { StatusSOP } from '../../../generated/prisma';
+import { PeranPengguna, StatusSOP } from '../../../generated/prisma';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import type { ProcessContextService } from '../../core/process/process-context.service';
 import type { SopCatalogRepository, SopDaftarDbRow } from '../catalog/sop-catalog.repository';
@@ -89,7 +89,12 @@ describe('ProcessSopAuthoringService', () => {
     );
 
     const rows = await service.listForCurrentUser(
-      { sub: 'user-1', email: 'u@example.test', peran: 'PENYUSUN', sesiTokenVersion: 1 },
+      {
+        sub: 'user-1',
+        email: 'u@example.test',
+        peran: PeranPengguna.PENYUSUN,
+        sesiTokenVersion: 1,
+      },
       undefined,
     );
 
