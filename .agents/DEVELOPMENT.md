@@ -1,5 +1,7 @@
 # SOPFlow Development Guide For Agents
 
+Use this file for setup, commands, and execution/verification details. Product/domain truth belongs in `PROJECT.md`; agent operating rules belong in `AGENTS.md`; live iteration state belongs in `CURRENT_ITERATION.md`.
+
 ## Setup
 
 Install dependencies separately in each package:
@@ -20,6 +22,8 @@ Use Docker Compose from the repository root when validating the full stack:
 docker compose --env-file .env config
 docker compose --env-file .env up -d
 ```
+
+Do not start the full stack merely because it exists. Use the narrowest environment that produces evidence for the changed risk boundary.
 
 ## Local Commands
 
@@ -54,7 +58,22 @@ pnpm prisma migrate deploy
 pnpm db:seed
 ```
 
-Do not run `pnpm db:fresh` unless the user explicitly accepts local database reset.
+Do not run `pnpm db:fresh` unless the user explicitly accepts a local database reset.
+
+## Verification Strategy
+
+Match verification depth to change risk. Prefer focused evidence first, then broaden only when justified.
+
+Typical progression:
+
+1. focused unit/domain test or direct evidence
+2. affected package typecheck
+3. targeted lint
+4. integration/database verification when persistence or boundaries changed
+5. relevant browser journey for user-visible workflow changes
+6. build/Compose/runtime checks when deployment/runtime behavior is affected
+
+Do not run every available gate by default if the change is bounded and narrower evidence is sufficient. Do not skip a broader gate when the affected boundary specifically requires it.
 
 ## Testing Guidance
 
@@ -62,8 +81,14 @@ Do not run `pnpm db:fresh` unless the user explicitly accepts local database res
 - Backend integration tests intentionally require Docker via `pnpm test:integration:docker`.
 - Frontend Vitest tests live under `client/src/**/__tests__` and adjacent `*.test.*` files.
 - Playwright business journeys live under `client/e2e`.
-- For UI behavior changes, run at least the focused unit test and the relevant Playwright journey when practical.
-- For auth, role, OPD, TTE, PDF, notification, or webhook changes, add or run negative-path tests, not only happy-path tests.
+- Test observable behavior, authorization, contracts, persistence invariants, and workflow transitions rather than incidental implementation structure.
+- For UI behavior changes, run the narrowest relevant component/unit evidence and the relevant Playwright journey when the browser boundary materially matters.
+- For authentication or contextual authorization changes, verify both permitted and denied paths.
+- For Process Team membership changes, verify unrelated Process Team members do not inherit access.
+- For Faculty/Department scope changes, verify the final approver resolves to Dean for `FACULTY` and the relevant Head of Department for `DEPARTMENT`.
+- For the FTI domain refactor, treat legacy `OPD`, `KEPALA_OPD`, `EVALUATOR`, and `PJ_EVALUATOR` behavior as migration risk. Verify that retained legacy fields/paths do not accidentally preserve the wrong authorization semantics.
+- For TTE/PDF changes, verify authority resolution, signing, persisted evidence, artifact output, and verification path at the appropriate level.
+- For notification changes, verify recipient selection and absence of unintended delivery paths.
 
 ## Code Style
 
@@ -72,15 +97,37 @@ Do not run `pnpm db:fresh` unless the user explicitly accepts local database res
 - Keep validation at DTO/schema/boundary layers.
 - Keep repository methods responsible for Prisma persistence details and services responsible for business policy.
 - Keep React pages thin enough that reusable behavior stays in components, hooks, `lib`, or API modules.
-- Use existing status badge config and role-routing helpers before adding new duplicated label maps.
+- Use existing status/config/routing helpers before adding duplicated label maps.
+- Prefer domain names from `PROJECT.md` for new code. Legacy names may remain temporarily where compatibility requires them, but do not spread legacy terminology into new target-domain APIs or abstractions without justification.
+
+## FTI Domain Refactor Notes
+
+The target model is process-oriented rather than OPD-oriented. Before changing persistence or authorization, re-read the canonical model in `PROJECT.md`.
+
+Critical target invariants include:
+
+```text
+Every SOP -> one Process
+Every Process -> exactly one Process Owner + one or more Members
+Process review -> Process Owner
+FACULTY scope -> DEKAN final approval
+DEPARTMENT scope -> relevant KEPALA_DEPARTEMEN final approval
+```
+
+There is no required centralized evaluator organization in the target model.
+
+Do not infer a physical schema design from these invariants without inspecting the current schema and migration constraints. Prefer a staged, reversible migration over a broad mechanical rename.
 
 ## Prisma And Migrations
 
 - Edit `server/prisma/schema.prisma` for model changes.
-- Add migrations deliberately and inspect SQL before trusting generated output.
+- Add migrations deliberately and inspect generated SQL before trusting it.
 - Keep `server/prisma/DB-INVARIANTS.md` aligned when a database invariant changes.
 - Regenerate Prisma client after schema changes.
 - Avoid editing generated Prisma output directly.
+- Prefer additive/reversible migration steps when practical during the OPD-to-FTI domain transition.
+- Do not silently drop or reinterpret existing data to fit the new model.
+- A destructive migration, ownership reinterpretation with ambiguous mapping, or public-contract break is a stop condition under `AGENTS.md`.
 
 ## Runtime Verification Notes
 
@@ -88,9 +135,12 @@ Unit/type/lint success is local code evidence. It is not proof that:
 
 - Docker images build.
 - Compose services start.
-- MariaDB migrations apply cleanly.
-- Public ingress is wired correctly.
-- Browser journeys work.
+- MariaDB migrations apply cleanly against realistic existing data.
+- public ingress is wired correctly.
+- browser journeys work.
+- contextual Process Team authorization works end to end.
+- Dean/Kadep approval resolution works through TTE end to end.
 - PDF/TTE artifacts render and verify end to end.
+- production deployment succeeded.
 
-Report exactly which evidence was collected.
+Report exactly which evidence was collected and do not upgrade confidence beyond that evidence.
