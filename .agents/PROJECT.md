@@ -234,6 +234,77 @@ Current domain mapping:
 
 Organizational titles such as Dean and Head of Department define authority. They are not substitutes for Process Owner.
 
+## Platform Administration And Super Admin
+
+`SUPER_ADMIN` is a platform/system administration role. It is not an SOP workflow role, Process Team role, organizational title, or final-approval authority.
+
+Keep these authorization dimensions separate:
+
+```text
+Platform Role
+  -> SUPER_ADMIN | USER
+
+Process Relationship
+  -> PROCESS_OWNER | MEMBER | none
+
+Organizational Authority
+  -> DEAN | HEAD_OF_DEPARTMENT | none
+```
+
+A user may hold values in more than one dimension, but each permission must come from the relevant dimension.
+
+### Super Admin Responsibilities
+
+The target product may use `SUPER_ADMIN` for platform administration such as:
+
+- creating, updating, activating, or deactivating user accounts;
+- maintaining faculty/department organizational configuration required by the application;
+- maintaining Process definitions and administrative process metadata;
+- assigning or changing Process Owners and Process Team Members;
+- maintaining which user currently holds the Dean or Head-of-Department authority when that configuration is administered through the application;
+- performing explicit system-maintenance/configuration operations required to keep the application operable.
+
+These responsibilities are administrative. They do not make the Super Admin the business owner of the affected SOPs or processes.
+
+### Super Admin Is Not Workflow Authority
+
+`SUPER_ADMIN` must not act as a god role that implicitly bypasses SOP workflow policy.
+
+A user who has only `SUPER_ADMIN` must not automatically gain permission to:
+
+- author or edit an SOP outside a Process Team relationship;
+- review/accept/reject an SOP as Process Owner;
+- act as Dean or Head of Department;
+- perform final SOP approval;
+- sign final TTE as Dean or Head of Department;
+- force an SOP into `BERLAKU` by bypassing the approved workflow;
+- impersonate another workflow actor merely because the user can administer accounts or assignments.
+
+Canonical invariant:
+
+```text
+SUPER_ADMIN
+  != PROCESS_OWNER
+  != PROCESS_MEMBER
+  != DEAN
+  != HEAD_OF_DEPARTMENT
+  != workflow bypass
+```
+
+If the same person is both Super Admin and Dean, the person receives faculty final-approval authority because that user currently holds the `DEAN` organizational authority, not because of `SUPER_ADMIN`.
+
+Likewise, a Super Admin who is separately assigned as a Process Owner receives process-review authority from that Process assignment.
+
+Authorization checks should therefore reason about the permission being exercised rather than using `SUPER_ADMIN` as a universal override.
+
+### Administrative Repair Boundary
+
+If an exceptional administrative repair is ever required, model it as an explicit administrative operation with appropriate audit evidence rather than silently impersonating Process Owner, Dean, or Head of Department behavior.
+
+Do not use administrative repair capability to synthesize legal/TTE approval history that did not actually occur.
+
+The exact human identity, number of Super Admin accounts, and operational assignment procedure are not yet canonical unless explicitly established later.
+
 ## Evaluation / Review Model
 
 The target domain does not require a centralized `Evaluator` entity, evaluator department, or globally assigned evaluator team.
@@ -325,6 +396,8 @@ The resolver may use existing authorization/TTE infrastructure during migration,
 
 Do not make each Process, Unit, or SOP manually configure an arbitrary final approver when the authority can be derived from scope. Avoid duplicated approval state unless a concrete requirement requires an exception.
 
+`SUPER_ADMIN` must not be treated as an additional branch of this resolver. Final approval still resolves only through the Faculty/Department authority rule.
+
 ## Responsibility Labels and Multiple Units
 
 The FTI source catalog contains responsibility labels such as:
@@ -405,6 +478,11 @@ Treat these as canonical unless explicitly changed by the user:
 14. Do not add generic multi-level approval configuration without an explicit product requirement.
 15. Do not add a global evaluator/PJ evaluator model merely to preserve legacy implementation shape.
 16. Existing SOP publication/version/TTE/audit invariants should survive the domain refactor unless explicitly changed.
+17. `SUPER_ADMIN` is a platform-administration role, not a workflow or organizational authority.
+18. `SUPER_ADMIN` alone does not grant Process authoring, Process review, final approval, or final-TTE permission.
+19. When a Super Admin also holds a Process or organizational authority, workflow permission derives from that separate assignment/authority.
+20. Super Admin must not be an implicit fallback from Faculty/Department final-approver resolution.
+21. Exceptional administrative repair must remain explicit/audited and must not fabricate workflow/TTE history.
 
 ## Legacy Implementation vs Target Domain
 
@@ -465,6 +543,7 @@ When implementing the FTI refactor:
 - Do not create generic configurable approval chains without explicit need.
 - Do not introduce a generic RBAC/ABAC framework merely to model the current rules if a smaller contextual authorization model is sufficient.
 - Prefer explicit process membership and scope-derived authorization.
+- Keep `SUPER_ADMIN` platform administration separate from Process/approval authorization rather than creating an all-permissions bypass.
 - Keep migrations reversible/non-destructive when possible.
 - Preserve TTE/audit/legal evidence across role/domain renames.
 - Preserve public-document verification behavior.
@@ -473,7 +552,7 @@ When implementing the FTI refactor:
 
 ## Authorization Boundaries To Verify During Refactor
 
-The target authorization boundary is process-contextual.
+The target authorization boundary is process-contextual and authority-specific.
 
 At minimum, future implementation should make these denial cases testable:
 
@@ -484,6 +563,10 @@ At minimum, future implementation should make these denial cases testable:
 - The Dean must not accidentally become the process reviewer for every faculty process merely because the Dean is the final faculty approver.
 - A faculty-level unit must resolve final approval to the Dean, not to an invented unit-level final approver.
 - A department-level process must resolve final approval to the relevant Head of Department.
+- A Super Admin with no Process Team relationship must not gain authoring or Process Owner review rights.
+- A Super Admin who is neither the active Dean nor the relevant Head of Department must not final-approve or final-sign an SOP.
+- Assigning Process/organizational authority as an administrative action must not implicitly assign that same authority to the Super Admin performing the assignment.
+- Super Admin administration must not provide a hidden path that forces `BERLAKU` without the normal final authority/TTE evidence.
 
 These describe target authorization semantics; implementation may temporarily retain legacy guards while the migration is incomplete.
 
@@ -497,6 +580,8 @@ Do not guess these product rules until explicitly established by user intent or 
 - Whether a Process may span more than one department.
 - How ambiguous `Departemen/Fakultas` source rows should be assigned when one canonical approval scope is required.
 - Exact names and complete membership of every faculty unit/department.
+- The exact human identity, number, and operational assignment procedure for Super Admin accounts.
+- Whether Super Admin needs global read access to all SOP content beyond specific administrative/audit use cases.
 - Whether all existing evaluation scores/graphs remain meaningful after centralized evaluator semantics are removed.
 - Exact replacement vocabulary for every legacy database field, DTO, route, notification kind, PDF label, and historical record.
 - Whether legacy external API compatibility must be maintained during domain migration.
