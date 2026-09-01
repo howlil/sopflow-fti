@@ -9,12 +9,6 @@ interface ProcessContextRow {
   nama: string
 }
 
-async function expectDepartmentMemberHome(
-  page: Awaited<ReturnType<Parameters<typeof test.step>[1]>> extends never ? never : never,
-): Promise<void> {
-  void page
-}
-
 test.describe('End-to-End Business Journey — Department context isolation', () => {
   test('J12 Department Context Isolation — Process dan authority tidak bocor antar Departemen', async ({
     roleApi,
