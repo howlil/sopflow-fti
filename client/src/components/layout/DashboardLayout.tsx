@@ -36,7 +36,7 @@ import { toNavigationRole } from "@/utils/role-key";
 
 const DESKTOP_SIDEBAR_STORAGE_KEY = "ui:desktop-sidebar-collapsed";
 
-/** Legacy compatibility navigation. Contextual capability items are composed before these entries. */
+/** Legacy compatibility navigation used when no target workflow context exists. */
 const SIDEBAR_ITEMS: Record<RoleKey, AppSidebarItem[]> = {
   PJ_EVALUATOR: [
     { to: ROUTES.PJ_EVALUATOR.GRAFIK_EVALUASI, label: "Grafik Evaluasi", icon: BarChart3 },
@@ -62,6 +62,11 @@ const SIDEBAR_ITEMS: Record<RoleKey, AppSidebarItem[]> = {
   ],
   EVALUATOR: [{ to: ROUTES.EVALUATOR.EVALUASI, label: "Evaluasi SOP", icon: FileCheck }],
 };
+
+const TARGET_SUPPORT_PATHS = new Set<string>([
+  ROUTES.PENYUSUN.PELAKSANA,
+  ROUTES.PENYUSUN.PERATURAN,
+]);
 
 function isActivePath(pathname: string, itemTo: string): boolean {
   return pathname.startsWith(itemTo.replace("/$id", ""));
@@ -103,8 +108,17 @@ export function DashboardLayout() {
       : []),
   ];
 
-  // Contextual capability navigation is primary. Legacy global-role routes remain compatibility fallback.
-  const sidebarItems = mergeNavigationItems(contextualItems, roleSidebarItems);
+  const hasTargetWorkflowContext =
+    myProcesses.length > 0 ||
+    myAuthorities.length > 0 ||
+    user?.platformRole === "SUPER_ADMIN";
+  const compatibleRoleItems = hasTargetWorkflowContext
+    ? roleSidebarItems.filter((item) => TARGET_SUPPORT_PATHS.has(item.to))
+    : roleSidebarItems;
+
+  // Target workflow navigation is primary. Old workflow routes remain reachable only as fallback
+  // when the account has no Process, organizational-authority, or platform-admin context.
+  const sidebarItems = mergeNavigationItems(contextualItems, compatibleRoleItems);
   const activeItem = sidebarItems.find(({ to }) => isActivePath(pathname, to));
 
   useEffect(() => {
