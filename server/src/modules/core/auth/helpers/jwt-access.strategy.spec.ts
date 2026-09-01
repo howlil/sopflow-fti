@@ -61,19 +61,30 @@ describe('Pengujian JwtAccessStrategy', () => {
     });
   });
 
-  it('seharusnya melempar UnauthorizedException ketika pengguna tidak ditemukan', async () => {
+  it('seharusnya menolak payload tanpa versi sesi', async () => {
+    await expect(
+      strategy.validate({
+        sub: row.penggunaId,
+        email: row.email,
+        peran: row.peran,
+      }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(authRepository.findActivePenggunaById).not.toHaveBeenCalled();
+  });
+
+  it('seharusnya menolak ketika pengguna tidak ditemukan', async () => {
     authRepository.findActivePenggunaById.mockResolvedValue(null);
     await expect(
       strategy.validate({
-        sub: 'missing',
-        email: 'missing@example.test',
-        peran: PeranPengguna.PENYUSUN,
-        sesiTokenVersion: 1,
+        sub: row.penggunaId,
+        email: row.email,
+        peran: row.peran,
+        sesiTokenVersion: row.sesiTokenVersion,
       }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
-  it('seharusnya melempar UnauthorizedException ketika versi sesi token stale', async () => {
+  it('seharusnya menolak ketika versi sesi token tidak sama dengan database', async () => {
     authRepository.findActivePenggunaById.mockResolvedValue(row);
     await expect(
       strategy.validate({
