@@ -27,4 +27,24 @@ describe('ProcessContextService', () => {
       ForbiddenException,
     );
   });
+
+  it('allows review only when the user owns that process', async () => {
+    const findFirst = jest
+      .fn()
+      .mockResolvedValueOnce({ processId: 'process-a', ownerId: 'owner-1' })
+      .mockResolvedValueOnce(null);
+    const prisma = { process: { findFirst } } as unknown as PrismaService;
+    const service = new ProcessContextService(prisma);
+
+    await expect(service.assertCanReview('owner-1', 'process-a')).resolves.toMatchObject({
+      processId: 'process-a',
+    });
+    await expect(service.assertCanReview('member-1', 'process-a')).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(findFirst).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ where: { processId: 'process-a', ownerId: 'owner-1' } }),
+    );
+  });
 });

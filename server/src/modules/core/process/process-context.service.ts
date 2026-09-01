@@ -45,4 +45,15 @@ export class ProcessContextService {
     }
     return process;
   }
+
+  async assertCanReview(penggunaId: string, processId: string) {
+    const process = await this.prisma.process.findFirst({
+      where: { processId, ownerId: penggunaId },
+      include: processInclude,
+    });
+    if (process === null) {
+      throw new ForbiddenException('Akses ditolak: hanya Process Owner yang dapat melakukan review');
+    }
+    return process;
+  }
 }
