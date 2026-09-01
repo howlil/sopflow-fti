@@ -1,0 +1,88 @@
+
+name: sop-generator-integration-test
+
+services:
+  sop-test-db:
+    image: mariadb:11.4
+    container_name: sop-test-db
+    restart: unless-stopped
+    command:
+      - --lower_case_table_names=1
+    environment:
+      MARIADB_ROOT_PASSWORD: root_test_password
+      MARIADB_DATABASE: sop_biro_organisasi_test
+      MARIADB_USER: sop_test
+      MARIADB_PASSWORD: sop_test_password
+      TZ: Asia/Jakarta
+    ports:
+      - "3308:3306"
+    volumes:
+      - sop-test-db-data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mariadb-admin ping -h 127.0.0.1 -uroot -p$${MARIADB_ROOT_PASSWORD} --silent"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    networks:
+      - sop-test-network
+
+  sop-integration-test:
+    image: node:24-bookworm
+    container_name: sop-integration-test-runner
+    profiles:
+      - test
+    working_dir: /workspace/server
+    depends_on:
+      sop-test-db:
+        condition: service_healthy
+    env_file:
+      - ./server/.env.test
+    environment:
+      RUN_INTEGRATION: "true"
+      INTEGRATION_TEST_DOCKER: "true"
+      CI: "true"
+      NODE_ENV: test
+      DATABASE_HOST: sop-test-db
+      DATABASE_PORT: 3306
+      DATABASE_USER: sop_test
+      DATABASE_PASSWORD: sop_test_password
+      DATABASE_NAME: sop_biro_organisasi_test
+      DATABASE_URL: mysql://sop_test:sop_test_password@sop-test-db:3306/sop_biro_organisasi_test
+      PDF_SIGNING_ENABLED: "false"
+      INTEGRATION_TEST_PATTERN: ${INTEGRATION_TEST_PATTERN:-}
+    volumes:
+      - ./server:/workspace/server
+      - sop-test-node-modules:/workspace/server/node_modules
+      - sop-test-pnpm-store:/workspace/server/.pnpm-store
+      - sop-test-generated-prisma:/workspace/server/src/generated/prisma
+    command: >
+      sh -lc "
+        corepack enable &&
+        pnpm config set store-dir /workspace/server/.pnpm-store &&
+        pnpm install --frozen-lockfile &&
+        pnpm prisma generate &&
+        test -f src/generated/prisma/index.d.ts &&
+        pnpm prisma migrate reset --force &&
+        if [ -n \"$$INTEGRATION_TEST_PATTERN\" ]; then
+          pnpm test:integration:run --no-cache -- \"$$INTEGRATION_TEST_PATTERN\";
+        else
+          pnpm test:integration:run --no-cache;
+        fi
+      "
+    networks:
+      - sop-test-network
+
+networks:
+  sop-test-network:
+    driver: bridge
+
+volumes:
+  sop-test-db-data:
+  sop-test-node-modules:
+  sop-test-pnpm-store:
+  sop-test-generated-prisma:

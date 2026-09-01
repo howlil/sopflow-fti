@@ -1,0 +1,90 @@
+name: sop-arsip
+
+services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    command:
+      - --lower_case_table_names=1
+    environment:
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+      MARIADB_DATABASE: sop_biro_organisasi
+      MARIADB_USER: sop_app
+      MARIADB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
+      TZ: Asia/Jakarta
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 60s
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  backend:
+    image: sop-arsip-backend:${APP_VERSION:-local}
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_OPTIONS: "--max-old-space-size=512"
+      NODE_ENV: production
+      PUBLIC_APP_ORIGIN: ${PUBLIC_APP_ORIGIN:?set PUBLIC_APP_ORIGIN}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET}
+      TTE_ENCRYPTION_SECRET: ${TTE_ENCRYPTION_SECRET:?set TTE_ENCRYPTION_SECRET}
+      DATABASE_HOST: db
+      DATABASE_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
+    command:
+      - sh
+      - -c
+      - |
+        set -eu
+        pnpm prisma migrate deploy
+        node dist/src/database/seed/seed-initial.js
+        exec pnpm start:prod
+    volumes:
+      - sop_pdf_data:/app/storage/sop-pdf
+    expose:
+      - "3001"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3001/api/health/ready"]
+      start_period: 120s
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  frontend:
+    image: sop-arsip-frontend:${APP_VERSION:-local}
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      SSR_HOST: 127.0.0.1
+      SSR_PORT: 4173
+    expose:
+      - "8080"
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/"]
+      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db_data:
+  sop_pdf_data:

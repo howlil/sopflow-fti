@@ -1,0 +1,79 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build & cache
+dist/
+dist-ssr/
+build/
+.output/
+.nitro/
+.tanstack/
+.wrangler/
+.vinxi/
+*.tsbuildinfo
+
+# Environment (jangan commit secret)
+.env
+.env.*
+!.env.example
+server/.env
+server/.env.*
+!server/.env.test
+client/.env
+client/.env.*
+
+# Logs & runtime
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pids/
+*.pid
+*.seed
+*.pid.lock
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Test & coverage
+coverage/
+.nyc_output/
+
+# Prisma generated (server)
+server/src/generated/prisma/
+
+# Upload / runtime data (server)
+server/src/sop/
+
+# IDE & OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.sublime-workspace
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+
+# Temp
+.temp/
+.tmp/
+*.local
+
+# Vite / tooling
+client/node_modules/.vite/
+
+# Misc project artifacts
+count.txt
+todos.json
+
+# Docker local overrides (opsional)
+docker-compose.override.yml
