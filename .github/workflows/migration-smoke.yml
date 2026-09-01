@@ -104,8 +104,14 @@ jobs:
             exit 1
           }
 
-      - name: Verify Process scope database invariant
+      - name: Verify Process foundation database invariants
         run: |
+          fk_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'sop_biro_organisasi_test' AND CONSTRAINT_NAME IN ('Process_departmentId_fkey', 'Process_ownerId_fkey', 'ProcessMember_processId_fkey', 'ProcessMember_penggunaId_fkey')")"
+          test "$fk_count" = "4" || {
+            echo "Expected all four Process/ProcessMember foreign keys, got $fk_count"
+            exit 1
+          }
+
           trigger_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = 'sop_biro_organisasi_test' AND TRIGGER_NAME IN ('trg_process_scope_department_insert', 'trg_process_scope_department_update')")"
           test "$trigger_count" = "2" || {
             echo "Expected Process scope INSERT/UPDATE triggers"
