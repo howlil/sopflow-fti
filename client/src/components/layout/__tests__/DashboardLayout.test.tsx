@@ -10,6 +10,9 @@ vi.mock('@tanstack/react-router', () => ({
   useLocation: () => ({ pathname: '/penyusun/sop' }),
 }))
 
+vi.mock('@/api/process-context', () => ({
+  useMyProcesses: () => ({ data: [] }),
+}))
 vi.mock('@/components/layout/HeaderBar', () => ({ HeaderBar: () => <div>Header</div> }))
 vi.mock('@/components/layout/PageHeaderProvider', () => ({
   PageHeaderProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
