@@ -1,134 +1,171 @@
 # Current Milestone
 
-Milestone: Process-bound SOP Workflow Cutover
+Milestone: FTI-native Workflow Experience Cutover
 Delivery State: MILESTONE_ACTIVE
 Integration Branch: `master`
-Created: 2026-09-01
+Created: 2026-09-02
 
-## Milestone Shape
+## Previous Milestone
 
-Move the FTI target SOP path from legacy OPD/global-role workflow semantics to contextual Process + organizational authority semantics while preserving document/version/TTE integrity.
+`Process-bound SOP Workflow Cutover` is complete.
 
-Target outcome:
+Delivered target path:
 
 ```text
-Process Team
-  -> author Process-bound SOP
+Process Owner / Member
+  -> Process-bound authoring
   -> Process Owner review
   -> contextual final approval
        -> FACULTY -> DEAN
        -> DEPARTMENT -> relevant HEAD_OF_DEPARTMENT
-  -> contextual TTE by resolved authority
-  -> legal/effective artifact
+  -> contextual TTE by the same resolved authority boundary
+  -> official published artifact
   -> BERLAKU
 ```
 
-Milestone boundaries:
+Completion evidence:
 
-- preserve legacy/unbound SOP compatibility until its explicit contract-cleanup slice;
-- no SUPER_ADMIN workflow bypass;
-- Process relationship and organizational authority remain separate axes;
-- final approval and TTE remain distinct responsibilities;
-- preserve one-active-version/effective-state, audit, signature, and public-verification invariants;
-- no destructive historical bulk remapping.
+- Migration Smoke `33522522783`: PASS for the target persistence chain.
+- Client CI `33535035787`: PASS for production/SSR build, generated routes, typecheck, and unit tests.
+- Server CI `33535489438`: PASS on final M1 head `7b502e1295a431d96e27230ce4c932b7765cc902`, including Faculty/Department signer paths and Process TTE integrity coverage.
+
+M1 compatibility decisions remain intentional:
+
+- legacy/unbound SOP behavior remains available behind compatibility paths;
+- persisted legacy status names may remain while product semantics are target-native;
+- `SOP.opdId` / `ProcessSopBinding` remain transitional persistence seams;
+- no destructive historical remapping was performed.
+
+## Milestone Shape
+
+Move the authenticated product experience from legacy government-role/workflow vocabulary to the FTI Process model that is already implemented in the target backend path.
+
+The milestone is an experience/contract-semantic cutover, not a destructive schema cleanup.
+
+Target outcome:
+
+```text
+Authenticated user
+  -> sees capabilities derived from actual context
+       -> Process relationship
+       -> Organizational authority
+       -> Platform administration
+  -> enters Process-native work queues
+  -> sees FTI-native workflow language
+  -> receives contextual notifications
+  -> does not need to understand legacy
+     PENYUSUN / EVALUATOR / PJ_* / KEPALA_OPD semantics
+     for Process-bound SOP work
+```
+
+## Why This Milestone Exists
+
+M1 cut over the target workflow semantics, but significant product surfaces still expose legacy navigation, role vocabulary, OPD-era queues, or compatibility concepts.
+
+The next useful product outcome is therefore to make the implemented target workflow understandable and operable as an FTI application without requiring users to mentally translate the old government-domain model.
+
+## Boundaries
+
+In scope:
+
+- authenticated navigation and entry points for Process-bound SOP work;
+- Process Owner / Process Member work queues and actions;
+- Dean / Head-of-Department approval and TTE entry points;
+- FTI-native labels/copy for target workflow states and actions;
+- contextual notification recipients and copy for target-path workflow events;
+- isolation of legacy UI/routes so they remain compatibility behavior rather than the primary Process-bound path;
+- preserve existing Process authorization, final-approval, TTE, audit, version, and publication invariants.
+
+Out of scope:
+
+- dropping legacy tables, columns, enums, or roles;
+- removing `SOP.opdId` or `ProcessSopBinding`;
+- destructive historical data migration;
+- mechanically renaming OPD to Faculty;
+- redesigning public archive grouping without an explicit product decision;
+- changing the two-level approval model;
+- adding a centralized evaluator layer;
+- adding SUPER_ADMIN workflow bypass;
+- introducing generic configurable approval chains.
 
 ## Slice State
 
 | Slice | Outcome | State |
 | --- | --- | --- |
-| Process Foundation | FTI Process/Department/context foundation | INTEGRATED |
-| Process-owned Authoring | Process Owner/Member contextual authoring | INTEGRATED |
-| Global Pelaksana / Procedure Cutover | global reusable actor catalog + Process procedure authorization | INTEGRATED |
-| Process Owner Review | Process Owner review/revision/accept path | INTEGRATED |
-| Migration Reliability | runtime-matched migration smoke + failed-migration recovery | INTEGRATED |
-| Contextual Final Approval | Dean/Kadep resolver, assignment, approver queue, approval evidence | INTEGRATED |
-| Contextual TTE / Effective-State Cutover | resolved Dean/Kadep signer -> TTE -> BERLAKU | ACTIVE |
+| Contextual Entry & Navigation | primary authenticated navigation reflects Process / authority / admin capabilities | PLANNED |
+| Process Work Queues | Process Owner and Members can find target SOP work without legacy evaluator/penyusun mental model | PLANNED |
+| FTI Workflow Vocabulary | Process-bound statuses, actions, headers, and help text use target FTI semantics | PLANNED |
+| Contextual Notifications | target workflow events resolve recipients and copy through Process/authority context | PLANNED |
+| Legacy Surface Isolation | legacy routes remain explicit compatibility surfaces and are not primary target navigation | PLANNED |
 
-Historical sprint numbers are implementation history only and are no longer the planning model.
+Historical sprint numbers are implementation history only and are not the planning model.
 
 ## Current Position
 
-`EXECUTE SLICES CONTINUOUSLY -> CONTEXTUAL TTE / EFFECTIVE-STATE CUTOVER`
+`MILESTONE PLAN -> READY TO EXECUTE FIRST SLICE`
 
-The previously accumulated verified stack is now integrated to `master`. The milestone continues directly with Contextual TTE; no new sprint plan or stacked sprint branch is required.
+No implementation slice is active yet. This file now defines the M2 boundary before continuous execution starts.
 
-## Completed Delta
+## Product Semantics To Preserve
 
-### Migration reliability
-
-- Path-scoped Migration Smoke on runtime-matched MariaDB 11.4.
-- Full historical migration chain, migration history, and Process foundation invariants verified.
-- Fail-closed recovery for `20260901163000_add_fti_process_foundation` P3018/P3009 partial-state recovery.
-
-### Contextual final approval
-
-- Persistent organizational authority assignments for Dean and Department Heads.
-- Faculty Process resolves only to Dean; Department Process resolves only to that Department's Head.
-- `SUPER_ADMIN` may configure authority but receives no approval capability from platform role.
-- `ProcessFinalApproval` evidence and approver queue/read/approve APIs.
-- Only latest Process-bound SOP version is eligible; stale versions and legacy/unbound SOPs are excluded.
-- Final approval does not execute TTE or make SOP `BERLAKU`.
-- `/admin/authorities` and `/approval` client surfaces.
-
-## Integrated Evidence
-
-Migration Smoke run `33522522783`: PASS for Contextual Final Approval persistence; full migration chain/history checks passed.
-
-Server CI run `33523846138`: PASS for final server implementation including stale-version protection.
-
-Client CI run `33525633521`: PASS:
-
-- production + SSR build;
-- generated route consistency;
-- TypeScript typecheck;
-- 91/91 test files;
-- 404 tests passed, 2 skipped.
-
-## Active Slice — Contextual TTE / Effective-State Cutover
-
-Required behavior:
+Authorization dimensions stay separate:
 
 ```text
-ProcessFinalApproval exists
-  -> signer resolved from the same organizational authority boundary
-  -> FACULTY: DEAN
-  -> DEPARTMENT: relevant HEAD_OF_DEPARTMENT
-  -> target TTE path signs the approved latest Process-bound SOP
-  -> legal/effective artifact is persisted
-  -> status becomes BERLAKU
-  -> previous BERLAKU version becomes DIGANTIKAN when applicable
+Platform Role
+  -> SUPER_ADMIN | USER
+
+Process Relationship
+  -> PROCESS_OWNER | MEMBER | none
+
+Organizational Authority
+  -> DEAN | HEAD_OF_DEPARTMENT | none
 ```
 
-Risk boundaries:
+Primary target workflow remains:
 
-- legacy `KEPALA_OPD` must not authorize Process-bound TTE;
-- SUPER_ADMIN must not bypass signer resolution;
-- approval evidence and signer authority must match the Process context;
-- one-active-version/effective-state invariant remains intact;
-- TTE hashing/encryption/signature/verification behavior remains valid;
-- legacy/unbound SOP TTE remains compatibility behavior unless explicitly changed.
+```text
+Process Owner / Member
+  -> Draft
+  -> Submit for Process Owner review
+
+Process Owner
+  -> request revision
+  -> or accept for final approval
+
+Final authority
+  -> FACULTY: Dean
+  -> DEPARTMENT: relevant Head of Department
+  -> approve
+  -> contextual TTE
+  -> BERLAKU
+```
+
+The UI must derive available actions from these capabilities rather than merely relabeling legacy global roles.
 
 ## Milestone Gate
 
-Do not mark the milestone RELEASE READY until:
+Do not mark M2 RELEASE READY until:
 
-- Process-bound authoring/review/final-approval/TTE works end-to-end for both FACULTY and DEPARTMENT scope;
-- negative cross-scope/cross-department authorization is verified;
-- migration chain remains green;
-- legal/effective state and one-active-version invariants are verified;
-- target public verification/archive behavior remains correct for effective documents;
-- no material unresolved compatibility ambiguity blocks release.
+- Process-bound users can navigate their normal workflow without depending on legacy role-specific entry points;
+- Process Owner vs Member capabilities are visibly and functionally distinct where required;
+- Dean/Kadep approval + TTE surfaces are discoverable from organizational authority, not `KEPALA_OPD` identity;
+- target-path user-facing copy no longer presents centralized evaluator/PJ evaluator semantics as FTI product truth;
+- contextual notifications for Process review and final authority paths are verified;
+- legacy/unbound compatibility remains operable and clearly isolated;
+- Client CI and Server CI are green for the integrated milestone state;
+- no target authorization or legal/TTE invariant regresses.
 
 ## Stop Conditions
 
-Stop continuous execution if the active slice requires:
+Stop continuous execution if this milestone requires:
 
-- changing approved legal/TTE product semantics;
-- destructive migration or historical reinterpretation;
-- new material data ownership/security/public-contract boundary;
-- a material architecture change not already implied by the milestone;
-- ambiguous signer/legal authority semantics that cannot be resolved from `PROJECT.md` and existing approved rules.
+- a destructive schema/data migration;
+- removal of legacy public/API contracts needed by existing compatibility behavior;
+- a new public archive information architecture decision;
+- a material change to Process ownership, approval authority, or legal/TTE semantics;
+- reinterpretation of historical workflow evidence;
+- a new product role or approval level not already canonical.
 
 ## Next Move
 
-Inspect the existing TTE signing path and replace legacy `KEPALA_OPD` authority only for Process-bound SOPs with the contextual Dean/Kadep resolver, preserving legacy/unbound compatibility and effective-state invariants.
+Inspect the authenticated routing/sidebar/home-entry logic and current Process-bound SOP entry points, then implement the smallest first slice that makes target capabilities discoverable without changing backend authority semantics.
