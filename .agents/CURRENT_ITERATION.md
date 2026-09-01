@@ -18,7 +18,6 @@ The scoped implementation is recorded as complete locally. Verification evidence
 
 - Wago/WhatsApp transport is removed from the Sprint 1 notification path.
 - Notification delivery remains in-app only.
-- Repository agent guidance now uses the canonical SWE lifecycle, authority split, minimum-change rule, stop conditions, Feature Compass, evidence-driven quality gates, and lean retrospective model.
 
 ## Evidence
 
