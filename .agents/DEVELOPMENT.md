@@ -113,6 +113,31 @@ Do not make a known noisy/pre-existing repository-wide lint baseline a required 
 
 Keep default CI small enough that developers treat it as immediate feedback rather than a queue. If a deterministic default gate becomes materially slow, first remove duplication, scope by package/path, cancel superseded runs, or split independent jobs in parallel before dropping useful correctness evidence.
 
+## Migration Smoke Gate
+
+Migration SQL is a separate risk boundary from normal application code. `prisma validate` and `prisma generate` do not execute historical raw SQL, triggers, or database-specific DDL.
+
+The dedicated `.github/workflows/migration-smoke.yml` workflow therefore runs only when migration-relevant inputs change:
+
+- `server/prisma/migrations/**`
+- `server/prisma/*.prisma`
+- `server/prisma.config.ts`
+- the migration-smoke workflow itself
+
+The gate uses the same database runtime baseline as production Compose: MariaDB 11.4 with `--lower_case_table_names=1`. It must prove:
+
+1. Prisma schema validation succeeds;
+2. the complete migration history applies from an empty database with `prisma migrate deploy`;
+3. `prisma migrate status` reports the database up to date;
+4. every migration directory has one successful, unresolved-free `_prisma_migrations` record;
+5. critical raw-SQL invariants affected by the current migration work reject invalid writes.
+
+Do not turn this lane into the full integration suite. It does not run application Jest integration tests, browser E2E, Compose application services, coverage, deployment, or release steps.
+
+A broad Prisma-schema-versus-database drift comparison is not a required gate while the repository has known historical schema/migration drift. Track and clean that baseline separately rather than making every valid migration change fail on unrelated debt.
+
+For `P3018` / `P3009` recovery on shared databases, follow `server/prisma/MIGRATION-RECOVERY.md`. Never substitute `migrate reset` for explicit failed-migration recovery.
+
 ## Testing Guidance
 
 - Backend Jest root is `server/src`; many focused tests are colocated with modules.
@@ -166,6 +191,8 @@ Do not infer a physical schema design from these invariants without inspecting t
 - Prefer additive/reversible migration steps when practical during the OPD-to-FTI domain transition.
 - Do not silently drop or reinterpret existing data to fit the new model.
 - A destructive migration, ownership reinterpretation with ambiguous mapping, or public-contract break is a stop condition under `AGENTS.md`.
+- Treat migrations already successfully applied to shared/production environments as immutable by default; fix later defects with a new migration.
+- An actively failed migration may be repaired only through explicit state inspection and the recovery contract in `server/prisma/MIGRATION-RECOVERY.md`.
 
 ## Runtime Verification Notes
 
