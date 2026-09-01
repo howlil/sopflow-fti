@@ -45,8 +45,24 @@ export class TtePengesahanPublicResponseDto {
   @ApiProperty({ description: 'Waktu pengesahan (ISO 8601)' })
   ditandatanganiPada!: string;
 
-  @ApiProperty({ enum: ['KEPALA_OPD', 'PJ_EVALUATOR', 'PJ_PENYUSUN'] })
-  peran!: 'KEPALA_OPD' | 'PJ_EVALUATOR' | 'PJ_PENYUSUN';
+  @ApiProperty({
+    enum: ['KEPALA_OPD', 'PJ_EVALUATOR', 'PJ_PENYUSUN', 'EVALUATOR', 'PENYUSUN'],
+    description:
+      'Peran akun compatibility. Untuk SOP Process-bound, authority legal berasal dari field authority.',
+  })
+  peran!: 'KEPALA_OPD' | 'PJ_EVALUATOR' | 'PJ_PENYUSUN' | 'EVALUATOR' | 'PENYUSUN';
+
+  @ApiPropertyOptional({
+    enum: ['DEAN', 'HEAD_OF_DEPARTMENT'],
+    description: 'Organizational authority untuk TTE SOP Process-bound.',
+  })
+  authority?: 'DEAN' | 'HEAD_OF_DEPARTMENT';
+
+  @ApiPropertyOptional({
+    enum: ['Dekan', 'Kepala Departemen'],
+    description: 'Label authority yang ditampilkan pada verifikasi publik.',
+  })
+  authorityLabel?: 'Dekan' | 'Kepala Departemen';
 
   @ApiProperty({ type: TtePengesahanPublicPenandatanganDto })
   penandatangan!: TtePengesahanPublicPenandatanganDto;
