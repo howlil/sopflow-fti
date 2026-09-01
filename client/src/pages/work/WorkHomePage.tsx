@@ -82,10 +82,10 @@ export function WorkHomePage() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {processes.length > 0 ? (
             <CapabilityCard
-              title="SOP Proses"
-              description={`${ownerCount} Process sebagai Owner · ${memberCount} sebagai Member. Kelola SOP yang terikat Process Anda.`}
-              to={ROUTES.PENYUSUN.SOP}
-              action="Buka SOP Proses"
+              title="Pekerjaan SOP"
+              description={`${ownerCount} Process sebagai Owner · ${memberCount} sebagai Member. Draft, revisi, dan review yang memerlukan Anda dikumpulkan dalam satu queue.`}
+              to={ROUTES.WORK_QUEUE}
+              action="Buka Pekerjaan SOP"
               icon={FileText}
             />
           ) : null}
