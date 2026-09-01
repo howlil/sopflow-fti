@@ -24,7 +24,7 @@ export type ProcessInAppNotificationDto = {
   title: string
   preview: string
   body: string
-  actionHref: string
+  actionHref: '/work/queue' | '/approval'
   readAt: string | null
   createdAt: string
 }
