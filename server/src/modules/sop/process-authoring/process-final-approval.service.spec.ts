@@ -1,0 +1,70 @@
+import { ConflictException } from '@nestjs/common';
+import type { PrismaService } from '../../../common/prisma/prisma.service';
+import { OrganizationalAuthority, StatusSOP } from '../../../generated/prisma';
+import type { OrganizationalAuthorityService } from '../../core/process/organizational-authority.service';
+import type { SopCatalogRepository } from '../catalog/sop-catalog.repository';
+import { ProcessFinalApprovalService } from './process-final-approval.service';
+
+const user = { sub: 'dean-1', peran: 'PENYUSUN' } as never;
+
+function makeService(status = StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR) {
+  const prisma = {
+    processSopBinding: {
+      findUnique: jest.fn().mockResolvedValue({ processId: 'process-a' }),
+    },
+    processFinalApproval: {
+      create: jest.fn().mockResolvedValue({
+        detailSopId: 'detail-a',
+        processId: 'process-a',
+        approvedById: 'dean-1',
+        authority: OrganizationalAuthority.DEAN,
+        authorityKey: 'DEAN',
+      }),
+    },
+  } as unknown as PrismaService;
+  const authority = {
+    assertCanApprove: jest.fn().mockResolvedValue({
+      authority: OrganizationalAuthority.DEAN,
+      authorityKey: 'DEAN',
+    }),
+  } as unknown as OrganizationalAuthorityService;
+  const catalog = {
+    findDetailIdByDetailOrSopId: jest.fn().mockResolvedValue({
+      detailSopId: 'detail-a',
+      sopId: 'sop-a',
+    }),
+    findLatestDetailStatusContext: jest.fn().mockResolvedValue({ status }),
+  } as unknown as SopCatalogRepository;
+  return {
+    service: new ProcessFinalApprovalService(prisma, authority, catalog),
+    prisma,
+    authority,
+  };
+}
+
+describe('ProcessFinalApprovalService', () => {
+  it('persists approval only from the contextual resolved authority', async () => {
+    const { service, prisma, authority } = makeService();
+
+    await expect(service.approve(user, 'detail-a')).resolves.toMatchObject({
+      approvedById: 'dean-1',
+      authority: OrganizationalAuthority.DEAN,
+    });
+    expect(authority.assertCanApprove).toHaveBeenCalledWith('dean-1', 'process-a');
+    expect(prisma.processFinalApproval.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        detailSopId: 'detail-a',
+        processId: 'process-a',
+        approvedById: 'dean-1',
+        authority: OrganizationalAuthority.DEAN,
+        authorityKey: 'DEAN',
+      }),
+    });
+  });
+
+  it('rejects approval before Process Owner accepted the SOP', async () => {
+    const { service } = makeService(StatusSOP.SEDANG_DIEVALUASI);
+
+    await expect(service.approve(user, 'detail-a')).rejects.toBeInstanceOf(ConflictException);
+  });
+});
