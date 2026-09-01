@@ -1,4 +1,5 @@
 import type { OrganizationalScope } from './process.dto'
+import type { PenyusunWorkbenchData } from './sop.dto'
 
 export type OrganizationalAuthority = 'DEAN' | 'HEAD_OF_DEPARTMENT'
 
@@ -43,4 +44,16 @@ export interface ProcessApprovalQueueRowDto {
   departmentNama: string | null
   approval: ProcessFinalApprovalDto | null
   updatedAt: string
+}
+
+export interface ProcessApprovalDocumentDto {
+  workbench: PenyusunWorkbenchData
+  authority: {
+    authority: OrganizationalAuthority
+    authorityKey: string
+    holderId: string
+    holderName: string
+    holderNip: string
+    holderJabatan: string
+  }
 }
