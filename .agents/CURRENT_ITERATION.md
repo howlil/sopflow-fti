@@ -1,52 +1,59 @@
 # Current Iteration
 
-Iteration: Sprint 4 — Global Pelaksana Catalog & Process-Native Procedure Authoring
+Iteration: Sprint 5 — Process Owner Review
 Delivery State: VERIFIED_BRANCH
-Branch: `feat/global-pelaksana-catalog`
+Branch: `feat/process-owner-review`
 Created: 2026-09-01
 
 ## Feature Shape
 
-Sprint 4 removes legacy OPD ownership from the target Pelaksana semantics and completes Process-contextual procedure authoring for Process-bound SOPs.
+Sprint 5 replaces the target centralized evaluator handoff for Process-bound SOPs with contextual Process Owner review while leaving legacy unbound SOPs on the compatibility workflow.
 
 Implemented target shape:
 
 ```text
-Global Pelaksana Catalog
-  -> reusable across Process / Department / Faculty
-  -> creator/latest-editor attribution
-
-SOP Version
-  -> selects Pelaksana as swimlanes
-  -> snapshots displayed actor labels
-
 Process Owner / Member
-  -> edits procedure for Process-bound SOP
-  -> step actor must belong to that SOP version's swimlane set
+  -> author Process-bound SOP
+  -> submit for review
+
+Process Owner
+  -> review
+     -> request revision -> Process Team edits again
+     -> accept -> ready for final approval
 ```
 
-Legacy unbound SOPs retain compatibility authorization until a later contract-cleanup slice.
+No global reviewer role, Super Admin bypass, Dean/Kadep approval, or TTE cutover is introduced in this sprint.
 
 ## Current Position
 
 `QUALITY GATES -> STOP`
 
-Sprint 4 implementation is verified on its branch. It is not merged, released, or deployed.
+Sprint 5 implementation is verified on its branch. It is not merged, released, or deployed.
 
 ## Completed Delta
 
-- Pelaksana list/create/edit semantics are global rather than OPD-owned on the target path.
-- Active authenticated users may maintain the global catalog without receiving Process review/final-approval authority from that permission.
-- New Pelaksana mutations retain creator/latest-editor attribution; unknown legacy attribution remains `NULL` rather than fabricated.
-- `DetailSOPPelaksanaSnapshot` preserves the actor label used by a versioned SOP so later catalog renames do not rewrite historical wording.
-- Process-bound procedure mutations authorize through Process Owner/Member relationship.
-- Legacy unbound SOP procedure mutations retain the existing role/OPD compatibility path.
-- `LangkahSOP.pelaksanaId` must reference a Pelaksana selected into `DetailSOPPelaksana` for the same `DetailSOP`.
-- Exact normalized duplicate Pelaksana rows can be consolidated and their swimlane/step references rewired to one canonical actor.
-- Legacy same-OPD Pelaksana triggers are retired before cross-OPD rewiring; replacement swimlane-consistency triggers are installed after consolidation.
-- Client Pelaksana management consumes the global catalog contract.
-- TanStack generated route tree is synchronized and committed.
-- `.agents/PROJECT.md` and `server/prisma/DB-INVARIANTS.md` now record the global Pelaksana domain and persistence invariants.
+- `ProcessContextService.assertCanReview` authorizes review only from the Process Owner relationship.
+- Process Owner and Process Members may submit a Process-bound SOP for review through the target Process API.
+- Process-bound submit bypasses legacy `PengajuanEvaluasi`; persisted `SEDANG_DIEVALUASI` is temporarily reused as the target “under Process Owner review” state.
+- Process Owner may return a submitted SOP for revision or accept it as ready for final approval.
+- Persisted `REVISI_DARI_EVALUATOR` is temporarily reused as target “returned for revision”.
+- Persisted `MENUNGGU_TTD_PJ_EVALUATOR` is temporarily reused as target “ready for final approval”.
+- Review status transitions are compare-and-set atomic and write the acting user to the existing discrete STATUS audit log in the same transaction.
+- Concurrent stale review decisions fail rather than overwriting the winning decision.
+- Client SOP editor uses Process-aware copy/actions for Process-bound SOPs and does not expose a final approval action in this sprint.
+- Legacy unbound SOPs continue using the existing evaluator compatibility path.
+
+## Transitional Status Mapping
+
+```text
+Target semantic                 Persisted compatibility status
+---------------------------------------------------------------
+Under Process Owner review      SEDANG_DIEVALUASI
+Returned for revision           REVISI_DARI_EVALUATOR
+Ready for final approval        MENUNGGU_TTD_PJ_EVALUATOR
+```
+
+These names are implementation compatibility seams, not target domain vocabulary.
 
 ## Verification Evidence
 
@@ -55,72 +62,49 @@ Sprint 4 implementation is verified on its branch. It is not merged, released, o
 - Prisma validate/generate: PASS.
 - Typecheck: PASS.
 - Core unit suite: PASS.
-- Focused target-domain authorization tests: PASS.
-- Server CI passed after the final migration SQL fix on commit `ea13d18abc3a80c75b855ced670ba45b1c1b5276`.
+- Focused FTI target-domain unit tests: PASS.
+- Server CI run `33513647044`: PASS on commit `4f524321f758bfe7314cedcc65ab81b7c378ff5c`.
+
+Focused review coverage includes:
+
+- Process Member/Owner submit,
+- Process Owner-only review,
+- revision transition,
+- acceptance transition,
+- invalid-state rejection,
+- stale concurrent-decision rejection.
 
 ### Client
 
 - Production build and route regeneration: PASS.
-- Generated route-tree consistency gate: PASS.
+- Generated route-tree consistency: PASS.
 - Typecheck: PASS.
 - Unit tests: PASS.
-- Client CI passed after isolating the Dashboard layout unit fixture from Process-query infrastructure.
+- Client CI run `33514209001`: PASS on commit `4248b4fa6d2d849501819450588257ae85e662d5`.
 
-### Targeted MariaDB Migration Rehearsal
+## Verification Scope
 
-A single Sprint-4-focused MariaDB 11.4 rehearsal passed.
-
-The rehearsal verified:
-
-```text
-Sprint 3 relational baseline
--> install relevant legacy same-OPD Pelaksana triggers
--> seed exact duplicate Pelaksana across two OPDs
--> apply Sprint 4 migration through Prisma migrate engine
--> verify canonical dedup/reference rewiring
--> verify snapshot backfill/stability
--> verify global actor-name uniqueness
--> verify new same-DetailSOP swimlane trigger
-```
-
-The rehearsal found and drove fixes for two real migration defects before closure:
-
-1. legacy same-OPD triggers initially remained active during cross-OPD duplicate rewiring; they are now retired before dedup;
-2. MariaDB rejected an ambiguous `urutan` reference in the duplicate-swimlane upsert; target-row columns are now qualified explicitly.
-
-Final targeted rehearsal run `33504916971`: PASS.
+No Prisma schema or SQL migration changed in Sprint 5, so a database migration rehearsal was not required. Verification stayed at the affected server/client behavior and repository quality gates.
 
 ## Residual Compatibility
 
-These are intentional and are not Sprint 4 completion failures:
-
-- physical `Pelaksana.opdId` remains as a legacy compatibility shadow; it is no longer target ownership/authorization semantics;
-- legacy SOPs without `ProcessSopBinding` still use compatibility procedure authorization;
-- Process Owner review/evaluator migration is not part of Sprint 4;
-- Dean/Kadep final approval and TTE authority are unchanged;
-- public archive grouping is unchanged;
-- deletion/merge administration for Pelaksana was not expanded.
-
-## Known Repository Verification Debt
-
-A first attempt to replay the full historical migration chain on a fresh database failed in a pre-Sprint-4 migration around `20260502000000...` because that legacy migration references a table before the historical chain has created it.
-
-Sprint 4 did not modify that old migration history because repairing the entire historical chain is outside this bounded slice. The Sprint 4 migration itself was instead verified against the Sprint 3 schema baseline with the relevant legacy Pelaksana triggers installed explicitly.
-
-Do not interpret the targeted rehearsal as proof that the repository's entire historical migration chain is fresh-database clean.
+- Final approval resolver/authority execution remains unchanged; Dean/Kadep approval is not part of Sprint 5.
+- TTE remains on the legacy authority path.
+- Legacy SOPs without `ProcessSopBinding` still use centralized evaluator compatibility behavior.
+- Persisted legacy status names remain as temporary compatibility states for Process review.
+- Existing public archive grouping and publication behavior remain unchanged.
+- Existing historical migration-chain debt from Sprint 4 remains unrelated and unchanged.
 
 ## Next Move
 
-Sprint 5 — Process Owner Review is the next planned meaningful iteration, but it is not started by this state update.
-
-Target direction:
+Sprint 6 should implement the contextual final-approval boundary:
 
 ```text
-Process Owner / Member
--> submit Process-owned SOP
--> Process Owner review
-   -> revision
-   -> accepted / ready for final approval
+READY FOR APPROVAL
+  -> FACULTY -> DEKAN
+  -> DEPARTMENT -> relevant KADEP
 ```
 
-Do not merge, release, or deploy Sprint 4 without explicit user authorization.
+That sprint should establish resolver authorization before TTE policy is cut over. TTE must execute the resolved authority, not define it.
+
+Do not merge, release, or deploy Sprint 5 without explicit user authorization.
