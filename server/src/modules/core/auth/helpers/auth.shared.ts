@@ -26,6 +26,10 @@ function durationMsFromString(timespan: string): number | null {
   }
 }
 
+/**
+ * Menghitung durasi token akses: `jsonwebtoken` menerima string timespan, tetapi parsing bisa gagal
+ * bila nilai env aneh; memberi **expiresIn berupa detik (integer)** menghindari cabang string di library.
+ */
 export function resolveAccessTokenExpiry(raw: unknown): {
   expiresInSeconds: number;
   maxAgeMs: number;
@@ -91,6 +95,7 @@ export function buildAccessTokenCookieOptions(
   };
 }
 
+/** Opsi `res.clearCookie` yang selaras dengan `buildAccessTokenCookieOptions` (tanpa `maxAge`). */
 export function buildClearAccessTokenCookieOptions(
   isProduction: boolean,
 ): Pick<CookieOptions, 'path' | 'httpOnly' | 'sameSite' | 'secure'> {

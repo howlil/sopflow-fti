@@ -26,6 +26,9 @@ export class AuthService {
     private readonly config: ConfigService,
   ) {}
 
+  /**
+   * Autentikasi email/kata sandi; menghasilkan JWT untuk cookie dan data pengguna publik.
+   */
   async login(dto: LoginDto): Promise<{
     accessToken: string;
     refreshToken: string;
@@ -61,6 +64,9 @@ export class AuthService {
     };
   }
 
+  /**
+   * Mengambil data publik pengguna yang sedang masuk (berdasarkan klaim JWT).
+   */
   async getMe(penggunaId: string): Promise<PublicPengguna> {
     const row = await this.authRepository.findActivePenggunaById(penggunaId);
     if (row === null) {
@@ -69,6 +75,7 @@ export class AuthService {
     return this.mapToPublicPengguna(row);
   }
 
+  /** Memperbarui nomor HP milik pengguna yang sedang login. */
   async updateMyPhone(penggunaId: string, dto: UpdateMyPhoneDto): Promise<PublicPengguna> {
     const row = await this.authRepository.findActivePenggunaById(penggunaId);
     if (row === null) {
@@ -81,6 +88,9 @@ export class AuthService {
     return this.mapToPublicPengguna(updated);
   }
 
+  /**
+   * Ubah kata sandi pengguna yang sedang login; wajib kata sandi lama valid.
+   */
   async changePassword(penggunaId: string, dto: ChangePasswordDto): Promise<void> {
     const row = await this.authRepository.findActivePenggunaById(penggunaId);
     if (row === null) {
