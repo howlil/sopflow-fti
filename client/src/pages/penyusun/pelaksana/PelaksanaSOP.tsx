@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { UserCog, Plus, Edit, Trash2 } from "lucide-react";
 import {
-  useCreatePelaksana,
-  useDeletePelaksana,
-  usePelaksana,
-  useUpdatePelaksana,
-} from "@/api/sop";
+  type GlobalPelaksana,
+  useCreateGlobalPelaksana,
+  useDeleteGlobalPelaksana,
+  useGlobalPelaksana,
+  useUpdateGlobalPelaksana,
+} from "@/api/pelaksana";
 import { DataSurface } from "@/components/data/data-surface";
 import { RowActions } from "@/components/data/row-actions";
 import { SingleTextFieldDialog } from "@/components/forms/single-text-field-dialog";
@@ -17,23 +18,26 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SearchInput } from "@/components/ui/search-input";
 import { useToast } from "@/hooks/useToast";
 import { hasRequiredStringFields } from "@/lib/forms/validation";
-import { useAuthStore } from "@/stores/authStore";
-import type { Pelaksana } from "@/types/dto/sop.dto";
 
 const REQUIRED_PELAKSANA_FIELDS = ["namaPelaksana"] as const;
 
+function formatAuditTime(value: string) {
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
 export function PelaksanaSOP() {
   const { showToast } = useToast();
-  const user = useAuthStore((state) => state.user);
-  const { list } = usePelaksana();
-  const { mutateAsync: addPelaksana } = useCreatePelaksana();
-  const { mutateAsync: updatePelaksana } = useUpdatePelaksana();
-  const { mutateAsync: removePelaksana } = useDeletePelaksana();
-  const userOpdId = user?.opdId;
+  const { list } = useGlobalPelaksana();
+  const { mutateAsync: addPelaksana } = useCreateGlobalPelaksana();
+  const { mutateAsync: updatePelaksana } = useUpdateGlobalPelaksana();
+  const { mutateAsync: removePelaksana } = useDeleteGlobalPelaksana();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<Pelaksana | null>(null);
+  const [editing, setEditing] = useState<GlobalPelaksana | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ namaPelaksana: "" });
   const isFormValid = hasRequiredStringFields(formData, REQUIRED_PELAKSANA_FIELDS);
@@ -41,31 +45,12 @@ export function PelaksanaSOP() {
   const filteredList = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return list;
-    return list.filter((item) =>
-      String(item.namaPelaksana ?? "")
-        .toLowerCase()
-        .includes(query),
-    );
+    return list.filter((item) => item.namaPelaksana.toLowerCase().includes(query));
   }, [list, searchQuery]);
 
-  if (!userOpdId) {
-    return (
-      <ListPageLayout
-        breadcrumb={[{ label: "Manajemen Pelaksana SOP" }]}
-        title="Manajemen Pelaksana SOP"
-      >
-        <EmptyState
-          icon={<UserCog className="w-8 h-8" />}
-          title="OPD tidak ditemukan"
-          description="Anda belum ditetapkan ke OPD tertentu. Silakan hubungi administrator untuk ditetapkan ke OPD."
-        />
-      </ListPageLayout>
-    );
-  }
-
-  const openEdit = (pelaksana: Pelaksana) => {
+  const openEdit = (pelaksana: GlobalPelaksana) => {
     setEditing(pelaksana);
-    setFormData({ namaPelaksana: pelaksana.namaPelaksana ?? "" });
+    setFormData({ namaPelaksana: pelaksana.namaPelaksana });
     setIsEditDialogOpen(true);
   };
 
@@ -80,14 +65,11 @@ export function PelaksanaSOP() {
       return;
     }
     try {
-      await addPelaksana({
-        namaPelaksana: formData.namaPelaksana.trim(),
-        opdId: userOpdId,
-      });
+      await addPelaksana(formData.namaPelaksana.trim());
       setIsCreateDialogOpen(false);
       resetForm();
     } catch {
-      // Toast ditangani useCreatePelaksana.
+      // Toast ditangani hook mutation.
     }
   };
 
@@ -98,14 +80,11 @@ export function PelaksanaSOP() {
       return;
     }
     try {
-      await updatePelaksana({
-        id: editing.id,
-        namaPelaksana: formData.namaPelaksana.trim(),
-      });
+      await updatePelaksana({ id: editing.id, namaPelaksana: formData.namaPelaksana.trim() });
       setIsEditDialogOpen(false);
       resetForm();
     } catch {
-      // Toast ditangani useUpdatePelaksana.
+      // Toast ditangani hook mutation.
     }
   };
 
@@ -115,14 +94,15 @@ export function PelaksanaSOP() {
       await removePelaksana(deleteId);
       setDeleteId(null);
     } catch {
-      // Toast ditangani useDeletePelaksana.
+      // Toast ditangani hook mutation.
     }
   };
 
   return (
     <ListPageLayout
-      breadcrumb={[{ label: "Manajemen Pelaksana SOP" }]}
-      title="Manajemen Pelaksana SOP"
+      breadcrumb={[{ label: "Katalog Pelaksana" }]}
+      title="Katalog Pelaksana"
+      description="Actor SOP reusable lintas Process dan Departemen. Perubahan master tidak mengubah label pada versi SOP yang sudah tersimpan."
     >
       <DataSurface.Root>
         <DataSurface.Header>
@@ -156,6 +136,8 @@ export function PelaksanaSOP() {
                 <thead>
                   <Table.HeadRow>
                     <Table.Th>Nama Pelaksana</Table.Th>
+                    <Table.Th>Dibuat Oleh</Table.Th>
+                    <Table.Th>Terakhir Diedit</Table.Th>
                     <Table.ActionTh>Aksi</Table.ActionTh>
                   </Table.HeadRow>
                 </thead>
@@ -163,10 +145,10 @@ export function PelaksanaSOP() {
                   {pageData.length === 0 ? (
                     <EmptyState
                       asTableRow
-                      colSpan={2}
+                      colSpan={4}
                       icon={<UserCog className="w-8 h-8" />}
                       title={searchQuery.trim() ? `Tidak ada pelaksana yang cocok dengan “${searchQuery.trim()}”` : "Belum ada pelaksana"}
-                      description={searchQuery.trim() ? "Ubah atau hapus kata kunci pencarian." : "Tambah pelaksana agar bisa dipilih di edit SOP (prosedur)"}
+                      description={searchQuery.trim() ? "Ubah atau hapus kata kunci pencarian." : "Tambahkan actor reusable untuk dipilih pada prosedur SOP."}
                     />
                   ) : (
                     pageData.map((pelaksana) => (
@@ -177,6 +159,18 @@ export function PelaksanaSOP() {
                               <UserCog className="w-3.5 h-3.5 text-amber-600" />
                             </div>
                             <p className="font-medium text-foreground">{pelaksana.namaPelaksana}</p>
+                          </div>
+                        </Table.Td>
+                        <Table.Td>
+                          <div className="text-sm">
+                            <div>{pelaksana.createdBy?.nama ?? "Data legacy"}</div>
+                            <div className="text-xs text-muted-foreground">{formatAuditTime(pelaksana.createdAt)}</div>
+                          </div>
+                        </Table.Td>
+                        <Table.Td>
+                          <div className="text-sm">
+                            <div>{pelaksana.updatedBy?.nama ?? "Belum tercatat"}</div>
+                            <div className="text-xs text-muted-foreground">{formatAuditTime(pelaksana.updatedAt)}</div>
                           </div>
                         </Table.Td>
                         <Table.ActionTd>
@@ -205,15 +199,15 @@ export function PelaksanaSOP() {
       <SingleTextFieldDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
-        title="Tambah Pelaksana SOP"
-        description="Pelaksana ini akan muncul di dropdown kolom pelaksana saat menyusun prosedur SOP"
+        title="Tambah Pelaksana"
+        description="Actor ini tersedia untuk seluruh Process dan SOP."
         confirmLabel="Simpan"
         cancelLabel="Batal"
         onConfirm={handleCreate}
         confirmDisabled={!isFormValid}
         size="lg"
         label="Nama Pelaksana"
-        placeholder="Contoh: Staf Administrasi"
+        placeholder="Contoh: Dosen"
         value={formData.namaPelaksana}
         onValueChange={(namaPelaksana) => setFormData({ ...formData, namaPelaksana })}
       />
@@ -221,8 +215,8 @@ export function PelaksanaSOP() {
       <SingleTextFieldDialog
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
-        title="Edit Pelaksana SOP"
-        description="Perbarui data pelaksana"
+        title="Edit Pelaksana"
+        description="Perubahan berlaku untuk pemilihan berikutnya; versi SOP menyimpan label snapshot."
         confirmLabel="Simpan Perubahan"
         cancelLabel="Batal"
         onConfirm={handleEdit}
@@ -236,7 +230,7 @@ export function PelaksanaSOP() {
       <ConfirmDialog
         open={deleteId != null}
         onOpenChange={(open) => !open && setDeleteId(null)}
-        title="Hapus pelaksana SOP?"
+        title="Hapus pelaksana?"
         description="Pelaksana yang sudah dipakai di prosedur tidak dapat dihapus. Lanjutkan?"
         onConfirm={handleDeleteConfirm}
       />
