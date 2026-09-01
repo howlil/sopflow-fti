@@ -45,6 +45,8 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { SopDaftarRow } from "@/types/dto/sop.dto";
 import { canHapusSopDraftAwal, useHapusSopDraftAwal } from "@/api/sop";
 
+type ProcessAwareSopRow = SopDaftarRow & { processNama?: string | null };
+
 const formatFilterDate = (value: string) =>
   new Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
@@ -242,63 +244,73 @@ export function ManajemenSOP() {
                       }
                     />
                   ) : (
-                    pageData.map((sop) => (
-                      <Table.BodyRow key={sop.id}>
-                        <Table.Td>
-                          <SopPrimaryCell title={sop.judul} />
-                        </Table.Td>
-                        <Table.Td>
-                          <SopNumberCell value={sop.nomorSop} />
-                        </Table.Td>
-                        <Table.Td>
-                          <SopVersionCell value={sop.versi} />
-                        </Table.Td>
-                        <Table.Td>
-                          <p className="text-secondary-foreground">{sop.pembuat ?? "—"}</p>
-                        </Table.Td>
-                        <Table.Td>
-                          <SopUpdatedByCell
-                            name={sop.terakhirDiedit.nama}
-                            date={sop.terakhirDiedit.waktu}
-                          />
-                        </Table.Td>
-                        <Table.Td>
-                          <SopStatusCell
-                            status={sop.status}
-                            label={sop.statusLabel}
-                          />
-                        </Table.Td>
-                        <Table.ActionTd>
-                          <RowActions
-                            actions={[
-                              sop.status && canEditSop(sop.status as StatusSOP)
-                                ? {
-                                    icon: Edit,
-                                    to: ROUTES.PENYUSUN.DETAIL_SOP,
-                                    params: { id: sop.detailSopId ?? sop.id },
-                                    title: "Edit",
-                                  }
-                                : {
-                                    icon: Eye,
-                                    to: ROUTES.PENYUSUN.DETAIL_SOP,
-                                    params: { id: sop.detailSopId ?? sop.id },
-                                    title: "Lihat",
-                                  },
-                              ...(canHapusSopDraftAwal(sop)
-                                ? [
-                                    {
-                                      icon: Trash2,
-                                      title: "Hapus draft SOP",
-                                      destructive: true,
-                                      onClick: () => setSopDraftToDelete(sop),
+                    pageData.map((sop) => {
+                      const processNama = (sop as ProcessAwareSopRow).processNama;
+                      return (
+                        <Table.BodyRow key={sop.id}>
+                          <Table.Td>
+                            <div className="space-y-0.5">
+                              <SopPrimaryCell title={sop.judul} />
+                              {processNama ? (
+                                <p className="text-xs text-secondary-foreground">
+                                  Process: {processNama}
+                                </p>
+                              ) : null}
+                            </div>
+                          </Table.Td>
+                          <Table.Td>
+                            <SopNumberCell value={sop.nomorSop} />
+                          </Table.Td>
+                          <Table.Td>
+                            <SopVersionCell value={sop.versi} />
+                          </Table.Td>
+                          <Table.Td>
+                            <p className="text-secondary-foreground">{sop.pembuat ?? "—"}</p>
+                          </Table.Td>
+                          <Table.Td>
+                            <SopUpdatedByCell
+                              name={sop.terakhirDiedit.nama}
+                              date={sop.terakhirDiedit.waktu}
+                            />
+                          </Table.Td>
+                          <Table.Td>
+                            <SopStatusCell
+                              status={sop.status}
+                              label={sop.statusLabel}
+                            />
+                          </Table.Td>
+                          <Table.ActionTd>
+                            <RowActions
+                              actions={[
+                                sop.status && canEditSop(sop.status as StatusSOP)
+                                  ? {
+                                      icon: Edit,
+                                      to: ROUTES.PENYUSUN.DETAIL_SOP,
+                                      params: { id: sop.detailSopId ?? sop.id },
+                                      title: "Edit",
+                                    }
+                                  : {
+                                      icon: Eye,
+                                      to: ROUTES.PENYUSUN.DETAIL_SOP,
+                                      params: { id: sop.detailSopId ?? sop.id },
+                                      title: "Lihat",
                                     },
-                                  ]
-                                : []),
-                            ]}
-                          />
-                        </Table.ActionTd>
-                      </Table.BodyRow>
-                    ))
+                                ...(canHapusSopDraftAwal(sop)
+                                  ? [
+                                      {
+                                        icon: Trash2,
+                                        title: "Hapus draft SOP",
+                                        destructive: true,
+                                        onClick: () => setSopDraftToDelete(sop),
+                                      },
+                                    ]
+                                  : []),
+                              ]}
+                            />
+                          </Table.ActionTd>
+                        </Table.BodyRow>
+                      );
+                    })
                   )}
                 </tbody>
               </Table.Table>
@@ -317,6 +329,7 @@ export function ManajemenSOP() {
         onOpenChange={setIsBuatSOPDialogOpen}
         onCreate={async (data) => {
           await create({
+            processId: data.processId,
             judul: data.judul,
             nomorSop: data.nomorSop,
           });
