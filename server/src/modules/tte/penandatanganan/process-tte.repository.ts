@@ -24,29 +24,37 @@ export type ProcessTteSigningContext = {
   };
 };
 
+type ProcessTteContextFailure = {
+  readonly ok?: false;
+  readonly error:
+    | 'NOT_FOUND'
+    | 'NOT_LATEST'
+    | 'LEGACY_UNBOUND'
+    | 'NOT_APPROVED'
+    | 'APPROVAL_CONTEXT_DRIFT'
+    | 'BAD_STATUS';
+  readonly status?: StatusSOP;
+};
+
 export type ProcessTteContextResult =
   | { readonly ok: true; readonly context: ProcessTteSigningContext }
-  | {
-      readonly ok?: false;
-      readonly error:
-        | 'NOT_FOUND'
-        | 'NOT_LATEST'
-        | 'LEGACY_UNBOUND'
-        | 'NOT_APPROVED'
-        | 'APPROVAL_CONTEXT_DRIFT'
-        | 'BAD_STATUS';
-      readonly status?: StatusSOP;
-    };
+  | ProcessTteContextFailure;
 
 export type ProcessTtePreparedDocument = ProcessTteSigningContext & {
   readonly dokumenTteId: string;
   readonly hashDokumen: string;
 };
 
+type ProcessTtePrepareFailure =
+  | ProcessTteContextFailure
+  | {
+      readonly ok?: false;
+      readonly error: 'FORBIDDEN_SIGNER' | 'INVALID_DOC_PARENT' | 'ALREADY_SIGNED';
+    };
+
 export type ProcessTtePrepareResult =
   | { readonly ok: true; readonly item: ProcessTtePreparedDocument }
-  | ProcessTteContextResult
-  | { readonly ok?: false; readonly error: 'FORBIDDEN_SIGNER' | 'INVALID_DOC_PARENT' | 'ALREADY_SIGNED' };
+  | ProcessTtePrepareFailure;
 
 export type ProcessTteFinalizeResult =
   | {
@@ -56,7 +64,7 @@ export type ProcessTteFinalizeResult =
       readonly authority: 'DEAN' | 'HEAD_OF_DEPARTMENT';
       readonly authorityKey: string;
     }
-  | ProcessTtePrepareResult
+  | ProcessTtePrepareFailure
   | { readonly ok?: false; readonly error: 'SOP_STATUS_DRIFT' };
 
 @Injectable()
