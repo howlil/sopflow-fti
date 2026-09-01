@@ -15,6 +15,7 @@ export interface E2eUser {
 
 const defaultPassword = process.env.E2E_SEED_PASSWORD ?? '@Password123:)'
 
+/** Legacy-role identities used by the pre-existing compatibility E2E matrix. */
 export const users = {
   pjEvaluator: {
     role: 'PJ_EVALUATOR',
@@ -53,7 +54,44 @@ export const users = {
   },
 } satisfies Record<string, E2eUser>
 
+/**
+ * Target FTI identities intentionally share the transitional PENYUSUN account role.
+ * Their actual capability comes from Process relationship or organizational authority.
+ * Keep them outside `allUsers` so the legacy role matrix remains unchanged.
+ */
+export const targetUsers = {
+  processOwner: {
+    role: 'PENYUSUN',
+    roleLabel: 'Process Owner',
+    email: process.env.E2E_PROCESS_OWNER_EMAIL ?? 'process.owner@gmail.com',
+    password: process.env.E2E_PROCESS_OWNER_PASSWORD ?? defaultPassword,
+    landingPath: '/work',
+  },
+  processMember: {
+    role: 'PENYUSUN',
+    roleLabel: 'Process Member',
+    email: process.env.E2E_PROCESS_MEMBER_EMAIL ?? 'process.member@gmail.com',
+    password: process.env.E2E_PROCESS_MEMBER_PASSWORD ?? defaultPassword,
+    landingPath: '/work',
+  },
+  dean: {
+    role: 'PENYUSUN',
+    roleLabel: 'Dekan',
+    email: process.env.E2E_DEAN_EMAIL ?? 'dean.fti@gmail.com',
+    password: process.env.E2E_DEAN_PASSWORD ?? defaultPassword,
+    landingPath: '/work',
+  },
+  headOfDepartment: {
+    role: 'PENYUSUN',
+    roleLabel: 'Kepala Departemen',
+    email: process.env.E2E_HEAD_OF_DEPARTMENT_EMAIL ?? 'kadep.if@gmail.com',
+    password: process.env.E2E_HEAD_OF_DEPARTMENT_PASSWORD ?? defaultPassword,
+    landingPath: '/work',
+  },
+} satisfies Record<string, E2eUser>
+
 export const allUsers = Object.values(users)
+export const allTargetUsers = Object.values(targetUsers)
 
 export const navByRole: Record<RoleKey, string[]> = {
   PJ_EVALUATOR: [

@@ -1,7 +1,13 @@
 import 'dotenv/config';
 import * as bcrypt from 'bcrypt';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
-import { PeranPengguna, PlatformRole, PrismaClient } from '../src/generated/prisma';
+import {
+  OrganizationalAuthority,
+  OrganizationalScope,
+  PeranPengguna,
+  PlatformRole,
+  PrismaClient,
+} from '../src/generated/prisma';
 
 const DEFAULT_PASSWORD = '@Password123:)';
 const BCRYPT_SALT_ROUNDS = 10;
@@ -45,7 +51,7 @@ type SeedUser = {
   opd: 'BIRO' | 'DINKES';
 };
 
-const users: readonly SeedUser[] = [
+const legacyUsers: readonly SeedUser[] = [
   {
     email: 'pjevaluator@gmail.com',
     nama: 'PJ Evaluator E2E',
@@ -99,6 +105,51 @@ const users: readonly SeedUser[] = [
   },
 ];
 
+const targetUsers: readonly SeedUser[] = [
+  {
+    email: 'process.owner@gmail.com',
+    nama: 'Process Owner E2E',
+    peran: PeranPengguna.PENYUSUN,
+    nip: '198501012009011101',
+    jabatan: 'Process Owner',
+    pangkat: 'Penata',
+    nohp: '6281234567801',
+    opd: 'DINKES',
+  },
+  {
+    email: 'process.member@gmail.com',
+    nama: 'Process Member E2E',
+    peran: PeranPengguna.PENYUSUN,
+    nip: '198501012009011102',
+    jabatan: 'Process Member',
+    pangkat: 'Penata',
+    nohp: '6281234567802',
+    opd: 'DINKES',
+  },
+  {
+    email: 'dean.fti@gmail.com',
+    nama: 'Dekan FTI E2E',
+    peran: PeranPengguna.PENYUSUN,
+    nip: '198501012009011103',
+    jabatan: 'Dekan FTI',
+    pangkat: 'Pembina',
+    nohp: '6281234567803',
+    opd: 'DINKES',
+  },
+  {
+    email: 'kadep.if@gmail.com',
+    nama: 'Kadep Informatika E2E',
+    peran: PeranPengguna.PENYUSUN,
+    nip: '198501012009011104',
+    jabatan: 'Kepala Departemen',
+    pangkat: 'Pembina',
+    nohp: '6281234567804',
+    opd: 'DINKES',
+  },
+];
+
+const allSeedUsers = [...legacyUsers, ...targetUsers] as const;
+
 async function main(): Promise<void> {
   const password =
     process.env.E2E_SEED_PASSWORD ?? process.env.SEED_DEFAULT_PASSWORD ?? DEFAULT_PASSWORD;
@@ -108,8 +159,9 @@ async function main(): Promise<void> {
     const biro = await tx.oPD.create({ data: { nama: 'Biro Organisasi' } });
     const dinkes = await tx.oPD.create({ data: { nama: 'Dinas Kesehatan' } });
     const opdIds = { BIRO: biro.opdId, DINKES: dinkes.opdId } as const;
+    const userIds = new Map<string, string>();
 
-    for (const user of users) {
+    for (const user of allSeedUsers) {
       const created = await tx.pengguna.create({
         data: {
           email: user.email,
@@ -124,6 +176,7 @@ async function main(): Promise<void> {
           opdId: opdIds[user.opd],
         },
       });
+      userIds.set(user.email, created.penggunaId);
 
       await tx.riwayatOpdPengguna.create({
         data: {
@@ -133,9 +186,62 @@ async function main(): Promise<void> {
         },
       });
     }
+
+    const getUserId = (email: string): string => {
+      const penggunaId = userIds.get(email);
+      if (!penggunaId) throw new Error(`Target E2E user tidak ditemukan: ${email}`);
+      return penggunaId;
+    };
+
+    const department = await tx.department.create({
+      data: { nama: 'Teknik Informatika' },
+    });
+
+    const facultyProcess = await tx.process.create({
+      data: {
+        nama: 'Pengelolaan Akademik FTI',
+        scope: OrganizationalScope.FACULTY,
+        ownerId: getUserId('process.owner@gmail.com'),
+      },
+    });
+
+    await tx.processMember.create({
+      data: {
+        processId: facultyProcess.processId,
+        penggunaId: getUserId('process.member@gmail.com'),
+      },
+    });
+
+    await tx.process.create({
+      data: {
+        nama: 'Layanan Akademik Informatika',
+        scope: OrganizationalScope.DEPARTMENT,
+        departmentId: department.departmentId,
+        ownerId: getUserId('process.owner@gmail.com'),
+      },
+    });
+
+    await tx.organizationalAuthorityAssignment.createMany({
+      data: [
+        {
+          authorityKey: 'DEAN',
+          authority: OrganizationalAuthority.DEAN,
+          departmentId: null,
+          holderId: getUserId('dean.fti@gmail.com'),
+        },
+        {
+          authorityKey: `HEAD_OF_DEPARTMENT:${department.departmentId}`,
+          authority: OrganizationalAuthority.HEAD_OF_DEPARTMENT,
+          departmentId: department.departmentId,
+          holderId: getUserId('kadep.if@gmail.com'),
+        },
+      ],
+    });
   });
 
-  console.log('E2E seed selesai: 2 OPD, 5 role utama, dan 1 platform SUPER_ADMIN.');
+  console.log(
+    'E2E seed selesai: 5 akun legacy, 4 identity target FTI, 2 Process, dan 2 kewenangan organisasi.',
+  );
 }
 
 main()
