@@ -2,35 +2,50 @@
 
 ## Goal
 
-Keep delivery fast, reviewable, reversible, and proportional to the requirement without adding branching or PR ceremony that does not reduce risk.
+Keep delivery fast, reviewable, reversible, and continuously integrated without turning Git into a second planning lifecycle.
 
-Git is a delivery mechanism, not a second product lifecycle. Engineering lifecycle and authority rules remain in `AGENTS.md`; verification commands remain in `DEVELOPMENT.md`.
+Canonical delivery hierarchy:
 
-## Integration Branch
+`Milestone -> Slice -> Logical Change -> Commit`
 
-`master` is the integration branch for this repository.
+Canonical Git principle:
 
-Treat current `master` as the base truth before starting a meaningful change. Re-read the affected files/refs when another change may have landed since the previous inspection.
+**Plan at milestone boundaries. Integrate at logical-change boundaries. Increase planning horizon, not integration batch size.**
 
-Do not rewrite unrelated history.
+`master` is the integration branch and should stay close to verified working state.
 
-## Working Tree Safety
+## Integration First
 
-Before changing code in a local checkout:
+Do not accumulate completed slices on stacked feature branches when they can be safely integrated.
 
-- inspect current branch and working-tree state;
-- preserve unrelated user/agent changes;
-- do not discard, reset, clean, stash, or overwrite unrelated work merely to obtain a clean tree;
-- do not use destructive `reset --hard`, forced checkout, broad clean, or equivalent operations without explicit user direction;
-- if unrelated changes coexist, scope edits and verification around the requested change instead of silently absorbing them.
+Default flow for an approved logical change:
 
-When using a repository connector that creates commits directly, still preserve the same logical boundary: one commit/change should not include unrelated files.
+```text
+bounded logical change
+-> focused verification
+-> relevant quality gates
+-> self-review
+-> integrate to master
+-> continue next logical change/slice
+```
+
+Integration does not imply release or deployment.
+
+```text
+implemented
+!= integrated
+!= release ready
+!= released
+!= deployed
+```
 
 ## Branching
 
-For meaningful implementation work, prefer one short-lived branch per coherent iteration/change when the execution environment supports normal branch/PR flow.
+Branches are an isolation mechanism, not a unit of planning.
 
-Suggested names:
+Use a short-lived branch when it materially improves safety, review isolation, CI execution, or recovery for a meaningful logical change. Do not create a branch merely because a new slice starts.
+
+Preferred names when a branch is useful:
 
 ```text
 feat/<short-goal>
@@ -42,76 +57,52 @@ chore/<short-goal>
 Rules:
 
 - branch from current `master`;
-- one branch should represent one coherent vertical slice or iteration;
-- do not create branch-per-file or branch-per-layer;
-- do not stack dependent branches unless parallel delivery genuinely requires it;
-- avoid long-lived feature branches;
-- trivial bounded documentation/agent/config maintenance does not require branch ceremony when the user is already operating directly on `master` or the connector performs a single explicit repository mutation.
+- keep branch scope to one coherent logical change or tightly coupled set of changes;
+- integrate promptly after relevant gates are green;
+- do not create branch-per-file, branch-per-layer, or branch-per-sprint;
+- do not stack dependent branches by default;
+- if stacking is temporarily necessary, integrate the parent as soon as safe and retarget/rebase the child so the outstanding diff stays small;
+- do not keep a verified branch alive merely to wait for milestone completion.
 
-Branching must reduce integration/review risk; do not use it as ceremony.
+Trivial docs/agent/config maintenance may go directly to `master` when isolation provides no value.
 
 ## Commits
 
-Commits should represent coherent, reviewable progress.
+Commits are the smallest durable Git unit. They should represent coherent reviewable progress, not ceremony.
 
-Prefer a small number of meaningful commits over:
+Prefer a small number of intent-oriented commits over commit-per-file or noisy checkpoints.
 
-- commit-per-file;
-- noisy checkpoint commits;
-- one giant commit mixing unrelated behavior.
-
-Prefer concise intent-oriented commit messages using the repository's existing conventional style where practical:
+A coherent commit may include multiple technical layers when they must change together for one behavior/invariant, for example:
 
 ```text
-feat: add process team ownership
-fix: enforce department approver scope
-refactor: replace centralized evaluator semantics
-test: cover process team authorization
-docs(agents): define FTI domain rules
-chore: align development commands
+schema + service + API + focused tests
 ```
 
-Do not rewrite already-shared history solely to normalize commit-message style.
+Do not split by frontend/backend/database layer if intermediate commits would be misleading or broken.
 
-A commit is evidence of repository state, not evidence that the change is `RELEASE READY`.
+Keep unrelated cleanup, formatting, dependency upgrades, and speculative refactors out of the logical change.
 
-## Commit Boundary
+## Verification Before Integration
 
-A coherent commit should normally keep together code that must change together for one observable behavior or invariant.
+Use the narrowest meaningful verification for the changed risk boundary before integration.
 
-Examples:
-
-```text
-schema + repository + service + focused tests
-```
-
-may belong together when they are one vertical behavior change.
-
-Do not split commits artificially by technical layer if each intermediate commit would be misleading or broken.
-
-Conversely, keep unrelated cleanup, formatting, dependency upgrades, and speculative refactors out of a feature commit.
-
-## Verification Before Commit
-
-Run the narrowest meaningful verification for the change before representing a commit as completed implementation.
-
-Use `DEVELOPMENT.md` for exact commands.
-
-The expected pattern is:
+Typical flow:
 
 ```text
-implement bounded change
--> focused verification
--> relevant broader gate when risk requires it
+implement
+-> focused tests/evidence
+-> affected broader gate when justified
 -> inspect diff
--> commit coherent result
+-> integrate
 ```
 
-Do not require every repository-wide gate for every tiny change. Do not skip migration/runtime/browser/security evidence when the changed boundary specifically requires it.
+Do not require every repository-wide gate for every small change. Do not skip migration/runtime/browser/security/TTE evidence when that boundary changed.
+
+CI is evidence only when it actually ran for the relevant revision.
 
 ## Self-Review
 
-Before finalizing a meaningful implementation commit or PR, inspect the diff with this risk order:
+Before integration, inspect the logical change using this risk order:
 
 ```text
 correctness
@@ -125,116 +116,89 @@ correctness
 -> tests/docs
 ```
 
-Review comments/findings should correspond to a realistic failure, regression, security problem, or maintenance risk. Do not block delivery on preferences already enforced mechanically or aesthetic nits with no meaningful consequence.
+Block integration only for realistic regressions, unresolved stop conditions, or material risks—not aesthetic preferences or already-mechanically-enforced nits.
 
 ## Pull Requests
 
-Use a PR when the work is being delivered through a branch/review flow or when review isolation materially helps the change.
+PRs are optional review/isolation surfaces, not mandatory delivery ceremonies.
 
-A PR should contain the smallest coherent change that satisfies the requested scope.
+Use a PR when:
 
-PR description should contain only decision-useful information:
+- branch protection/review requires it;
+- review isolation materially reduces risk;
+- CI or collaboration benefits from it.
 
-- requested outcome;
+A PR should correspond to the smallest coherent logical change that is worth independent integration.
+
+PR descriptions should contain only decision-useful information:
+
+- outcome;
 - important behavior/design delta;
 - affected product/security/data/architecture boundaries;
 - verification evidence;
-- known release-relevant limitations or migration notes.
+- release-relevant limitations/migration notes.
 
-Do not add generic checklists that do not change a decision.
+Do not wait until the whole milestone is complete to open/merge a PR if earlier logical changes are already independently safe.
 
-A PR is not required merely because a change exists. For solo-agent iterations, the branch/PR overhead must be justified by integration or review value.
+## Merge / Integration Authority
 
-## Merge Boundary
+Within an already approved milestone, routine integration of a verified logical change is agent-owned engineering execution when it:
 
-Merge authority follows `AGENTS.md`.
+- preserves approved product behavior and architecture boundaries;
+- has relevant gates green;
+- has no unresolved stop condition;
+- does not itself constitute release/deploy/destructive action.
 
-Do **not** infer permission to merge merely because:
+Do not require a separate merge ceremony for every slice.
 
-- implementation is complete;
-- tests are green;
-- a PR exists;
-- self-review is clean.
+Still stop and request explicit user direction if integration would include:
 
-When the user explicitly requests merge, or the current execution request explicitly includes merge as part of delivery, prefer:
-
-```text
-focused change
--> relevant quality gates green
--> self-review clean
--> no unresolved stop condition
--> squash merge
--> master
-```
-
-Use squash merge for a coherent sprint/change PR unless the repository/user explicitly requires another strategy.
-
-Do not merge when any unresolved material boundary remains, including:
-
-- unapproved product-semantic change;
-- material architecture/data-ownership/security change;
+- unapproved product semantics;
+- material architecture/data-ownership/security changes;
 - destructive migration;
 - breaking public contract;
-- uncertain CI/test failure ownership;
-- unresolved migration/data mapping ambiguity.
+- unresolved migration/data ambiguity;
+- uncertain CI failure ownership.
 
-Do not weaken branch protection or required review controls as an incidental workaround.
+When a PR merge is appropriate, prefer squash for a noisy temporary branch representing one logical change; preserve meaningful commit history when commits themselves are coherent integration units. A clean fast-forward is preferred when the branch is a linear descendant and history is already meaningful.
 
-## Rebase And History Rewrites
+## Working Tree And History Safety
 
-- rebase/retarget a private short-lived branch when needed to keep its diff bounded against current `master`;
-- do not force-push shared work without explicit need and awareness of collaborators;
-- do not rewrite unrelated history;
-- never use history rewriting as a substitute for fixing the actual current-state change.
+- preserve unrelated user/agent changes;
+- do not reset/clean/stash/overwrite unrelated work merely to get a clean tree;
+- never use destructive `reset --hard`, force checkout, or broad clean without explicit direction;
+- do not force-push shared work unless necessary and understood;
+- do not rewrite unrelated history.
 
-For stacked work, merge the parent first, retarget/rebase the child onto current `master`, confirm the remaining child diff is still coherent, then rerun the relevant gates.
+## Milestone Continuity
 
-## CI
+Completing a slice does not imply stopping Git delivery.
 
-CI status is evidence only when CI actually exists and ran for the relevant revision.
+After a slice is integrated:
 
-Do not claim `CI green` from local tests.
+```text
+update CURRENT_ITERATION.md
+-> select next approved slice
+-> continue
+```
 
-If no repository CI workflow/required checks exist for the current revision, report local verification as local verification. Do not introduce a CI platform/workflow as part of an unrelated feature merely because one is absent.
-
-When CI exists:
-
-- fix failures caused by the requested change;
-- distinguish pre-existing/unrelated failures from scoped regressions using evidence;
-- do not broaden the implementation merely to clean unrelated CI debt unless explicitly requested.
+Re-plan/branch differently only if evidence materially changes the milestone boundary or implementation isolation needs.
 
 ## Release And Deployment
 
-Commit, push, PR, merge, release, and production deployment are separate states.
+Integration to `master` is not production authority.
 
-Canonical distinction:
-
-```text
-implemented
-!= committed
-!= pushed
-!= PR ready
-!= merged
-!= release ready
-!= released
-!= deployed
-```
-
-Never report a later state without evidence that action occurred.
-
-Production release/deployment is never inferred from a successful merge.
+Release/deployment require explicit direction and evidence appropriate to the environment. Never report released/deployed state from CI or merge alone.
 
 ## Agent Git Behavior
 
-A user request to implement/fix/refactor/align authorizes the commits required by the repository connector/tool to persist that requested change, consistent with `AGENTS.md`.
+A user-approved milestone or implementation request authorizes repository edits, coherent commits, and routine logical-change integration needed to execute that approved scope.
 
 It does not automatically authorize:
 
 - destructive reset;
-- force push;
-- unrelated history rewrite;
-- merge;
+- force push/history rewrite;
 - release;
-- deployment.
+- production deployment.
 
-Keep Git operations proportional to the task. The desired result is a small, understandable history that mirrors meaningful delivery—not a large trail of agent ceremony.
+Keep history small and understandable. The desired outcome is continuous small-batch integration, not a trail of sprint/branch ceremony.
