@@ -35,7 +35,7 @@ concurrency:
 jobs:
   fti-target-journeys:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       DATABASE_HOST: 127.0.0.1
       DATABASE_PORT: 3308
@@ -147,9 +147,9 @@ jobs:
         working-directory: client
         run: pnpm test:e2e:audit
 
-      - name: Run FTI target journeys J08-J11
+      - name: Run FTI target journeys J08-J15
         working-directory: client
-        run: node scripts/run-e2e.mjs journeys --grep 'J(08|09|10|11)\b' --project=chromium
+        run: node scripts/run-e2e.mjs journeys --grep 'J(08|09|10|11|12|13|14|15)\b' --project=chromium
 
       - name: Backend logs on failure
         if: failure()

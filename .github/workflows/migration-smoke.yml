@@ -162,20 +162,20 @@ jobs:
 
       - name: Verify target E2E context
         run: |
-          target_users="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM sop_biro_organisasi_test.Pengguna WHERE email IN ('process.owner@gmail.com','process.member@gmail.com','dean.fti@gmail.com','kadep.if@gmail.com')")"
-          target_processes="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM sop_biro_organisasi_test.\`Process\` WHERE nama IN ('Pengelolaan Akademik FTI','Layanan Akademik Informatika')")"
+          target_users="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM sop_biro_organisasi_test.Pengguna WHERE email IN ('process.owner@gmail.com','process.member@gmail.com','dean.fti@gmail.com','kadep.if@gmail.com','process.member.if@gmail.com','process.member.si@gmail.com','kadep.si@gmail.com')")"
+          target_processes="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM sop_biro_organisasi_test.\`Process\` WHERE nama IN ('Pengelolaan Akademik FTI','Layanan Akademik Informatika','Layanan Akademik Sistem Informasi')")"
           target_authorities="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM sop_biro_organisasi_test.OrganizationalAuthorityAssignment")"
 
-          test "$target_users" = "4" || {
-            echo "Expected four target E2E identities, got $target_users"
+          test "$target_users" = "7" || {
+            echo "Expected seven target E2E identities, got $target_users"
             exit 1
           }
-          test "$target_processes" = "2" || {
-            echo "Expected two target E2E Processes, got $target_processes"
+          test "$target_processes" = "3" || {
+            echo "Expected three target E2E Processes, got $target_processes"
             exit 1
           }
-          test "$target_authorities" = "2" || {
-            echo "Expected two target E2E authority assignments, got $target_authorities"
+          test "$target_authorities" = "3" || {
+            echo "Expected three target E2E authority assignments, got $target_authorities"
             exit 1
           }
 

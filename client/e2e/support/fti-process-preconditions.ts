@@ -1,6 +1,6 @@
 import type { APIRequestContext } from '@playwright/test'
 
-import { targetUsers } from '../fixtures/users'
+import { targetUsers, type E2eUser } from '../fixtures/users'
 import type { RoleApiFactory } from '../fixtures/business-test'
 import { apiGet, apiPatch, apiPost } from './api'
 import { sopFixture } from './test-data'
@@ -44,11 +44,20 @@ export interface ReadyProcessSopFixture {
   processName: string
 }
 
-async function resolveFacultyProcess(context: APIRequestContext): Promise<ProcessContextRow> {
+export interface ProcessSopSeedOptions {
+  actor?: E2eUser
+  processName?: string
+  institutionName?: string
+}
+
+async function resolveProcess(
+  context: APIRequestContext,
+  processName: string,
+): Promise<ProcessContextRow> {
   const processes = await apiGet<ProcessContextRow[]>(context, '/process-context/mine')
-  const process = processes.find((row) => row.nama === 'Pengelolaan Akademik FTI')
+  const process = processes.find((row) => row.nama === processName)
   if (!process) {
-    throw new Error('Target E2E Faculty Process tidak tersedia')
+    throw new Error(`Target E2E Process tidak tersedia untuk identity ini: ${processName}`)
   }
   return process
 }
@@ -56,16 +65,20 @@ async function resolveFacultyProcess(context: APIRequestContext): Promise<Proces
 /**
  * Membentuk satu SOP Process yang lengkap tetapi tetap DRAFT.
  *
- * Semua mutation di sini adalah PRECONDITION. Aksi submit/review yang menjadi objek
- * J09 tetap dilakukan melalui browser. Related SOP sengaja memakai compatibility
- * authoring endpoint agar hanya satu Process-bound row muncul di target work queue.
+ * Semua mutation di sini adalah PRECONDITION. Aksi workflow yang menjadi objek journey
+ * tetap dilakukan melalui browser. Related SOP sengaja memakai compatibility authoring
+ * endpoint agar hanya subject Process-bound row yang masuk target work queue.
  */
 export async function seedReadyProcessSop(
   apiFor: RoleApiFactory,
   prefix = 'FTI-PROCESS',
+  options: ProcessSopSeedOptions = {},
 ): Promise<ReadyProcessSopFixture> {
-  const memberApi = await apiFor(targetUsers.processMember)
-  const process = await resolveFacultyProcess(memberApi)
+  const actor = options.actor ?? targetUsers.processMember
+  const processName = options.processName ?? 'Pengelolaan Akademik FTI'
+  const institutionName = options.institutionName ?? 'Fakultas Teknologi Informasi'
+  const memberApi = await apiFor(actor)
+  const process = await resolveProcess(memberApi, processName)
   const fixture = sopFixture(prefix)
   const relatedFixture = sopFixture(`${prefix}-REL`)
 
@@ -81,17 +94,17 @@ export async function seedReadyProcessSop(
   const relatedSop = await apiPost<SopRow>(memberApi, '/sop', {
     judul: relatedFixture.title,
     nomorSop: relatedFixture.number,
-    namaLembaga: 'Fakultas Teknologi Informasi',
+    namaLembaga: institutionName,
   })
   const sop = await apiPost<SopRow>(memberApi, '/process-sop', {
     processId: process.processId,
     judul: fixture.title,
     nomorSop: fixture.number,
-    namaLembaga: 'Fakultas Teknologi Informasi',
+    namaLembaga: institutionName,
   })
 
   await apiPatch<Workbench>(memberApi, `/process-sop/header/${sop.detailSopId}`, {
-    namaLembaga: 'Fakultas Teknologi Informasi',
+    namaLembaga: institutionName,
     dasarHukumPeraturanIds: [peraturan.id],
     sopTerkaitDetailIds: [relatedSop.detailSopId],
     lampiran: {
@@ -146,7 +159,7 @@ export async function seedReadyProcessSop(
     `/process-sop/workbench/${sop.detailSopId}`,
   )
   if (workbench.detail.status !== 'DRAFT') {
-    throw new Error(`Precondition J09 harus tetap DRAFT, ditemukan ${workbench.detail.status}`)
+    throw new Error(`Precondition Process SOP harus tetap DRAFT, ditemukan ${workbench.detail.status}`)
   }
 
   return {

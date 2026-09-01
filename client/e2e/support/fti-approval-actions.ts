@@ -25,7 +25,7 @@ export async function acceptProcessSopViaUi(
   await expectNoAppShellError(page)
 }
 
-export async function openFinalApprovalFromDeanNotification(
+export async function openFinalApprovalFromNotification(
   page: Page,
   processName: string,
 ): Promise<void> {
@@ -38,27 +38,39 @@ export async function openFinalApprovalFromDeanNotification(
 
   const notification = page.getByRole('link').filter({
     hasText: 'Persetujuan akhir SOP diperlukan',
+  }).filter({
+    hasText: `SOP pada Process ${processName} menunggu persetujuan akhir Anda.`,
   })
   await expect(notification).toBeVisible()
-  await expect(notification).toContainText(
-    `SOP pada Process ${processName} menunggu persetujuan akhir Anda.`,
-  )
   await notification.click()
   await page.waitForURL((url) => url.pathname === '/approval', { timeout: 15_000 })
   await waitForAppReady(page)
   await expectNoAppShellError(page)
 }
 
-export async function approveFacultyProcessSopViaUi(
+export async function openFinalApprovalFromDeanNotification(
+  page: Page,
+  processName: string,
+): Promise<void> {
+  await openFinalApprovalFromNotification(page, processName)
+}
+
+export async function approveProcessSopViaUi(
   page: Page,
   title: string,
+  authorityLabel: string,
 ): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Persetujuan Akhir' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: title })).toBeVisible()
-  await expect(page.getByText('Fakultas · Dekan', { exact: true })).toBeVisible()
-  await expect(page.getByText('Menunggu persetujuan akhir', { exact: true })).toBeVisible()
+  const titleHeading = page.getByRole('heading', { name: title, exact: true })
+  await expect(titleHeading).toBeVisible()
 
-  const approve = page.getByRole('button', { name: 'Setujui', exact: true })
+  const pendingRow = titleHeading.locator(
+    'xpath=ancestor::div[.//button[normalize-space(.)="Setujui"]][1]',
+  )
+  await expect(pendingRow.getByText(authorityLabel, { exact: true })).toBeVisible()
+  await expect(pendingRow.getByText('Menunggu persetujuan akhir', { exact: true })).toBeVisible()
+
+  const approve = pendingRow.getByRole('button', { name: 'Setujui', exact: true })
   await expect(approve).toBeEnabled()
   await approve.click()
 
@@ -67,9 +79,23 @@ export async function approveFacultyProcessSopViaUi(
   await dialog.getByRole('button', { name: 'Ya, setujui', exact: true }).click()
   await expect(dialog).toBeHidden({ timeout: 15_000 })
 
-  await expect(page.getByText('Persetujuan akhir tercatat · siap TTE', { exact: true })).toBeVisible({
-    timeout: 15_000,
-  })
-  await expect(page.getByRole('button', { name: 'Tanda tangani', exact: true })).toBeVisible()
+  // Approval rerenders the row and removes the Setujui button. Reacquire the
+  // post-transition row from its new stable action instead of reusing a locator
+  // whose predicate describes the previous state.
+  const approvedHeading = page.getByRole('heading', { name: title, exact: true })
+  const approvedRow = approvedHeading.locator(
+    'xpath=ancestor::div[.//button[normalize-space(.)="Tanda tangani"]][1]',
+  )
+  await expect(
+    approvedRow.getByText('Persetujuan akhir tercatat · siap TTE', { exact: true }),
+  ).toBeVisible({ timeout: 15_000 })
+  await expect(approvedRow.getByRole('button', { name: 'Tanda tangani', exact: true })).toBeVisible()
   await expectNoAppShellError(page)
+}
+
+export async function approveFacultyProcessSopViaUi(
+  page: Page,
+  title: string,
+): Promise<void> {
+  await approveProcessSopViaUi(page, title, 'Fakultas · Dekan')
 }

@@ -141,9 +141,39 @@ const targetUsers: readonly SeedUser[] = [
     nama: 'Kadep Informatika E2E',
     peran: PeranPengguna.PENYUSUN,
     nip: '198501012009011104',
-    jabatan: 'Kepala Departemen',
+    jabatan: 'Kepala Departemen Informatika',
     pangkat: 'Pembina',
     nohp: '6281234567804',
+    opd: 'DINKES',
+  },
+  {
+    email: 'process.member.if@gmail.com',
+    nama: 'Process Member Informatika E2E',
+    peran: PeranPengguna.PENYUSUN,
+    nip: '198501012009011105',
+    jabatan: 'Process Member Informatika',
+    pangkat: 'Penata',
+    nohp: '6281234567805',
+    opd: 'DINKES',
+  },
+  {
+    email: 'process.member.si@gmail.com',
+    nama: 'Process Member Sistem Informasi E2E',
+    peran: PeranPengguna.PENYUSUN,
+    nip: '198501012009011106',
+    jabatan: 'Process Member Sistem Informasi',
+    pangkat: 'Penata',
+    nohp: '6281234567806',
+    opd: 'DINKES',
+  },
+  {
+    email: 'kadep.si@gmail.com',
+    nama: 'Kadep Sistem Informasi E2E',
+    peran: PeranPengguna.PENYUSUN,
+    nip: '198501012009011107',
+    jabatan: 'Kepala Departemen Sistem Informasi',
+    pangkat: 'Pembina',
+    nohp: '6281234567807',
     opd: 'DINKES',
   },
 ];
@@ -193,8 +223,11 @@ async function main(): Promise<void> {
       return penggunaId;
     };
 
-    const department = await tx.department.create({
+    const departmentIf = await tx.department.create({
       data: { nama: 'Teknik Informatika' },
+    });
+    const departmentSi = await tx.department.create({
+      data: { nama: 'Sistem Informasi' },
     });
 
     const facultyProcess = await tx.process.create({
@@ -204,21 +237,38 @@ async function main(): Promise<void> {
         ownerId: getUserId('process.owner@gmail.com'),
       },
     });
-
-    await tx.processMember.create({
-      data: {
-        processId: facultyProcess.processId,
-        penggunaId: getUserId('process.member@gmail.com'),
-      },
-    });
-
-    await tx.process.create({
+    const departmentProcessIf = await tx.process.create({
       data: {
         nama: 'Layanan Akademik Informatika',
         scope: OrganizationalScope.DEPARTMENT,
-        departmentId: department.departmentId,
+        departmentId: departmentIf.departmentId,
         ownerId: getUserId('process.owner@gmail.com'),
       },
+    });
+    const departmentProcessSi = await tx.process.create({
+      data: {
+        nama: 'Layanan Akademik Sistem Informasi',
+        scope: OrganizationalScope.DEPARTMENT,
+        departmentId: departmentSi.departmentId,
+        ownerId: getUserId('process.owner@gmail.com'),
+      },
+    });
+
+    await tx.processMember.createMany({
+      data: [
+        {
+          processId: facultyProcess.processId,
+          penggunaId: getUserId('process.member@gmail.com'),
+        },
+        {
+          processId: departmentProcessIf.processId,
+          penggunaId: getUserId('process.member.if@gmail.com'),
+        },
+        {
+          processId: departmentProcessSi.processId,
+          penggunaId: getUserId('process.member.si@gmail.com'),
+        },
+      ],
     });
 
     await tx.organizationalAuthorityAssignment.createMany({
@@ -230,17 +280,23 @@ async function main(): Promise<void> {
           holderId: getUserId('dean.fti@gmail.com'),
         },
         {
-          authorityKey: `HEAD_OF_DEPARTMENT:${department.departmentId}`,
+          authorityKey: `HEAD_OF_DEPARTMENT:${departmentIf.departmentId}`,
           authority: OrganizationalAuthority.HEAD_OF_DEPARTMENT,
-          departmentId: department.departmentId,
+          departmentId: departmentIf.departmentId,
           holderId: getUserId('kadep.if@gmail.com'),
+        },
+        {
+          authorityKey: `HEAD_OF_DEPARTMENT:${departmentSi.departmentId}`,
+          authority: OrganizationalAuthority.HEAD_OF_DEPARTMENT,
+          departmentId: departmentSi.departmentId,
+          holderId: getUserId('kadep.si@gmail.com'),
         },
       ],
     });
   });
 
   console.log(
-    'E2E seed selesai: 5 akun legacy, 4 identity target FTI, 2 Process, dan 2 kewenangan organisasi.',
+    'E2E seed selesai: 5 akun legacy, 7 identity target FTI, 3 Process, dan 3 kewenangan organisasi.',
   );
 }
 

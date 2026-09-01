@@ -83,9 +83,30 @@ export const targetUsers = {
   },
   headOfDepartment: {
     role: 'PENYUSUN',
-    roleLabel: 'Kepala Departemen',
+    roleLabel: 'Kepala Departemen Informatika',
     email: process.env.E2E_HEAD_OF_DEPARTMENT_EMAIL ?? 'kadep.if@gmail.com',
     password: process.env.E2E_HEAD_OF_DEPARTMENT_PASSWORD ?? defaultPassword,
+    landingPath: '/work',
+  },
+  departmentMember: {
+    role: 'PENYUSUN',
+    roleLabel: 'Process Member Informatika',
+    email: process.env.E2E_DEPARTMENT_MEMBER_EMAIL ?? 'process.member.if@gmail.com',
+    password: process.env.E2E_DEPARTMENT_MEMBER_PASSWORD ?? defaultPassword,
+    landingPath: '/work',
+  },
+  otherDepartmentMember: {
+    role: 'PENYUSUN',
+    roleLabel: 'Process Member Sistem Informasi',
+    email: process.env.E2E_OTHER_DEPARTMENT_MEMBER_EMAIL ?? 'process.member.si@gmail.com',
+    password: process.env.E2E_OTHER_DEPARTMENT_MEMBER_PASSWORD ?? defaultPassword,
+    landingPath: '/work',
+  },
+  otherHeadOfDepartment: {
+    role: 'PENYUSUN',
+    roleLabel: 'Kepala Departemen Sistem Informasi',
+    email: process.env.E2E_OTHER_HEAD_OF_DEPARTMENT_EMAIL ?? 'kadep.si@gmail.com',
+    password: process.env.E2E_OTHER_HEAD_OF_DEPARTMENT_PASSWORD ?? defaultPassword,
     landingPath: '/work',
   },
 } satisfies Record<string, E2eUser>
