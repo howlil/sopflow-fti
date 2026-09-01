@@ -1,6 +1,7 @@
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import {
+  JenisLangkahProsedur,
   OrganizationalAuthority,
   PeranPengguna,
   ProcessNotificationKind,
@@ -81,16 +82,44 @@ function makeService(options?: { owner?: boolean; status?: StatusSOP; transition
     }),
     findWorkbenchPayloadByDetailOrSopId: jest.fn().mockResolvedValue({
       detailSopId: 'detail-a',
+      sopId: 'sop-a',
       status: StatusSOP.DRAFT,
+      versi: 1,
+      nomorSOP: '001',
+      namaLembaga: 'Fakultas Teknologi Informasi',
       sop: { sopId: 'sop-a', judul: 'SOP', opdId: 'opd-a' },
       dasarHukum: [{ peraturanId: 'p-1' }],
-      sopTerkait: [],
+      relasiSopKeluar: [
+        {
+          detailSopId: 'detail-a',
+          detailSopTerkaitId: 'detail-related',
+          sopTerkait: {
+            detailSopId: 'detail-related',
+            sopId: 'sop-related',
+            nomorSOP: '002',
+            sop: { judul: 'SOP terkait' },
+          },
+        },
+      ],
       swimlanes: [{ pelaksanaId: 'actor-1' }],
-      langkahSOP: [{ langkahSopId: 'step-1' }],
-      lampiranPeringatan: [{ teks: 'x' }],
-      lampiranKualifikasiPelaksanaan: [{ teks: 'x' }],
-      lampiranPeralatanPerlengkapan: [{ teks: 'x' }],
-      lampiranPencatatanPendataan: [{ teks: 'x' }],
+      langkahSOP: [
+        {
+          langkahSopId: 'step-1',
+          urutan: 1,
+          kegiatan: 'Kerjakan proses',
+          jenis: JenisLangkahProsedur.KEGIATAN,
+          kelengkapan: 'Dokumen',
+          keluaran: 'Hasil',
+          keterangan: 'Selesai',
+          pelaksanaId: 'actor-1',
+          langkahSelanjutnyaYaId: null,
+          langkahSelanjutnyaTidakId: null,
+        },
+      ],
+      lampiranPeringatan: [{ teks: 'Peringatan' }],
+      lampiranKualifikasiPelaksanaan: [{ teks: 'Kualifikasi' }],
+      lampiranPeralatanPerlengkapan: [{ teks: 'Peralatan' }],
+      lampiranPencatatanPendataan: [{ teks: 'Pencatatan' }],
     }),
   } as unknown as SopCatalogRepository;
   const authoring = {
