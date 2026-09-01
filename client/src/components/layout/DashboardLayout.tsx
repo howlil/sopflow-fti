@@ -14,6 +14,7 @@ import {
   X,
   Workflow,
 } from "lucide-react";
+import { useMyProcesses } from "@/api/process-context";
 import logoSvg from "@/assets/logo.svg";
 import { HeaderBar } from "@/components/layout/HeaderBar";
 import { PageHeaderProvider } from "@/components/layout/PageHeaderProvider";
@@ -121,16 +122,22 @@ export function DashboardLayout() {
   const { pathname } = useLocation();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
+  const { data: myProcesses = [] } = useMyProcesses();
   const isDesktopNavOpen = useUIStore((state) => state.sidebarOpen);
   const setDesktopNavOpen = useUIStore((state) => state.setSidebarOpen);
   const navRole = user?.peran !== undefined ? toNavigationRole(user.peran) : undefined;
   const roleSidebarItems = navRole !== undefined ? SIDEBAR_ITEMS[navRole] ?? [] : [];
+  const alreadyHasAuthoringItem = roleSidebarItems.some((item) => item.to === ROUTES.PENYUSUN.SOP);
+  const processAuthoringItems: AppSidebarItem[] =
+    myProcesses.length > 0 && !alreadyHasAuthoringItem
+      ? [{ to: ROUTES.PENYUSUN.SOP, label: "SOP Process", icon: FileText }]
+      : [];
   const platformAdminItems: AppSidebarItem[] =
     user?.platformRole === "SUPER_ADMIN"
       ? [{ to: ROUTES.ADMIN.PROCESSES, label: "Process FTI", icon: Workflow }]
       : [];
-  // Keep the legacy role landing as item 0; platform administration is an additional authority axis.
-  const sidebarItems = [...roleSidebarItems, ...platformAdminItems];
+  // Legacy role navigation remains intact; Process authoring and platform admin are contextual/additional axes.
+  const sidebarItems = [...roleSidebarItems, ...processAuthoringItems, ...platformAdminItems];
   const activeItem = sidebarItems.find(({ to }) => isActivePath(pathname, to));
 
   useEffect(() => {
