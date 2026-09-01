@@ -31,7 +31,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  contextual-entry:
+  fti-target-journeys:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -144,9 +144,9 @@ jobs:
         working-directory: client
         run: pnpm test:e2e:audit
 
-      - name: Run J08 contextual entry journey
+      - name: Run FTI target journeys J08-J09
         working-directory: client
-        run: node scripts/run-e2e.mjs journeys --grep 'J08\b' --project=chromium
+        run: node scripts/run-e2e.mjs journeys --grep 'J0[89]\b' --project=chromium
 
       - name: Backend logs on failure
         if: failure()
