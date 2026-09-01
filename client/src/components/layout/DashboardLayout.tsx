@@ -141,7 +141,10 @@ export function DashboardLayout() {
       : [];
   const platformAdminItems: AppSidebarItem[] =
     user?.platformRole === "SUPER_ADMIN"
-      ? [{ to: ROUTES.ADMIN.PROCESSES, label: "Process FTI", icon: Workflow }]
+      ? [
+          { to: ROUTES.ADMIN.PROCESSES, label: "Process FTI", icon: Workflow },
+          { to: ROUTES.ADMIN.AUTHORITIES, label: "Authority FTI", icon: ShieldCheck },
+        ]
       : [];
   // Legacy role navigation remains intact; Process authoring, organizational authority, and platform admin are independent axes.
   const sidebarItems = [
