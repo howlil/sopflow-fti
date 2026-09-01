@@ -23,7 +23,7 @@ import {
 import { SopStatusBadge } from '@/components/status/sop-status-badge'
 import { cn } from '@/utils/cn'
 import type { SOPDetailMetadata } from '@/types/ui/sop'
-import type { StatusSOP } from '@/types/dto/sop.dto'
+import type { PenyusunWorkbenchData, StatusSOP } from '@/types/dto/sop.dto'
 import type { SopHeaderAutosaveStatus } from '@/pages/penyusun/sop/hooks/use-sop-header-autosave'
 import { usePenyusunWorkbench } from '@/api/sop'
 import { useMyProcesses } from '@/api/process-context'
@@ -60,6 +60,11 @@ interface AutosaveAppearance {
   Icon: typeof Save
   label: string
   className: string
+}
+
+type ProcessAwareWorkbenchSop = NonNullable<PenyusunWorkbenchData['detail']['sop']> & {
+  processId?: string | null
+  processNama?: string | null
 }
 
 function autosaveAppearance(status: SopHeaderAutosaveStatus): AutosaveAppearance | null {
@@ -120,9 +125,7 @@ export function DetailSOPPenyusunHeader({
   const [reviewDecision, setReviewDecision] = useState<ProcessReviewDecision | null>(null)
   const [isProcessActionPending, setIsProcessActionPending] = useState(false)
 
-  const processSop = workbench?.detail.sop as
-    | (NonNullable<typeof workbench.detail.sop> & { processId?: string | null; processNama?: string | null })
-    | undefined
+  const processSop = workbench?.detail.sop as ProcessAwareWorkbenchSop | undefined
   const processId = processSop?.processId ?? null
   const isProcessWorkflow = processId !== null
   const isProcessOwner =
@@ -136,7 +139,8 @@ export function DetailSOPPenyusunHeader({
     ? processStatusLabel(currentSopStatus, currentSopStatusLabel)
     : currentSopStatusLabel
 
-  const updateWorkbenchCache = (nextWorkbench: NonNullable<typeof workbench>) => {
+  const updateWorkbenchCache = (nextWorkbench: PenyusunWorkbenchData) => {
+    if (!sopDetailId) return
     queryClient.setQueryData(queryKeys.penyusunWorkbench(sopDetailId), nextWorkbench)
   }
 
@@ -168,6 +172,10 @@ export function DetailSOPPenyusunHeader({
   }
 
   const submitProcessReview = async () => {
+    if (!sopDetailId) {
+      showToast('Detail SOP belum tersedia.', 'error')
+      return
+    }
     setIsProcessActionPending(true)
     try {
       await Promise.all([flushHeaderAutosave(), flushProsedurAutosave()])
@@ -183,6 +191,10 @@ export function DetailSOPPenyusunHeader({
   }
 
   const decideProcessReview = async (decision: ProcessReviewDecision) => {
+    if (!sopDetailId) {
+      showToast('Detail SOP belum tersedia.', 'error')
+      return
+    }
     setIsProcessActionPending(true)
     try {
       const nextWorkbench = await processReviewApi.decide(sopDetailId, decision)
