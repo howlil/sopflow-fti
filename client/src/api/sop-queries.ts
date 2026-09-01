@@ -3,9 +3,9 @@ import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/config/query-keys";
 import { useMutationWithToast } from "@/hooks/useMutationWithToast";
 import { STALE_TIME } from "@/utils/constants";
-import { sopApi } from "@/api/sop-client";
+import { sopApi, type CreateProcessSopRequestDto } from "@/api/sop-client";
 import { SOP_EVALUASI_WORKFLOW_REFRESH_OPTIONS } from "@/lib/api/cache-invalidation";
-import type { CreateSopRequestDto, SopDaftarRow, SopListQueryParams } from "@/types/dto/sop.dto";
+import type { SopDaftarRow, SopListQueryParams } from "@/types/dto/sop.dto";
 /**
  * useSop hook - TanStack Query
  */
@@ -47,7 +47,7 @@ export function useSopSuspense(params?: SopListQueryParams) {
     ...sopListQueryOptions(params),
   });
   const createMutation = useMutationWithToast({
-    mutationFn: (payload: CreateSopRequestDto) => sopApi.create(payload),
+    mutationFn: (payload: CreateProcessSopRequestDto) => sopApi.create(payload),
     invalidateKeys: [queryKeys.sop],
     successMessage: "SOP berhasil dibuat",
     errorMessagePrefix: "Gagal membuat SOP",
@@ -62,9 +62,8 @@ export function useSopSuspense(params?: SopListQueryParams) {
 }
 
 /**
- * GET `/sop/penyusun-workbench/:detailSopId` — agregat detail + langkah + log
- * untuk dipakai di pratinjau SOP (header + langkah). Cache key sejajar dengan
- * mutasi header/prosedur/status di file ini sehingga refresh otomatis sinkron.
+ * GET `/process-sop/workbench/:detailSopId` — agregat detail + langkah + log.
+ * SOP target memakai Process authorization; SOP legacy fallback ke OPD authorization.
  */
 export function usePenyusunWorkbench(detailSopId: string | undefined) {
   return useQuery({
