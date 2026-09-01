@@ -2,122 +2,83 @@
 
 ## Shape
 
-**Milestone:** M2 — FTI-native Workflow Experience Cutover  
-**State:** RELEASE_READY  
+**Milestone:** M3 — FTI Critical Journey Hardening  
+**State:** ACTIVE  
 **Integration branch:** `master`
 
-Outcome: the authenticated product experience now uses Process relationships, organizational authority, and platform administration as the primary FTI workflow model without requiring users to operate through legacy `PENYUSUN / EVALUATOR / PJ_* / KEPALA_OPD` semantics for Process-bound SOP work.
+Outcome: prove the M2 FTI-native workflow through deterministic target-specific integration/browser journeys so regressions in contextual navigation, Process authorization, Process Owner review, contextual final approval, notifications, and TTE handoff are caught without relying on legacy evaluator-role journeys.
 
-This milestone completed the experience/contract-semantic cutover. It did not perform destructive legacy schema cleanup.
+M3 is a reliability/verification milestone. It must not change approved product semantics merely to make tests easier.
+
+## Boundaries
+
+In scope:
+
+- dedicated E2E identities/fixtures for Process Owner, Process Member, Dean, and Head of Department contexts;
+- target-context authenticated entry/navigation/isolation journeys;
+- Process-bound SOP work queue and authorization journeys;
+- Process Owner submit/review + contextual notification journey;
+- contextual final-approval handoff and authority isolation;
+- TTE handoff/public-integrity verification where the existing signing harness can prove it without weakening security boundaries;
+- critical-journey command/CI coverage proportional to the new tests.
+
+Out of scope:
+
+- new product features or workflow states;
+- destructive legacy schema/route cleanup;
+- changing Process ownership/final-authority semantics;
+- bypassing authentication, TTE, rate limits, or authorization for tests;
+- production deployment/release work;
+- protected Edit SOP workspace behavior changes.
 
 ## Position
 
 ```text
-Contextual Entry & Navigation        VERIFIED + INTEGRATED
-Process Work Queues                  VERIFIED + INTEGRATED
-Contextual Notifications             VERIFIED + INTEGRATED
-FTI Workflow Vocabulary              VERIFIED + INTEGRATED
-Legacy Surface Isolation             VERIFIED + INTEGRATED
-Milestone Gate                       PASS
+Milestone plan
+  -> Target E2E Identity + Fixture Foundation    ACTIVE
+  -> Contextual Entry + Navigation Journey       PLANNED
+  -> Process Work + Owner Review Journey         PLANNED
+  -> Final Approval + Notification Journey       PLANNED
+  -> TTE/Public Integrity Boundary               PLANNED
+  -> Milestone Gate                              PENDING
 ```
 
-No implementation slice remains active for M2.
-
-## Delivered Delta
-
-- authenticated `/work` entry is capability/context driven;
-- `/work/queue` is the primary Process-bound SOP work surface;
-- Process Owner and Member actions are derived from Process relationship;
-- Dean / Head-of-Department approval and TTE entry is derived from organizational authority;
-- Process workflow notifications resolve contextual recipients and use target-native persistence;
-- notification presentation can compose Process and legacy sources without rewriting legacy history;
-- target work/approval/navigation copy uses FTI workflow vocabulary;
-- users with target contextual capability no longer see legacy workflow navigation as the primary path;
-- accounts without target contextual assignments retain compatibility fallback;
-- Pelaksana and Peraturan support/reference surfaces remain available where applicable;
-- protected Edit SOP workspace behavior was not modified.
-
-## Integration Evidence
-
-Contextual notifications:
+Current branch:
 
 ```text
-PR #1
-merge: ce9693e6e939fd43da07e5f67b648b6559e9ac37
-Client CI: 33542642051  PASS
-Server CI: 33542646755  PASS
-Migration Smoke: 33542646940  PASS
+m3-critical-journey-foundation
 ```
 
-Legacy isolation + FTI vocabulary:
+## Evidence / Gap
 
-```text
-PR #2
-PR Client CI: 33546862594  PASS
-merge: 246b2cb574c1dc166996be21bdbf5b3d6dee6759
-integrated master Client CI: 33547088255  PASS
-```
+M2 is release-ready and its unit/CI gates are green, but the existing browser journey set is still centered on legacy role/evaluation flows. There is no dedicated Process-native critical browser journey for `/work` / `/work/queue` / Process Owner review / contextual authority.
 
-Integrated Client CI verified:
+The existing E2E seed contains five legacy-role identities only. The shared business fixture also caches authentication by legacy role, which is insufficient for multiple target identities that may intentionally share the same transitional legacy role while holding different Process/authority capabilities.
 
-- dependency install;
-- production/SSR build;
-- generated route-tree consistency;
-- TypeScript typecheck;
-- unit/component tests.
+## Active Slice
 
-## Unchanged Risk Boundaries
+### Target E2E Identity + Fixture Foundation
 
-The integrated delta after the last server/migration gate contains no changes under:
+Required behavior:
 
-```text
-server/**
-server/prisma/**
-client/src/pages/penyusun/sop/detail/DetailSOPPenyusun.tsx
-```
+- preserve all existing legacy E2E identities and expectations;
+- add separate target-specific users instead of repurposing legacy accounts;
+- seed deterministic Process/Process Team/organizational-authority context using existing production schema and invariants;
+- key shared authentication cache by concrete identity, not legacy role;
+- add the first target browser proof for `/work` capability/navigation isolation;
+- do not alter production authorization or navigation to accommodate tests.
 
-Therefore the previously green Server CI and Migration Smoke evidence remains applicable to the unchanged backend/Prisma subtree. No new backend authorization, persistence, migration, TTE, or public-contract behavior was introduced by the final M2 logical change.
+Verification:
 
-The protected Edit SOP workspace does not appear in the final M2 isolation/vocabulary diff and remains outside the milestone change surface.
+- server seed TypeScript/Prisma compatibility;
+- frontend E2E TypeScript compatibility;
+- focused target browser journey in Docker-backed E2E environment when available;
+- existing relevant auth/role-access journeys must remain compatible.
 
-## Milestone Gate
+## Stop Conditions
 
-PASS:
-
-- normal Process-bound work is discoverable without legacy role-specific entry points;
-- Process Owner vs Member behavior remains contextually distinct;
-- Dean / Head-of-Department approval + TTE is discoverable through organizational authority;
-- target-facing copy no longer presents centralized evaluator/PJ semantics as FTI product truth;
-- contextual Process notifications are verified;
-- legacy/unbound compatibility remains available but isolated from the primary target workflow;
-- integrated Client CI is green;
-- backend/migration evidence remains green for an unchanged server/Prisma subtree;
-- no target authorization, TTE, publication, or historical-evidence invariant changed in the final slice;
-- protected Edit SOP workspace remains unchanged;
-- no milestone stop condition remains.
-
-## Residual Compatibility
-
-Intentional compatibility seams remain outside M2 cleanup scope:
-
-- legacy routes/roles/status names where still required;
-- legacy/unbound SOP workflow behavior;
-- transitional OPD-era persistence fields/bindings;
-- historical data/evidence.
-
-Their existence does not block M2 because destructive cleanup was explicitly out of scope.
-
-## Delivery State
-
-```text
-implemented:    YES
-verified:       YES
-integrated:     YES
-release-ready:  YES
-released:       NO EVIDENCE / NOT CLAIMED
-deployed:       NO EVIDENCE / NOT CLAIMED
-```
+Stop/escalate if target journey coverage requires changing approved workflow behavior, weakening authentication/authorization/TTE security, destructive migration, public-contract changes, or modifying the protected Edit SOP workspace.
 
 ## Next Move
 
-**STOP.** M2 is complete and release-ready. Do not invent or start M3 until the user establishes a new milestone or requests release/deployment work.
+Implement target-specific seed identities and relationships, make the business E2E auth cache identity-safe, then add the first contextual `/work` navigation/isolation journey.
