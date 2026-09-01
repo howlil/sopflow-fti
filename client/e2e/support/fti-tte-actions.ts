@@ -10,10 +10,18 @@ export async function signFacultyProcessSopViaUi(
   await page.goto('/approval')
   await waitForAppReady(page)
 
-  await expect(page.getByRole('heading', { name: title })).toBeVisible()
-  await expect(page.getByText('Persetujuan akhir tercatat · siap TTE', { exact: true })).toBeVisible()
+  const titleHeading = page.getByRole('heading', { name: title, exact: true })
+  await expect(titleHeading).toBeVisible()
 
-  const sign = page.getByRole('button', { name: 'Tanda tangani', exact: true })
+  // J08–J11 intentionally share one runtime database in CI, so earlier journeys may
+  // leave other approved SOP rows in the same queue. Scope status/action assertions
+  // to the nearest row containing this SOP title and its signing control.
+  const row = titleHeading.locator(
+    'xpath=ancestor::div[.//button[normalize-space(.)="Tanda tangani"]][1]',
+  )
+  await expect(row.getByText('Persetujuan akhir tercatat · siap TTE', { exact: true })).toBeVisible()
+
+  const sign = row.getByRole('button', { name: 'Tanda tangani', exact: true })
   await expect(sign).toBeEnabled()
   await sign.click()
 
@@ -23,7 +31,7 @@ export async function signFacultyProcessSopViaUi(
   await dialog.getByRole('button', { name: 'Tanda Tangani', exact: true }).click()
   await expect(dialog).toBeHidden({ timeout: 45_000 })
 
-  await expect(page.getByRole('heading', { name: title })).toHaveCount(0, { timeout: 15_000 })
+  await expect(titleHeading).toHaveCount(0, { timeout: 15_000 })
   await expectNoAppShellError(page)
 }
 
