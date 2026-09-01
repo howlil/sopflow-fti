@@ -26,7 +26,7 @@ function labelPeran(peran: PeranTTE): string {
 function waitForPrintPaint(): Promise<void> {
   return new Promise((resolve) => {
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => resolve());
+      requestAnimation(() => resolve());
     });
   });
 }
@@ -44,13 +44,23 @@ export function ValidasiPengesahanPage() {
     if (!sopQuery.data) {
       return null;
     }
-    return mapPenyusunWorkbenchToPreviewProps({
+    const preview = mapPenyusunWorkbenchToPreviewProps({
       detail: sopQuery.data.detail,
       langkah: sopQuery.data.langkah,
       logEdit: [],
       diagramKonfigurasi: sopQuery.data.diagramKonfigurasi,
     });
-  }, [sopQuery.data]);
+    if (!query.data?.authorityLabel) return preview;
+    return {
+      ...preview,
+      metadata: {
+        ...preview.metadata,
+        picName: query.data.penandatangan.nama,
+        picNumber: query.data.penandatangan.nip,
+        picRole: query.data.authorityLabel,
+      },
+    };
+  }, [query.data, sopQuery.data]);
 
   const tteSignaturePayload = useMemo<TTESignaturePayload | null>(() => {
     if (!query.isSuccess) {
@@ -87,9 +97,7 @@ export function ValidasiPengesahanPage() {
   const sopUnduhDisabled =
     unduhLoading || sopQuery.isLoading || sopQuery.isError || !sopPreviewProps;
 
-  useDocumentTitle(
-    "Verifikasi pengesahan",
-  );
+  useDocumentTitle("Verifikasi pengesahan");
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100/80 px-4 py-10 sm:px-6">
@@ -163,8 +171,12 @@ export function ValidasiPengesahanPage() {
                       ? query.data.penandatangan.jabatan
                       : "—"}
                   </span>
-                  <span className="text-muted-foreground">Peran</span>
-                  <span className="text-foreground">{labelPeran(query.data.peran)}</span>
+                  <span className="text-muted-foreground">
+                    {query.data.authorityLabel ? "Kewenangan" : "Peran"}
+                  </span>
+                  <span className="text-foreground">
+                    {query.data.authorityLabel ?? labelPeran(query.data.peran)}
+                  </span>
                   <span className="text-muted-foreground">Waktu pengesahan</span>
                   <span className="text-foreground">
                     {formatDateIdLong(query.data.ditandatanganiPada)}
@@ -247,8 +259,6 @@ export function ValidasiPengesahanPage() {
             </Link>
           </Button>
         </div>
-
-
       </div>
     </div>
   );
