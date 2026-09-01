@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SOPDetailMetadata } from '@/types/ui/sop'
@@ -49,8 +50,18 @@ function renderHeader(
     onBuatVersiBaru,
     ...overrides,
   }
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  })
 
-  return render(<DetailSOPPenyusunHeader {...props} />)
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <DetailSOPPenyusunHeader {...props} />
+    </QueryClientProvider>,
+  )
 }
 
 describe('DetailSOPPenyusunHeader', () => {
