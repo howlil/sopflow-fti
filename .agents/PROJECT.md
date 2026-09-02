@@ -6,7 +6,7 @@ Architecture belongs in `ARCHITECTURE.md`; current milestone state belongs in `C
 
 ## Purpose
 
-SOPFlow is an SOP lifecycle system for Fakultas Teknologi Informasi (FTI). It supports SOP creation, Process-level review, formal approval, TTE signing, publication, verification, and version lifecycle.
+SOPFlow is an SOP lifecycle system for Fakultas Teknologi Informasi (FTI). It supports SOP creation, Process-level review, formal approval, TTE signing, publication, verification, revocation, and version lifecycle.
 
 The target product domain is FTI. Legacy Indonesian government/OPD terminology still exists in compatibility code and persisted data, but it is not the target product model.
 
@@ -24,9 +24,10 @@ Organizational Scope
             -> Contextual Final Approval
             -> TTE
             -> Published / Effective Version
+            -> Contextual Revocation
 ```
 
-Do not collapse organizational position, Process relationship, authorship, review, final approval, and platform administration into one role.
+Do not collapse organizational position, Process relationship, authorship, review, final approval, revocation, and platform administration into one role.
 
 ## Authorization Dimensions
 
@@ -99,6 +100,28 @@ Units below faculty/department do not introduce another approval tier.
 
 Final authority is derived from Process scope; it is not manually configured as an arbitrary approver on every SOP.
 
+## Revocation
+
+Process-bound SOP revocation uses the same resolved organizational authority boundary as final approval:
+
+```text
+FACULTY
+  -> active DEAN / Dekan
+
+DEPARTMENT
+  -> active HEAD_OF_DEPARTMENT / Kepala Departemen for that Department
+```
+
+Committed semantics:
+
+- only a currently `BERLAKU` version may be revoked;
+- a revision in flight blocks revocation until the version lifecycle is no longer ambiguous;
+- Process Owner, Process Member, and `SUPER_ADMIN` do not gain revocation authority from those capabilities alone;
+- successful revocation transitions the effective version to `DICABUT`;
+- revocation removes current/effective/public availability but preserves version history, approval evidence, TTE evidence, signed artifact history, and audit evidence;
+- revocation does not automatically create a new draft/replacement version;
+- legacy/unbound SOP may keep compatibility revocation behavior until that path is explicitly retired.
+
 ## Canonical SOP Workflow
 
 Target behavior:
@@ -118,6 +141,7 @@ Final organizational authority
   -> approve
   -> contextual TTE
   -> effective/published state
+  -> optionally revoke an effective SOP in the same authority scope
 ```
 
 Behavioral invariants:
@@ -128,7 +152,8 @@ Behavioral invariants:
 4. accepted Process review advances toward contextual final approval;
 5. final authority is deterministic from organizational scope;
 6. TTE signing authority follows the resolved final authority;
-7. the product preserves version/publication/audit/legal evidence unless explicitly changed.
+7. revocation authority follows the same resolved organizational authority for Process-bound SOPs;
+8. the product preserves version/publication/audit/legal evidence unless explicitly changed.
 
 Persisted legacy status names may remain during migration when product behavior is already target-native.
 
@@ -170,6 +195,7 @@ Committed semantics:
 - review as Process Owner;
 - approve as Dean/Head of Department;
 - sign TTE as an organizational authority;
+- revoke an SOP as an organizational authority;
 - force an SOP into an effective state by bypassing workflow.
 
 ## Notifications
@@ -208,11 +234,13 @@ Unless explicitly changed, preserve:
 
 - one current effective version behavior;
 - controlled replacement/supersession of a previous effective version;
-- revocation semantics;
+- contextual revocation semantics;
 - audit/history evidence;
 - TTE evidence;
 - official artifact generation;
 - public verification of signed/published evidence.
+
+A revoked version is historical evidence, not a current effective/public SOP.
 
 Do not fabricate historical author/reviewer/approver/signing evidence during migration.
 
@@ -247,11 +275,12 @@ Do not introduce without an explicit new product decision:
 - multi-faculty or generic organization SaaS tenancy;
 - a centralized evaluator organization/role for target Process review;
 - a third final-approval tier for unit heads;
-- generic configurable approval-chain engines;
+- generic configurable approval-chain or revocation-chain engines;
 - `SUPER_ADMIN` workflow bypass;
 - destructive historical OPD-to-FTI remapping;
 - arbitrary per-SOP final approver configuration when authority is derivable from scope;
-- a public archive information-architecture redesign.
+- a public archive information-architecture redesign;
+- bulk/scheduled revocation or a second revocation-approval workflow.
 
 ## Deferred / Transitional Work
 
