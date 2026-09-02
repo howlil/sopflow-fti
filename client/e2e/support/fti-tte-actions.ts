@@ -47,8 +47,12 @@ export async function expectProcessSopBerlakuInWorkQueue(
 ): Promise<void> {
   await page.goto('/work/queue')
   await waitForAppReady(page)
-  await expect(page.getByRole('heading', { name: title })).toBeVisible()
-  await expect(page.getByText('Berlaku', { exact: true })).toBeVisible()
+  const titleHeading = page.getByRole('heading', { name: title, exact: true })
+  await expect(titleHeading).toBeVisible()
+  const row = titleHeading.locator(
+    'xpath=ancestor::div[.//a[normalize-space(.)="Buka SOP"]][1]',
+  )
+  await expect(row.getByText('Berlaku', { exact: true })).toBeVisible()
   await expectNoAppShellError(page)
 }
 
