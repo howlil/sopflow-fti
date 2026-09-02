@@ -10,6 +10,20 @@ import {
 import { OrganizationalAuthorityService } from '../../core/process/organizational-authority.service';
 import { SopCatalogRepository } from '../catalog/sop-catalog.repository';
 
+type ProcessRevocationQueueRow = {
+  detailSopId: string;
+  sopId: string;
+  judul: string;
+  nomorSOP: string;
+  versi: number;
+  processId: string;
+  processNama: string;
+  scope: OrganizationalScope;
+  departmentId: string | null;
+  departmentNama: string | null;
+  updatedAt: Date;
+};
+
 @Injectable()
 export class ProcessSopRevocationService {
   constructor(
@@ -18,7 +32,7 @@ export class ProcessSopRevocationService {
     private readonly sopCatalogRepository: SopCatalogRepository,
   ) {}
 
-  async listForCurrentAuthority(user: JwtAccessPayload) {
+  async listForCurrentAuthority(user: JwtAccessPayload): Promise<ProcessRevocationQueueRow[]> {
     const assignments = await this.authorityService.listMine(user.sub);
     if (assignments.length === 0) return [];
 
@@ -81,7 +95,7 @@ export class ProcessSopRevocationService {
       detailsBySopId.set(detail.sopId, rows);
     }
 
-    const rows = [];
+    const rows: ProcessRevocationQueueRow[] = [];
     for (const binding of bindings) {
       const process = processById.get(binding.processId);
       const sopDetails = detailsBySopId.get(binding.sopId) ?? [];
