@@ -2,7 +2,7 @@ import { expect, test } from '../fixtures/business-test'
 import { targetUsers, users } from '../fixtures/users'
 import { toApiUrl } from '../support/api'
 import { signProcessSopViaUi } from '../support/fti-tte-actions'
-import { e2ePin } from '../support/test-data'
+import { e2ePin, validPdfBase64 } from '../support/test-data'
 import {
   getProcessVersionHistory,
   seedReplacementReadyForTte,
@@ -29,6 +29,7 @@ test.describe('End-to-End Business Journey — Department Process version replac
             pin: e2ePin,
             nomorDokumen: fixture.v2.nomorSOP,
             judulDokumen: fixture.v1.title,
+            pdfBase64: validPdfBase64,
           },
         })
         expect(response.status()).toBe(403)
