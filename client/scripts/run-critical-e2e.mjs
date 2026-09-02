@@ -20,6 +20,10 @@ const journeyIds = [
   'J13',
   'J14',
   'J15',
+  'J16',
+  'J17',
+  'J18',
+  'J19',
 ]
 
 function run(command, args, cwd, extraEnv = {}) {
