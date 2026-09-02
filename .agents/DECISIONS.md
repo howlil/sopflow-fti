@@ -145,3 +145,30 @@ Rationale:
 Consequence:
 
 - legacy route compatibility is not permission to propagate legacy vocabulary into new target-facing surfaces.
+
+## D10 — Process-Bound Revocation Uses The Contextual Final Authority
+
+**Status:** ACTIVE
+
+An effective Process-bound SOP may be revoked only by the organizational authority currently resolved for that Process:
+
+```text
+FACULTY    -> active DEAN
+DEPARTMENT -> active HEAD_OF_DEPARTMENT for that department
+```
+
+`SUPER_ADMIN`, Process Owner, and Process Member do not gain revocation authority from those capabilities alone.
+
+Revocation is a terminal lifecycle transition from `BERLAKU` to `DICABUT`, not deletion. Historical version, approval, TTE, audit, and signed-artifact evidence remain preserved, while the revoked version stops being current/effective/public.
+
+Rationale:
+
+- the authority accountable for making a Process SOP formally effective is the coherent authority boundary for ending that effective state;
+- using the existing contextual authority resolver prevents a parallel legacy `KEPALA_OPD` authorization model from surviving on the target path;
+- preserving evidence maintains audit/legal history without treating a revoked document as currently effective.
+
+Consequence:
+
+- target revocation must reuse organizational authority resolution rather than global account role checks;
+- legacy/unbound SOP may continue using compatibility behavior until separately retired;
+- do not add `SUPER_ADMIN` override, generic revocation chains, or destructive evidence cleanup without a new explicit product decision.
