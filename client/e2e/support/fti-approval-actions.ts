@@ -36,11 +36,16 @@ export async function openFinalApprovalFromNotification(
   await expect(bell).toBeVisible({ timeout: 15_000 })
   await bell.click()
 
-  const notification = page.getByRole('link').filter({
-    hasText: 'Persetujuan akhir SOP diperlukan',
-  }).filter({
-    hasText: `SOP pada Process ${processName} menunggu persetujuan akhir Anda.`,
-  })
+  // Process notifications are sorted unread-first by the server. The journey
+  // precondition marks prior notifications read and asserts exactly one fresh
+  // matching unread notification through the API before this UI interaction.
+  const notification = page
+    .getByRole('link')
+    .filter({ hasText: 'Persetujuan akhir SOP diperlukan' })
+    .filter({
+      hasText: `SOP pada Process ${processName} menunggu persetujuan akhir Anda.`,
+    })
+    .first()
   await expect(notification).toBeVisible()
   await notification.click()
   await page.waitForURL((url) => url.pathname === '/approval', { timeout: 15_000 })
