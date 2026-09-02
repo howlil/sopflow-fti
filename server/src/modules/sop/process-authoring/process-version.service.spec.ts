@@ -28,7 +28,7 @@ describe('ProcessVersionService', () => {
       findLatestDetailStatusContext: jest.fn().mockResolvedValue({ detailSopId: 'detail-v1' }),
       cloneDetailSopFromSource: jest.fn().mockResolvedValue({
         ok: true,
-        value: { detailSopId: 'detail-v2', versi: 2 },
+        data: { detailSopId: 'detail-v2', versi: 2 },
       }),
     } as unknown as SopCatalogRepository;
     const catalog = {
@@ -39,7 +39,6 @@ describe('ProcessVersionService', () => {
     } as unknown as SopCatalogService;
     return {
       service: new ProcessVersionService(prisma, processContext, repository, catalog),
-      prisma: prisma as any,
       processContext: processContext as any,
       repository: repository as any,
       catalog: catalog as any,
