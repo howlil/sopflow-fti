@@ -11,11 +11,14 @@ on:
       - 'client/scripts/audit-e2e-journeys.mjs'
       - 'client/src/pages/work/**'
       - 'client/src/pages/approval/**'
+      - 'client/src/pages/admin/**'
+      - 'client/src/routes/admin/**'
       - 'client/src/components/layout/**'
       - 'client/src/api/process-*.ts'
       - 'client/src/api/sop-client.ts'
       - 'client/src/api/organizational-authority.ts'
       - 'client/src/stores/authStore.ts'
+      - 'server/src/common/guards/platform-admin.guard.ts'
       - 'server/src/modules/core/auth/**'
       - 'server/src/modules/core/process/**'
       - 'server/src/modules/sop/process-authoring/**'
@@ -148,9 +151,9 @@ jobs:
         working-directory: client
         run: pnpm test:e2e:audit
 
-      - name: Run FTI target journeys J08-J19
+      - name: Run FTI target journeys J08-J23
         working-directory: client
-        run: node scripts/run-e2e.mjs journeys --grep 'J(08|09|10|11|12|13|14|15|16|17|18|19)\b' --project=chromium
+        run: node scripts/run-e2e.mjs journeys --grep 'J(08|09|10|11|12|13|14|15|16|17|18|19|20|21|22|23)\b' --project=chromium
 
       - name: Backend logs on failure
         if: failure()
