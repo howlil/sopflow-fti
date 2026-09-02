@@ -7,7 +7,7 @@ import type {
   ReadyProcessSopFixture,
 } from './fti-process-preconditions'
 import { seedProcessSopReadyForTte } from './fti-tte-preconditions'
-import { e2ePin } from './test-data'
+import { e2ePin, validPdfBase64 } from './test-data'
 
 export interface ProcessVersionWorkbench {
   detail: {
@@ -57,6 +57,7 @@ export async function seedPublishedProcessSop(
     pin: e2ePin,
     nomorDokumen: sop.number,
     judulDokumen: sop.title,
+    pdfBase64: validPdfBase64,
   })
 
   const actorApi = await apiFor(options.actor ?? targetUsers.processMember)
