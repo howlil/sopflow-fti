@@ -86,8 +86,8 @@ export function ProcessApprovalPage() {
   return (
     <>
       <ListPageLayout
-        breadcrumb={[{ label: 'SOP' }, { label: 'Persetujuan & TTE' }]}
-        title="Persetujuan & TTE"
+        breadcrumb={[{ label: 'SOP' }, { label: 'Persetujuan Akhir' }]}
+        title="Persetujuan Akhir"
       >
         <DataSurface.Root>
           <DataSurface.Header>
