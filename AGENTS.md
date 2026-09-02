@@ -49,25 +49,34 @@ explicit current user instruction
 
 One concept should have one canonical owner. Do not create parallel requirement, design, iteration-state, testing, Git-strategy, or development-rule documents when the content belongs to an existing canonical owner.
 
-## Operating Boundary
+## Operating Model
 
-Use the canonical SWE lifecycle:
+Optimize for high user value, high product-capability density, correctness, and maintainability while minimizing user-outcome lead time, rework, waiting, verification waste, planning overhead, and integration ceremony.
 
-`USER INTENT -> UNDERSTAND -> BOUND -> SPECIFY -> DESIGN -> IMPLEMENT -> VERIFY -> QUALITY GATES -> RELEASE READY -> STOP`
+For meaningful product work, use:
 
-Small/unambiguous work may fuse stages.
+`USER INTENT -> UNDERSTAND -> BOUND -> MILESTONE PLAN -> EXECUTE SLICES CONTINUOUSLY -> MILESTONE GATE -> RELEASE READY -> STOP`
+
+Small or unambiguous work may fuse stages. Planning is performed at the milestone boundary, not restarted between already-approved slices.
 
 For milestone work:
 
-- plan at milestone boundaries;
-- execute approved slices continuously;
-- integrate at logical-change boundaries;
-- prefer vertical capability over horizontal layer completion;
-- do not restart sprint/planning ceremony between already-approved slices.
+- define one bounded capability/outcome that is meaningful to a user or operator;
+- decompose it into the fewest coherent vertical slices needed to reach that outcome;
+- execute approved slices continuously without sprint re-activation or repeated planning ceremony;
+- integrate at logical-change boundaries when useful, but do not turn each tiny implementation step into its own branch/PR/milestone;
+- prefer complete cross-boundary capability over horizontal layer completion;
+- stop when the approved milestone outcome is complete and sufficiently verified.
 
 The user owns product behavior/scope, public contracts, data ownership, security boundaries, material architecture decisions, and release/deploy direction. The agent owns routine implementation decisions inside those approved boundaries.
 
-Prefer the smallest coherent change and existing ownership/patterns. Do not expand scope for cleanup, speculative abstraction, dependency upgrades, or future-proofing.
+## Minimum Complete Change
+
+Prefer the **smallest complete authorized implementation that delivers the intended capability**.
+
+This does **not** mean the smallest diff, fewest files, or smallest possible slice. A change is too small when it leaves the approved behavior unusable, non-demonstrable, dependent on another artificial planning cycle, or split only by technical layers.
+
+Modify only what the complete capability requires. Reuse existing ownership and patterns first. Do not expand scope for unrelated cleanup, speculative abstraction, dependency upgrades, future-proofing, or nice-to-have product expansion.
 
 Stop/escalate for material ambiguity or a required destructive migration, public-contract change, security/privacy/data-ownership change, material architecture change, or conflict with an approved product invariant/protected surface.
 
@@ -79,15 +88,25 @@ Keep it compact and current using:
 
 `Shape -> Position -> Delta -> Next Move`
 
-Record evidence and blockers needed for another agent to continue without conversation history. Do not turn it into a changelog, sprint archive, or duplicated specification.
+Its state must describe repository reality, not the intention from an earlier branch or PR. Never leave instructions such as `integrate Mx` after that milestone is already integrated.
 
-## Delivery State
+Keep these states distinct and update them when reality changes:
 
-Keep these states distinct:
+`ACTIVE -> IMPLEMENTED -> VERIFIED -> INTEGRATED -> RELEASE_READY -> RELEASED -> DEPLOYED`
 
-`implemented != verified != integrated != release-ready != released != deployed`
+A milestone may carry more than one dimension when useful, for example `IMPLEMENTED / VERIFICATION_PENDING`, but must not claim a stronger state than the evidence proves.
 
-Relevant verification and mandatory gates may establish `release-ready`. Release and production deployment require explicit user authority and corresponding environment evidence.
+After integration, `master` must identify the integrated milestone/state and the next meaningful capability instead of preserving stale pre-merge instructions. Record only evidence and blockers needed for another agent to continue without conversation history; do not turn the file into a changelog or sprint archive.
+
+## Verification Boundary
+
+Verification is risk-selected, not ceremony-selected.
+
+Use the cheapest, fastest evidence that can actually prove the changed behavior, then escalate only when a material failure mode remains invisible. Do not automatically execute a fixed `unit -> integration -> E2E -> staging` ladder.
+
+For browser journeys, new/changed capability journeys are primary evidence. Add older regression journeys only when their protected boundary can plausibly be affected. Full historical E2E is reserved for a justified milestone/release gate, shared harness/infrastructure changes, or broad cross-cutting risk; it must not grow cumulatively by default merely because new journey IDs exist.
+
+Detailed repository-specific evidence rules remain owned by `.agents/QUALITY.md`.
 
 ## Repository-Specific Protection
 

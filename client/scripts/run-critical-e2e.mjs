@@ -4,31 +4,37 @@ import { fileURLToPath } from 'node:url'
 
 const clientDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const serverDir = resolve(clientDir, '..', 'server')
-const journeyIds = [
-  'J01',
-  'J02',
-  'J03',
-  'J04',
-  'J05',
-  'J06',
-  'J07',
-  'J08',
-  'J09',
-  'J10',
-  'J11',
-  'J12',
-  'J13',
-  'J14',
-  'J15',
-  'J16',
-  'J17',
-  'J18',
-  'J19',
-  'J20',
-  'J21',
-  'J22',
-  'J23',
-]
+const allJourneyIds = Array.from({ length: 27 }, (_, index) => `J${String(index + 1).padStart(2, '0')}`)
+const allJourneyIdSet = new Set(allJourneyIds)
+
+function selectedJourneyIds() {
+  const args = process.argv.slice(2)
+  const envSelection = (process.env.E2E_CRITICAL_JOURNEYS ?? '')
+    .split(/[\s,]+/)
+    .filter(Boolean)
+
+  if (args.includes('--all')) return allJourneyIds
+
+  const requested = [...args, ...envSelection]
+    .flatMap((value) => value.split(/[\s,]+/))
+    .filter(Boolean)
+    .map((value) => value.toUpperCase())
+
+  if (requested.length === 0) {
+    console.error('Critical E2E requires an explicit risk-selected journey list.')
+    console.error('Example: pnpm test:e2e:critical -- J20 J21 J24 J25')
+    console.error('Use --all only for an intentional full-suite qualification.')
+    process.exit(1)
+  }
+
+  const invalid = requested.filter((journeyId) => !allJourneyIdSet.has(journeyId))
+  if (invalid.length > 0) {
+    console.error(`Unknown critical journey id(s): ${invalid.join(', ')}`)
+    process.exit(1)
+  }
+
+  return [...new Set(requested)]
+}
 
 function run(command, args, cwd, extraEnv = {}) {
   const result = spawnSync(command, args, {
@@ -53,8 +59,12 @@ function assertDisposableDatabase() {
   }
 }
 
+const journeyIds = selectedJourneyIds()
+
 assertDisposableDatabase()
 run(process.execPath, ['scripts/audit-e2e-journeys.mjs'], clientDir)
+
+console.log(`Critical E2E selection: ${journeyIds.join(', ')}`)
 
 for (const journeyId of journeyIds) {
   console.log(`\n=== ${journeyId}: reset disposable database from migrations ===`)
@@ -68,9 +78,6 @@ for (const journeyId of journeyIds) {
     clientDir,
     {
       E2E_SEED: 'false',
-      // roleAuth di business fixture sudah membuktikan login untuk identity yang benar-benar
-      // dipakai journey. Login preflight global per proses hanya menggandakan request
-      // auth dan dapat memicu rate limit ketika journey dijalankan terisolasi.
       E2E_SKIP_LOGIN_PREFLIGHT: 'true',
       E2E_TEST_RUN_ID: `${journeyId}-${Date.now()}`,
     },

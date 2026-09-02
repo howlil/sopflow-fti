@@ -2,6 +2,36 @@ import { expect, type Page } from '@playwright/test'
 
 import { expectNoAppShellError, waitForAppReady } from './app'
 
+export interface AdminAccountUiInput {
+  nama: string
+  nip: string
+  email: string
+  jabatan: string
+  pangkat: string
+  nohp: string
+}
+
+export async function createPlatformAccountViaAdminUi(
+  page: Page,
+  input: AdminAccountUiInput,
+): Promise<void> {
+  await page.goto('/admin/accounts')
+  await waitForAppReady(page)
+  await expect(page.getByRole('heading', { name: 'Akun FTI', exact: true })).toBeVisible()
+
+  await page.getByLabel('Nama', { exact: true }).fill(input.nama)
+  await page.getByLabel('NIP', { exact: true }).fill(input.nip)
+  await page.getByLabel('Email', { exact: true }).fill(input.email)
+  await page.getByLabel('Jabatan', { exact: true }).fill(input.jabatan)
+  await page.getByLabel('Pangkat', { exact: true }).fill(input.pangkat)
+  await page.getByLabel('Nomor HP', { exact: true }).fill(input.nohp)
+  await page.getByRole('button', { name: 'Buat Akun', exact: true }).click()
+
+  await expect(page.getByText(input.nama, { exact: true })).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText(new RegExp(input.email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeVisible()
+  await expectNoAppShellError(page)
+}
+
 export interface AdminProcessUiInput {
   departmentName: string
   processName: string

@@ -1,7 +1,35 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { Pengguna, Prisma } from '../../../generated/prisma';
-import { PeranPengguna } from '../../../generated/prisma';
+import { PeranPengguna, PlatformRole } from '../../../generated/prisma';
+import { syncActiveRiwayatOpd } from './helpers/riwayat-opd.sync';
+
+const platformAccountSelect = {
+  penggunaId: true,
+  nama: true,
+  email: true,
+  nip: true,
+  jabatan: true,
+  pangkat: true,
+  nohp: true,
+  platformRole: true,
+  deletedAt: true,
+} as const;
+
+export type PlatformAccountRow = Prisma.PenggunaGetPayload<{
+  select: typeof platformAccountSelect;
+}>;
+
+export interface CreatePlatformAccountRepoInput {
+  readonly email: string;
+  readonly nama: string;
+  readonly nip: string;
+  readonly pangkat: string;
+  readonly jabatan: string;
+  readonly nohp: string;
+  readonly kataSandi: string;
+  readonly opdId: string;
+}
 
 @Injectable()
 export class PenggunaRepository {
@@ -27,6 +55,48 @@ export class PenggunaRepository {
       return null;
     }
     return { opdId: row.opdId, nama: row.opd.nama };
+  }
+
+  /** Compatibility OPD for target account rows while Pengguna.opdId remains required. */
+  async findPlatformAdminCompatibilityOpdId(): Promise<string | null> {
+    const row = await this.prisma.pengguna.findFirst({
+      where: { platformRole: PlatformRole.SUPER_ADMIN, deletedAt: null },
+      select: { opdId: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    return row?.opdId ?? null;
+  }
+
+  listPlatformAccounts(): Promise<PlatformAccountRow[]> {
+    return this.prisma.pengguna.findMany({
+      where: { deletedAt: null },
+      select: platformAccountSelect,
+      orderBy: [{ nama: 'asc' }, { email: 'asc' }],
+    });
+  }
+
+  async createPlatformAccountWithHistory(
+    input: CreatePlatformAccountRepoInput,
+  ): Promise<PlatformAccountRow> {
+    return this.prisma.$transaction(async (tx) => {
+      const created = await tx.pengguna.create({
+        data: {
+          email: input.email,
+          nama: input.nama,
+          nip: input.nip,
+          pangkat: input.pangkat,
+          jabatan: input.jabatan,
+          nohp: input.nohp,
+          kataSandi: input.kataSandi,
+          opdId: input.opdId,
+          peran: PeranPengguna.PENYUSUN,
+          platformRole: PlatformRole.USER,
+        },
+        select: platformAccountSelect,
+      });
+      await syncActiveRiwayatOpd(tx, created.penggunaId, input.opdId);
+      return created;
+    });
   }
 
   /** Jumlah pengguna aktif dengan peran tertentu di OPD (opsional abaikan satu pengguna). */

@@ -102,6 +102,7 @@ export function DashboardLayout() {
       : []),
     ...(user?.platformRole === "SUPER_ADMIN"
       ? [
+          { to: ROUTES.ADMIN.ACCOUNTS, label: "Akun FTI", icon: Users },
           { to: ROUTES.ADMIN.PROCESSES, label: "Proses FTI", icon: Workflow },
           { to: ROUTES.ADMIN.AUTHORITIES, label: "Kewenangan Organisasi", icon: ShieldCheck },
         ]

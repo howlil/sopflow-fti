@@ -47,6 +47,7 @@ import { Route as EvaluatorEvaluasiIndexRouteImport } from './routes/evaluator/e
 import { Route as ArsipOpdIdIndexRouteImport } from './routes/arsip/$opdId/index'
 import { Route as AdminProcessesIndexRouteImport } from './routes/admin/processes/index'
 import { Route as AdminAuthoritiesIndexRouteImport } from './routes/admin/authorities/index'
+import { Route as AdminAccountsIndexRouteImport } from './routes/admin/accounts/index'
 import { Route as PjEvaluatorEvaluasiIdRouteImport } from './routes/pj-evaluator/evaluasi/$id'
 import { Route as PenyusunSopIdRouteImport } from './routes/penyusun/sop/$id'
 import { Route as KepalaOpdSopIdRouteImport } from './routes/kepala-opd/sop/$id'
@@ -252,6 +253,11 @@ const AdminAuthoritiesIndexRoute = AdminAuthoritiesIndexRouteImport.update({
   path: '/authorities/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminAccountsIndexRoute = AdminAccountsIndexRouteImport.update({
+  id: '/accounts/',
+  path: '/accounts/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const PjEvaluatorEvaluasiIdRoute = PjEvaluatorEvaluasiIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -327,6 +333,7 @@ export interface FileRoutesByFullPath {
   '/kepala-opd/sop/$id': typeof KepalaOpdSopIdRoute
   '/penyusun/sop/$id': typeof PenyusunSopIdRoute
   '/pj-evaluator/evaluasi/$id': typeof PjEvaluatorEvaluasiIdRoute
+  '/admin/accounts/': typeof AdminAccountsIndexRoute
   '/admin/authorities/': typeof AdminAuthoritiesIndexRoute
   '/admin/processes/': typeof AdminProcessesIndexRoute
   '/arsip/$opdId/': typeof ArsipOpdIdIndexRoute
@@ -368,6 +375,7 @@ export interface FileRoutesByTo {
   '/kepala-opd/sop/$id': typeof KepalaOpdSopIdRoute
   '/penyusun/sop/$id': typeof PenyusunSopIdRoute
   '/pj-evaluator/evaluasi/$id': typeof PjEvaluatorEvaluasiIdRoute
+  '/admin/accounts': typeof AdminAccountsIndexRoute
   '/admin/authorities': typeof AdminAuthoritiesIndexRoute
   '/admin/processes': typeof AdminProcessesIndexRoute
   '/arsip/$opdId': typeof ArsipOpdIdIndexRoute
@@ -418,6 +426,7 @@ export interface FileRoutesById {
   '/kepala-opd/sop/$id': typeof KepalaOpdSopIdRoute
   '/penyusun/sop/$id': typeof PenyusunSopIdRoute
   '/pj-evaluator/evaluasi/$id': typeof PjEvaluatorEvaluasiIdRoute
+  '/admin/accounts/': typeof AdminAccountsIndexRoute
   '/admin/authorities/': typeof AdminAuthoritiesIndexRoute
   '/admin/processes/': typeof AdminProcessesIndexRoute
   '/arsip/$opdId/': typeof ArsipOpdIdIndexRoute
@@ -469,6 +478,7 @@ export interface FileRouteTypes {
     | '/kepala-opd/sop/$id'
     | '/penyusun/sop/$id'
     | '/pj-evaluator/evaluasi/$id'
+    | '/admin/accounts/'
     | '/admin/authorities/'
     | '/admin/processes/'
     | '/arsip/$opdId/'
@@ -510,6 +520,7 @@ export interface FileRouteTypes {
     | '/kepala-opd/sop/$id'
     | '/penyusun/sop/$id'
     | '/pj-evaluator/evaluasi/$id'
+    | '/admin/accounts'
     | '/admin/authorities'
     | '/admin/processes'
     | '/arsip/$opdId'
@@ -559,6 +570,7 @@ export interface FileRouteTypes {
     | '/kepala-opd/sop/$id'
     | '/penyusun/sop/$id'
     | '/pj-evaluator/evaluasi/$id'
+    | '/admin/accounts/'
     | '/admin/authorities/'
     | '/admin/processes/'
     | '/arsip/$opdId/'
@@ -869,6 +881,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthoritiesIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/accounts/': {
+      id: '/admin/accounts/'
+      path: '/accounts'
+      fullPath: '/admin/accounts/'
+      preLoaderRoute: typeof AdminAccountsIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/pj-evaluator/evaluasi/$id': {
       id: '/pj-evaluator/evaluasi/$id'
       path: '/$id'
@@ -936,11 +955,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteRouteChildren {
+  AdminAccountsIndexRoute: typeof AdminAccountsIndexRoute
   AdminAuthoritiesIndexRoute: typeof AdminAuthoritiesIndexRoute
   AdminProcessesIndexRoute: typeof AdminProcessesIndexRoute
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminAccountsIndexRoute: AdminAccountsIndexRoute,
   AdminAuthoritiesIndexRoute: AdminAuthoritiesIndexRoute,
   AdminProcessesIndexRoute: AdminProcessesIndexRoute,
 }
