@@ -11,7 +11,7 @@ on:
       - '.github/workflows/client-ci.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: client-ci-${{ github.ref }}
@@ -28,6 +28,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -47,6 +49,18 @@ jobs:
 
       - name: Build and regenerate routes
         run: pnpm build
+
+      - name: Sync generated route tree to PR head
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          if git diff --quiet -- src/routeTree.gen.ts; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/routeTree.gen.ts
+          git commit -m 'chore(client): sync generated route tree'
+          git push origin "HEAD:${{ github.head_ref }}"
 
       - name: Verify generated route tree is committed
         run: |
