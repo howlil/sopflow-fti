@@ -11,6 +11,7 @@ import { ProcessOwnerReviewController } from './process-owner-review.controller'
 import { ProcessOwnerReviewService } from './process-owner-review.service';
 import { ProcessSopAuthoringController } from './process-sop-authoring.controller';
 import { ProcessSopAuthoringService } from './process-sop-authoring.service';
+import { ProcessVersionService } from './process-version.service';
 
 @Module({
   imports: [ProcessModule, NotificationModule, SopCatalogModule, PelaksanaModule],
@@ -21,10 +22,16 @@ import { ProcessSopAuthoringService } from './process-sop-authoring.service';
   ],
   providers: [
     ProcessSopAuthoringService,
+    ProcessVersionService,
     ProcessOwnerReviewService,
     ProcessFinalApprovalService,
     { provide: APP_GUARD, useClass: ProcessBoundSopGuard },
   ],
-  exports: [ProcessSopAuthoringService, ProcessOwnerReviewService, ProcessFinalApprovalService],
+  exports: [
+    ProcessSopAuthoringService,
+    ProcessVersionService,
+    ProcessOwnerReviewService,
+    ProcessFinalApprovalService,
+  ],
 })
 export class ProcessSopAuthoringModule {}

@@ -13,6 +13,7 @@ on:
       - 'client/src/pages/approval/**'
       - 'client/src/components/layout/**'
       - 'client/src/api/process-*.ts'
+      - 'client/src/api/sop-client.ts'
       - 'client/src/api/organizational-authority.ts'
       - 'client/src/stores/authStore.ts'
       - 'server/src/modules/core/auth/**'
@@ -35,7 +36,7 @@ concurrency:
 jobs:
   fti-target-journeys:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       DATABASE_HOST: 127.0.0.1
       DATABASE_PORT: 3308
@@ -147,9 +148,9 @@ jobs:
         working-directory: client
         run: pnpm test:e2e:audit
 
-      - name: Run FTI target journeys J08-J15
+      - name: Run FTI target journeys J08-J19
         working-directory: client
-        run: node scripts/run-e2e.mjs journeys --grep 'J(08|09|10|11|12|13|14|15)\b' --project=chromium
+        run: node scripts/run-e2e.mjs journeys --grep 'J(08|09|10|11|12|13|14|15|16|17|18|19)\b' --project=chromium
 
       - name: Backend logs on failure
         if: failure()

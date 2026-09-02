@@ -23,6 +23,7 @@ import { UpdateSopHeaderDto } from '../catalog/dto/update-sop-header.dto';
 import { PelaksanaSnapshotService } from '../pelaksana/pelaksana-snapshot.service';
 import { CreateProcessSopDto } from './dto/create-process-sop.dto';
 import { ProcessSopAuthoringService } from './process-sop-authoring.service';
+import { ProcessVersionService } from './process-version.service';
 
 @ApiTags('Process SOP Authoring')
 @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
@@ -32,6 +33,7 @@ export class ProcessSopAuthoringController {
   constructor(
     private readonly service: ProcessSopAuthoringService,
     private readonly pelaksanaSnapshotService: PelaksanaSnapshotService,
+    private readonly processVersionService: ProcessVersionService,
   ) {}
 
   @Get()
@@ -58,6 +60,27 @@ export class ProcessSopAuthoringController {
       message: 'SOP Process berhasil dibuat',
       success: true,
       data: await this.service.create(req.user, dto),
+    };
+  }
+
+  @Post(':detailOrSopId/version')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiQuery({ name: 'logsLimit', required: false, schema: { default: 100, minimum: 1, maximum: 500 } })
+  @ApiOperation({ summary: 'Buat versi baru dengan Process authorization untuk SOP target' })
+  async createVersion(
+    @Req() req: Request & { user: JwtAccessPayload },
+    @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,
+    @Query('logsLimit', new DefaultValuePipe(100), ParseIntPipe) logsLimit: number,
+  ): Promise<ApiSuccessResponse<unknown>> {
+    const workbench = await this.processVersionService.createVersion(
+      req.user,
+      detailOrSopId,
+      logsLimit,
+    );
+    return {
+      message: 'Versi baru SOP berhasil dibuat',
+      success: true,
+      data: await this.pelaksanaSnapshotService.applyToWorkbench(workbench),
     };
   }
 
