@@ -2,88 +2,100 @@
 
 ## Shape
 
-**Milestone:** M7 — FTI Account Provisioning & Bootstrap Completion  
-**State:** INTEGRATED / RELEASE_READY  
-**Integration branch:** `master`
+**Milestone:** M8 — Contextual SOP Revocation & Effective-State Integrity  
+**State:** IMPLEMENTED / VERIFICATION_PENDING  
+**Integration branch:** `m8-contextual-revocation`
 
-Outcome achieved: from one bootstrap `SUPER_ADMIN`, FTI can provision ordinary accounts through the target administration surface, assign those accounts to Process and organizational-authority context, and operate the contextual SOP workflow without manual database insertion or dependency on pre-seeded workflow identities.
+Outcome target: a Process-bound SOP that is already effective can be revoked through the same contextual organizational authority model used for final approval and TTE, while public/effective visibility is removed and historical/audit/TTE evidence remains intact.
 
-M7 was delivered as one bounded capability milestone. J24-J27 were not split into separate planning cycles or tiny integration PRs.
+M8 is one bounded lifecycle capability milestone and is delivered continuously through J28-J30 rather than separate planning cycles or tiny integration PRs.
 
 ## Position
 
 ```text
-J24 Target Account Provisioning              VERIFIED / INTEGRATED
-J25 Account → Process Assignment             VERIFIED / INTEGRATED
-J26 Account → Organizational Authority       VERIFIED / INTEGRATED
-J27 Zero-to-Workflow Bootstrap               VERIFIED / INTEGRATED
-M7 milestone gate                            PASS
-Release readiness                            READY
+J28 Contextual Revocation Authority          IMPLEMENTED
+J29 Authority Revocation Surface             IMPLEMENTED
+J30 Effective/Public Integrity               IMPLEMENTED
+M8 milestone gate                            VERIFICATION_PENDING
+Release readiness                            NOT YET CLAIMED
 Release/deployment                           NOT PERFORMED
 ```
 
-## Integration Evidence
+## Implemented Behavior
+
+### J28 — Contextual Revocation Authority
+
+- Process-bound revocation resolves `ProcessSopBinding` and uses `OrganizationalAuthorityService` as the authority source.
+- `FACULTY` Process revocation belongs to the active `DEAN`.
+- `DEPARTMENT` Process revocation belongs to the active `HEAD_OF_DEPARTMENT` for that department.
+- Process Owner, Process Member, unrelated authority holders, and `SUPER_ADMIN` without the relevant organizational authority do not gain revocation rights.
+- revocation requires an existing `BERLAKU` version and is rejected while a revision is in flight.
+- legacy/unbound SOP revocation remains on the compatibility path.
+
+### J29 — Authority Revocation Surface
+
+- the existing FTI authority surface at `/approval` now lists effective SOPs inside the signed-in authority holder's scope;
+- the authority holder can invoke `Cabut SOP` with an explicit confirmation that the SOP will no longer be effective;
+- no legacy `KEPALA_OPD` identity is required for Process-bound revocation.
+
+### J30 — Effective/Public Integrity
+
+- `BERLAKU -> DICABUT` remains a terminal state transition, not deletion;
+- the existing status transaction records the acting user and marks the published TTE artifact `REVOKED`;
+- revoked SOPs stop satisfying public/effective `BERLAKU` queries and public document/PDF access;
+- version history, approval/TTE evidence, audit evidence, and stored artifacts are preserved as historical evidence.
+
+## Verification Selection
+
+M8 changes one bounded authority + effective/public lifecycle boundary. Default browser evidence is therefore:
 
 ```text
-PR #14 squash merge: cf5b20619b013cc8b03fc62b120f9c69e6b7676c
-Verified source head: 29ab68e1a3f1e881bf5ae9e6273e1259f8a8c6e0
+J28 Contextual Revocation Authority
+J29 Authority Revocation Surface
+J30 Effective/Public Integrity
+```
 
-Source-head Client CI: 33678075237 PASS
-- production build / route generation
-- committed generated route-tree consistency
-- typecheck
-- unit tests
+J17-J19 are added only if verification shows that version-replacement semantics were materially affected. Full historical J01-J30 is not the default gate.
 
-Source-head Server CI: 33678075226 PASS
+Expected gate:
+
+```text
+Server CI
 - Prisma validate/generate
 - typecheck
 - core unit tests
-- FTI target-domain unit tests
+- focused target-domain tests including process-sop-revocation.service.spec.ts
 
-Source-head FTI Critical E2E: 33678075278 PASS
-- critical registry audit
-- risk-selected J20-J27
-- disposable MariaDB + Nest + Chromium runtime
+Client CI
+- production build / route generation
+- generated route-tree consistency
+- typecheck
+- unit tests
 
-Integrated master Client CI: 33678521355 PASS
-Integrated master Server CI: 33678521348 PASS
-Migration Smoke: not required; no migration-relevant inputs changed
+FTI Critical E2E
+- journey registry audit
+- risk-selected J28-J30
+
+Migration Smoke
+- not required unless a migration-relevant input appears in the final diff
 ```
-
-The original Client CI failure was a generated TanStack route-tree mismatch for the new `/admin/accounts` route. The exact generated route tree was committed, the normal read-only consistency gate was restored, and both source-head and integrated Client CI passed afterward.
-
-## Verification Selection Preserved
-
-M7 established the repository rule that browser E2E is risk-selected rather than cumulative-by-ID:
-
-```text
-Changed M7 capability: J24-J27
-Direct affected administration/bootstrap regression: J20-J23
-M7 gate: J20-J27
-```
-
-Earlier historical journeys remain available for explicit full milestone/release/shared-harness qualification, but they are not automatically permanent gates for unrelated changes.
 
 ## Boundaries Preserved
 
-- ordinary provisioned accounts remain `platformRole = USER` unless explicitly changed elsewhere;
-- account creation alone grants no Process, final-approval, TTE, or administration authority;
-- required legacy Pengguna backing fields remain internal compatibility seams;
-- no generic RBAC/permission editor/user groups;
-- no invitation email, CSV/bulk import, or SSO;
-- no account deletion/history redesign;
-- no new password-reset lifecycle;
-- no revocation/cabutan product authority decision;
-- no schema/migration change;
-- no protected Edit SOP workspace implementation change;
+- no new schema/status is introduced; existing `DICABUT` semantics are reused;
+- no OPD table/column/enum/role removal;
+- no `SOP.opdId` cleanup;
+- no broad persisted role/status rename;
+- no public archive information-architecture redesign;
+- no generic revocation workflow engine, approval-chain engine, bulk/scheduled revocation, mandatory reason/document, or second approval workflow;
+- `SUPER_ADMIN` remains platform administration, not a workflow bypass;
+- legacy/unbound behavior remains compatible;
 - no release/deployment.
 
 ## Delta
 
-No M7 implementation, verification, or integration work remains.
-
-Repository guidance now reflects capability-first delivery, Minimum Complete Change, accurate delivery-state transitions, and proportional/risk-selected verification.
+Implementation for J28-J30 is present on the milestone branch. Verification and integration evidence are not yet complete, so M8 must not be described as verified, integrated, or release-ready yet.
 
 ## Next Move
 
-**STOP.** M7 is integrated and release-ready. Await an explicit next product objective or explicit release/deployment direction; do not invent M8 or expand product scope from deferred/nice-to-have work.
+Run the proportional M8 gate on the exact branch head, fix only failures that invalidate the bounded capability, integrate one coherent M8 PR after green evidence, verify the integrated master revision, then update this file to `INTEGRATED / RELEASE_READY` and **STOP**. Do not invent M9 or promote deferred legacy cleanup into scope.

@@ -60,4 +60,4 @@ jobs:
         run: pnpm test:core-unit
 
       - name: FTI target-domain unit tests
-        run: pnpm exec jest platform-admin.guard.spec.ts process.service.spec.ts process-context.service.spec.ts process-sop-authoring.service.spec.ts process-owner-review.service.spec.ts organizational-authority.service.spec.ts process-final-approval.service.spec.ts process-notification.service.spec.ts process-tte.service.spec.ts process-tte.repository.spec.ts --runInBand
+        run: pnpm exec jest platform-admin.guard.spec.ts process.service.spec.ts process-context.service.spec.ts process-sop-authoring.service.spec.ts process-owner-review.service.spec.ts organizational-authority.service.spec.ts process-final-approval.service.spec.ts process-sop-revocation.service.spec.ts process-notification.service.spec.ts process-tte.service.spec.ts process-tte.repository.spec.ts --runInBand

@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Check, FileSignature, Loader2, ShieldCheck } from 'lucide-react'
+import { Ban, Check, FileSignature, Loader2, ShieldCheck } from 'lucide-react'
 import { processApprovalApi, useProcessApprovalQueue } from '@/api/process-approval'
+import { useProcessRevocationQueue } from '@/api/process-revocation'
 import { useTandaTanganiProcessSop } from '@/api/process-tte'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -15,6 +16,12 @@ import { mapPenyusunWorkbenchToPreviewProps } from '@/lib/sop/detailSop.mappers'
 
 export function ProcessApprovalPage() {
   const { rows, isLoading, approve, isApproving } = useProcessApprovalQueue()
+  const {
+    rows: revocationRows,
+    isLoading: isLoadingRevocations,
+    revoke,
+    isRevoking,
+  } = useProcessRevocationQueue()
   const signProcessSop = useTandaTanganiProcessSop({ suppressSetupRequiredToast: true })
   const {
     tteSetupDialogOpen,
@@ -25,8 +32,10 @@ export function ProcessApprovalPage() {
   const { showToast } = useToast()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [signingId, setSigningId] = useState<string | null>(null)
+  const [revokingId, setRevokingId] = useState<string | null>(null)
   const selected = rows.find((row) => row.detailSopId === selectedId) ?? null
   const signing = rows.find((row) => row.detailSopId === signingId) ?? null
+  const revoking = revocationRows.find((row) => row.detailSopId === revokingId) ?? null
 
   const handleOpenSigning = (detailSopId: string) => {
     void requireTteReady(() => setSigningId(detailSopId))
@@ -142,6 +151,55 @@ export function ProcessApprovalPage() {
           </div>
         </DataSurface.Root>
 
+        <DataSurface.Root>
+          <DataSurface.Header>
+            <div className="space-y-0.5">
+              <h2 className="text-sm font-semibold text-foreground">SOP berlaku dalam kewenangan Anda</h2>
+              <p className="text-sm text-secondary-foreground">
+                Pencabutan menggunakan kewenangan organisasi yang sama dengan persetujuan akhir. SOP yang dicabut berhenti berlaku tanpa menghapus riwayat versi, audit, atau bukti TTE.
+              </p>
+            </div>
+          </DataSurface.Header>
+          <div className="divide-y divide-border">
+            {isLoadingRevocations ? (
+              <p className="p-4 text-sm text-secondary-foreground">Memuat SOP berlaku...</p>
+            ) : revocationRows.length === 0 ? (
+              <p className="p-4 text-sm text-secondary-foreground">Tidak ada SOP berlaku yang dapat dicabut dalam kewenangan Anda.</p>
+            ) : (
+              revocationRows.map((row) => (
+                <div key={row.detailSopId} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-medium text-foreground">{row.judul}</h3>
+                      <span className="rounded-full border border-border px-2 py-0.5 text-xs text-secondary-foreground">
+                        {row.scope === 'FACULTY' ? 'Fakultas · Dekan' : `${row.departmentNama ?? 'Departemen'} · Kepala Departemen`}
+                      </span>
+                    </div>
+                    <p className="text-sm text-secondary-foreground">
+                      {row.nomorSOP} · v{row.versi} · Process {row.processNama}
+                    </p>
+                    <p className="text-xs font-medium text-secondary-foreground">Berlaku</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    disabled={isRevoking}
+                    onClick={() => setRevokingId(row.detailSopId)}
+                  >
+                    {isRevoking && revokingId === row.detailSopId ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    ) : (
+                      <Ban className="h-4 w-4" aria-hidden />
+                    )}
+                    Cabut SOP
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        </DataSurface.Root>
+
         <ConfirmDialog
           open={selected !== null}
           onOpenChange={(open) => { if (!open) setSelectedId(null) }}
@@ -153,6 +211,23 @@ export function ProcessApprovalPage() {
             try {
               await approve(selected.detailSopId)
               setSelectedId(null)
+            } catch {
+              // Mutation toast owns the error; keep dialog available for retry.
+            }
+          }}
+        />
+
+        <ConfirmDialog
+          open={revoking !== null}
+          onOpenChange={(open) => { if (!open) setRevokingId(null) }}
+          title="Cabut SOP ini?"
+          description={revoking ? `${revoking.judul} tidak lagi berlaku setelah dicabut. Riwayat versi, audit, dan bukti TTE tetap dipertahankan.` : ''}
+          confirmLabel="Ya, cabut SOP"
+          onConfirm={async () => {
+            if (!revoking || isRevoking) return
+            try {
+              await revoke(revoking.detailSopId)
+              setRevokingId(null)
             } catch {
               // Mutation toast owns the error; keep dialog available for retry.
             }

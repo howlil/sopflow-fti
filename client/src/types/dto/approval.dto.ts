@@ -57,3 +57,24 @@ export interface ProcessApprovalDocumentDto {
     holderJabatan: string
   }
 }
+
+export interface ProcessRevocationQueueRowDto {
+  detailSopId: string
+  sopId: string
+  judul: string
+  nomorSOP: string
+  versi: number
+  processId: string
+  processNama: string
+  scope: OrganizationalScope
+  departmentId: string | null
+  departmentNama: string | null
+  updatedAt: string
+}
+
+export interface ProcessRevocationResultDto {
+  detailSopId: string
+  sopId: string
+  processId: string
+  status: 'DICABUT'
+}

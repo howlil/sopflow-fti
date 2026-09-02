@@ -153,9 +153,9 @@ jobs:
         working-directory: client
         run: pnpm test:e2e:audit
 
-      - name: Run M7 risk-selected target journeys J20-J27
+      - name: Run M8 risk-selected target journeys J28-J30
         working-directory: client
-        run: node scripts/run-e2e.mjs journeys --grep 'J(20|21|22|23|24|25|26|27)\b' --project=chromium
+        run: node scripts/run-e2e.mjs journeys --grep 'J(28|29|30)\b' --project=chromium
 
       - name: Backend logs on failure
         if: failure()
