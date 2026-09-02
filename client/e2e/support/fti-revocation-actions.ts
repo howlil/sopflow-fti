@@ -1,10 +1,34 @@
-import { expect, type Page } from '@playwright/test'
+import { expect, type APIRequestContext, type Page } from '@playwright/test'
 
+import { apiPost, toApiUrl } from './api'
 import {
   expectNoAppShellError,
   searchPageIfAvailable,
   waitForAppReady,
 } from './app'
+
+export interface RevocationResult {
+  detailSopId: string
+  sopId: string
+  processId: string
+  status: 'DICABUT'
+}
+
+export async function revokeProcessSopViaApi(
+  api: APIRequestContext,
+  detailSopId: string,
+): Promise<RevocationResult> {
+  return apiPost<RevocationResult>(api, `/process-revocation/${detailSopId}/revoke`)
+}
+
+export async function expectRevocationRejectedViaApi(
+  api: APIRequestContext,
+  detailSopId: string,
+  expectedStatus: number,
+): Promise<void> {
+  const response = await api.post(toApiUrl(`/process-revocation/${detailSopId}/revoke`))
+  expect(response.status()).toBe(expectedStatus)
+}
 
 export async function revokeProcessSopViaUi(
   page: Page,
