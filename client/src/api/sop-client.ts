@@ -80,7 +80,7 @@ export const sopApi = {
   buatVersiBaru: (detailSopId: string, params?: PenyusunWorkbenchQueryParams) =>
     unwrapApiData(
       apiClient.post<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/sop/${detailSopId}/buat-versi-baru${buildQueryString(params)}`,
+        `/process-sop/${detailSopId}/version${buildQueryString(params)}`,
       ),
     ),
 
