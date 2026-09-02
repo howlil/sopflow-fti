@@ -2,84 +2,90 @@
 
 ## Shape
 
-**Milestone:** M5 — Process Version Lifecycle Cutover & Historical Integrity  
+**Milestone:** M6 — FTI Administration Bootstrap & Configuration Integrity  
 **State:** ACTIVE  
 **Integration branch:** `master`
 
-Outcome: make Process-bound SOP version creation use contextual Process authoring authority, then prove replacement/supersession preserves one effective version, signing evidence, official artifacts, version history, and public integrity for both Faculty and Department scopes.
+Outcome: prove that a `SUPER_ADMIN` can bootstrap and maintain the target FTI workflow configuration through the existing administration surfaces, and that Department, Process Team, and organizational-authority assignments immediately drive real workflow capability without making platform administration a workflow bypass.
 
-M5 is a semantic cutover/reliability milestone. It must not introduce a generic version engine, new approval tier, arbitrary rollback, destructive legacy cleanup, target revocation authority, release/deploy, or protected Edit SOP workspace changes.
+M6 is an operational/configuration-integrity milestone. It must not introduce target revocation authority, a generic RBAC/approval engine, destructive legacy cleanup, delete/deactivate semantics, release/deploy, or protected Edit SOP workspace changes.
 
 ## Previous Milestone Closure
 
-M4 — Department Workflow Parity & Isolation is complete and release-ready.
+M5 — Process Version Lifecycle Cutover & Historical Integrity is complete and integrated.
 
 ```text
-PR #9 merge: c644b5a86a66153ef3934fabaebf69413a7fc735
-Client CI: 33559540503 PASS
-Server CI: 33559540442 PASS
-Migration Smoke: 33559540449 PASS
-FTI Critical E2E: 33559540423 PASS (J08-J15)
+PR #11 source head: 2b8bf99d78dd54a309e0aba0e7f8c1aa91e4cfce
+PR #11 merge:       32a73437d9af70226a4a8e209177787ddbef6f37
+Client CI:          33623375048 PASS
+Server CI:          33623375157 PASS
+FTI Critical E2E:   33623375077 PASS (J08-J19)
 ```
+
+M5 verified contextual Process version creation, Faculty/Department replacement, one-effective-version behavior, superseded official artifacts, historical lineage, and failed-signing atomicity. Migration Smoke was not required because no migration-relevant inputs changed. Protected Edit SOP remained unchanged.
 
 ## Position
 
 ```text
-Contextual Version Creation                  ACTIVE
-Faculty Version Replacement                  PLANNED
-Department Version Replacement               PLANNED
-Historical/Public Integrity                  PLANNED
-Milestone Gate                               PENDING
+Admin Entry & Isolation                     ACTIVE
+Process Configuration                       PLANNED
+Organizational Authority Configuration      PLANNED
+Configuration → Workflow Bootstrap           PLANNED
+Milestone Gate                              PENDING
 ```
 
 Current branch:
 
 ```text
-m5-process-version-lifecycle
+m6-admin-bootstrap-integrity
 ```
 
 ## Slice Plan
 
-### J16 — Contextual Version Creation
+### J20 — Admin Entry & Isolation
 
-For a Process-bound SOP, Process Owner/Member may create one new draft version from a terminal version. Unrelated Process actors, contextual authority without Process relationship, and SUPER_ADMIN without Process relationship are denied. Legacy/unbound SOP version creation remains compatibility behavior. Concurrent creation must still produce at most one active draft.
+Prove target administration is a platform capability: SUPER_ADMIN can reach Process/Authority administration, normal USER actors cannot mutate those resources, and SUPER_ADMIN alone gains no Process authoring/review/final-approval/TTE authority.
 
-### J17 — Faculty Version Replacement
+### J21 — Process Configuration
 
-Take a Faculty Process SOP from V1 BERLAKU through V2 Process review, Dean approval, and contextual TTE. Signing V2 must atomically move V1 to DIGANTIKAN, its official PDF to SUPERSEDED, and V2 to BERLAKU/PUBLISHED with exactly one effective version.
+Through the target Process administration surface, create a uniquely named Department and Department-scoped Process, assign one Process Owner and at least one Member, then edit the Process configuration and verify the resulting Process contexts reflect the saved assignments.
 
-### J18 — Department Version Replacement
+### J22 — Organizational Authority Configuration
 
-Repeat the replacement lifecycle for a Department Process SOP with the relevant Head of Department, preserving cross-department and Dean isolation.
+Through the target authority administration surface, verify Dean configuration and assign a Head of Department for a uniquely created Department. Non-admin mutation must be denied and the assigned holder's contextual authority must update immediately. Any temporary global Dean reassignment used for verification must be restored within the journey.
 
-### J19 — Historical/Public Integrity
+### J23 — Configuration → Workflow Bootstrap
 
-Prove source-version lineage, historical signing evidence preservation, current public archive correctness, and failure atomicity: failed replacement signing must not supersede the existing effective version or leave partial publication/signing state.
+Create a unique Department, Process Team, and relevant Head-of-Department through target administration surfaces, then run a Process-bound SOP through Member authoring, Process Owner review, contextual final approval, TTE, effective state, and public handoff. The business configuration under test must not come from the seeded Process topology.
 
 ## Boundaries
 
 In scope:
 
-- Process-aware version creation authorization;
-- Faculty and Department target replacement journeys;
-- one-BERLAKU and artifact supersession invariants;
-- historical lineage/evidence preservation;
-- failed-signing atomicity evidence;
-- FTI critical browser registry extended through J19.
+- existing `/admin/processes` and `/admin/authorities` target surfaces;
+- Department and Process creation/update;
+- Process Owner/Member assignments;
+- Dean and Head-of-Department configuration;
+- platform-admin isolation from workflow authority;
+- configuration propagation into Process/authority capability;
+- full configured-Process workflow bootstrap proof;
+- FTI critical journey registry extended through J23.
 
 Out of scope:
 
 - target Process revocation/cabutan authority semantics;
-- destructive removal of legacy roles/routes/tables;
+- Department/Process deletion or deactivation behavior;
+- in-flight authority reassignment semantics;
+- authority-history redesign;
+- generic RBAC or configurable approval-chain engines;
+- destructive legacy table/role/route cleanup;
 - public archive IA redesign;
-- arbitrary rollback/version branching;
-- editing historical signed versions;
 - release/deployment;
 - protected Edit SOP workspace implementation changes.
 
 ## Stop Condition
 
-If M5 requires deciding who may revoke/cabut a target Process SOP, stop that sub-scope. Current product authority does not define target revocation authority and the existing legacy `KEPALA_OPD` rule must not be silently reinterpreted.
+If M6 requires deciding who may revoke/cabut a target Process SOP, stop that sub-scope. Platform administration must not be converted into business/legal workflow authority by inference.
 
 ## Verification
 
@@ -87,13 +93,15 @@ If M5 requires deciding who may revoke/cabut a target Process SOP, stop that sub
 Client CI
 Server CI
 Migration Smoke only when migration-relevant inputs change
-FTI Critical E2E J08-J19
-one effective BERLAKU version
-previous official artifact SUPERSEDED on replacement
-failed replacement leaves previous effective/public evidence intact
+FTI Critical E2E J08-J23
+admin mutation permitted only to platform admin
+SUPER_ADMIN remains non-workflow-authorized without contextual assignment
+new Process/team configuration propagates immediately
+new organizational authority propagates immediately
+J23 uses runtime-created configuration rather than seeded Process topology
 protected Edit SOP implementation unchanged
 ```
 
 ## Next Move
 
-Implement J16 contextual version creation with the existing Process authorization pattern, preserving legacy/unbound compatibility, then continue J17-J19 without a new planning cycle.
+Implement J20 Admin Entry & Isolation, then continue J21-J23 continuously without a new planning cycle.
