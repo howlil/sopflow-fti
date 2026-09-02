@@ -138,7 +138,7 @@ test.describe('End-to-End Business Journey — contextual SOP revocation', () =>
       toApiUrl(`/sop/public/pdf/${sop.detailSopId}`),
     )
     expect(publicDocument.status()).toBe(404)
-    expect(publicPdf.status()).toBe(404)
+    expect(publicPdf.status()).toBe(410)
 
     const history = await apiGet<VersionHistoryRow[]>(
       await roleApi(targetUsers.processMember),
