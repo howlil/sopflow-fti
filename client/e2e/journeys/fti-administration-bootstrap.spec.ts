@@ -146,7 +146,7 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
     const adminUsers = await listAdminUsers(roleApi)
     const originalDean = requireAdminUser(adminUsers, targetUsers.dean.email)
     const temporaryDean = requireAdminUser(adminUsers, targetUsers.otherDepartmentMember.email)
-    const departmentHead = requireAdminUser(adminUsers, targetUsers.departmentMember.email)
+    const departmentHead = requireAdminUser(adminUsers, targetUsers.otherHeadOfDepartment.email)
     const department = await createDepartmentViaAdminApi(roleApi, departmentName)
     let deanRestored = false
 
@@ -173,7 +173,7 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
           adminUserLabel(departmentHead),
         )
 
-        const holderAuthorities = await listMyAuthorities(roleApi, targetUsers.departmentMember)
+        const holderAuthorities = await listMyAuthorities(roleApi, targetUsers.otherHeadOfDepartment)
         const unrelatedAuthorities = await listMyAuthorities(roleApi, targetUsers.processMember)
         expect(
           holderAuthorities.some(
