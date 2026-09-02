@@ -2,80 +2,98 @@
 
 ## Shape
 
-**Milestone:** M4 — Department Workflow Parity & Isolation  
-**State:** RELEASE_READY  
+**Milestone:** M5 — Process Version Lifecycle Cutover & Historical Integrity  
+**State:** ACTIVE  
 **Integration branch:** `master`
 
-Outcome achieved: Department-scoped Process SOPs execute the same FTI-native lifecycle as Faculty-scoped SOPs while final approval, notifications, TTE authority, and Process access remain isolated to the relevant Department.
+Outcome: make Process-bound SOP version creation use contextual Process authoring authority, then prove replacement/supersession preserves one effective version, signing evidence, official artifacts, version history, and public integrity for both Faculty and Department scopes.
 
-M4 introduced no new approval tier, generic approval engine, SUPER_ADMIN workflow bypass, destructive legacy cleanup, or protected Edit SOP workspace change.
+M5 is a semantic cutover/reliability milestone. It must not introduce a generic version engine, new approval tier, arbitrary rollback, destructive legacy cleanup, target revocation authority, release/deploy, or protected Edit SOP workspace changes.
+
+## Previous Milestone Closure
+
+M4 — Department Workflow Parity & Isolation is complete and release-ready.
+
+```text
+PR #9 merge: c644b5a86a66153ef3934fabaebf69413a7fc735
+Client CI: 33559540503 PASS
+Server CI: 33559540442 PASS
+Migration Smoke: 33559540449 PASS
+FTI Critical E2E: 33559540423 PASS (J08-J15)
+```
 
 ## Position
 
 ```text
-Department Context & Isolation               INTEGRATED
-Department Owner Review                      INTEGRATED
-Kadep Final Approval + Notification           INTEGRATED
-Kadep TTE + Public Integrity                  INTEGRATED
-Milestone Gate                                PASS
+Contextual Version Creation                  ACTIVE
+Faculty Version Replacement                  PLANNED
+Department Version Replacement               PLANNED
+Historical/Public Integrity                  PLANNED
+Milestone Gate                               PENDING
 ```
 
-## Integrated Journeys
-
-### J12 — Department Context Isolation
-
-Two deterministic Department contexts prove Process relationship and organizational-authority isolation. Department A actors do not gain Department B workflow access, and SUPER_ADMIN remains administrative rather than workflow-authorized.
-
-### J13 — Department Process Review
-
-A Department Member submits a Process SOP, the relevant Process Owner reviews it and can return it for revision, and unrelated Process membership does not authorize workbench access.
-
-### J14 — Department Final Approval
-
-Process Owner acceptance resolves `FINAL_APPROVAL_REQUESTED` to the relevant Head of Department. Dean, unrelated Head of Department, and SUPER_ADMIN cannot approve the Department SOP; the relevant Head can approve it for TTE.
-
-### J15 — Department TTE/Public Integrity
-
-The relevant Head of Department uses the existing real TTE path. Signing transitions the SOP to `BERLAKU`, persists the official artifact, and exposes the SOP through the public archive without internal workflow/evaluation data.
-
-## Milestone Gate Evidence
-
-Integrated through PR #9 using squash merge:
+Current branch:
 
 ```text
-source head:       77f7f8eaa38247aa6b533e84917cfdcd17a90b4d
-master merge:      c644b5a86a66153ef3934fabaebf69413a7fc735
-Client CI:         33559540503 PASS
-Server CI:         33559540442 PASS
-Migration Smoke:   33559540449 PASS
-FTI Critical E2E:  33559540423 PASS (J08-J15)
+m5-process-version-lifecycle
 ```
 
-Protected Edit SOP evidence:
+## Slice Plan
+
+### J16 — Contextual Version Creation
+
+For a Process-bound SOP, Process Owner/Member may create one new draft version from a terminal version. Unrelated Process actors, contextual authority without Process relationship, and SUPER_ADMIN without Process relationship are denied. Legacy/unbound SOP version creation remains compatibility behavior. Concurrent creation must still produce at most one active draft.
+
+### J17 — Faculty Version Replacement
+
+Take a Faculty Process SOP from V1 BERLAKU through V2 Process review, Dean approval, and contextual TTE. Signing V2 must atomically move V1 to DIGANTIKAN, its official PDF to SUPERSEDED, and V2 to BERLAKU/PUBLISHED with exactly one effective version.
+
+### J18 — Department Version Replacement
+
+Repeat the replacement lifecycle for a Department Process SOP with the relevant Head of Department, preserving cross-department and Dean isolation.
+
+### J19 — Historical/Public Integrity
+
+Prove source-version lineage, historical signing evidence preservation, current public archive correctness, and failure atomicity: failed replacement signing must not supersede the existing effective version or leave partial publication/signing state.
+
+## Boundaries
+
+In scope:
+
+- Process-aware version creation authorization;
+- Faculty and Department target replacement journeys;
+- one-BERLAKU and artifact supersession invariants;
+- historical lineage/evidence preservation;
+- failed-signing atomicity evidence;
+- FTI critical browser registry extended through J19.
+
+Out of scope:
+
+- target Process revocation/cabutan authority semantics;
+- destructive removal of legacy roles/routes/tables;
+- public archive IA redesign;
+- arbitrary rollback/version branching;
+- editing historical signed versions;
+- release/deployment;
+- protected Edit SOP workspace implementation changes.
+
+## Stop Condition
+
+If M5 requires deciding who may revoke/cabut a target Process SOP, stop that sub-scope. Current product authority does not define target revocation authority and the existing legacy `KEPALA_OPD` rule must not be silently reinterpreted.
+
+## Verification
 
 ```text
-client/src/pages/penyusun/sop/detail/DetailSOPPenyusun.tsx
-branch/master blob: 9f699be21dbb45759693dc8ecb0d29d3f4d194fd
-unchanged: YES
+Client CI
+Server CI
+Migration Smoke only when migration-relevant inputs change
+FTI Critical E2E J08-J19
+one effective BERLAKU version
+previous official artifact SUPERSEDED on replacement
+failed replacement leaves previous effective/public evidence intact
+protected Edit SOP implementation unchanged
 ```
-
-## Delivery State
-
-```text
-implemented: YES
-verified: YES
-integrated: YES
-release-ready: YES
-released: NO
-deployed: NO
-```
-
-Release/deploy remain intentionally outside M4 scope.
-
-## Guardrail
-
-The protected Edit SOP workspace remains protected. Future work must not alter it unless the current user instruction explicitly targets that surface.
 
 ## Next Move
 
-STOP. M4 is complete and release-ready. Await explicit user intent before defining or starting another milestone.
+Implement J16 contextual version creation with the existing Process authorization pattern, preserving legacy/unbound compatibility, then continue J17-J19 without a new planning cycle.
