@@ -1,19 +1,14 @@
 import { expect, test } from '../fixtures/business-test'
 import { targetUsers, users } from '../fixtures/users'
-import { apiGet, apiPost, toApiUrl } from '../support/api'
+import { apiGet, toApiUrl } from '../support/api'
 import {
   expectProcessSopAbsentFromPublicArchive,
+  expectRevocationRejectedViaApi,
+  revokeProcessSopViaApi,
   revokeProcessSopViaUi,
 } from '../support/fti-revocation-actions'
 import { seedEffectiveProcessSop } from '../support/fti-revocation-preconditions'
 import { expectProcessSopInPublicArchive } from '../support/fti-tte-actions'
-
-interface RevocationResult {
-  detailSopId: string
-  sopId: string
-  processId: string
-  status: 'DICABUT'
-}
 
 interface VersionHistoryRow {
   detailSopId: string
@@ -52,35 +47,33 @@ test.describe('End-to-End Business Journey — contextual SOP revocation', () =>
         targetUsers.processOwner,
         users.pjEvaluator,
       ]) {
-        const api = await roleApi(actor)
-        const response = await api.post(
-          toApiUrl(`/process-revocation/${department.detailSopId}/revoke`),
+        await expectRevocationRejectedViaApi(
+          await roleApi(actor),
+          department.detailSopId,
+          403,
         )
-        expect(response.status()).toBe(403)
       }
     })
 
     await test.step('Dean mencabut SOP Faculty dan Kadep mencabut SOP Department', async () => {
-      const deanApi = await roleApi(targetUsers.dean)
-      const headApi = await roleApi(targetUsers.headOfDepartment)
-      const facultyResult = await apiPost<RevocationResult>(
-        deanApi,
-        `/process-revocation/${faculty.detailSopId}/revoke`,
+      const facultyResult = await revokeProcessSopViaApi(
+        await roleApi(targetUsers.dean),
+        faculty.detailSopId,
       )
-      const departmentResult = await apiPost<RevocationResult>(
-        headApi,
-        `/process-revocation/${department.detailSopId}/revoke`,
+      const departmentResult = await revokeProcessSopViaApi(
+        await roleApi(targetUsers.headOfDepartment),
+        department.detailSopId,
       )
       expect(facultyResult.status).toBe('DICABUT')
       expect(departmentResult.status).toBe('DICABUT')
     })
 
     await test.step('Pencabutan ulang deterministic conflict', async () => {
-      const deanApi = await roleApi(targetUsers.dean)
-      const response = await deanApi.post(
-        toApiUrl(`/process-revocation/${faculty.detailSopId}/revoke`),
+      await expectRevocationRejectedViaApi(
+        await roleApi(targetUsers.dean),
+        faculty.detailSopId,
+        409,
       )
-      expect(response.status()).toBe(409)
     })
   })
 
@@ -131,10 +124,9 @@ test.describe('End-to-End Business Journey — contextual SOP revocation', () =>
 
     await expectProcessSopInPublicArchive(publicPage, sop.title)
 
-    const deanApi = await roleApi(targetUsers.dean)
-    await apiPost<RevocationResult>(
-      deanApi,
-      `/process-revocation/${sop.detailSopId}/revoke`,
+    await revokeProcessSopViaApi(
+      await roleApi(targetUsers.dean),
+      sop.detailSopId,
     )
 
     await expectProcessSopAbsentFromPublicArchive(publicPage, sop.title)
