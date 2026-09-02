@@ -3,16 +3,18 @@
 ## Shape
 
 **Milestone:** M7 — FTI Account Provisioning & Bootstrap Completion  
-**State:** ACTIVE  
-**Integration branch:** `master`
+**State:** IMPLEMENTED / VERIFICATION_PENDING  
+**Integration branch:** `master`  
+**Working branch:** `m7-account-provisioning`  
+**Integration PR:** #14
 
 Outcome: from one existing bootstrap `SUPER_ADMIN`, make FTI operational without manual database inserts or seeded workflow identities: create ordinary accounts through a target platform-admin surface, assign them to Process and organizational authority, then run the configured workflow with those accounts.
 
 M7 closes a core bootstrap gap. It must not expose legacy workflow-role selection as target product semantics, introduce generic RBAC, user groups, invitation/SSO/bulk-import features, destructive account-history behavior, or protected Edit SOP workspace changes.
 
-## Previous Milestone Closure
+## Previous Milestone
 
-M6 — FTI Administration Bootstrap & Configuration Integrity is complete and integrated.
+M6 — FTI Administration Bootstrap & Configuration Integrity is **INTEGRATED** on `master`.
 
 ```text
 PR #13 merge: cca92f6ca3b86dc4308fe54122f55e4f3c1b329b
@@ -24,80 +26,76 @@ Protected Edit SOP implementation unchanged
 Release/deploy: not performed
 ```
 
+There is no remaining `Integrate M6` action.
+
 ## Position
 
 ```text
-Target Account Provisioning                  ACTIVE
-Account → Process Assignment                 PLANNED
-Account → Organizational Authority           PLANNED
-Zero-to-Workflow Bootstrap                   PLANNED
-Milestone Gate                               PENDING
+J24 Target Account Provisioning              IMPLEMENTED
+J25 Account → Process Assignment             IMPLEMENTED
+J26 Account → Organizational Authority       IMPLEMENTED
+J27 Zero-to-Workflow Bootstrap               IMPLEMENTED
+M7 exact-head verification                   PENDING
+M7 integration                               PENDING
 ```
 
-Current branch:
+The M7 implementation is intentionally kept as one bounded capability milestone and one coherent integration PR. Do not split J24-J27 into separate planning cycles or tiny integration PRs.
+
+## Verification Evidence
+
+Previous implementation head `2d592d45f2cccbf2ec59bcfe6f523b2361565a96` established:
 
 ```text
-m7-account-provisioning
+Server CI: 33671264505 PASS
+FTI Critical E2E: 33671264455 PASS (J08-J27)
+Client build/route generation: PASS
+Client generated route-tree consistency: FAIL
+Client typecheck/unit: not reached because the route-tree consistency gate stopped the job
 ```
 
-## Slice Plan
+The Client failure is a deterministic generated-artifact mismatch caused by the new `/admin/accounts` route, not observed product-behavior failure. The generated route tree captured by CI is the source for the fix.
 
-### J24 — Target Account Provisioning
+Because repository guidance and E2E selection are also being corrected on this branch, exact-head verification must run again after those commits. Do not broaden the test ladder merely because this consistency gate failed.
 
-`SUPER_ADMIN` creates an ordinary active FTI account through a target administration surface. Creation uses the existing server-managed initial password and compatibility persistence defaults internally; the target UI must not ask the administrator to choose a legacy workflow role or OPD. The new account can authenticate, but creation alone grants no Process relationship, organizational authority, final approval, or TTE capability. Duplicate email/NIP is rejected and ordinary users are denied account administration.
+## Verification Selection For M7
 
-### J25 — Account to Process Assignment
+M7 browser verification is risk-selected:
 
-A newly provisioned account immediately appears as an assignable Process Owner/Member candidate. Assign new accounts to a fresh Process, then prove `/process-context/mine` and target Work capability are available only for those assigned identities.
+```text
+Changed capability journeys: J24-J27
+Direct administration/bootstrap regressions: J20-J23
+Default M7 regression set: J20-J27
+```
 
-### J26 — Account to Organizational Authority
+Earlier historical journeys are not cumulative default gates. Run them only when a specific affected boundary justifies them, or intentionally run the full set for a milestone/release/shared-harness qualification.
 
-A newly provisioned account can be assigned as Dean/Head of Department through the existing target authority administration surface. The authority becomes effective immediately and remains organization-scope correct. Account creation or `SUPER_ADMIN` status alone must not grant approval/TTE authority.
+Migration Smoke is not required because M7 does not change migration-relevant inputs.
 
-### J27 — Zero-to-Workflow Bootstrap
+## Boundaries Preserved
 
-Starting from the bootstrap `SUPER_ADMIN` plus no pre-existing workflow identity dependency for the journey: provision fresh Member, Process Owner, and Head-of-Department accounts; create a Department and Department Process; assign the team and Kadep; authenticate as the fresh identities; create/submit a Process SOP; Process Owner accepts; Kadep performs final approval. Continue through existing TTE and public/effective evidence only if the current self-service TTE setup can be reused without changing product/security policy.
-
-## Boundaries
-
-In scope:
-
-- target platform account create/list surface;
+- target platform account create/list surface only;
 - ordinary `platformRole = USER` provisioning;
-- compatibility backing fields hidden behind the target boundary;
-- existing server-managed initial-password behavior;
-- immediate Process/authority assignability;
-- login/authentication of dynamically provisioned identities;
-- zero-to-workflow bootstrap proof;
-- FTI critical registry through J27.
+- compatibility backing fields remain internal transition seams;
+- no generic RBAC/permission editor/user groups;
+- no invitation email, CSV/bulk import, or SSO;
+- no account deletion/history redesign;
+- no new password-reset lifecycle;
+- no revocation/cabutan product authority;
+- no schema/migration change;
+- no protected Edit SOP workspace implementation change;
+- no release/deployment.
 
-Out of scope:
+## Delta
 
-- legacy role-management UI redesign/removal;
-- account deletion/history redesign;
-- invitation email, CSV/bulk import, SSO;
-- generic RBAC/permission editor or user groups;
-- admin analytics/search polish beyond what creation requires;
-- new password-reset lifecycle;
-- revocation/cabutan product authority;
-- release/deployment;
-- protected Edit SOP workspace implementation changes.
+Remaining work before integration:
 
-## Verification
-
-```text
-Client CI
-Server CI
-Migration Smoke only if migration-relevant inputs change
-FTI Critical E2E J08-J27
-SUPER_ADMIN-only account administration
-new account authenticates with canonical initial password
-new account has no contextual workflow capability until assignment
-new account is immediately assignable to Process/authority
-zero-to-workflow journey uses dynamically provisioned identities
-protected Edit SOP implementation unchanged
-```
+1. commit the exact generated `client/src/routeTree.gen.ts` from the failed Client CI artifact;
+2. make local/CI critical E2E selection explicit and risk-selected instead of cumulative-by-ID;
+3. rerun exact-head required CI;
+4. fix only observed failures inside the approved M7 boundary;
+5. merge PR #14 when required evidence is green;
+6. immediately make `master` state say M7 is integrated rather than leaving a stale pre-merge instruction.
 
 ## Next Move
 
-Implement J24 in `core/pengguna` behind `PlatformAdminGuard`, reuse existing profile validation/password/compatibility persistence rules, and expose a compact `/admin/accounts` target UI. Continue J25-J27 without another planning cycle.
+Apply the route-tree and risk-selected E2E consistency changes, then use the new PR head as the single verification target. No new planning cycle is required.
