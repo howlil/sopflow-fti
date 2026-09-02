@@ -26,6 +26,9 @@ export const queryKeys = {
     search?: string
   }) => ['users', 'list', params] as const,
 
+  // FTI platform administration
+  platformAccounts: ['platformAccounts'] as const,
+
   // FTI Process administration
   processAdmin: ['processAdmin'] as const,
   processAdminDepartments: ['processAdmin', 'departments'] as const,
