@@ -100,6 +100,8 @@ FACULTY    -> DEAN
 DEPARTMENT -> relevant HEAD_OF_DEPARTMENT
 ```
 
+The same contextual authority boundary applies to Process-bound revocation: the resolved final organizational authority may revoke an effective SOP inside that Process scope; unrelated authority holders and `SUPER_ADMIN` without that authority must be denied.
+
 Do not treat `SUPER_ADMIN` as implicit workflow authorization.
 
 ### Workflow transition / concurrency
@@ -173,6 +175,8 @@ Run the full historical target journey set only when justified, such as:
 The local isolated critical runner must receive an explicit journey selection. `--all` is an intentional full-suite operation, not the default.
 
 For M7 account/bootstrap work, the default regression boundary is J20-J23 plus the new J24-J27 journeys. Earlier journeys are added only if a specific affected boundary justifies them.
+
+For M8 contextual revocation, the default regression boundary is J28-J30. Add J17-J19 only if effective-version/replacement semantics are materially changed; do not run them merely because revocation touches an effective status.
 
 ## CI Baseline
 
