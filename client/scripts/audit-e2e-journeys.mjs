@@ -28,6 +28,10 @@ const expectedIds = [
   'J21',
   'J22',
   'J23',
+  'J24',
+  'J25',
+  'J26',
+  'J27',
 ]
 const mutationTokens = [
   'apiPost(',
@@ -56,7 +60,7 @@ for (const file of files) {
   const absolute = path.join(journeyDir, file)
   const content = fs.readFileSync(absolute, 'utf8')
 
-  const testIds = [...content.matchAll(/\btest\(\s*['"`](J(?:0[1-9]|1[0-9]|2[0-3]))\b/g)].map((match) => match[1])
+  const testIds = [...content.matchAll(/\btest\(\s*['"`](J(?:0[1-9]|1[0-9]|2[0-7]))\b/g)].map((match) => match[1])
   for (const id of testIds) {
     occurrences.get(id)?.push(file)
   }
