@@ -28,6 +28,10 @@ const journeyIds = [
   'J21',
   'J22',
   'J23',
+  'J24',
+  'J25',
+  'J26',
+  'J27',
 ]
 
 function run(command, args, cwd, extraEnv = {}) {
@@ -68,9 +72,6 @@ for (const journeyId of journeyIds) {
     clientDir,
     {
       E2E_SEED: 'false',
-      // roleAuth di business fixture sudah membuktikan login untuk identity yang benar-benar
-      // dipakai journey. Login preflight global per proses hanya menggandakan request
-      // auth dan dapat memicu rate limit ketika journey dijalankan terisolasi.
       E2E_SKIP_LOGIN_PREFLIGHT: 'true',
       E2E_TEST_RUN_ID: `${journeyId}-${Date.now()}`,
     },
