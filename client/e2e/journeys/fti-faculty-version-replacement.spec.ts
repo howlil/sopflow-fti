@@ -55,7 +55,7 @@ test.describe('End-to-End Business Journey — Faculty Process version replaceme
       const newPdf = await publicPage.request.get(toApiUrl(`/sop/public/pdf/${fixture.v2.id}`))
 
       expect(oldDocument.status()).toBe(404)
-      expect(oldPdf.status()).toBe(404)
+      expect(oldPdf.status()).toBe(410)
       expect(newDocument.status()).toBe(200)
       expect(newPdf.status()).toBe(200)
     })
