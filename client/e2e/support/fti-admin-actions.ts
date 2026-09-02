@@ -25,7 +25,12 @@ export async function createDepartmentProcessViaAdminUi(
   await page.getByLabel('Nama Process').fill(input.processName)
   await page.getByLabel('Scope').selectOption('DEPARTMENT')
   await page.getByLabel('Departemen').selectOption({ label: input.departmentName })
-  await page.getByLabel('Process Owner').selectOption({ label: input.ownerLabel })
+  const ownerSelect = page
+    .locator('label')
+    .filter({ has: page.locator('select') })
+    .filter({ hasText: 'Process Owner' })
+    .locator('select')
+  await ownerSelect.selectOption({ label: input.ownerLabel })
 
   await expect(
     page.getByRole('checkbox', { name: input.ownerLabel, exact: true }),
