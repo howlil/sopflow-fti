@@ -8,15 +8,27 @@ Verify the changed risk boundary with the smallest sufficient evidence, then bro
 
 Do not confuse a large test matrix with confidence. Do not claim a broader state than the evidence proves.
 
-Canonical progression:
+Canonical selection questions:
+
+1. What observable behavior changed?
+2. At which boundary can that behavior fail?
+3. What is the cheapest test or check that observes that boundary?
+4. What meaningful failure could remain invisible after that evidence?
+5. Is that remaining risk material enough to justify a deeper verification layer?
+
+Only add the next verification layer when the answer to #5 is yes.
+
+Typical escalation when needed:
 
 ```text
-focused evidence
--> affected package checks
--> boundary-specific integration/runtime evidence
--> required CI
--> release-readiness assessment
+focused/static evidence
+-> unit/component/domain evidence
+-> boundary integration/runtime evidence
+-> browser E2E for cross-boundary behavior
+-> milestone/release evidence
 ```
+
+This is an escalation model, not a mandatory ladder.
 
 ## Baseline Commands
 
@@ -28,7 +40,7 @@ pnpm build
 pnpm typecheck
 pnpm lint
 pnpm test
-pnpm test:e2e:critical
+pnpm test:e2e:critical -- <explicit journey selection>
 ```
 
 Backend:
@@ -139,6 +151,29 @@ Verify:
 - absence of unintended delivery;
 - persistence/history isolation when Process and legacy sources are involved.
 
+## Browser / Critical E2E Selection
+
+Critical E2E is **risk-selected**, not cumulative-by-ID.
+
+For a logical change or milestone:
+
+- run every new or materially changed journey that directly proves the capability being delivered;
+- add older regression journeys only when the changed files/behavior can plausibly affect the boundary they protect;
+- prefer the smallest coherent regression set that still detects material cross-boundary breakage;
+- do not automatically run `J01..JNN` merely because `JNN` is the newest journey;
+- do not make every browser journey a permanent gate for unrelated changes.
+
+Run the full historical target journey set only when justified, such as:
+
+- milestone/release qualification where broad regression confidence is explicitly desired;
+- shared E2E harness, fixture, authentication, seed, database lifecycle, browser-runtime, or workflow-infrastructure changes that can affect many journeys;
+- broad cross-cutting authorization/workflow changes whose blast radius cannot be bounded more cheaply;
+- investigation of an observed regression that suggests wider coupling.
+
+The local isolated critical runner must receive an explicit journey selection. `--all` is an intentional full-suite operation, not the default.
+
+For M7 account/bootstrap work, the default regression boundary is J20-J23 plus the new J24-J27 journeys. Earlier journeys are added only if a specific affected boundary justifies them.
+
 ## CI Baseline
 
 Default CI should remain lean and deterministic.
@@ -207,7 +242,7 @@ A milestone is release-ready only when:
 - mandatory risk-specific evidence is green;
 - relevant integrated CI is green;
 - no unresolved stop condition remains;
-- active-state documentation accurately reflects the integrated state;
+- active-state documentation accurately reflects repository reality;
 - known skipped evidence or residual risk is explicitly reported.
 
 `release-ready` does not mean `released` or `deployed`.
