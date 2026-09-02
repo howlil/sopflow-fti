@@ -250,7 +250,7 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
 
       const api = await adminApi(roleApi)
       const response = await api.post(toApiUrl(`/process-sop/${sop.detailSopId}/review`), {
-        data: { decision: 'REQUEST_REVISION' },
+        data: { decision: 'REVISION' },
       })
       expect(response.status()).toBe(403)
     })
