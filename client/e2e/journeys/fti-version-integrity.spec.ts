@@ -1,7 +1,7 @@
 import { expect, test } from '../fixtures/business-test'
 import { targetUsers } from '../fixtures/users'
 import { toApiUrl } from '../support/api'
-import { e2ePin } from '../support/test-data'
+import { e2ePin, validPdfBase64 } from '../support/test-data'
 import {
   getProcessVersionHistory,
   seedReplacementReadyForTte,
@@ -39,6 +39,7 @@ test.describe('End-to-End Business Journey — Process version historical/public
           pin: `${e2ePin}-wrong`,
           nomorDokumen: fixture.v2.nomorSOP,
           judulDokumen: fixture.v1.title,
+          pdfBase64: validPdfBase64,
         },
       })
       expect(response.status()).toBe(403)
