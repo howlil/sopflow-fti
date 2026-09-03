@@ -104,7 +104,23 @@ export class ProcessOwnerReviewService {
         : StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR;
 
     let notification: ProcessNotificationCreateInput | undefined;
-    if (decision === ProcessReviewDecision.ACCEPT) {
+    if (decision === ProcessReviewDecision.REVISION) {
+      const detail = await this.prisma.detailSOP.findUnique({
+        where: { detailSopId: context.detailSopId },
+        select: { dibuatOlehId: true },
+      });
+      if (detail === null) {
+        throw new NotFoundException('DetailSOP tidak ditemukan');
+      }
+      notification = {
+        detailSopId: context.detailSopId,
+        sopId: context.sopId,
+        processId: context.processId,
+        penggunaId: detail.dibuatOlehId,
+        kind: ProcessNotificationKind.PROCESS_REVISION_REQUESTED,
+        processName: process.nama,
+      };
+    } else {
       const authority = await this.organizationalAuthorityService.resolveForProcess(context.processId);
       notification = {
         detailSopId: context.detailSopId,
