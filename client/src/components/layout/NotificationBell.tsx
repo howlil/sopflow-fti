@@ -100,20 +100,25 @@ export function NotificationBell() {
 
               if (item.source === 'PROCESS') {
                 return (
-                  <DropdownMenuItem
-                    key={key}
-                    data-process-notification-id={item.processNotificationId}
-                    className="items-start gap-2 px-2 py-2"
-                    onSelect={(event) => {
-                      event.preventDefault()
-                      if (item.readAt) {
-                        window.location.assign(item.actionHref)
-                        return
-                      }
-                      void markRead(item).then(() => window.location.assign(item.actionHref))
-                    }}
-                  >
-                    <NotificationContent item={item} />
+                  <DropdownMenuItem key={key} asChild>
+                    <a
+                      href={item.actionHref}
+                      data-process-notification-id={item.processNotificationId}
+                      className="flex w-full items-start gap-2 px-2 py-2"
+                      onClick={(event) => {
+                        if (item.readAt) return
+                        event.preventDefault()
+                        void (async () => {
+                          try {
+                            await markRead(item)
+                          } finally {
+                            window.location.href = item.actionHref
+                          }
+                        })()
+                      }}
+                    >
+                      <NotificationContent item={item} />
+                    </a>
                   </DropdownMenuItem>
                 )
               }
