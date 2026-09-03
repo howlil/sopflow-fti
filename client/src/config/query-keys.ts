@@ -1,31 +1,122 @@
-import type { EvaluasiRingkasQueryKeyParams } from '@/types/dto/evaluasi.dto'
+/**
+ * Query keys untuk TanStack Query
+ * Centralized query key management
+ */
+
+type EvaluasiRingkasQueryKeyParams = {
+  page?: number
+  limit?: number
+  opdId?: string
+  status?: string
+  jenis?: string
+  search?: string
+  statusIn?: readonly string[]
+}
 
 export const queryKeys = {
-  authMe: ['auth', 'me'] as const,
-  pengguna: ['pengguna'] as const,
-  opd: ['opd'] as const,
-  opdAktif: ['opd', 'aktif'] as const,
-  roles: ['roles'] as const,
+  // Auth
+  auth: ['auth'] as const,
+  user: (userId: string) => ['auth', 'user', userId] as const,
+  users: ['users'] as const,
+  usersList: (params?: {
+    page?: number
+    limit?: number
+    opdId?: string
+    peran?: string
+    search?: string
+  }) => ['users', 'list', params] as const,
+
+  // FTI platform administration
+  platformAccounts: ['platformAccounts'] as const,
+
+  // FTI Process administration
+  processAdmin: ['processAdmin'] as const,
+  processAdminDepartments: ['processAdmin', 'departments'] as const,
+  processAdminUsers: ['processAdmin', 'users'] as const,
+  processAdminProcesses: ['processAdmin', 'processes'] as const,
+
+  /** Manajemen Kepala OPD (Biro) — GET/PATCH/DELETE `/kepala-opd` */
+  kepalaOpd: ['kepalaOpd'] as const,
+  /** GET `/kepala-opd` — termasuk query `search` */
+  kepalaOpdList: (search?: string) =>
+    ['kepalaOpd', 'list', 'v2', search ?? ''] as const,
+  kepalaOpdRiwayat: (penggunaId: string) => ['kepalaOpd', 'riwayatOpd', penggunaId] as const,
+
+  // Peraturan
   peraturan: ['peraturan'] as const,
+  peraturanList: (opdId?: string) => ['peraturan', 'list', opdId] as const,
+
+  // SOP
+  sop: ['sop'] as const,
+  sopRiwayatVersi: (sopId: string) => ['sop', 'riwayat-versi', sopId] as const,
+  sopList: (params?: {
+    opdId?: string
+    status?: string
+    tanggalDari?: string
+    tanggalSampai?: string
+  }) => ['sop', 'list', params] as const,
+  /** GET `/sop/penyusun-workbench/:detailSopId` — agregat detail + langkah + log */
+  penyusunWorkbench: (detailSopId: string) => ['sop', 'penyusunWorkbench', detailSopId] as const,
+
+  /** Prefix invalidasi cache detail SOP (mis. setelah TTE / status). */
+  detailSop: ['detailSop'] as const,
+
+  // Pelaksana
   pelaksana: ['pelaksana'] as const,
-  platformAccounts: ['platform', 'accounts'] as const,
-  platformAccount: (penggunaId: string) => ['platform', 'accounts', penggunaId] as const,
-  processAdminDepartments: ['process-admin', 'departments'] as const,
-  processAdminProcesses: ['process-admin', 'processes'] as const,
-  processAdminAssignableUsers: ['process-admin', 'assignable-users'] as const,
-  organizationalAuthority: ['organizational-authority'] as const,
-  processContext: ['process-context'] as const,
-  processWorkQueue: ['process-work-queue'] as const,
-  processApproval: ['process-approval'] as const,
-  processRevocation: ['process-revocation'] as const,
-  processTteProfile: ['process-tte', 'profile'] as const,
-  processNotificationList: (limit: number) => ['process-notifications', 'list', limit] as const,
-  processNotificationSummary: ['process-notifications', 'summary'] as const,
-  sopList: (params?: Record<string, unknown>) => ['sop', 'list', params ?? {}] as const,
-  sopDetail: (detailSopId: string) => ['sop', 'detail', detailSopId] as const,
-  sopRiwayat: (sopId: string) => ['sop', 'riwayat', sopId] as const,
+  pelaksanaByOpd: (opdId: string) => ['pelaksana', 'byOpd', opdId] as const,
+
+  // OPD
+  opd: ['opd'] as const,
+  /** v2: invalidasi cache setelah respons API memakai bungkus { data } konsisten */
+  /** GET `/opd` — termasuk query `search` (PJ_EVALUATOR) */
+  opdList: (search?: string) => ['opd', 'list', 'v2', search ?? ''] as const,
+  /** Manajemen penyusun Biro (GET /api/v1/penyusun — grup per OPD) */
+  penyusun: ['penyusun'] as const,
+  penyusunGrup: (search?: string) => ['penyusun', 'grup', 'v1', search ?? ''] as const,
+  penyusunRiwayatOpd: (penggunaId: string) =>
+    ['penyusun', 'riwayatOpd', penggunaId] as const,
+
+  /** Manajemen anggota evaluator Biro — GET/POST/PATCH/DELETE `/evaluator` */
+  evaluatorAnggota: ['evaluatorAnggota'] as const,
+  /** GET `/evaluator` — termasuk query `search` */
+  evaluatorAnggotaList: (search?: string) =>
+    ['evaluatorAnggota', 'list', 'v3', search ?? ''] as const,
+
+  // Evaluasi
   evaluasi: ['evaluasi'] as const,
-  evaluasiPengajuan: (pengajuanId: string) => ['evaluasi', 'pengajuan', pengajuanId] as const,
+  evaluasiList: (params?: {
+    opdId?: string
+    status?: string
+    jenis?: string
+    statusIn?: readonly string[]
+  }) =>
+    [
+      'evaluasi',
+      'list',
+      params?.opdId,
+      params?.status,
+      params?.jenis,
+      params?.statusIn?.length ? [...params.statusIn].slice().sort().join(',') : '',
+    ] as const,
+  evaluasiPengajuanShell: (id: string) => ['evaluasi', 'pengajuan', 'shell', id] as const,
+  evaluasiPengajuanSopDokumen: (
+    pengajuanId: string,
+    detailSopId: string,
+    logsLimit?: number,
+  ) => ['evaluasi', 'pengajuan', 'sopDokumen', pengajuanId, detailSopId, logsLimit ?? 100] as const,
+  evaluasiPengajuanBeritaAcara: (id: string) => ['evaluasi', 'pengajuan', 'beritaAcara', id] as const,
+  evaluasiGrafikTahunan: (params?: { tahun?: number; tahunDari?: number; tahunSampai?: number }) =>
+    ['evaluasi', 'grafikTahunan', params ?? {}] as const,
+  /** GET `/evaluasi/workspace/opd/:opdId` — invalidate seluruh subtree dengan prefix ini setelah mutasi nilai */
+  evaluasiWorkspaceOpdAll: ['evaluasi', 'workspaceOpd'] as const,
+  evaluasiWorkspaceOpdSayaAll: ['evaluasi', 'workspaceOpdSaya'] as const,
+  evaluasiWorkspaceOpdSaya: (
+    params?: { detailSopId?: string; expand?: string; riwayatLimit?: number },
+  ) => ['evaluasi', 'workspaceOpdSaya', params ?? {}] as const,
+  evaluasiWorkspaceOpd: (
+    opdId: string,
+    params?: { detailSopId?: string; expand?: string; riwayatLimit?: number },
+  ) => ['evaluasi', 'workspaceOpd', opdId, params ?? {}] as const,
   evaluasiWorkspacePengajuanAll: ['evaluasi', 'workspacePengajuan'] as const,
   evaluasiWorkspacePengajuan: (
     pengajuanId: string,
@@ -49,7 +140,7 @@ export const queryKeys = {
   evaluasiUmpanBalik: (detailSopId: string) =>
     ['evaluasi', 'umpan-balik', detailSopId] as const,
 
-  /** Arsip SOP publik — compatibility GET `/sop/public/opd...` */
+  /** Arsip SOP publik — compatibility GET `/sop/public/...` */
   sopPublicOpdList: (params?: { page?: number; limit?: number; search?: string }) =>
     ['sop', 'public', 'opd', params ?? {}] as const,
   sopPublicSopList: (
