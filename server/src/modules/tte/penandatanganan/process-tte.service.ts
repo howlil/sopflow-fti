@@ -9,7 +9,12 @@ import * as bcrypt from 'bcrypt';
 import type { Request } from 'express';
 import type { JwtAccessPayload } from '../../../common';
 import { toWibDateOnly } from '../../../common/date/wib-date.util';
-import { JenisDokumenTte, StatusSOP } from '../../../generated/prisma';
+import {
+  JenisDokumenTte,
+  ProcessNotificationKind,
+  StatusSOP,
+} from '../../../generated/prisma';
+import { ProcessNotificationService } from '../../notifications/process/process-notification.service';
 import { SopOfficialPdfService } from '../../sop/pdf/sop-official-pdf.service';
 import { SopPdfStorageService } from '../../sop/pdf/sop-pdf-storage.service';
 import { TandaTanganiProcessSopDto } from '../shared/dto/tanda-tangani-process-sop.dto';
@@ -29,6 +34,7 @@ export class ProcessTteService {
     private readonly sopOfficialPdfService: SopOfficialPdfService,
     private readonly sopPdfStorageService: SopPdfStorageService,
     private readonly ttePdfSigningService: TtePdfSigningService,
+    private readonly processNotificationService: ProcessNotificationService,
   ) {}
 
   async sign(
@@ -99,22 +105,64 @@ export class ProcessTteService {
     });
     const stored = await this.sopPdfStorageService.writeOfficialPdf(relativePath, signedPdf.signedPdf);
 
+    let notifiedRecipients: string[] = [];
     try {
       const finalized = await runTteRepositoryMutation(() =>
-        this.processTteRepository.finalizeWithArtifact({
-          detailOrSopId: prepared.item.detailSopId,
-          userId: user.sub,
-          peran: pengguna.peran,
-          signedAt,
-          tanggalEfektif,
-          dokumenTteId: prepared.item.dokumenTteId,
-          pdfPath: stored.relativePath,
-          pdfSha256: stored.sha256,
-          pdfSizeBytes: stored.sizeBytes,
-          signatureMetadata: signedPdf.riwayatMetadata,
-        }),
+        this.processTteRepository.finalizeWithArtifact(
+          {
+            detailOrSopId: prepared.item.detailSopId,
+            userId: user.sub,
+            peran: pengguna.peran,
+            signedAt,
+            tanggalEfektif,
+            dokumenTteId: prepared.item.dokumenTteId,
+            pdfPath: stored.relativePath,
+            pdfSha256: stored.sha256,
+            pdfSizeBytes: stored.sizeBytes,
+            signatureMetadata: signedPdf.riwayatMetadata,
+          },
+          async (tx, finalizedContext) => {
+            const [process, detail] = await Promise.all([
+              tx.process.findUnique({
+                where: { processId: finalizedContext.processId },
+                select: { ownerId: true, nama: true },
+              }),
+              tx.detailSOP.findUnique({
+                where: { detailSopId: finalizedContext.detailSopId },
+                select: { dibuatOlehId: true },
+              }),
+            ]);
+            if (process === null || detail === null) {
+              throw new ConflictException('Context feedback Process SOP tidak ditemukan');
+            }
+            const authorId = detail.dibuatOlehId;
+            if (authorId === null) {
+              throw new ConflictException('Author SOP Process tidak tersedia untuk feedback efektif');
+            }
+
+            notifiedRecipients = await this.processNotificationService.createManyInTransaction(tx, [
+              {
+                detailSopId: finalizedContext.detailSopId,
+                sopId: finalizedContext.sopId,
+                processId: finalizedContext.processId,
+                penggunaId: authorId,
+                kind: ProcessNotificationKind.PROCESS_SOP_EFFECTIVE,
+                processName: process.nama,
+              },
+              {
+                detailSopId: finalizedContext.detailSopId,
+                sopId: finalizedContext.sopId,
+                processId: finalizedContext.processId,
+                penggunaId: process.ownerId,
+                kind: ProcessNotificationKind.PROCESS_SOP_EFFECTIVE,
+                processName: process.nama,
+              },
+            ]);
+          },
+        ),
       );
       if (!finalized.ok) this.throwFinalizeError(finalized);
+      this.processNotificationService.emitChangedMany(notifiedRecipients);
       return {
         detailSopId: finalized.detailSopId,
         dokumenTteId: finalized.dokumenTteId,

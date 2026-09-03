@@ -67,6 +67,11 @@ export type ProcessTteFinalizeResult =
   | ProcessTtePrepareFailure
   | { readonly ok?: false; readonly error: 'SOP_STATUS_DRIFT' };
 
+export type ProcessTteFinalizeSideEffect = (
+  tx: Prisma.TransactionClient,
+  context: ProcessTteSigningContext,
+) => Promise<void>;
+
 class ProcessTteStatusDriftError extends Error {}
 
 @Injectable()
@@ -141,18 +146,21 @@ export class ProcessTteRepository {
     });
   }
 
-  async finalizeWithArtifact(params: {
-    detailOrSopId: string;
-    userId: string;
-    peran: PeranPengguna;
-    signedAt: Date;
-    tanggalEfektif: Date;
-    dokumenTteId: string;
-    pdfPath: string;
-    pdfSha256: string;
-    pdfSizeBytes: number;
-    signatureMetadata: PdfSignatureMetadataInput;
-  }): Promise<ProcessTteFinalizeResult> {
+  async finalizeWithArtifact(
+    params: {
+      detailOrSopId: string;
+      userId: string;
+      peran: PeranPengguna;
+      signedAt: Date;
+      tanggalEfektif: Date;
+      dokumenTteId: string;
+      pdfPath: string;
+      pdfSha256: string;
+      pdfSizeBytes: number;
+      signatureMetadata: PdfSignatureMetadataInput;
+    },
+    onFinalizeInTransaction?: ProcessTteFinalizeSideEffect,
+  ): Promise<ProcessTteFinalizeResult> {
     try {
       return await this.prisma.$transaction(async (tx) => {
         const resolved = await this.resolveContext(tx, params.detailOrSopId);
@@ -249,6 +257,10 @@ export class ProcessTteRepository {
               pdfStatus = ${'PUBLISHED'}
           WHERE dokumenTteId = ${dokumen.dokumenTteId}
         `;
+
+        if (onFinalizeInTransaction !== undefined) {
+          await onFinalizeInTransaction(tx, context);
+        }
 
         return {
           ok: true as const,

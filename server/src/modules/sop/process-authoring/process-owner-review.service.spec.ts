@@ -35,6 +35,9 @@ function makeService(options?: { owner?: boolean; status?: StatusSOP; transition
     processSopBinding: {
       findUnique: jest.fn().mockResolvedValue({ processId: 'process-a' }),
     },
+    detailSOP: {
+      findUnique: jest.fn().mockResolvedValue({ dibuatOlehId: 'author-1' }),
+    },
     $transaction: jest.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
   } as unknown as PrismaService;
   const processContext = {
@@ -135,6 +138,7 @@ function makeService(options?: { owner?: boolean; status?: StatusSOP; transition
       repository,
       authoring,
     ),
+    prisma,
     processContext,
     organizationalAuthority,
     processNotifications,
@@ -172,15 +176,20 @@ describe('ProcessOwnerReviewService', () => {
     expect(processNotifications.emitChanged).toHaveBeenCalledWith('owner-1');
   });
 
-  it('allows only the Process Owner to return a submitted SOP for revision without final-authority notification', async () => {
-    const { service, processContext, organizationalAuthority, processNotifications, tx } = makeService({
-      owner: true,
-      status: StatusSOP.SEDANG_DIEVALUASI,
-    });
+  it('returns a submitted SOP for revision and notifies the original Process author atomically', async () => {
+    const { service, prisma, processContext, organizationalAuthority, processNotifications, tx } =
+      makeService({
+        owner: true,
+        status: StatusSOP.SEDANG_DIEVALUASI,
+      });
 
     await service.review(user, 'detail-a', ProcessReviewDecision.REVISION);
 
     expect(processContext.assertCanReview).toHaveBeenCalledWith('user-1', 'process-a');
+    expect(prisma.detailSOP.findUnique).toHaveBeenCalledWith({
+      where: { detailSopId: 'detail-a' },
+      select: { dibuatOlehId: true },
+    });
     expect(tx.detailSOP.updateMany).toHaveBeenCalledWith({
       where: { detailSopId: 'detail-a', status: StatusSOP.SEDANG_DIEVALUASI },
       data: {
@@ -189,7 +198,15 @@ describe('ProcessOwnerReviewService', () => {
       },
     });
     expect(organizationalAuthority.resolveForProcess).not.toHaveBeenCalled();
-    expect(processNotifications.createInTransaction).not.toHaveBeenCalled();
+    expect(processNotifications.createInTransaction).toHaveBeenCalledWith(
+      tx,
+      expect.objectContaining({
+        penggunaId: 'author-1',
+        kind: ProcessNotificationKind.PROCESS_REVISION_REQUESTED,
+        processName: 'Akademik',
+      }),
+    );
+    expect(processNotifications.emitChanged).toHaveBeenCalledWith('author-1');
   });
 
   it('maps Process Owner acceptance to ready-for-approval and notifies the resolved authority', async () => {

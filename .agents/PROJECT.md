@@ -200,7 +200,7 @@ Committed semantics:
 
 ## Notifications
 
-Target Process workflow events use contextual recipient resolution.
+Target Process workflow events use contextual recipient resolution and target-native Process notification persistence.
 
 Committed events currently include:
 
@@ -210,9 +210,30 @@ Submit Process SOP
 
 Process Owner accepts
   -> resolved Dean / Head of Department
+
+Process Owner requests revision
+  -> original Process-bound author
+
+Contextual TTE completes and SOP becomes BERLAKU
+  -> original Process-bound author
+  -> Process Owner
+
+Contextual authority revokes an effective SOP
+  -> original Process-bound author
+  -> Process Owner
 ```
 
-Legacy notification history remains a separate compatibility persistence model. Presentation may combine both sources in the same notification bell.
+Committed feedback semantics:
+
+- revision feedback is created in the same business transaction as the Process Owner revision transition;
+- effective-state feedback is created only when contextual TTE finalization successfully makes the version `BERLAKU`, not merely when final approval is recorded;
+- revocation feedback is created in the same business transaction as `BERLAKU -> DICABUT` and official-artifact revocation;
+- when the same account is both original author and Process Owner, that account receives one notification for the event rather than duplicates;
+- feedback recipients come from Process/authorship evidence, not legacy global workflow roles;
+- target feedback actions use existing FTI-native work surfaces rather than new legacy-role routes;
+- realtime refresh may be emitted after commit, but notification persistence must not be orphaned from the business transition that caused it.
+
+Legacy notification history remains a separate compatibility persistence model. Presentation may combine both sources in the same notification bell, but M9 does not merge their persistence/history.
 
 ## Product Experience Direction
 

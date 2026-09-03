@@ -3,12 +3,17 @@ import type { JwtAccessPayload } from '../../../common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { hasRevisiInFlight } from '../../../common/status/sop-editable.util';
 import {
+  BagianSOP,
+  JenisDokumenTte,
   OrganizationalAuthority,
   OrganizationalScope,
+  ProcessNotificationKind,
   StatusSOP,
 } from '../../../generated/prisma';
 import { OrganizationalAuthorityService } from '../../core/process/organizational-authority.service';
+import { ProcessNotificationService } from '../../notifications/process/process-notification.service';
 import { SopCatalogRepository } from '../catalog/sop-catalog.repository';
+import { appendOrCreateLogSession } from '../collaboration/log-edit-session.helper';
 
 type ProcessRevocationQueueRow = {
   detailSopId: string;
@@ -29,6 +34,7 @@ export class ProcessSopRevocationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorityService: OrganizationalAuthorityService,
+    private readonly processNotificationService: ProcessNotificationService,
     private readonly sopCatalogRepository: SopCatalogRepository,
   ) {}
 
@@ -149,11 +155,79 @@ export class ProcessSopRevocationService {
       throw new ConflictException('SOP tidak memiliki versi berlaku yang dapat dicabut');
     }
 
-    await this.sopCatalogRepository.updateDetailSopStatus({
-      detailSopId: effective.detailSopId,
-      status: StatusSOP.DICABUT,
-      userId: user.sub,
+    const [process, detail] = await Promise.all([
+      this.prisma.process.findUnique({
+        where: { processId: binding.processId },
+        select: { ownerId: true, nama: true },
+      }),
+      this.prisma.detailSOP.findUnique({
+        where: { detailSopId: effective.detailSopId },
+        select: { dibuatOlehId: true },
+      }),
+    ]);
+    if (process === null || detail === null) {
+      throw new NotFoundException('Context Process SOP tidak ditemukan');
+    }
+    const authorId = detail.dibuatOlehId;
+    if (authorId === null) {
+      throw new ConflictException('Author SOP Process tidak tersedia untuk feedback pencabutan');
+    }
+
+    const revokedAt = new Date();
+    let notifiedRecipients: string[] = [];
+    await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.detailSOP.updateMany({
+        where: {
+          detailSopId: effective.detailSopId,
+          status: StatusSOP.BERLAKU,
+        },
+        data: {
+          status: StatusSOP.DICABUT,
+          terakhirDieditOlehId: user.sub,
+        },
+      });
+      if (updated.count !== 1) {
+        throw new ConflictException(
+          'Status SOP berubah saat pencabutan diproses. Muat ulang lalu ulangi aksi.',
+        );
+      }
+
+      await appendOrCreateLogSession({
+        tx,
+        detailSopId: effective.detailSopId,
+        penggunaId: user.sub,
+        bagian: BagianSOP.STATUS,
+        fields: ['status'],
+        discrete: true,
+      });
+      await tx.$executeRaw`
+        UPDATE DokumenTte
+        SET pdfStatus = ${'REVOKED'},
+            pdfRevokedAt = ${revokedAt}
+        WHERE detailSopId = ${effective.detailSopId}
+          AND jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
+      `;
+
+      notifiedRecipients = await this.processNotificationService.createManyInTransaction(tx, [
+        {
+          detailSopId: effective.detailSopId,
+          sopId: resolved.sopId,
+          processId: binding.processId,
+          penggunaId: authorId,
+          kind: ProcessNotificationKind.PROCESS_SOP_REVOKED,
+          processName: process.nama,
+        },
+        {
+          detailSopId: effective.detailSopId,
+          sopId: resolved.sopId,
+          processId: binding.processId,
+          penggunaId: process.ownerId,
+          kind: ProcessNotificationKind.PROCESS_SOP_REVOKED,
+          processName: process.nama,
+        },
+      ]);
     });
+    this.processNotificationService.emitChangedMany(notifiedRecipients);
 
     return {
       detailSopId: effective.detailSopId,

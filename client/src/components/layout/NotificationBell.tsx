@@ -1,4 +1,3 @@
-import { Link } from '@tanstack/react-router'
 import { Bell, CheckCheck, Inbox, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -101,13 +100,25 @@ export function NotificationBell() {
 
               if (item.source === 'PROCESS') {
                 return (
-                  <DropdownMenuItem key={key} className="p-0" onSelect={handleSelect}>
-                    <Link
-                      to={item.actionHref}
+                  <DropdownMenuItem key={key} asChild>
+                    <a
+                      href={item.actionHref}
+                      data-process-notification-id={item.processNotificationId}
                       className="flex w-full items-start gap-2 px-2 py-2"
+                      onClick={(event) => {
+                        if (item.readAt) return
+                        event.preventDefault()
+                        void (async () => {
+                          try {
+                            await markRead(item)
+                          } finally {
+                            window.location.href = item.actionHref
+                          }
+                        })()
+                      }}
                     >
                       <NotificationContent item={item} />
-                    </Link>
+                    </a>
                   </DropdownMenuItem>
                 )
               }

@@ -2,106 +2,122 @@
 
 ## Shape
 
-**Milestone:** M8 — Contextual SOP Revocation & Effective-State Integrity  
-**State:** INTEGRATED / RELEASE_READY  
-**Integration branch:** `master`
+**Milestone:** M9 — Workflow Feedback Loop & Notification Closure  
+**State:** IMPLEMENTED / VERIFICATION_PENDING  
+**Integration branch:** `m9-workflow-feedback`
 
-Outcome: a Process-bound SOP that is already effective can be revoked through the same contextual organizational authority model used for final approval and TTE, while public/effective visibility is removed and historical/audit/TTE evidence remains intact.
+Outcome target: target-native Process users receive actionable feedback when Process Owner review requests revision, when contextual TTE makes an SOP effective, and when contextual authority revokes an effective SOP, without polling workflow state manually.
 
-M8 was delivered as one bounded lifecycle capability through J28-J30 and integrated as one coherent PR.
+M9 is one bounded workflow-feedback capability delivered continuously through J31-J34.
 
 ## Position
 
 ```text
-J28 Contextual Revocation Authority          VERIFIED / INTEGRATED
-J29 Authority Revocation Surface             VERIFIED / INTEGRATED
-J30 Effective/Public Integrity               VERIFIED / INTEGRATED
-M8 milestone gate                            PASS
-Release readiness                            READY
-Release/deployment                           NOT PERFORMED
+J31 Revision Feedback                 IMPLEMENTED
+J32 Effective SOP Outcome             IMPLEMENTED
+J33 Revocation Feedback               IMPLEMENTED
+J34 Action & Inbox Integrity          IMPLEMENTED
+M9 milestone gate                     VERIFICATION_PENDING
+Release readiness                     NOT YET CLAIMED
+Release/deployment                    NOT PERFORMED
 ```
 
-## Delivered Behavior
+## Implemented Behavior
 
-### J28 — Contextual Revocation Authority
+### J31 — Revision Feedback
 
-- Process-bound revocation resolves `ProcessSopBinding` and uses `OrganizationalAuthorityService` as the authority source.
-- `FACULTY` Process revocation belongs to the active `DEAN`.
-- `DEPARTMENT` Process revocation belongs to the active `HEAD_OF_DEPARTMENT` for that department.
-- Process Owner, Process Member, unrelated authority holders, and `SUPER_ADMIN` without the relevant organizational authority do not gain revocation rights.
-- revocation requires an existing `BERLAKU` version and is rejected while a revision is in flight.
-- legacy/unbound SOP revocation remains on the compatibility path.
+- Process Owner `REVISION` keeps the existing workflow transition to `REVISI_DARI_EVALUATOR`;
+- the original Process-bound author is resolved from persisted `DetailSOP.dibuatOlehId`, not legacy global role identity;
+- `PROCESS_REVISION_REQUESTED` is persisted inside the same transaction as the status transition and audit log;
+- realtime notification refresh is emitted only after the transaction commits.
 
-### J29 — Authority Revocation Surface
+### J32 — Effective SOP Outcome
 
-- the existing FTI authority surface at `/approval` lists effective SOPs inside the signed-in authority holder's scope;
-- the authority holder can invoke `Cabut SOP` with an explicit confirmation that the SOP will no longer be effective;
-- no legacy `KEPALA_OPD` identity is required for Process-bound revocation.
+- `PROCESS_SOP_EFFECTIVE` is created only after the contextual TTE finalization path is promoting the SOP to `BERLAKU`;
+- original author and Process Owner are recipients;
+- duplicate recipients are collapsed when one account is both author and Process Owner;
+- notification rows are written inside the same database transaction as effective-state/TTE artifact finalization;
+- if notification persistence fails, finalization rolls back and the already-written filesystem PDF is removed through the existing cleanup path.
 
-### J30 — Effective/Public Integrity
+### J33 — Revocation Feedback
 
-- `BERLAKU -> DICABUT` remains a terminal state transition, not deletion;
-- the existing status transaction records the acting user and marks the published TTE artifact `REVOKED`;
-- revoked SOPs stop satisfying public/effective `BERLAKU` queries;
-- public document access is unavailable and revoked official PDF access preserves the existing `410 Gone` contract;
-- version history, approval/TTE evidence, audit evidence, and stored artifacts remain preserved as historical evidence.
+- Process-bound revocation preserves the contextual Dean/Head-of-Department authority boundary from M8;
+- the target revocation transaction performs the `BERLAKU -> DICABUT` compare-and-set, audit log, official-artifact `REVOKED` update, and `PROCESS_SOP_REVOKED` notification persistence atomically;
+- original author and Process Owner are recipients with duplicate-recipient collapse;
+- realtime refresh is emitted only after a successful commit.
 
-## Verification Evidence
+### J34 — Action & Inbox Integrity
 
-Exact verified source head:
+- existing `ProcessNotification`, notification bell, unread/read behavior, and target-native persistence are reused;
+- new feedback events map to `/work/queue` rather than introducing new navigation or inbox surfaces;
+- opening a Process feedback notification marks it read through the existing notification contract;
+- legacy notification persistence remains separate.
+
+## Persistence Change
+
+M9 adds only three values to the existing `ProcessNotificationKind` enum:
 
 ```text
-2b427f5c8d024c9f9b3a0905a8d13295237c496d
+PROCESS_REVISION_REQUESTED
+PROCESS_SOP_EFFECTIVE
+PROCESS_SOP_REVOKED
 ```
 
-Source-head gate:
+An additive MariaDB migration extends the existing `ProcessNotification.kind` ENUM. No legacy notification table or history is modified.
+
+## Verification Selection
+
+Default M9 browser evidence is risk-selected to the changed capability:
 
 ```text
-Server CI #210                 PASS
-Client CI #288                 PASS
-FTI Critical E2E #85 J28-J30  PASS
-Migration Smoke                NOT RUN / NOT REQUIRED
+J31 Revision Feedback
+J32 Effective SOP Outcome
+J33 Revocation Feedback
+J34 Action & Inbox Integrity
 ```
 
-Server evidence included Prisma validation/generation, TypeScript typecheck, core unit tests, and focused FTI target-domain tests including contextual revocation.
-
-Client evidence included production build/route generation, generated route-tree consistency, TypeScript typecheck, and unit tests.
-
-FTI Critical E2E proved:
-
-- J28 Faculty/Department contextual authority and denial paths;
-- J29 FTI-native revocation interaction;
-- J30 effective/public removal with historical version preservation.
-
-Migration Smoke was intentionally not run because the final M8 diff contains no migration-relevant Prisma schema or migration input.
-
-Integration:
+Expected milestone gate:
 
 ```text
-PR #15 squash merged
-master integration SHA: 2d0f7739f9f0496c5e2cfa36973856fc22b79c10
-Integrated Server CI #211  PASS
-Integrated Client CI #289  PASS
+Server CI
+- Prisma validate/generate
+- typecheck
+- core unit tests
+- focused Process notification/review/revocation/TTE tests
+
+Client CI
+- production build / route generation
+- route-tree consistency
+- typecheck
+- unit tests
+
+FTI Critical E2E
+- journey registry audit
+- J31-J34
+
+Migration Smoke
+- REQUIRED because ProcessNotificationKind persistence changed
 ```
 
-FTI Critical E2E is PR-scoped and did not rerun on the merge commit; exact source-head J28-J30 evidence was green before integration.
+Older journeys are added only if a failure indicates broader coupling. Full historical J01-J34 is not the default M9 gate.
 
 ## Boundaries Preserved
 
-- no new schema/status was introduced; existing `DICABUT` semantics are reused;
-- no OPD table/column/enum/role removal;
-- no `SOP.opdId` cleanup;
-- no broad persisted role/status rename;
-- no public archive information-architecture redesign;
-- no generic revocation workflow engine, approval-chain engine, bulk/scheduled revocation, mandatory reason/document, or second approval workflow;
-- `SUPER_ADMIN` remains platform administration, not a workflow bypass;
-- legacy/unbound behavior remains compatible;
-- no release/deployment was performed.
+- no email/WhatsApp feedback channel;
+- no generic event bus or notification platform abstraction;
+- no notification preferences or reminder scheduler expansion;
+- no legacy/Process persistence unification;
+- no Edit SOP protected-surface change;
+- no OPD/legacy role cleanup;
+- no approval, TTE, or revocation authority change;
+- no notification-bell redesign;
+- no per-edit/noisy notification expansion;
+- no release/deployment.
 
 ## Delta
 
-No M8 implementation, verification, or integration work remains.
+J31-J34 implementation is present on the milestone branch. Exact-head CI, Migration Smoke, browser evidence, integration, and integrated-master evidence are still pending.
 
 ## Next Move
 
-**STOP.** M8 is integrated and release-ready. Await an explicit next product objective or explicit release/deployment direction. Do not invent M9 or promote deferred legacy cleanup into scope.
+Run the proportional M9 gate on the exact branch head, fix only failures that invalidate the bounded capability, integrate one coherent M9 PR after all required evidence is green, verify the integrated master revision, then update this file to `INTEGRATED / RELEASE_READY` and **STOP**. Do not invent M10 or promote deferred legacy cleanup into scope.
