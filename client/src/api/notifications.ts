@@ -51,7 +51,7 @@ export const notificationApi = {
   markProcessRead: (processNotificationId: string) =>
     unwrapApiData(
       apiClient.post<ApiSuccessResponse<NotificationSummaryDto>>(
-        `/notifications/process/${encodeURIComponent(processNotificationId)}/read`,
+        `/notifications/process/items/${encodeURIComponent(processNotificationId)}/read`,
       ),
     ),
 
