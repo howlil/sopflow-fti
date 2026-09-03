@@ -84,7 +84,28 @@ export async function openProcessFeedbackFromNotification(
   await expect(notification).toBeVisible({ timeout: 15_000 })
   await expect(notification).toContainText(expected.title)
   await expect(notification).toContainText(expected.preview)
+
+  const readResponsePromise = processNotificationId
+    ? page.waitForResponse(
+        (response) =>
+          response.request().method() === 'POST' &&
+          response.url().includes(
+            `/notifications/process/${encodeURIComponent(processNotificationId)}/read`,
+          ),
+        { timeout: 15_000 },
+      )
+    : null
+
   await notification.click()
+
+  if (readResponsePromise) {
+    const readResponse = await readResponsePromise
+    expect(
+      readResponse.ok(),
+      `Process notification read request failed with HTTP ${readResponse.status()}`,
+    ).toBe(true)
+  }
+
   await page.waitForURL((url) => url.pathname === '/work/queue', { timeout: 15_000 })
   await waitForAppReady(page)
   await expectNoAppShellError(page)
