@@ -6,8 +6,14 @@ on:
       - 'compose.yml'
       - 'server/Dockerfile'
       - 'server/.dockerignore'
+      - 'server/package.json'
+      - 'server/pnpm-lock.yaml'
+      - 'server/pnpm-workspace.yaml'
       - 'client/Dockerfile'
       - 'client/.dockerignore'
+      - 'client/package.json'
+      - 'client/pnpm-lock.yaml'
+      - 'client/pnpm-workspace.yaml'
       - 'client/docker-entrypoint.sh'
       - 'client/nginx.conf'
       - 'client/production-server.mjs'
@@ -17,8 +23,14 @@ on:
       - 'compose.yml'
       - 'server/Dockerfile'
       - 'server/.dockerignore'
+      - 'server/package.json'
+      - 'server/pnpm-lock.yaml'
+      - 'server/pnpm-workspace.yaml'
       - 'client/Dockerfile'
       - 'client/.dockerignore'
+      - 'client/package.json'
+      - 'client/pnpm-lock.yaml'
+      - 'client/pnpm-workspace.yaml'
       - 'client/docker-entrypoint.sh'
       - 'client/nginx.conf'
       - 'client/production-server.mjs'
@@ -40,5 +52,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Guard backend runtime package-manager independence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          package_manager="$(node -p "require('./server/package.json').packageManager")"
+          grep -F "corepack prepare ${package_manager} --activate" server/Dockerfile >/dev/null
+
+          runtime_block="$(awk '/^FROM .* AS runtime$/{runtime=1} runtime{print}' server/Dockerfile)"
+          if printf '%s\n' "$runtime_block" | grep -Eq '(^|[[:space:]])(corepack|pnpm)([[:space:]]|$)'; then
+            echo 'Backend runtime image must not require Corepack or pnpm.' >&2
+            exit 1
+          fi
+
+          backend_block="$(awk '/^  backend:/{backend=1} /^  frontend:/{backend=0} backend{print}' compose.yml)"
+          if printf '%s\n' "$backend_block" | grep -Eq '(^|[[:space:]])pnpm([[:space:]]|$)'; then
+            echo 'Backend Compose startup must not invoke pnpm.' >&2
+            exit 1
+          fi
+
+          grep -F './node_modules/.bin/prisma migrate deploy' compose.yml >/dev/null
+          grep -F 'exec node dist/src/main.js' compose.yml >/dev/null
+
       - name: Build application images
         run: docker compose --env-file .env.example -f compose.yml build backend frontend
+
+      - name: Verify backend runtime payload without network
+        run: |
+          docker run --rm --network none --entrypoint /app/node_modules/.bin/prisma sop-arsip-backend --version
+          docker run --rm --network none --entrypoint sh sop-arsip-backend -c 'test -f dist/src/database/seed/seed-initial.js && test -f dist/src/main.js'
