@@ -2,67 +2,119 @@
 
 ## Shape
 
-**Milestone:** M9 — Workflow Feedback Loop & Notification Closure  
-**State:** INTEGRATED / RELEASE_READY  
-**Source branch:** `m9-workflow-feedback`  
-**PR:** #16  
-**Squash merge:** `d2e736559497995db988385fd5cfdf52cfc3bb32`
+**Milestone:** M10 — FTI-Native Public SOP Discovery & Archive Cutover  
+**State:** IMPLEMENTED / VERIFICATION_PENDING  
+**Integration branch:** `m10-public-fti-archive`  
+**Base master:** `7b9941bebe6852b79dcdfadbf3efc345603e9c2d`
 
-Outcome: target-native Process users receive actionable feedback when Process Owner review requests revision, when contextual TTE makes an SOP effective, and when contextual authority revokes an effective SOP, without polling workflow state manually.
+Outcome target: public visitors discover current FTI SOPs through organizational scope and Process context, open the official published PDF, and stop seeing a Process-bound SOP immediately after contextual revocation, while legacy public endpoints remain compatibility contracts.
+
+M10 is one bounded public-discovery capability delivered continuously through J35-J38.
 
 ## Position
 
 ```text
-J31 Revision Feedback                 VERIFIED / INTEGRATED
-J32 Effective SOP Outcome             VERIFIED / INTEGRATED
-J33 Revocation Feedback               VERIFIED / INTEGRATED
-J34 Action & Inbox Integrity          VERIFIED / INTEGRATED
-M9 milestone gate                     PASS
-Release readiness                     RELEASE_READY
-Release/deployment                    NOT PERFORMED
+J35 Public FTI Catalog                 IMPLEMENTED
+J36 Public Process Discovery           IMPLEMENTED
+J37 Official Document Continuity       IMPLEMENTED
+J38 Publication Compatibility          IMPLEMENTED
+M10 milestone gate                     VERIFICATION_PENDING
+Release readiness                      NOT YET CLAIMED
+Release/deployment                     NOT PERFORMED
 ```
 
-## Exact Source-Head Evidence
+## Implemented Behavior
 
-Source head: `5f4eaa701b887140b917f736c642908cc7984183`
+### J35 — Public FTI Catalog
+
+- `ProcessSopBinding` is the authoritative target classification for Process-bound SOPs in the public catalog;
+- additive public endpoints are available under `/sop/public/fti/...`;
+- Process catalog rows expose Process scope and Department context;
+- only SOP versions that are `BERLAKU` and have an official `PUBLISHED` PDF are target-public;
+- Process-bound rows are excluded from the legacy-unbound fallback branch of target global search, preventing duplicate publication results.
+
+### J36 — Public Process Discovery
+
+- normal `/arsip` navigation is Process-first rather than OPD-first;
+- faculty and department Processes are visually grouped from persisted `OrganizationalScope` / Department evidence;
+- selecting a Process loads only its current published SOPs;
+- global search remains a shortcut across title, SOP number, Process, and Department;
+- route state uses `processId`; legacy `opdId` remains accepted only as compatibility input so old URLs do not crash the route parser.
+
+### J37 — Official Document Continuity
+
+- target catalog results continue to point at the existing `/sop/public/pdf/:detailSopId` official artifact endpoint;
+- PDF serving still re-validates current `BERLAKU` + published-artifact evidence on every request;
+- the public preview reuses the existing official PDF pane rather than introducing a second document representation.
+
+### J38 — Publication Compatibility
+
+- legacy `/sop/public/opd`, `/sop/public/opd/:opdId/sop`, and `/sop/public/sop` APIs remain available;
+- legacy/unbound published SOPs remain discoverable through the target global archive fallback;
+- a Process-bound SOP appears once in target global discovery even though legacy compatibility data still exists;
+- contextual revocation removes the SOP from target public discovery and makes the existing official PDF endpoint return its revoked/unavailable response.
+
+## Public API Additions
 
 ```text
-Server CI #253                       PASS
-Client CI #339                       PASS
-Migration Smoke #69                  PASS
-FTI Critical E2E #109 — J31-J34      PASS
+GET /sop/public/fti/processes
+GET /sop/public/fti/processes/:processId/sop
+GET /sop/public/fti/sop
 ```
 
-## Integrated Master Evidence
+These endpoints are additive. No public legacy endpoint is removed or repurposed in M10.
 
-Integrated master revision: `d2e736559497995db988385fd5cfdf52cfc3bb32`
+## Verification Selection
+
+Default M10 browser evidence is risk-selected to the changed capability:
 
 ```text
-Server CI #254                       PASS
-Client CI #340                       PASS
-Migration Smoke #70                  PASS
+J35 Public FTI Catalog
+J36 Public Process Discovery
+J37 Official Document Continuity
+J38 Publication Compatibility
 ```
 
-The browser gate is exact source-head evidence for the squash-integrated application content; the merge revision additionally passed the normal master Server/Client/Migration checks.
+Expected milestone gate:
 
-## Integrated Behavior
+```text
+Server CI
+- Prisma validate/generate
+- typecheck
+- core unit tests
+- focused public FTI catalog tests
 
-- J31 persists `PROCESS_REVISION_REQUESTED` for the persisted original Process-bound author in the same transaction as the revision transition and audit log.
-- J32 persists `PROCESS_SOP_EFFECTIVE` for original author + Process Owner inside effective-state/TTE finalization, with recipient de-duplication and filesystem cleanup on rollback.
-- J33 performs Process revocation status transition, audit, official-artifact revoke, and `PROCESS_SOP_REVOKED` persistence atomically for author + Process Owner.
-- J34 reuses the existing notification bell and `/work/queue` target; Process read-state uses an unambiguous `/notifications/process/items/:processNotificationId/read` endpoint so the legacy dynamic route cannot intercept the request.
-- legacy notification persistence remains separate.
+Client CI
+- production build / route generation
+- route-tree consistency
+- typecheck
+- unit tests
+
+FTI Critical E2E
+- journey registry audit
+- J35-J38 as one coherent browser run
+
+Migration Smoke
+- NOT SELECTED: M10 changes no Prisma schema or migration input
+```
+
+Older journeys are added only if an observed failure indicates broader coupling.
 
 ## Boundaries Preserved
 
-- no email/WhatsApp feedback channel;
-- no generic event bus, notification preferences, or reminder scheduler expansion;
-- no legacy/Process persistence unification;
+- no Prisma schema or migration change;
+- no authoring/review/approval/TTE/revocation authority change;
+- no destructive OPD/legacy data migration;
+- no removal of legacy public endpoints;
 - no Edit SOP protected-surface change;
-- no OPD/legacy cleanup;
-- no approval/TTE/revocation authority expansion;
+- no new PDF generation/storage model;
+- no public authentication requirement;
 - no release/deployment.
+
+## Delta
+
+J35-J38 source implementation and focused journey coverage are present on the milestone branch. Exact-head CI/browser evidence, PR integration, and integrated-master evidence are still pending.
 
 ## Next Move
 
-M9 is closed. The next approved milestone is **M10 — FTI-Native Public SOP Discovery & Archive Cutover**, executed as J35-J38. Release/deployment remains unauthorized.
+Complete final diff/static audit, open one coherent M10 PR, run Server CI + Client CI + FTI Critical E2E J35-J38 on the exact PR head, fix only failures that invalidate the bounded capability, merge after all required evidence is green, verify integrated master, then update this file to `INTEGRATED / RELEASE_READY` and **STOP**. Do not release or deploy.
