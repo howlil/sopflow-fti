@@ -114,7 +114,19 @@ test.describe('End-to-End Business Journey — Process workflow feedback closure
       title: 'Revisi SOP Process diperlukan',
       preview: `SOP pada Process ${sop.processName} dikembalikan untuk revisi.`,
     }
-    await expectSingleProcessFeedback(authorApi, 'PROCESS_REVISION_REQUESTED', expected)
+    const unreadFeedback = (await findProcessFeedback(authorApi, 'PROCESS_REVISION_REQUESTED')).filter(
+      (item) => item.readAt === null,
+    )
+    expect(unreadFeedback).toHaveLength(1)
+    expect(unreadFeedback[0]).toEqual(
+      expect.objectContaining({
+        kind: 'PROCESS_REVISION_REQUESTED',
+        title: expected.title,
+        preview: expected.preview,
+        actionHref: '/work/queue',
+      }),
+    )
+    const feedbackId = unreadFeedback[0]!.processNotificationId
 
     await test.step('Unread count merefleksikan feedback sebelum user membukanya', async () => {
       const summary = await apiGet<{ unreadCount: number }>(authorApi, '/notifications/process/summary')
@@ -128,8 +140,8 @@ test.describe('End-to-End Business Journey — Process workflow feedback closure
 
     await test.step('Notification yang dibuka tercatat read tanpa mengubah persistence legacy', async () => {
       const feedback = await findProcessFeedback(authorApi, 'PROCESS_REVISION_REQUESTED')
-      expect(feedback).toHaveLength(1)
-      expect(feedback[0]?.readAt).not.toBeNull()
+      const openedFeedback = feedback.find((item) => item.processNotificationId === feedbackId)
+      expect(openedFeedback?.readAt).not.toBeNull()
       const summary = await apiGet<{ unreadCount: number }>(authorApi, '/notifications/process/summary')
       expect(summary.unreadCount).toBe(0)
     })
