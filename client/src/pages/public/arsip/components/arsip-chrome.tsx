@@ -56,8 +56,7 @@ export function ArsipPageIntro() {
         Arsip SOP yang telah disahkan
       </h1>
       <p className="max-w-3xl text-sm leading-relaxed text-secondary-foreground sm:text-base">
-        Pilih OPD dan SOP di panel kiri, baca dokumen di sebelah kanan. Panel navigasi bisa
-        disembunyikan untuk ruang baca lebih luas.
+        Telusuri konteks Fakultas atau Departemen, pilih Process, lalu baca SOP resmi yang sedang berlaku.
       </p>
     </section>
   )
@@ -72,7 +71,7 @@ export function ArsipHeroSearch({ value, onChange }: ArsipHeroSearchProps) {
   return (
     <div className="mb-5 space-y-2">
       <label htmlFor="arsip-global-search" className="sr-only">
-        Cari judul, nomor SOP, atau nama OPD
+        Cari judul, nomor SOP, Process, atau Departemen
       </label>
       <div className="relative">
         <Search
@@ -84,14 +83,13 @@ export function ArsipHeroSearch({ value, onChange }: ArsipHeroSearchProps) {
           type="search"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Cari judul, nomor SOP, atau nama OPD…"
+          placeholder="Cari judul, nomor SOP, Process, atau Departemen…"
           className="h-12 rounded-xl border-border pl-12 text-base shadow-surface"
           autoComplete="off"
         />
       </div>
       <p className="text-sm text-muted-foreground">
-        Contoh: Dinas Kesehatan, 001/SOP/2024 — hasil bisa dibaca langsung di pratinjau sebelah kanan tanpa
-        pindah halaman.
+        Pencarian langsung mencakup SOP Process FTI dan dokumen legacy yang belum memiliki binding Process.
       </p>
     </div>
   )

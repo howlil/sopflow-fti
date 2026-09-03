@@ -9,7 +9,7 @@ import {
   ArsipSopShell,
 } from './components/arsip-chrome'
 import { ArsipBrowseWorkspace } from './components/arsip-browse-workspace'
-import { ArsipOpdSidebar } from './components/arsip-opd-sidebar'
+import { ArsipProcessSidebar } from './components/arsip-process-sidebar'
 import { ArsipSopPanel } from './components/arsip-sop-panel'
 import { ArsipSopPreviewPane } from './components/arsip-sop-preview-pane'
 import { useArsipBrowse } from './hooks/use-arsip-browse'
@@ -33,6 +33,7 @@ export function ArsipBrowsePage() {
       })
     })
   }
+
   return (
     <ArsipSopShell>
       <ArsipPageIntro />
@@ -40,19 +41,19 @@ export function ArsipBrowsePage() {
       {browse.showBreadcrumb ? <ArsipBreadcrumb items={browse.breadcrumbItems} /> : null}
       <ArsipBrowseWorkspace {...workspaceProps} />
       <div className={cn('mt-4 space-y-4 lg:hidden', browse.mobile.showPreview && 'hidden')}>
-        {browse.mobile.showOpd ? (
-          <ArsipOpdSidebar
-            items={workspaceProps.opdItems}
-            selectedOpdId={workspaceProps.opdId}
-            opdFilter={workspaceProps.opdFilter}
-            onOpdFilterChange={workspaceProps.onOpdFilterChange}
-            onSelectOpd={browse.handleSelectOpd}
-            isLoading={workspaceProps.opdLoading}
-            isError={workspaceProps.opdError}
-            isFetching={workspaceProps.opdFetching}
-            pagination={workspaceProps.opdPagination}
-            page={workspaceProps.opdPage}
-            onPageChange={browse.handleOpdPageChange}
+        {browse.mobile.showProcess ? (
+          <ArsipProcessSidebar
+            items={workspaceProps.processItems}
+            selectedProcessId={workspaceProps.processId}
+            processFilter={workspaceProps.processFilter}
+            onProcessFilterChange={workspaceProps.onProcessFilterChange}
+            onSelectProcess={browse.handleSelectProcess}
+            isLoading={workspaceProps.processLoading}
+            isError={workspaceProps.processError}
+            isFetching={workspaceProps.processFetching}
+            pagination={workspaceProps.processPagination}
+            page={workspaceProps.processPage}
+            onPageChange={browse.handleProcessPageChange}
           />
         ) : null}
         {browse.mobile.showSopList ? (
@@ -63,10 +64,10 @@ export function ArsipBrowsePage() {
                 variant="ghost"
                 size="sm"
                 className="gap-1.5 px-0 text-blue-700 hover:bg-transparent hover:underline"
-                onClick={browse.handleMobileBackToOpd}
+                onClick={browse.handleMobileBackToProcess}
               >
                 <ArrowLeft className="h-4 w-4" aria-hidden />
-                Kembali ke daftar OPD
+                Kembali ke daftar Process
               </Button>
             ) : null}
             <ArsipSopPanel
@@ -79,12 +80,12 @@ export function ArsipBrowsePage() {
               isLoading={browse.sopLoading}
               isError={browse.sopError}
               isFetching={browse.sopFetching}
-              showOpdColumn={browse.isGlobalMode}
+              showContextColumn={browse.isGlobalMode}
               selectedDetailSopId={browse.mobile.detailSopId}
               onSelectSop={browse.handleSelectSop}
               emptyTitle={browse.sopEmptyTitle}
               emptyHint={browse.sopEmptyHint}
-              showSopSearchFilter={Boolean(browse.opdId) && !browse.isGlobalMode}
+              showSopSearchFilter={Boolean(browse.processId) && !browse.isGlobalMode}
               sopSearch={browse.sopFilterInput}
               onSopSearchChange={browse.handleSopSearchChange}
             />
@@ -97,7 +98,7 @@ export function ArsipBrowsePage() {
             detailSopId={browse.mobile.detailSopId}
             pdfUrl={browse.selectedSop?.pdfUrl}
             title={browse.selectedSop?.judul}
-            opdName={browse.selectedSop?.opdNama}
+            contextName={browse.selectedSopContext}
             onClose={handleCloseMobilePreview}
             onRefresh={browse.workspaceProps.onRefreshPreview}
             variant="overlay"

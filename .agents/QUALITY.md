@@ -142,6 +142,22 @@ Use evidence appropriate to each changed boundary:
 
 Unit tests alone do not prove the complete TTE/PDF journey.
 
+### Public archive / discovery
+
+For Process-native public discovery, verify:
+
+- Process classification comes from `ProcessSopBinding`, not inferred OPD ownership;
+- only current `BERLAKU` versions with official `PUBLISHED` PDF artifacts are returned;
+- faculty/department Process context is returned correctly;
+- Process selection scopes the SOP list to that Process;
+- global target search can resolve Process/Department context without duplicating a Process-bound SOP through legacy fallback;
+- legacy/unbound published SOP compatibility remains available where promised;
+- the public document action resolves the existing official PDF artifact rather than a parallel generated representation;
+- revocation removes current target discovery and official public PDF availability without deleting historical evidence;
+- legacy public APIs remain operable when the milestone promises additive compatibility.
+
+Because these invariants span SQL classification, HTTP contracts, route state, browser discovery, artifact serving, and revocation, service/unit evidence alone is insufficient for a public archive cutover.
+
 ### Notifications
 
 Verify:
@@ -183,6 +199,8 @@ For M7 account/bootstrap work, the default regression boundary is J20-J23 plus t
 For M8 contextual revocation, the default regression boundary is J28-J30. Add J17-J19 only if effective-version/replacement semantics are materially changed; do not run them merely because revocation touches an effective status.
 
 For M9 workflow feedback closure, the default browser boundary is J31-J34. These journeys directly exercise revision feedback, effective-state feedback, revocation feedback, and notification action/read integrity. Older approval/TTE/revocation journeys are added only if a failure indicates broader behavioral coupling. Because M9 extends the persisted `ProcessNotificationKind` enum, Migration Smoke is mandatory even though the schema change is additive.
+
+For M10 FTI-native public discovery/archive cutover, the default browser boundary is J35-J38. Run these as one coherent browser suite so one effective Process SOP precondition can prove target catalog classification, Process-first discovery, official PDF continuity, duplicate prevention, and revocation disappearance without repeating the expensive TTE setup four times. The isolated critical runner may still run one J35-J38 journey alone and must create any required precondition itself. Migration Smoke is not an M10 gate because M10 changes no Prisma schema or migration input.
 
 ## CI Baseline
 

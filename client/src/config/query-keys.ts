@@ -140,7 +140,7 @@ export const queryKeys = {
   evaluasiUmpanBalik: (detailSopId: string) =>
     ['evaluasi', 'umpan-balik', detailSopId] as const,
 
-  /** Arsip SOP publik — GET `/sop/public/...` */
+  /** Arsip SOP publik — compatibility GET `/sop/public/...` */
   sopPublicOpdList: (params?: { page?: number; limit?: number; search?: string }) =>
     ['sop', 'public', 'opd', params ?? {}] as const,
   sopPublicSopList: (
@@ -149,6 +149,16 @@ export const queryKeys = {
   ) => ['sop', 'public', 'opd', opdId, 'sop', params ?? {}] as const,
   sopPublicSopGlobal: (params?: { page?: number; limit?: number; search?: string }) =>
     ['sop', 'public', 'sop', params ?? {}] as const,
+
+  /** Arsip SOP publik target-native — GET `/sop/public/fti/...` */
+  sopPublicProcessList: (params?: { page?: number; limit?: number; search?: string }) =>
+    ['sop', 'public', 'fti', 'processes', params ?? {}] as const,
+  sopPublicProcessSopList: (
+    processId: string,
+    params?: { page?: number; limit?: number; search?: string },
+  ) => ['sop', 'public', 'fti', 'processes', processId, 'sop', params ?? {}] as const,
+  sopPublicFtiSopGlobal: (params?: { page?: number; limit?: number; search?: string }) =>
+    ['sop', 'public', 'fti', 'sop', params ?? {}] as const,
   sopPublicDokumen: (detailSopId: string) =>
     ['sop', 'public', 'dokumen', detailSopId] as const,
 }

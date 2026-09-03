@@ -1,14 +1,14 @@
 import { ChevronRight } from 'lucide-react'
 import { Table } from '@/components/ui/data-table'
-import { formatDateIdLong } from '@/utils/format-date'
 import { cn } from '@/utils/cn'
+import { formatDateIdLong } from '@/utils/format-date'
 import type { PublicSopItem } from '@/types/dto/sop-public.dto'
 
 export type ArsipSopTableVariant = 'default' | 'compact'
 
 export interface ArsipSopTableProps {
   items: PublicSopItem[]
-  showOpdColumn?: boolean
+  showContextColumn?: boolean
   selectedDetailSopId?: string
   onSelectSop: (sop: PublicSopItem) => void
   variant?: ArsipSopTableVariant
@@ -16,7 +16,7 @@ export interface ArsipSopTableProps {
 
 export function ArsipSopTable({
   items,
-  showOpdColumn = false,
+  showContextColumn = false,
   selectedDetailSopId,
   onSelectSop,
   variant = 'default',
@@ -44,7 +44,7 @@ export function ArsipSopTable({
                 <thead>
                   <Table.HeadRow>
                     <Table.Th className="min-w-[12rem]">Judul SOP</Table.Th>
-                    {showOpdColumn ? <Table.Th className="min-w-[8rem]">OPD</Table.Th> : null}
+                    {showContextColumn ? <Table.Th className="min-w-[10rem]">Konteks</Table.Th> : null}
                     <Table.Th className="whitespace-nowrap">Nomor</Table.Th>
                     <Table.Th className="whitespace-nowrap">Versi</Table.Th>
                     <Table.Th className="whitespace-nowrap">Berlaku sejak</Table.Th>
@@ -58,7 +58,7 @@ export function ArsipSopTable({
                     <SopTableRow
                       key={sop.detailSopId}
                       sop={sop}
-                      showOpdColumn={showOpdColumn}
+                      showContextColumn={showContextColumn}
                       isSelected={sop.detailSopId === selectedDetailSopId}
                       onSelectSop={onSelectSop}
                     />
@@ -90,8 +90,8 @@ export function ArsipSopTable({
                   <p className={cn('font-medium text-foreground', isCompact && 'text-sm leading-snug')}>
                     {sop.judul}
                   </p>
-                  {showOpdColumn ? (
-                    <p className="mt-0.5 text-xs text-secondary-foreground">{sop.opdNama}</p>
+                  {showContextColumn ? (
+                    <p className="mt-0.5 text-xs text-secondary-foreground">{formatSopContext(sop)}</p>
                   ) : null}
                   <p className={cn('text-muted-foreground', isCompact ? 'mt-0.5 text-xs' : 'text-sm')}>
                     {sop.nomorSOP} · Versi {sop.versi}
@@ -118,22 +118,19 @@ export function ArsipSopTable({
 
 function SopTableRow({
   sop,
-  showOpdColumn,
+  showContextColumn,
   isSelected,
   onSelectSop,
 }: {
   sop: PublicSopItem
-  showOpdColumn: boolean
+  showContextColumn: boolean
   isSelected: boolean
   onSelectSop: (sop: PublicSopItem) => void
 }) {
   return (
     <Table.BodyRow
       data-arsip-sop-id={sop.detailSopId}
-      className={cn(
-        'cursor-pointer',
-        isSelected && 'bg-blue-50 ring-1 ring-inset ring-blue-200',
-      )}
+      className={cn('cursor-pointer', isSelected && 'bg-blue-50 ring-1 ring-inset ring-blue-200')}
       onClick={() => onSelectSop(sop)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -146,7 +143,9 @@ function SopTableRow({
       aria-pressed={isSelected}
     >
       <Table.Td className="font-medium text-foreground">{sop.judul}</Table.Td>
-      {showOpdColumn ? <Table.Td className="text-secondary-foreground">{sop.opdNama}</Table.Td> : null}
+      {showContextColumn ? (
+        <Table.Td className="text-secondary-foreground">{formatSopContext(sop)}</Table.Td>
+      ) : null}
       <Table.Td className="text-secondary-foreground">{sop.nomorSOP}</Table.Td>
       <Table.Td className="text-secondary-foreground">{sop.versi}</Table.Td>
       <Table.Td className="text-secondary-foreground">
@@ -160,4 +159,14 @@ function SopTableRow({
       </Table.Td>
     </Table.BodyRow>
   )
+}
+
+export function formatSopContext(sop: PublicSopItem): string {
+  if (sop.processId && sop.processName) {
+    if (sop.scope === 'DEPARTMENT' && sop.departmentName) {
+      return `${sop.departmentName} · ${sop.processName}`
+    }
+    return `Fakultas · ${sop.processName}`
+  }
+  return `Legacy · ${sop.opdNama}`
 }

@@ -172,3 +172,24 @@ Consequence:
 - target revocation must reuse organizational authority resolution rather than global account role checks;
 - legacy/unbound SOP may continue using compatibility behavior until separately retired;
 - do not add `SUPER_ADMIN` override, generic revocation chains, or destructive evidence cleanup without a new explicit product decision.
+
+## D11 — Public FTI Discovery Is Process-First; Legacy Public APIs Remain Compatibility
+
+**Status:** ACTIVE
+
+The normal public archive experience for the FTI target product is organized by persisted organizational scope and `Process`, then by the current published SOPs bound to that Process. `ProcessSopBinding` is the authoritative target classification for Process-bound SOP publication/discovery.
+
+Legacy OPD-based public endpoints remain compatibility contracts and legacy/unbound published SOPs may remain discoverable through an explicit compatibility fallback. A Process-bound SOP must not be duplicated in the target catalog merely because its legacy `SOP.opdId` compatibility shadow still exists.
+
+Rationale:
+
+- the target product model is Process-oriented, so public discovery should expose the same domain users see during authoring/review rather than require visitors to understand OPD-era ownership;
+- publication eligibility is a lifecycle/artifact fact (`BERLAKU` + official published PDF), while public classification is a Process-binding fact;
+- preserving additive compatibility avoids destructive migration while allowing the target information architecture to become primary.
+
+Consequence:
+
+- new target archive endpoints live under `/sop/public/fti/...` rather than repurposing legacy endpoint semantics;
+- normal `/arsip` navigation uses faculty/department Process context, with global search as a shortcut;
+- revocation must remove a Process-bound SOP from current target discovery without deleting historical/TTE evidence;
+- do not reintroduce OPD as the primary target public grouping merely because legacy columns/endpoints remain.
