@@ -7,6 +7,9 @@ export type NotificationKind =
 export type ProcessNotificationKind =
   | 'PROCESS_OWNER_REVIEW_REQUESTED'
   | 'FINAL_APPROVAL_REQUESTED'
+  | 'PROCESS_REVISION_REQUESTED'
+  | 'PROCESS_SOP_EFFECTIVE'
+  | 'PROCESS_SOP_REVOKED'
 
 export type InAppNotificationDto = {
   pengajuanEvaluasiId: string
