@@ -79,6 +79,7 @@ export async function openProcessFeedbackFromNotification(
         .getByRole('link')
         .filter({ hasText: expected.title })
         .filter({ hasText: expected.preview })
+        .filter({ has: page.locator('.bg-primary') })
         .first()
   await expect(notification).toBeVisible({ timeout: 15_000 })
   await expect(notification).toContainText(expected.title)
