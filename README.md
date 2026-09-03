@@ -126,30 +126,23 @@ cd server
 pnpm test
 ```
 
-Frontend unit test:
+Frontend unit/component test:
 
 ```sh
 cd client
 pnpm test
 ```
 
-Critical Playwright business journeys:
+Gunakan integration, migration, Compose, dan container checks hanya ketika changed boundary memerlukannya sesuai `.agents/QUALITY.md`. Manual acceptance testing, browser E2E/black-box testing, live-browser verification, dan manual visual review bukan milestone, merge, atau release gates.
 
-```sh
-cd client
-pnpm test:e2e:critical
-```
-
-Integration test Compose menggunakan nama `DATABASE_*` yang sama dengan aplikasi dan tidak meng-inject seluruh `server/.env.test`; hanya env yang diperlukan container test yang diberikan secara eksplisit. `server/.env.test` tetap menjadi konfigurasi minimal untuk menjalankan test dari host.
-
-Dokumentasi:
+Dokumentasi unit/integration yang masih relevan:
 
 - `docs/unit-test.md`
 - `docs/integration-test.md`
-- `docs/e2e-business-journeys.md`
-- `client/e2e/README.md`
 
-Jumlah test dan coverage yang tercatat pada dokumen penelitian adalah historical snapshot. Status commit terkini ditentukan oleh hasil test/CI pada commit tersebut.
+Dokumen/harness E2E lama dapat dipakai sebagai diagnostic/reference tooling, tetapi bukan source of truth untuk completion atau CI policy.
+
+Jumlah test dan coverage yang tercatat pada dokumen penelitian adalah historical snapshot. Status commit terkini ditentukan oleh automated test/CI yang relevan pada commit tersebut.
 
 ## Catatan production TTE
 
