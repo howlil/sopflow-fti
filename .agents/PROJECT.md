@@ -10,6 +10,8 @@ SOPFlow is an SOP lifecycle system for Fakultas Teknologi Informasi (FTI). It su
 
 The target product domain is FTI. Legacy Indonesian government/OPD terminology still exists in compatibility code and persisted data, but it is not the target product model.
 
+The committed end state is **Full FTI**: active FTI product behavior must not depend on OPD identity, OPD ownership, or legacy global workflow roles. Legacy concepts may survive only as explicit migration/historical compatibility boundaries until their contracts are safely retired.
+
 ## Product Model
 
 Core mental model:
@@ -250,7 +252,7 @@ FACULTY / DEPARTMENT scope
 
 Committed semantics:
 
-- `ProcessSopBinding` is authoritative classification for Process-bound SOPs in target public discovery;
+- `ProcessSopBinding` is the current transitional authoritative classification for Process-bound SOPs in target public discovery until direct native SOP-to-Process ownership replaces it;
 - a Process-bound SOP is public only when the relevant version is `BERLAKU` and has an official `PUBLISHED` PDF artifact;
 - faculty Processes and department Processes are discoverable from their persisted organizational scope; department context is shown for `DEPARTMENT` Processes;
 - selecting a Process returns only the current published SOPs bound to that Process;
@@ -320,10 +322,105 @@ remain compatibility/implementation concepts while migration is incomplete.
 Committed migration direction:
 
 - target semantics become primary for Process-bound work;
-- legacy/unbound behavior remains available where still required;
-- historical data is preserved;
+- legacy/unbound behavior remains available only where a concrete compatibility or historical requirement still exists;
+- historical data and legal/audit evidence are preserved;
 - migration is additive/reversible where practical;
-- physical cleanup is not required merely to complete semantic/product cutover.
+- compatibility adapters must remain explicit rather than leaking legacy ownership/authorization back into target-domain code;
+- physical cleanup follows proven semantic cutover rather than preceding it.
+
+Compatibility is temporary architecture, not an alternate long-term product model.
+
+## Full FTI End State
+
+**Full FTI** means active first-party product behavior no longer depends on OPD identity, OPD ownership, or legacy global workflow roles.
+
+Target state:
+
+```text
+User
+  -> Platform Role
+  -> Process Membership / Ownership
+  -> Organizational Authority
+
+Process
+  -> organizational scope
+  -> SOP
+       -> Process review
+       -> contextual approval
+       -> contextual TTE
+       -> publication / revocation
+```
+
+Active FTI runtime must eventually satisfy all of these:
+
+- SOP ownership is directly canonical to `Process`; `SOP.opdId` and `ProcessSopBinding` are not active ownership/classification dependencies;
+- account/workflow authorization does not require `Pengguna.opdId` or legacy `PeranPengguna` semantics;
+- `OPD`, `RiwayatOpdPengguna`, `OPDPeraturan`, OPD-scoped Pelaksana compatibility fields, and similar legacy structures do not own target behavior;
+- target TTE, notifications, public discovery, authoring, review, approval, versioning, and revocation resolve exclusively from FTI Process/authority semantics;
+- first-party client routes, DTOs, query keys, API clients, and navigation do not require OPD identifiers for normal target workflows;
+- legacy OPD routes/APIs may survive temporarily only as explicit compatibility adapters with no first-party target dependency;
+- legacy evaluation/global-role workflows are either migrated to a justified FTI-native capability or isolated as historical/compatibility behavior; they must not silently remain a second target workflow model.
+
+Retirement targets include, when no longer required by concrete compatibility contracts:
+
+```text
+SOP.opdId
+Pengguna.opdId
+ProcessSopBinding
+RiwayatOpdPengguna
+OPDPeraturan
+OPD-owned target behavior
+legacy global workflow-role authorization
+legacy OPD first-party routes / DTOs / API clients
+legacy public OPD contracts after their compatibility window closes
+```
+
+Do not mechanically replace `opdId` with `departmentId`. Department membership/identity must only exist when the FTI product actually requires it; Process relationship and organizational authority remain separate capability dimensions.
+
+## Full FTI Migration Strategy
+
+Use a staged migration rather than a giant rename/rewrite:
+
+```text
+EXPAND
+  -> add native FTI ownership/contracts without removing legacy compatibility
+
+BACKFILL
+  -> populate native FTI relationships from authoritative existing evidence
+
+CUTOVER
+  -> make first-party reads/writes/authorization use native FTI sources only
+
+PROVE
+  -> verify data completeness, workflow integrity, legal/audit evidence, and zero first-party legacy dependency
+
+CONTRACT
+  -> retire obsolete legacy columns/tables/enums/routes/adapters only after the cutover is proven
+```
+
+Rules:
+
+- each step must preserve current valid historical evidence;
+- migration history already applied to shared environments is not rewritten casually;
+- do not maintain indefinite dual-write/dual-authority paths; compatibility must have a concrete reason and retirement condition;
+- cut over ownership/authorization before destructive physical cleanup;
+- a compatibility field may remain physically present after semantic cutover, but it must not remain a hidden source of truth;
+- remove legacy structures only after no target first-party behavior depends on them and required historical/compatibility reads are covered.
+
+## Full FTI Exit Criteria
+
+The repository may claim **FULL_FTI / LEGACY_RETIRED** only when all are true:
+
+1. every active target SOP is canonically owned/classified by native FTI Process data without OPD fallback;
+2. all target authorization decisions derive from Platform Role, Process Relationship, and Organizational Authority only;
+3. first-party target UI/API paths contain no required OPD routing or ownership context;
+4. target TTE, notification, publication, revocation, version, and public-discovery flows operate without OPD/global-role fallback;
+5. migration/backfill completeness has been verified against persisted data;
+6. historical audit/TTE/version/publication evidence remains intact;
+7. any surviving OPD code/data is isolated to explicitly documented historical or external compatibility adapters;
+8. obsolete legacy structures/contracts have either been removed or have a named external retention requirement and no active target dependency.
+
+A repository-wide `OPD`/legacy-role search may still find immutable migration history, historical evidence names, or explicit compatibility adapters. It must not find those concepts acting as the source of truth for normal FTI product behavior.
 
 ## Current Product Non-Goals
 
@@ -336,24 +433,25 @@ Do not introduce without an explicit new product decision:
 - `SUPER_ADMIN` workflow bypass;
 - destructive historical OPD-to-FTI remapping;
 - arbitrary per-SOP final approver configuration when authority is derivable from scope;
-- a second parallel public archive taxonomy independent of Process binding;
+- a second parallel public archive taxonomy independent of Process ownership;
 - bulk/scheduled revocation or a second revocation-approval workflow.
 
 ## Deferred / Transitional Work
 
-The following may remain during the current migration and must not be promoted into immediate scope merely because they exist:
+The following remain implementation work until an explicit milestone activates them; their existence does not authorize autonomous cleanup:
 
-- removal of legacy tables/columns/enums/roles;
-- removal of `SOP.opdId` or other compatibility seams;
-- broad status/role renaming in persistence;
-- destructive normalization of historical data;
-- cleanup of legacy routes after compatibility is no longer required.
+- direct native SOP-to-Process ownership cutover and retirement of `ProcessSopBinding` / `SOP.opdId`;
+- account/authorization cutover away from `Pengguna.opdId` and legacy global roles;
+- retirement or FTI-native replacement of remaining OPD-owned supporting-domain behavior;
+- isolation/retirement of legacy evaluation workflows that are not part of the target FTI product;
+- removal of legacy first-party routes, DTOs, API clients, tables, columns, enums, and compatibility APIs after exit criteria are met;
+- physical normalization of persisted historical names only when it has concrete value and preserves evidence.
 
 ## Open Product Questions
 
 Treat these as unresolved unless the user establishes them explicitly:
 
-- exact long-term retirement criteria for legacy/unbound workflow routes and persisted role/status concepts;
+- whether any external consumer requires a long-lived OPD compatibility API after first-party Full FTI cutover;
 - whether exceptional administrative repair operations need a dedicated audited product surface.
 
 Do not resolve these questions through implementation inference.
