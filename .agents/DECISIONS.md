@@ -193,3 +193,65 @@ Consequence:
 - normal `/arsip` navigation uses faculty/department Process context, with global search as a shortcut;
 - revocation must remove a Process-bound SOP from current target discovery without deleting historical/TTE evidence;
 - do not reintroduce OPD as the primary target public grouping merely because legacy columns/endpoints remain.
+
+## D12 — Full FTI Requires Zero Active OPD Dependency
+
+**Status:** ACTIVE
+
+The committed target end state is **Full FTI**. OPD-era identity, ownership, and global workflow roles are transitional compatibility mechanisms only; they must not remain hidden sources of truth for active FTI product behavior.
+
+Full FTI means:
+
+```text
+User
+  -> Platform Role
+  -> Process Relationship
+  -> Organizational Authority
+
+Process
+  -> organizational scope
+  -> SOP
+       -> Process review
+       -> contextual approval
+       -> contextual TTE
+       -> publication / revocation
+```
+
+Rationale:
+
+- a permanent `FTI facade -> OPD core` would preserve two competing domain models and make authorization, ownership, routing, and future product changes ambiguous;
+- FTI semantics are already the committed product model, so compatibility must converge toward retirement rather than become a parallel architecture;
+- direct FTI ownership reduces hidden coupling while preserving historical/legal evidence through an explicit staged migration.
+
+Migration strategy:
+
+```text
+EXPAND
+  -> introduce native FTI ownership/contracts while legacy compatibility remains intact
+
+BACKFILL
+  -> populate native relationships from authoritative persisted evidence
+
+CUTOVER
+  -> move first-party reads/writes/authorization entirely to native FTI sources
+
+PROVE
+  -> verify data completeness, workflow integrity, evidence preservation, and zero first-party legacy dependency
+
+CONTRACT
+  -> retire obsolete legacy schema/contracts/adapters only after the cutover is proven
+```
+
+Consequences:
+
+- native SOP ownership must ultimately be directly canonical to `Process`; `SOP.opdId` and `ProcessSopBinding` are transitional seams, not permanent target architecture;
+- target authorization must ultimately operate without `Pengguna.opdId` or legacy `PeranPengguna` workflow semantics;
+- `OPD`, `RiwayatOpdPengguna`, `OPDPeraturan`, OPD-scoped compatibility fields, legacy global workflow roles, and OPD-oriented first-party routes/APIs must not own target behavior;
+- do not mechanically rename `opdId` to `departmentId`; Department context is only introduced where the FTI product actually requires it;
+- surviving legacy structures after semantic cutover must be isolated to explicit historical/external compatibility boundaries with a concrete retention reason;
+- compatibility must not become indefinite dual-write, dual-ownership, or dual-authority architecture;
+- no implementation milestone is activated by this decision alone. Physical cleanup remains separately scoped work and must preserve migration history, audit/TTE/version/publication evidence, and external compatibility requirements.
+
+Exit condition:
+
+The repository may claim `FULL_FTI / LEGACY_RETIRED` only when active first-party FTI workflows, authorization, TTE, notification, publication, versioning, revocation, and public discovery run without OPD/global-role fallback, native data backfill is proven complete, and any remaining OPD references are limited to immutable history or explicitly documented compatibility adapters.
