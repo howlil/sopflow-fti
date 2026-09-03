@@ -133,9 +133,9 @@ test.describe('End-to-End Business Journey — Process workflow feedback closure
       expect(summary.unreadCount).toBe(1)
     })
 
-    await test.step('Author membuka notification dan diarahkan ke target FTI-native work queue', async () => {
+    await test.step('Author membuka exact notification dan diarahkan ke target FTI-native work queue', async () => {
       const author = await roleSession(targetUsers.processMember)
-      await openProcessFeedbackFromNotification(author.page, expected)
+      await openProcessFeedbackFromNotification(author.page, expected, feedbackId)
     })
 
     await test.step('Notification yang dibuka tercatat read tanpa mengubah persistence legacy', async () => {
