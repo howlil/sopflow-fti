@@ -101,11 +101,12 @@ export function NotificationBell() {
 
               if (item.source === 'PROCESS') {
                 return (
-                  <DropdownMenuItem key={key} className="p-0" onSelect={handleSelect}>
+                  <DropdownMenuItem key={key} className="p-0">
                     <Link
                       to={item.actionHref}
                       data-process-notification-id={item.processNotificationId}
                       className="flex w-full items-start gap-2 px-2 py-2"
+                      onClick={handleSelect}
                     >
                       <NotificationContent item={item} />
                     </Link>
