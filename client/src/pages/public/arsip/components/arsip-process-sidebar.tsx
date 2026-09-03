@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Building2, GraduationCap, Loader2, Workflow } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Pagination } from '@/components/ui/pagination'
@@ -137,7 +138,7 @@ function ProcessGroup({
   onSelectProcess,
 }: {
   label: string
-  icon: React.ReactNode
+  icon: ReactNode
   items: PublicProcessItem[]
   selectedProcessId?: string
   onSelectProcess: (processId: string) => void
