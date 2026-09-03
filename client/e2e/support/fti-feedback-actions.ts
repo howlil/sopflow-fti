@@ -68,7 +68,10 @@ export async function openProcessFeedbackFromNotification(
   await page.goto('/work')
   await waitForAppReady(page)
 
-  const bell = page.getByRole('button', { name: /notifikasi belum dibaca/i })
+  // The bell is always named "Notifikasi" when its local count has not loaded yet,
+  // and opening it intentionally triggers a fresh notification reload. Do not make
+  // the journey depend on the pre-open badge timing.
+  const bell = page.getByRole('button', { name: /notifikasi/i }).first()
   await expect(bell).toBeVisible({ timeout: 15_000 })
   await bell.click()
 
@@ -77,7 +80,7 @@ export async function openProcessFeedbackFromNotification(
     .filter({ hasText: expected.title })
     .filter({ hasText: expected.preview })
     .first()
-  await expect(notification).toBeVisible()
+  await expect(notification).toBeVisible({ timeout: 15_000 })
   await notification.click()
   await page.waitForURL((url) => url.pathname === '/work/queue', { timeout: 15_000 })
   await waitForAppReady(page)
