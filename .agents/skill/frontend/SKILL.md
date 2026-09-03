@@ -17,10 +17,9 @@ Tailwind CSS 4
 Radix-based local UI primitives
 Zustand for genuine shared client state
 Vitest + Testing Library
-Playwright for cross-boundary journeys
 ```
 
-Do not introduce another routing, server-state, form-state, styling, or global-state framework unless the current requirement explicitly justifies a material architecture change.
+Do not introduce another routing, server-state, form-state, styling, global-state, browser-testing, or acceptance-testing framework unless the current requirement explicitly justifies a material architecture change.
 
 ## Existing Ownership Model
 
@@ -342,7 +341,7 @@ Do not silently render an empty screen when data is loading or failed.
 
 ## Testing Pattern
 
-For frontend changes, protect observable behavior.
+For frontend changes, protect observable behavior with deterministic repository-owned evidence.
 
 Preferred tests:
 
@@ -357,9 +356,9 @@ component/page test
 
 Mock at stable external boundaries such as router/API hooks/stores where appropriate. Avoid tests that assert private component decomposition.
 
-When changing route, query, or layout behavior, run the specific tests plus the quality gates required by `.agents/QUALITY.md`.
+When changing route, query, or layout behavior, run the specific unit/component tests plus the automated quality gates required by `.agents/QUALITY.md`. Use focused API/domain/integration coverage when correctness crosses repository-owned boundaries that isolated frontend tests cannot establish.
 
-For critical cross-boundary behavior, use the existing Playwright journey rather than inventing a new browser harness.
+Manual acceptance testing, Playwright/browser E2E or black-box testing, live-browser verification, and manual screenshot review are not required merge, milestone, or release gates. If an environment-specific behavior cannot be reproduced deterministically, record the residual risk rather than introducing a browser/human acceptance requirement.
 
 ## Implementation Workflow
 
@@ -372,7 +371,7 @@ For a frontend task:
 4. Implement the smallest coherent vertical behavior.
 5. Reuse existing primitives, query keys, API helpers, and mutation helpers.
 6. Add/update focused observable-behavior tests when warranted.
-7. Run focused test + typecheck; add build/router/E2E gates when the changed boundary requires them.
+7. Run focused test + typecheck; add build/router/integration gates only when the changed boundary requires them.
 8. Check that generated route output is committed when routes changed.
 9. Check that no protected surface changed unintentionally.
 ```
@@ -388,4 +387,5 @@ For a frontend task:
 - propagate legacy OPD/evaluator semantics into new target UI;
 - modify generated route files manually as source code;
 - alter the protected Edit SOP workspace without explicit user direction;
+- add browser/manual acceptance gates as completion ceremony;
 - refactor unrelated UI while delivering a bounded feature.
