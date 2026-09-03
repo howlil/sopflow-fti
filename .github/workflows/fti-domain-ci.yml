@@ -1,0 +1,77 @@
+name: FTI Domain CI
+
+on:
+  push:
+    paths:
+      - 'server/src/common/guards/platform-admin.guard.ts'
+      - 'server/src/modules/core/process/**'
+      - 'server/src/modules/notifications/process/**'
+      - 'server/src/modules/sop/process-authoring/**'
+      - 'server/src/modules/tte/penandatanganan/process-*.ts'
+      - 'server/prisma/*.prisma'
+      - '.github/workflows/fti-domain-ci.yml'
+  pull_request:
+    paths:
+      - 'server/src/common/guards/platform-admin.guard.ts'
+      - 'server/src/modules/core/process/**'
+      - 'server/src/modules/notifications/process/**'
+      - 'server/src/modules/sop/process-authoring/**'
+      - 'server/src/modules/tte/penandatanganan/process-*.ts'
+      - 'server/prisma/*.prisma'
+      - '.github/workflows/fti-domain-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fti-domain-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  target-domain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    defaults:
+      run:
+        working-directory: server
+    env:
+      DATABASE_PASSWORD: ci-not-used
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm prisma generate
+
+      - name: FTI target-domain unit tests
+        run: >-
+          pnpm exec jest
+          platform-admin.guard.spec.ts
+          process.service.spec.ts
+          process-context.service.spec.ts
+          process-sop-authoring.service.spec.ts
+          process-owner-review.service.spec.ts
+          organizational-authority.service.spec.ts
+          process-final-approval.service.spec.ts
+          process-sop-revocation.service.spec.ts
+          process-notification.service.spec.ts
+          process-tte.service.spec.ts
+          process-tte.repository.spec.ts
+          --runInBand

@@ -3,11 +3,25 @@ name: Server CI
 on:
   push:
     paths:
-      - 'server/**'
+      - 'server/src/**'
+      - 'server/package.json'
+      - 'server/pnpm-lock.yaml'
+      - 'server/pnpm-workspace.yaml'
+      - 'server/tsconfig*.json'
+      - 'server/nest-cli.json'
+      - 'server/prisma/*.prisma'
+      - 'server/prisma.config.ts'
       - '.github/workflows/server-ci.yml'
   pull_request:
     paths:
-      - 'server/**'
+      - 'server/src/**'
+      - 'server/package.json'
+      - 'server/pnpm-lock.yaml'
+      - 'server/pnpm-workspace.yaml'
+      - 'server/tsconfig*.json'
+      - 'server/nest-cli.json'
+      - 'server/prisma/*.prisma'
+      - 'server/prisma.config.ts'
       - '.github/workflows/server-ci.yml'
 
 permissions:
@@ -18,7 +32,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify:
+  baseline:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     defaults:
@@ -58,6 +72,3 @@ jobs:
 
       - name: Core unit tests
         run: pnpm test:core-unit
-
-      - name: FTI target-domain unit tests
-        run: pnpm exec jest platform-admin.guard.spec.ts process.service.spec.ts process-context.service.spec.ts process-sop-authoring.service.spec.ts process-owner-review.service.spec.ts organizational-authority.service.spec.ts process-final-approval.service.spec.ts process-sop-revocation.service.spec.ts process-notification.service.spec.ts process-tte.service.spec.ts process-tte.repository.spec.ts --runInBand

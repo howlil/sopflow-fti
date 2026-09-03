@@ -1,0 +1,44 @@
+name: Container Build
+
+on:
+  push:
+    paths:
+      - 'compose.yml'
+      - 'server/Dockerfile'
+      - 'server/.dockerignore'
+      - 'client/Dockerfile'
+      - 'client/.dockerignore'
+      - 'client/docker-entrypoint.sh'
+      - 'client/nginx.conf'
+      - 'client/production-server.mjs'
+      - '.github/workflows/container-build.yml'
+  pull_request:
+    paths:
+      - 'compose.yml'
+      - 'server/Dockerfile'
+      - 'server/.dockerignore'
+      - 'client/Dockerfile'
+      - 'client/.dockerignore'
+      - 'client/docker-entrypoint.sh'
+      - 'client/nginx.conf'
+      - 'client/production-server.mjs'
+      - '.github/workflows/container-build.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: container-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build application images
+        run: docker compose --env-file .env.example -f compose.yml build backend frontend
