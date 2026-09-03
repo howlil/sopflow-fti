@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ to, children }: { to: string; children: ReactNode }) => <a href={to}>{children}</a>,
+  useRouter: () => ({ navigate: vi.fn() }),
 }))
 
 import { DetailPageLayout } from '@/components/layout/DetailPageLayout'
