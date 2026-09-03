@@ -64,23 +64,25 @@ export async function expectSingleProcessFeedback(
 export async function openProcessFeedbackFromNotification(
   page: Page,
   expected: { title: string; preview: string },
+  processNotificationId?: string,
 ): Promise<void> {
   await page.goto('/work')
   await waitForAppReady(page)
 
-  // The bell is always named "Notifikasi" when its local count has not loaded yet,
-  // and opening it intentionally triggers a fresh notification reload. Do not make
-  // the journey depend on the pre-open badge timing.
   const bell = page.getByRole('button', { name: /notifikasi/i }).first()
   await expect(bell).toBeVisible({ timeout: 15_000 })
   await bell.click()
 
-  const notification = page
-    .getByRole('link')
-    .filter({ hasText: expected.title })
-    .filter({ hasText: expected.preview })
-    .first()
+  const notification = processNotificationId
+    ? page.locator(`[data-process-notification-id="${processNotificationId}"]`)
+    : page
+        .getByRole('link')
+        .filter({ hasText: expected.title })
+        .filter({ hasText: expected.preview })
+        .first()
   await expect(notification).toBeVisible({ timeout: 15_000 })
+  await expect(notification).toContainText(expected.title)
+  await expect(notification).toContainText(expected.preview)
   await notification.click()
   await page.waitForURL((url) => url.pathname === '/work/queue', { timeout: 15_000 })
   await waitForAppReady(page)
