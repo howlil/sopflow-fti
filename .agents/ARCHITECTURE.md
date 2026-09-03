@@ -145,6 +145,57 @@ Current migration strategy is additive and reversible where practical:
 
 `server/prisma/DB-INVARIANTS.md` remains the detailed database-invariant companion and must stay aligned when persistence invariants change.
 
+## Full FTI Cutover Architecture
+
+The long-term architecture is **native FTI**, not a permanent FTI facade over an OPD core.
+
+Canonical ownership direction:
+
+```text
+User
+  -> Platform Role
+  -> Process Relationship
+  -> Organizational Authority
+
+Process
+  -> organizational scope
+  -> SOP
+```
+
+Legacy concepts may remain physically present during migration, but they must progressively lose semantic authority over target behavior.
+
+Use this cutover sequence for material legacy retirement:
+
+```text
+EXPAND
+  -> introduce native FTI ownership/contracts
+
+BACKFILL
+  -> populate native relationships from authoritative existing evidence
+
+CUTOVER
+  -> move first-party reads/writes/authorization to native FTI sources
+
+PROVE
+  -> verify completeness, workflow/evidence integrity, and zero first-party legacy dependency
+
+CONTRACT
+  -> remove obsolete legacy schema/contracts/adapters
+```
+
+Architecture rules:
+
+- do not mechanically rename `opdId` to `departmentId`; Department context and Process relationship are different domain dimensions;
+- `ProcessSopBinding`, `SOP.opdId`, `Pengguna.opdId`, legacy role checks, and OPD-oriented first-party routes/APIs are transitional seams only where still required;
+- target services must not introduce new OPD/global-role dependencies except inside an explicit compatibility adapter;
+- avoid indefinite dual-write, dual-ownership, or dual-authority paths; each compatibility path needs a concrete retention reason and eventual retirement condition;
+- semantic cutover happens before destructive physical cleanup;
+- historical audit/TTE/version/publication evidence must remain intact through cutover;
+- applied shared migration history remains immutable by default; use forward corrective migrations;
+- legacy evaluation behavior that is not a target FTI capability should be isolated as historical/compatibility behavior rather than mechanically recreated as a new FTI role model.
+
+The architecture reaches Full FTI only when active first-party authoring, review, approval, TTE, notification, versioning, publication, revocation, and public discovery operate without OPD/global-role fallback. Remaining OPD references may exist only in immutable history or explicit external/historical compatibility adapters.
+
 ## Notification Boundary
 
 Legacy notification persistence is tied to legacy evaluation concepts. Process workflow notifications use separate target-native persistence.
@@ -170,6 +221,8 @@ Do not infer end-to-end signing correctness from unit-level service behavior alo
 Legacy concepts such as `OPD`, `PENYUSUN`, `PJ_PENYUSUN`, `EVALUATOR`, `PJ_EVALUATOR`, and `KEPALA_OPD` remain implementation/compatibility evidence, not target product concepts.
 
 Target-facing architecture should not introduce new dependencies on those concepts unless the change is explicitly a compatibility adapter. Legacy routes may remain operable while target Process/authority surfaces become primary.
+
+Compatibility is not a second target architecture. Once a target path has cut over and its retention requirements are satisfied, its legacy dependency should be retired rather than propagated forward.
 
 ## Architecture Change Threshold
 
