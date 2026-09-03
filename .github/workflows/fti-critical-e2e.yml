@@ -9,22 +9,12 @@ on:
       - 'client/scripts/run-e2e.mjs'
       - 'client/scripts/run-critical-e2e.mjs'
       - 'client/scripts/audit-e2e-journeys.mjs'
-      - 'client/src/pages/work/**'
-      - 'client/src/pages/approval/**'
-      - 'client/src/pages/admin/**'
-      - 'client/src/routes/admin/**'
-      - 'client/src/components/layout/**'
-      - 'client/src/api/platform-accounts.ts'
-      - 'client/src/api/process-*.ts'
-      - 'client/src/api/sop-client.ts'
-      - 'client/src/api/organizational-authority.ts'
-      - 'client/src/stores/authStore.ts'
-      - 'server/src/common/guards/platform-admin.guard.ts'
-      - 'server/src/modules/core/auth/**'
-      - 'server/src/modules/core/pengguna/**'
-      - 'server/src/modules/core/process/**'
+      - 'client/src/pages/public/arsip/**'
+      - 'client/src/api/sop-public.ts'
+      - 'client/src/types/dto/sop-public.dto.ts'
+      - 'client/src/config/query-keys.ts'
+      - 'server/src/modules/sop/public/**'
       - 'server/src/modules/sop/process-authoring/**'
-      - 'server/src/modules/notifications/process/**'
       - 'server/src/modules/tte/**'
       - 'server/src/modules/sop/pdf/**'
       - 'server/prisma/seed-e2e.ts'
@@ -153,9 +143,9 @@ jobs:
         working-directory: client
         run: pnpm test:e2e:audit
 
-      - name: Run M9 risk-selected target journeys J31-J34
+      - name: Run M10 risk-selected target journeys J35-J38
         working-directory: client
-        run: node scripts/run-e2e.mjs journeys --grep 'J(31|32|33|34)\b' --project=chromium
+        run: node scripts/run-e2e.mjs journeys --grep 'J(35|36|37|38)\b' --project=chromium
 
       - name: Backend logs on failure
         if: failure()
