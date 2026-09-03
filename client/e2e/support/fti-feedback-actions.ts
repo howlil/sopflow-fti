@@ -90,7 +90,7 @@ export async function openProcessFeedbackFromNotification(
         (response) =>
           response.request().method() === 'POST' &&
           response.url().includes(
-            `/notifications/process/${encodeURIComponent(processNotificationId)}/read`,
+            `/notifications/process/items/${encodeURIComponent(processNotificationId)}/read`,
           ),
         { timeout: 15_000 },
       )
