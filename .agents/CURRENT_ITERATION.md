@@ -29,11 +29,12 @@ Source head: `20316c17afcb41fef9d816dfd96bca9d02c6946c`
 ```text
 Server CI #262                       PASS
 Client CI #361                       PASS
-FTI Critical E2E #110 — J35-J38      PASS
-Migration Smoke                       NOT SELECTED — no Prisma schema/migration input changed
+Migration Smoke                      NOT SELECTED — no Prisma schema/migration input changed
 ```
 
 The source head and squash merge share the same tree: `eced201a9b7076b859bf9b680b528bbd729098b9`.
+
+Current repository policy uses deterministic server/client/domain/integration/migration/container evidence selected by changed risk. Browser E2E, black-box testing, manual acceptance, and manual visual review are not milestone or release-readiness gates.
 
 ## Integration
 
@@ -51,7 +52,7 @@ Server CI #263                       PASS
 Client CI #362                       PASS
 ```
 
-FTI Critical E2E is pull-request scoped and therefore did not run again on master. Its exact source-head evidence applies to the identical integrated tree. Migration Smoke did not run and was not required because M10 changed no Prisma schema or migration input.
+Migration Smoke did not run and was not required because M10 changed no Prisma schema or migration input.
 
 ## Integrated Behavior
 
