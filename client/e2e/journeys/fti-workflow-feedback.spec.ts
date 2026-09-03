@@ -12,7 +12,7 @@ import { seedProcessSopAwaitingOwnerReview } from '../support/fti-approval-preco
 import { revokeProcessSopViaApi } from '../support/fti-revocation-actions'
 import { seedEffectiveProcessSop } from '../support/fti-revocation-preconditions'
 
-const processName = 'Layanan Fakultas Teknologi Informasi'
+const processName = 'Pengelolaan Akademik FTI'
 
 test.describe('End-to-End Business Journey — Process workflow feedback closure', () => {
   test('J31 Revision Feedback — author menerima outcome revisi dari Process Owner', async ({
