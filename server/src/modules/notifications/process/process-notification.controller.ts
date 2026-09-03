@@ -66,7 +66,7 @@ export class ProcessNotificationController {
     };
   }
 
-  @Post(':processNotificationId/read')
+  @Post('items/:processNotificationId/read')
   @Roles(...ALL_AUTHENTICATED_ROLES)
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
   @ApiOperation({ summary: 'Tandai satu notifikasi Process sebagai dibaca' })
