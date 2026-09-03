@@ -3,121 +3,66 @@
 ## Shape
 
 **Milestone:** M9 — Workflow Feedback Loop & Notification Closure  
-**State:** IMPLEMENTED / VERIFICATION_PENDING  
-**Integration branch:** `m9-workflow-feedback`
+**State:** INTEGRATED / RELEASE_READY  
+**Source branch:** `m9-workflow-feedback`  
+**PR:** #16  
+**Squash merge:** `d2e736559497995db988385fd5cfdf52cfc3bb32`
 
-Outcome target: target-native Process users receive actionable feedback when Process Owner review requests revision, when contextual TTE makes an SOP effective, and when contextual authority revokes an effective SOP, without polling workflow state manually.
-
-M9 is one bounded workflow-feedback capability delivered continuously through J31-J34.
+Outcome: target-native Process users receive actionable feedback when Process Owner review requests revision, when contextual TTE makes an SOP effective, and when contextual authority revokes an effective SOP, without polling workflow state manually.
 
 ## Position
 
 ```text
-J31 Revision Feedback                 IMPLEMENTED
-J32 Effective SOP Outcome             IMPLEMENTED
-J33 Revocation Feedback               IMPLEMENTED
-J34 Action & Inbox Integrity          IMPLEMENTED
-M9 milestone gate                     VERIFICATION_PENDING
-Release readiness                     NOT YET CLAIMED
+J31 Revision Feedback                 VERIFIED / INTEGRATED
+J32 Effective SOP Outcome             VERIFIED / INTEGRATED
+J33 Revocation Feedback               VERIFIED / INTEGRATED
+J34 Action & Inbox Integrity          VERIFIED / INTEGRATED
+M9 milestone gate                     PASS
+Release readiness                     RELEASE_READY
 Release/deployment                    NOT PERFORMED
 ```
 
-## Implemented Behavior
+## Exact Source-Head Evidence
 
-### J31 — Revision Feedback
+Source head: `5f4eaa701b887140b917f736c642908cc7984183`
 
-- Process Owner `REVISION` keeps the existing workflow transition to `REVISI_DARI_EVALUATOR`;
-- the original Process-bound author is resolved from persisted `DetailSOP.dibuatOlehId`, not legacy global role identity;
-- `PROCESS_REVISION_REQUESTED` is persisted inside the same transaction as the status transition and audit log;
-- realtime notification refresh is emitted only after the transaction commits.
+```text
+Server CI #253                       PASS
+Client CI #339                       PASS
+Migration Smoke #69                  PASS
+FTI Critical E2E #109 — J31-J34      PASS
+```
 
-### J32 — Effective SOP Outcome
+## Integrated Master Evidence
 
-- `PROCESS_SOP_EFFECTIVE` is created only after the contextual TTE finalization path is promoting the SOP to `BERLAKU`;
-- original author and Process Owner are recipients;
-- duplicate recipients are collapsed when one account is both author and Process Owner;
-- notification rows are written inside the same database transaction as effective-state/TTE artifact finalization;
-- if notification persistence fails, finalization rolls back and the already-written filesystem PDF is removed through the existing cleanup path.
+Integrated master revision: `d2e736559497995db988385fd5cfdf52cfc3bb32`
 
-### J33 — Revocation Feedback
+```text
+Server CI #254                       PASS
+Client CI #340                       PASS
+Migration Smoke #70                  PASS
+```
 
-- Process-bound revocation preserves the contextual Dean/Head-of-Department authority boundary from M8;
-- the target revocation transaction performs the `BERLAKU -> DICABUT` compare-and-set, audit log, official-artifact `REVOKED` update, and `PROCESS_SOP_REVOKED` notification persistence atomically;
-- original author and Process Owner are recipients with duplicate-recipient collapse;
-- realtime refresh is emitted only after a successful commit.
+The browser gate is exact source-head evidence for the squash-integrated application content; the merge revision additionally passed the normal master Server/Client/Migration checks.
 
-### J34 — Action & Inbox Integrity
+## Integrated Behavior
 
-- existing `ProcessNotification`, notification bell, unread/read behavior, and target-native persistence are reused;
-- new feedback events map to `/work/queue` rather than introducing new navigation or inbox surfaces;
-- opening a Process feedback notification marks it read through the existing notification contract;
+- J31 persists `PROCESS_REVISION_REQUESTED` for the persisted original Process-bound author in the same transaction as the revision transition and audit log.
+- J32 persists `PROCESS_SOP_EFFECTIVE` for original author + Process Owner inside effective-state/TTE finalization, with recipient de-duplication and filesystem cleanup on rollback.
+- J33 performs Process revocation status transition, audit, official-artifact revoke, and `PROCESS_SOP_REVOKED` persistence atomically for author + Process Owner.
+- J34 reuses the existing notification bell and `/work/queue` target; Process read-state uses an unambiguous `/notifications/process/items/:processNotificationId/read` endpoint so the legacy dynamic route cannot intercept the request.
 - legacy notification persistence remains separate.
-
-## Persistence Change
-
-M9 adds only three values to the existing `ProcessNotificationKind` enum:
-
-```text
-PROCESS_REVISION_REQUESTED
-PROCESS_SOP_EFFECTIVE
-PROCESS_SOP_REVOKED
-```
-
-An additive MariaDB migration extends the existing `ProcessNotification.kind` ENUM. No legacy notification table or history is modified.
-
-## Verification Selection
-
-Default M9 browser evidence is risk-selected to the changed capability:
-
-```text
-J31 Revision Feedback
-J32 Effective SOP Outcome
-J33 Revocation Feedback
-J34 Action & Inbox Integrity
-```
-
-Expected milestone gate:
-
-```text
-Server CI
-- Prisma validate/generate
-- typecheck
-- core unit tests
-- focused Process notification/review/revocation/TTE tests
-
-Client CI
-- production build / route generation
-- route-tree consistency
-- typecheck
-- unit tests
-
-FTI Critical E2E
-- journey registry audit
-- J31-J34
-
-Migration Smoke
-- REQUIRED because ProcessNotificationKind persistence changed
-```
-
-Older journeys are added only if a failure indicates broader coupling. Full historical J01-J34 is not the default M9 gate.
 
 ## Boundaries Preserved
 
 - no email/WhatsApp feedback channel;
-- no generic event bus or notification platform abstraction;
-- no notification preferences or reminder scheduler expansion;
+- no generic event bus, notification preferences, or reminder scheduler expansion;
 - no legacy/Process persistence unification;
 - no Edit SOP protected-surface change;
-- no OPD/legacy role cleanup;
-- no approval, TTE, or revocation authority change;
-- no notification-bell redesign;
-- no per-edit/noisy notification expansion;
+- no OPD/legacy cleanup;
+- no approval/TTE/revocation authority expansion;
 - no release/deployment.
-
-## Delta
-
-J31-J34 implementation is present on the milestone branch. Exact-head CI, Migration Smoke, browser evidence, integration, and integrated-master evidence are still pending.
 
 ## Next Move
 
-Run the proportional M9 gate on the exact branch head, fix only failures that invalidate the bounded capability, integrate one coherent M9 PR after all required evidence is green, verify the integrated master revision, then update this file to `INTEGRATED / RELEASE_READY` and **STOP**. Do not invent M10 or promote deferred legacy cleanup into scope.
+M9 is closed. The next approved milestone is **M10 — FTI-Native Public SOP Discovery & Archive Cutover**, executed as J35-J38. Release/deployment remains unauthorized.
