@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 const clientDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const serverDir = resolve(clientDir, '..', 'server')
-const allJourneyIds = Array.from({ length: 34 }, (_, index) => `J${String(index + 1).padStart(2, '0')}`)
+const allJourneyIds = Array.from({ length: 38 }, (_, index) => `J${String(index + 1).padStart(2, '0')}`)
 const allJourneyIdSet = new Set(allJourneyIds)
 
 function selectedJourneyIds() {
@@ -22,7 +22,7 @@ function selectedJourneyIds() {
 
   if (requested.length === 0) {
     console.error('Critical E2E requires an explicit risk-selected journey list.')
-    console.error('Example: pnpm test:e2e:critical -- J31 J32 J33 J34')
+    console.error('Example: pnpm test:e2e:critical -- J35 J36 J37 J38')
     console.error('Use --all only for an intentional full-suite qualification.')
     process.exit(1)
   }
