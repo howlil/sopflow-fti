@@ -168,7 +168,8 @@ export class ProcessSopRevocationService {
     if (process === null || detail === null) {
       throw new NotFoundException('Context Process SOP tidak ditemukan');
     }
-    if (detail.dibuatOlehId === null) {
+    const authorId = detail.dibuatOlehId;
+    if (authorId === null) {
       throw new ConflictException('Author SOP Process tidak tersedia untuk feedback pencabutan');
     }
 
@@ -212,7 +213,7 @@ export class ProcessSopRevocationService {
           detailSopId: effective.detailSopId,
           sopId: resolved.sopId,
           processId: binding.processId,
-          penggunaId: detail.dibuatOlehId,
+          penggunaId: authorId,
           kind: ProcessNotificationKind.PROCESS_SOP_REVOKED,
           processName: process.nama,
         },
