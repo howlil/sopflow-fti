@@ -165,25 +165,25 @@ jobs:
             exit 1
           }
 
-          unbackfilled="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM ProcessSopBinding b LEFT JOIN SOP s ON s.sopId = b.sopId WHERE s.sopId IS NULL OR s.processId IS NULL")"
+          unbackfilled="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -Nse "SELECT COUNT(*) FROM ProcessSopBinding b LEFT JOIN SOP s ON s.sopId = b.sopId WHERE s.sopId IS NULL OR s.processId IS NULL")"
           test "$unbackfilled" = "0" || {
             echo "Found $unbackfilled ProcessSopBinding row(s) without native SOP.processId backfill"
             exit 1
           }
 
-          mismatched="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM ProcessSopBinding b JOIN SOP s ON s.sopId = b.sopId WHERE s.processId <> b.processId")"
+          mismatched="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -Nse "SELECT COUNT(*) FROM ProcessSopBinding b JOIN SOP s ON s.sopId = b.sopId WHERE s.processId <> b.processId")"
           test "$mismatched" = "0" || {
             echo "Found $mismatched SOP/process ownership mismatch(es)"
             exit 1
           }
 
-          orphaned="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM SOP s LEFT JOIN Process p ON p.processId = s.processId WHERE s.processId IS NOT NULL AND p.processId IS NULL")"
+          orphaned="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -Nse "SELECT COUNT(*) FROM SOP s LEFT JOIN Process p ON p.processId = s.processId WHERE s.processId IS NOT NULL AND p.processId IS NULL")"
           test "$orphaned" = "0" || {
             echo "Found $orphaned SOP row(s) with invalid native Process ownership"
             exit 1
           }
 
-          pengguna_opd_nullable="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT IS_NULLABLE = 'YES' FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = 'Pengguna' AND COLUMN_NAME = 'opdId'")"
+          pengguna_opd_nullable="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -Nse "SELECT IS_NULLABLE = 'YES' FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = 'Pengguna' AND COLUMN_NAME = 'opdId'")"
           test "$pengguna_opd_nullable" = "1" || {
             echo "Expected Pengguna.opdId to be nullable for native accounts"
             exit 1

@@ -30,33 +30,39 @@ import { SopCatalogService } from './sop-catalog.service';
 describe('Pengujian SopCatalogService', () => {
   let service: SopCatalogService;
   const repoMock: jest.Mocked<
-    Pick<
-      SopCatalogRepository,
-      | 'findOpdIdByPenggunaId'
-      | 'findDaftarByOpdId'
-      | 'findDaftarAll'
-      | 'findOpdNama'
-      | 'createSopWithInitialDetail'
-      | 'findWorkbenchPayloadByDetailOrSopId'
-      | 'findDetailIdByDetailOrSopId'
-      | 'findLatestDetailStatusContext'
-      | 'updateDetailSopStatus'
-      | 'transitionDetailSopRevisiToSedangDievaluasi'
-      | 'updateSopHeaderTransaction'
-      | 'cloneDetailSopFromSource'
-      | 'findRiwayatVersiBySopId'
-      | 'deleteVersiDraft'
-      | 'deleteSopDraftAwal'
+    Omit<
+      Pick<
+        SopCatalogRepository,
+        | 'findOpdIdByPenggunaId'
+        | 'findDaftarByOpdId'
+        | 'findDaftarAll'
+        | 'findOpdNama'
+        | 'createSopWithInitialDetail'
+        | 'findWorkbenchPayloadByDetailOrSopId'
+        | 'findDetailIdByDetailOrSopId'
+        | 'findLatestDetailStatusContext'
+        | 'updateDetailSopStatus'
+        | 'transitionDetailSopRevisiToSedangDievaluasi'
+        | 'updateSopHeaderTransaction'
+        | 'cloneDetailSopFromSource'
+        | 'findRiwayatVersiBySopId'
+        | 'deleteVersiDraft'
+        | 'deleteSopDraftAwal'
+      >,
+      'findDetailIdByDetailOrSopId' | 'findLatestDetailStatusContext'
     >
-  > = {
+  > & {
+    findDetailIdByDetailOrSopId: jest.Mock;
+    findLatestDetailStatusContext: jest.Mock;
+  } = {
     findOpdIdByPenggunaId: jest.fn(),
     findDaftarByOpdId: jest.fn(),
     findDaftarAll: jest.fn(),
     findOpdNama: jest.fn(),
     createSopWithInitialDetail: jest.fn(),
     findWorkbenchPayloadByDetailOrSopId: jest.fn(),
-    findDetailIdByDetailOrSopId: jest.fn(),
-    findLatestDetailStatusContext: jest.fn(),
+    findDetailIdByDetailOrSopId: jest.fn() as jest.Mock,
+    findLatestDetailStatusContext: jest.fn() as jest.Mock,
     updateDetailSopStatus: jest.fn(),
     transitionDetailSopRevisiToSedangDievaluasi: jest.fn(),
     updateSopHeaderTransaction: jest.fn(),
@@ -601,6 +607,8 @@ describe('Pengujian SopCatalogService', () => {
       repoMock.findDetailIdByDetailOrSopId.mockResolvedValue({
         detailSopId: 'det-up',
         sopId: 'sop-up',
+        sopOpdId: 'opd-1',
+        processId: null,
       });
       repoMock.findWorkbenchPayloadByDetailOrSopId.mockResolvedValue(baseWorkbenchPayload());
       repoMock.updateSopHeaderTransaction.mockResolvedValue({ ok: true, data: undefined });
@@ -1031,6 +1039,7 @@ describe('Pengujian SopCatalogService', () => {
         sopId: 'sop-st',
         status: StatusSOP.DRAFT,
         sopOpdId: 'opd-1',
+        processId: null,
       });
       const dto: UpdateDetailSopStatusDto = { status: StatusSOP.DRAFT };
       await expect(service.transitionDetailSopStatus(user, 'det-st', dto)).rejects.toBeInstanceOf(
@@ -1046,6 +1055,7 @@ describe('Pengujian SopCatalogService', () => {
         sopId: 'sop-st',
         status: StatusSOP.DIVERIFIKASI_PJ_EVALUATOR_ORGANISASI,
         sopOpdId: 'opd-1',
+        processId: null,
       });
       const dto: UpdateDetailSopStatusDto = { status: StatusSOP.BERLAKU };
       await expect(
@@ -1060,6 +1070,7 @@ describe('Pengujian SopCatalogService', () => {
         sopId: 'sop-st',
         status: StatusSOP.DRAFT,
         sopOpdId: 'opd-1',
+        processId: null,
       });
       const draftRow = stubWorkbenchSiapLengkap('DRAFT');
       const refreshed = stubWorkbenchSiapLengkap('MENUNGGU_PENGAJUAN_EVALUASI');
@@ -1082,6 +1093,7 @@ describe('Pengujian SopCatalogService', () => {
         sopId: 'sop-st',
         status: StatusSOP.DRAFT,
         sopOpdId: 'opd-1',
+        processId: null,
       });
       repoMock.findWorkbenchPayloadByDetailOrSopId.mockResolvedValueOnce(
         stubWorkbenchPayload('DRAFT'),
@@ -1099,6 +1111,7 @@ describe('Pengujian SopCatalogService', () => {
         sopId: 'sop-st',
         status: StatusSOP.MENUNGGU_PENGAJUAN_EVALUASI,
         sopOpdId: 'opd-1',
+        processId: null,
       });
       const dto: UpdateDetailSopStatusDto = { status: StatusSOP.DIAJUKAN_EVALUASI };
       await expect(service.transitionDetailSopStatus(user, 'det-st', dto)).rejects.toBeInstanceOf(
@@ -1114,6 +1127,7 @@ describe('Pengujian SopCatalogService', () => {
         sopId: 'sop-st',
         status: StatusSOP.MENUNGGU_PENGAJUAN_EVALUASI,
         sopOpdId: 'opd-1',
+        processId: null,
       });
       const refreshed = stubWorkbenchPayload('DIAJUKAN_EVALUASI');
       repoMock.findWorkbenchPayloadByDetailOrSopId.mockResolvedValueOnce(refreshed);
@@ -1296,6 +1310,7 @@ describe('Pengujian SopCatalogService', () => {
         sopId: 'sop-rev',
         status: StatusSOP.DRAFT,
         sopOpdId: 'opd-1',
+        processId: null,
       });
       await expect(
         service.kirimUlangKeEvaluatorSetelahRevisi(pjUser, 'det-rev'),
@@ -1318,6 +1333,7 @@ describe('Pengujian SopCatalogService', () => {
         sopId: 'sop-rev',
         status: StatusSOP.REVISI_DARI_EVALUATOR,
         sopOpdId: 'opd-1',
+        processId: null,
       });
       const lengkap = minimalRevisiWorkbench();
       const refreshed = {
@@ -1342,6 +1358,7 @@ describe('Pengujian SopCatalogService', () => {
         sopId: 'sop-rev',
         status: StatusSOP.REVISI_DARI_EVALUATOR,
         sopOpdId: 'opd-1',
+        processId: null,
       });
       const lengkap = minimalRevisiWorkbench();
       const refreshed = {
@@ -1405,12 +1422,15 @@ describe('Pengujian SopCatalogService', () => {
       repoMock.findDetailIdByDetailOrSopId.mockResolvedValue({
         detailSopId: 'det-v1',
         sopId: 'sop-v1',
+        sopOpdId: 'opd-1',
+        processId: null,
       });
       repoMock.findLatestDetailStatusContext.mockResolvedValue({
         detailSopId: 'det-v1',
         sopId: 'sop-v1',
         status: StatusSOP.BERLAKU,
         sopOpdId: 'opd-1',
+        processId: null,
       });
       repoMock.cloneDetailSopFromSource.mockResolvedValue({
         ok: true,
@@ -1429,12 +1449,15 @@ describe('Pengujian SopCatalogService', () => {
       repoMock.findDetailIdByDetailOrSopId.mockResolvedValue({
         detailSopId: 'det-v1',
         sopId: 'sop-v1',
+        sopOpdId: 'opd-1',
+        processId: null,
       });
       repoMock.findLatestDetailStatusContext.mockResolvedValue({
         detailSopId: 'det-v1',
         sopId: 'sop-v1',
         status: StatusSOP.DIGANTIKAN,
         sopOpdId: 'opd-1',
+        processId: null,
       });
       repoMock.cloneDetailSopFromSource.mockResolvedValue({
         ok: true,
@@ -1468,12 +1491,15 @@ describe('Pengujian SopCatalogService', () => {
       repoMock.findDetailIdByDetailOrSopId.mockResolvedValue({
         detailSopId: 'det-v2',
         sopId: 'sop-v1',
+        sopOpdId: 'opd-1',
+        processId: null,
       });
       repoMock.findLatestDetailStatusContext.mockResolvedValue({
         detailSopId: 'det-v2',
         sopId: 'sop-v1',
         status: StatusSOP.BERLAKU,
         sopOpdId: 'opd-1',
+        processId: null,
       });
       repoMock.findRiwayatVersiBySopId.mockResolvedValue([
         {
@@ -1517,12 +1543,15 @@ describe('Pengujian SopCatalogService', () => {
       repoMock.findDetailIdByDetailOrSopId.mockResolvedValue({
         detailSopId: 'det-v2',
         sopId: 'sop-v1',
+        sopOpdId: 'opd-1',
+        processId: null,
       });
       repoMock.findLatestDetailStatusContext.mockResolvedValue({
         detailSopId: 'det-v2',
         sopId: 'sop-v1',
         status: StatusSOP.DRAFT,
         sopOpdId: 'opd-1',
+        processId: null,
       });
       repoMock.findRiwayatVersiBySopId.mockResolvedValue([
         {
@@ -1606,12 +1635,15 @@ describe('Pengujian SopCatalogService', () => {
       repoMock.findDetailIdByDetailOrSopId.mockResolvedValue({
         detailSopId: 'det-berlaku',
         sopId: 'sop-cabut',
+        sopOpdId: 'opd-1',
+        processId: null,
       });
       repoMock.findLatestDetailStatusContext.mockResolvedValue({
         detailSopId: 'det-berlaku',
         sopId: 'sop-cabut',
         status: StatusSOP.BERLAKU,
         sopOpdId: 'opd-1',
+        processId: null,
       });
     });
 
@@ -1646,6 +1678,7 @@ describe('Pengujian SopCatalogService', () => {
         sopId: 'sop-cabut',
         status: StatusSOP.DRAFT,
         sopOpdId: 'opd-1',
+        processId: null,
       });
       repoMock.findRiwayatVersiBySopId.mockResolvedValue([
         {
@@ -1759,6 +1792,7 @@ describe('Pengujian SopCatalogService', () => {
         sopId: 'sop-1',
         status: StatusSOP.DRAFT,
         sopOpdId: 'opd-1',
+        processId: null,
       });
       repoMock.deleteVersiDraft.mockResolvedValue({ ok: true, data: undefined });
       await service.hapusVersiDraft(user, 'det-draft');
@@ -1773,6 +1807,7 @@ describe('Pengujian SopCatalogService', () => {
         sopId: 'sop-draft-awal',
         status: StatusSOP.DRAFT,
         sopOpdId: 'opd-1',
+        processId: null,
       });
       repoMock.deleteSopDraftAwal.mockResolvedValue({ ok: true, data: undefined });
       await service.hapusSopDraftAwal(user, 'det-draft-awal');
@@ -1785,6 +1820,7 @@ describe('Pengujian SopCatalogService', () => {
         sopId: 'sop-proses',
         status: StatusSOP.SEDANG_DISUSUN,
         sopOpdId: 'opd-1',
+        processId: null,
       });
       repoMock.deleteSopDraftAwal.mockResolvedValue({
         ok: false,
