@@ -104,6 +104,7 @@ export function NotificationBell() {
                   <DropdownMenuItem key={key} className="p-0" onSelect={handleSelect}>
                     <Link
                       to={item.actionHref}
+                      data-process-notification-id={item.processNotificationId}
                       className="flex w-full items-start gap-2 px-2 py-2"
                     >
                       <NotificationContent item={item} />
