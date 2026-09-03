@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   DefaultValuePipe,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -19,6 +20,7 @@ import type { Request } from 'express';
 import { type ApiSuccessResponse, JwtAuthGuard } from '../../../common';
 import { ACCESS_TOKEN_COOKIE_NAME, type JwtAccessPayload } from '../../core/auth/helpers/auth.shared';
 import { ListSopQueryDto } from '../catalog/dto/list-sop-query.dto';
+import { SopRiwayatVersiRowDto } from '../catalog/dto/sop-riwayat-versi-row.dto';
 import { UpdateSopHeaderDto } from '../catalog/dto/update-sop-header.dto';
 import { PelaksanaSnapshotService } from '../pelaksana/pelaksana-snapshot.service';
 import { CreateProcessSopDto } from './dto/create-process-sop.dto';
@@ -37,7 +39,7 @@ export class ProcessSopAuthoringController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Daftar SOP legacy + Process yang dapat diakses pengguna' })
+  @ApiOperation({ summary: 'Daftar SOP native pada Process yang dapat diakses pengguna' })
   async list(
     @Req() req: Request & { user: JwtAccessPayload },
     @Query() query: ListSopQueryDto,
@@ -82,6 +84,41 @@ export class ProcessSopAuthoringController {
       success: true,
       data: await this.pelaksanaSnapshotService.applyToWorkbench(workbench),
     };
+  }
+
+  @Get(':sopId/history')
+  @ApiOperation({ summary: 'Riwayat versi SOP dengan Process authorization untuk SOP target' })
+  async history(
+    @Req() req: Request & { user: JwtAccessPayload },
+    @Param('sopId', ParseUUIDPipe) sopId: string,
+  ): Promise<ApiSuccessResponse<SopRiwayatVersiRowDto[]>> {
+    return {
+      message: 'Riwayat versi SOP berhasil diambil',
+      success: true,
+      data: await this.processVersionService.getVersionHistory(req.user, sopId),
+    };
+  }
+
+  @Delete(':detailSopId/versi-draft')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Hapus draft revisi melalui Process authorization' })
+  async deleteVersionDraft(
+    @Req() req: Request & { user: JwtAccessPayload },
+    @Param('detailSopId', ParseUUIDPipe) detailSopId: string,
+  ): Promise<ApiSuccessResponse<null>> {
+    await this.service.deleteVersionDraft(req.user, detailSopId);
+    return { message: 'Versi draft berhasil dihapus', success: true, data: null };
+  }
+
+  @Delete(':detailSopId/draft')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Hapus draft awal melalui Process authorization' })
+  async deleteInitialDraft(
+    @Req() req: Request & { user: JwtAccessPayload },
+    @Param('detailSopId', ParseUUIDPipe) detailSopId: string,
+  ): Promise<ApiSuccessResponse<null>> {
+    await this.service.deleteInitialDraft(req.user, detailSopId);
+    return { message: 'Draft SOP berhasil dihapus', success: true, data: null };
   }
 
   @Get('workbench/:detailOrSopId')

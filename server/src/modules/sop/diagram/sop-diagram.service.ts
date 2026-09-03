@@ -8,6 +8,7 @@ import { assertDetailSopEditable } from '../../../common/status/sop-editable.uti
 import type { JwtAccessPayload } from '../../../common';
 import { PeranPengguna, StatusSOP } from '../../../generated/prisma';
 import { UserOpdAccessService } from '../../core/opd/user-opd-access.service';
+import { ProcessContextService } from '../../core/process/process-context.service';
 import { SopCatalogService } from '../catalog/sop-catalog.service';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
 import type { UpdateSopDiagramDto } from './dto/diagram-path-overrides.dto';
@@ -20,6 +21,7 @@ export class SopDiagramService {
     private readonly sopDiagramRepository: SopDiagramRepository,
     private readonly sopCatalogService: SopCatalogService,
     private readonly userOpdAccessService: UserOpdAccessService,
+    private readonly processContextService: ProcessContextService,
   ) {}
 
   async updateDiagram(
@@ -32,7 +34,12 @@ export class SopDiagramService {
     if (resolved === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
-    await this.assertPenyusunOpdAccess(user, resolved.sopOpdId);
+    const isProcessBound = resolved.processId !== null;
+    if (resolved.processId !== null) {
+      await this.processContextService.assertCanAuthor(user.sub, resolved.processId);
+    } else {
+      await this.assertPenyusunOpdAccess(user, resolved.sopOpdId);
+    }
     const detailStatus = await this.sopDiagramRepository.findDetailStatus(resolved.detailSopId);
     if (detailStatus === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
@@ -46,7 +53,7 @@ export class SopDiagramService {
     }
     const hasChange = dto.layoutSeed !== undefined || dto.pathOverrides !== undefined;
     if (!hasChange) {
-      return this.sopCatalogService.getPenyusunWorkbench(user, resolved.detailSopId, logsLimit);
+      return this.getAuthorizedWorkbench(user, resolved.detailSopId, isProcessBound, logsLimit);
     }
     await this.sopDiagramRepository.upsertConfig({
       detailSopId: resolved.detailSopId,
@@ -54,10 +61,28 @@ export class SopDiagramService {
       layoutSeed: dto.layoutSeed,
       pathOverrides: dto.pathOverrides,
     });
-    return this.sopCatalogService.getPenyusunWorkbench(user, resolved.detailSopId, logsLimit);
+    return this.getAuthorizedWorkbench(user, resolved.detailSopId, isProcessBound, logsLimit);
   }
 
-  private async assertPenyusunOpdAccess(user: JwtAccessPayload, sopOpdId: string): Promise<void> {
+  private async getAuthorizedWorkbench(
+    user: JwtAccessPayload,
+    detailSopId: string,
+    isProcessBound: boolean,
+    logsLimit?: number,
+  ): Promise<PenyusunWorkbenchDataDto> {
+    if (isProcessBound) {
+      return this.sopCatalogService.getPenyusunWorkbenchForEvaluasiContext(detailSopId, logsLimit);
+    }
+    return this.sopCatalogService.getPenyusunWorkbench(user, detailSopId, logsLimit);
+  }
+
+  private async assertPenyusunOpdAccess(
+    user: JwtAccessPayload,
+    sopOpdId: string | null,
+  ): Promise<void> {
+    if (sopOpdId === null) {
+      throw new ForbiddenException('SOP belum memiliki Process atau compatibility OPD');
+    }
     if (user.peran !== PeranPengguna.PENYUSUN && user.peran !== PeranPengguna.PJ_PENYUSUN) {
       throw new ForbiddenException('Akses ditolak: hanya penyusun yang dapat mengubah diagram');
     }

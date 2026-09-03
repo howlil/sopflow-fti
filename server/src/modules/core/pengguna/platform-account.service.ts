@@ -1,4 +1,4 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   hashDefaultPassword,
   requireIndonesianMobileNumber,
@@ -16,13 +16,6 @@ export class PlatformAccountService {
   }
 
   async create(dto: CreatePlatformAccountDto): Promise<PlatformAccountRow> {
-    const compatibilityOpdId = await this.penggunaRepository.findPlatformAdminCompatibilityOpdId();
-    if (compatibilityOpdId === null) {
-      throw new ServiceUnavailableException(
-        'Bootstrap administrator belum memiliki compatibility OPD untuk membuat akun FTI.',
-      );
-    }
-
     const hashedPassword = await hashDefaultPassword();
     try {
       return await this.penggunaRepository.createPlatformAccountWithHistory({
@@ -33,7 +26,6 @@ export class PlatformAccountService {
         jabatan: dto.jabatan.trim(),
         nohp: requireIndonesianMobileNumber(dto.nohp),
         kataSandi: hashedPassword,
-        opdId: compatibilityOpdId,
       });
     } catch (error: unknown) {
       rethrowPrismaUniqueViolation(error);

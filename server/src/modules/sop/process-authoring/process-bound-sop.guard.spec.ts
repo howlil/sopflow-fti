@@ -1,4 +1,5 @@
 import type { ExecutionContext } from '@nestjs/common';
+import type { JwtAccessPayload } from '../../../common';
 import type { JwtAuthGuard } from '../../../common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import { PeranPengguna } from '../../../generated/prisma';
@@ -39,7 +40,11 @@ describe('ProcessBoundSopGuard', () => {
   });
 
   it('requires Process authoring access when a legacy penyusun touches a bound SOP', async () => {
-    const request = {
+    const request: {
+      path: string;
+      params: Record<string, string>;
+      user?: JwtAccessPayload;
+    } = {
       path: '/api/sop/langkah/detail-1',
       params: { detailSopId: 'detail-1' },
       user: undefined,
@@ -56,11 +61,12 @@ describe('ProcessBoundSopGuard', () => {
       }),
     } as unknown as JwtAuthGuard;
     const prisma = {
-      sOP: { findUnique: jest.fn().mockResolvedValue(null) },
-      detailSOP: { findUnique: jest.fn().mockResolvedValue({ sopId: 'sop-1' }) },
-      processSopBinding: {
-        findUnique: jest.fn().mockResolvedValue({ processId: 'process-1' }),
+      sOP: {
+        findUnique: jest.fn()
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({ processId: 'process-1' }),
       },
+      detailSOP: { findUnique: jest.fn().mockResolvedValue({ sopId: 'sop-1' }) },
     } as unknown as PrismaService;
     const processContext = {
       assertCanAuthor: jest.fn().mockResolvedValue({ processId: 'process-1' }),

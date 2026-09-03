@@ -116,7 +116,7 @@ export class PenyusunService {
       peranNext === PeranPengguna.PJ_PENYUSUN &&
       existing.peran !== PeranPengguna.PJ_PENYUSUN
     ) {
-      await this.assertNoOtherPjPenyusunInOpd(existing.opdId, penggunaId);
+      await this.assertNoOtherPjPenyusunInOpd(existing.opdId!, penggunaId);
     }
     try {
       const data: Prisma.PenggunaUpdateInput = {};
@@ -155,7 +155,7 @@ export class PenyusunService {
       throw new BadRequestException('Penyusun sudah aktif');
     }
     if (existing.peran === PeranPengguna.PJ_PENYUSUN) {
-      await this.assertNoOtherPjPenyusunInOpd(existing.opdId, penggunaId);
+      await this.assertNoOtherPjPenyusunInOpd(existing.opdId!, penggunaId);
     }
     try {
       const restored = await this.penyusunRepository.aktifkanPenyusun(penggunaId);
@@ -184,7 +184,7 @@ export class PenyusunService {
     try {
       const moved = await this.penyusunRepository.pindahPenyusun(
         penggunaId,
-        existing.opdId,
+        existing.opdId!,
         opdTujuanId,
       );
       return this.toPublikItem(moved);

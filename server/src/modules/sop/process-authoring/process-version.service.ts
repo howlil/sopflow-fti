@@ -2,8 +2,11 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import type { JwtAccessPayload } from '../../../common';
 import { isPrismaUniqueConstraintError } from '../../../common/prisma/prisma-error.util';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { TERMINAL_DETAIL_STATUSES, hasRevisiInFlight } from '../../../common/status/sop-editable.util';
+import { displayStatusSop } from '../../../common/status/status-display';
 import { ProcessContextService } from '../../core/process/process-context.service';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
+import type { SopRiwayatVersiRowDto } from '../catalog/dto/sop-riwayat-versi-row.dto';
 import { assertSopCatalogRepoOk } from '../catalog/sop-catalog-repo-error.util';
 import { SopCatalogRepository } from '../catalog/sop-catalog.repository';
 import { SopCatalogService } from '../catalog/sop-catalog.service';
@@ -27,17 +30,17 @@ export class ProcessVersionService {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
 
-    const binding = await this.prisma.processSopBinding.findUnique({
+    const sop = await this.prisma.sOP.findUnique({
       where: { sopId: resolved.sopId },
       select: { processId: true },
     });
 
     // Compatibility path remains owned by the legacy catalog service.
-    if (binding === null) {
+    if (sop?.processId === null || sop === null) {
       return this.sopCatalogService.buatVersiBaruDariSumber(user, detailOrSopId, logsLimit);
     }
 
-    const process = await this.processContextService.assertCanAuthor(user.sub, binding.processId);
+    const process = await this.processContextService.assertCanAuthor(user.sub, sop.processId);
     const source = await this.sopCatalogRepository.findLatestDetailStatusContext(
       resolved.detailSopId,
     );
@@ -77,5 +80,37 @@ export class ProcessVersionService {
       }
       throw error;
     }
+  }
+
+  async getVersionHistory(
+    user: JwtAccessPayload,
+    sopId: string,
+  ): Promise<SopRiwayatVersiRowDto[]> {
+    const resolved = await this.sopCatalogRepository.findDetailIdByDetailOrSopId(sopId);
+    if (resolved === null) {
+      throw new NotFoundException('SOP tidak ditemukan');
+    }
+    if (resolved.processId === null) {
+      return this.sopCatalogService.getRiwayatVersi(user, sopId);
+    }
+
+    await this.processContextService.assertCanAuthor(user.sub, resolved.processId);
+    const rows = await this.sopCatalogRepository.findRiwayatVersiBySopId(resolved.sopId);
+    const hasActiveRevision = hasRevisiInFlight(rows.map((row) => row.status));
+    return rows.map((row) => {
+      const statusDisplay = displayStatusSop(row.status);
+      return {
+        detailSopId: row.detailSopId,
+        versi: row.versi,
+        nomorSOP: row.nomorSOP,
+        status: statusDisplay.value,
+        statusLabel: statusDisplay.label,
+        revisiDariDetailSopId: row.revisiDariDetailSopId,
+        revisiDariVersi: row.revisiDariVersi,
+        updatedAt: row.updatedAt.toISOString(),
+        canHapusDraft: row.canHapusDraft,
+        canBuatVersiBaru: !hasActiveRevision && TERMINAL_DETAIL_STATUSES.has(row.status),
+      };
+    });
   }
 }

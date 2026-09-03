@@ -45,45 +45,29 @@ export class ProcessSopAuthoringService {
     query?: ListSopQueryDto,
   ): Promise<ProcessAwareSopRow[]> {
     const filters = this.normalizeFilters(query);
-    const legacyRowsPromise = this.isLegacyAuthoringRole(user)
-      ? this.sopCatalogService.listForCurrentUser(user, query)
-      : Promise.resolve([] as SopDaftarRowDto[]);
-    const [legacyRows, myProcesses, allBindings, allRows] = await Promise.all([
-      legacyRowsPromise,
+    const [myProcesses, allNativeSops, allRows] = await Promise.all([
       this.processContextService.listForUser(user.sub),
-      this.prisma.processSopBinding.findMany({ select: { sopId: true, processId: true } }),
+      this.prisma.sOP.findMany({ select: { sopId: true, processId: true } }),
       this.sopCatalogRepository.findDaftarAll(filters),
     ]);
 
     const processById = new Map(myProcesses.map((process) => [process.processId, process]));
-    const bindingBySop = new Map(allBindings.map((binding) => [binding.sopId, binding]));
+    const processBySop = new Map(
+      allNativeSops
+        .filter((sop): sop is typeof sop & { processId: string } => sop.processId !== null)
+        .map((sop) => [sop.sopId, sop.processId]),
+    );
     const accessibleTargetSopIds = new Set(
-      allBindings
-        .filter((binding) => processById.has(binding.processId))
-        .map((binding) => binding.sopId),
+      allNativeSops
+        .filter((sop) => sop.processId !== null && processById.has(sop.processId))
+        .map((sop) => sop.sopId),
     );
 
-    const legacyVisible: ProcessAwareSopRow[] = legacyRows
-      .filter((row) => {
-        const binding = bindingBySop.get(row.id);
-        return binding === undefined || accessibleTargetSopIds.has(row.id);
-      })
-      .map((row) => {
-        const binding = bindingBySop.get(row.id);
-        const process = binding === undefined ? undefined : processById.get(binding.processId);
-        return {
-          ...row,
-          processId: process?.processId ?? null,
-          processNama: process?.nama ?? null,
-        };
-      });
-
-    const existingIds = new Set(legacyVisible.map((row) => row.id));
     const additionalTargetRows: ProcessAwareSopRow[] = allRows
-      .filter((row) => accessibleTargetSopIds.has(row.sopId) && !existingIds.has(row.sopId))
+      .filter((row) => accessibleTargetSopIds.has(row.sopId))
       .map((row) => {
-        const binding = bindingBySop.get(row.sopId);
-        const process = binding === undefined ? undefined : processById.get(binding.processId);
+        const processId = processBySop.get(row.sopId);
+        const process = processId === undefined ? undefined : processById.get(processId);
         return {
           ...mapDaftarRow(row),
           processId: process?.processId ?? null,
@@ -91,7 +75,7 @@ export class ProcessSopAuthoringService {
         };
       });
 
-    return [...legacyVisible, ...additionalTargetRows].sort((a, b) => {
+    return additionalTargetRows.sort((a, b) => {
       const aTime = a.terakhirDiperbarui ?? '';
       const bTime = b.terakhirDiperbarui ?? '';
       return bTime.localeCompare(aTime);
@@ -100,13 +84,6 @@ export class ProcessSopAuthoringService {
 
   async create(user: JwtAccessPayload, dto: CreateProcessSopDto): Promise<ProcessAwareSopRow> {
     const process = await this.processContextService.assertCanAuthor(user.sub, dto.processId);
-    const pengguna = await this.prisma.pengguna.findFirst({
-      where: { penggunaId: user.sub, deletedAt: null },
-      select: { opdId: true },
-    });
-    if (pengguna === null) {
-      throw new NotFoundException('Pengguna aktif tidak ditemukan');
-    }
 
     const namaLembaga = dto.namaLembaga?.trim() ?? '';
     let sopId: string;
@@ -115,8 +92,7 @@ export class ProcessSopAuthoringService {
         const sop = await tx.sOP.create({
           data: {
             judul: dto.judul.trim(),
-            // Transitional compatibility shadow only. Target authoring authority is Process-based.
-            opdId: pengguna.opdId,
+            processId: process.processId,
           },
           select: { sopId: true },
         });
@@ -128,13 +104,6 @@ export class ProcessSopAuthoringService {
             status: StatusSOP.DRAFT,
             dibuatOlehId: user.sub,
             namaLembaga,
-          },
-        });
-        await tx.processSopBinding.create({
-          data: {
-            sopId: sop.sopId,
-            processId: process.processId,
-            createdById: user.sub,
           },
         });
         return sop.sopId;
@@ -162,14 +131,14 @@ export class ProcessSopAuthoringService {
     detailOrSopId: string,
     logsLimit?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
-    const context = await this.resolveBinding(detailOrSopId);
-    if (context.binding === null) {
+    const context = await this.resolveProcessContext(detailOrSopId);
+    if (context.processId === null) {
       this.assertLegacyAuthoringRole(user);
       return this.sopCatalogService.getPenyusunWorkbench(user, detailOrSopId, logsLimit);
     }
     const process = await this.processContextService.assertCanAuthor(
       user.sub,
-      context.binding.processId,
+      context.processId,
     );
     const workbench = await this.sopCatalogService.getPenyusunWorkbenchForEvaluasiContext(
       context.resolved.detailSopId,
@@ -184,14 +153,14 @@ export class ProcessSopAuthoringService {
     dto: UpdateSopHeaderDto,
     logsLimit?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
-    const context = await this.resolveBinding(detailOrSopId);
-    if (context.binding === null) {
+    const context = await this.resolveProcessContext(detailOrSopId);
+    if (context.processId === null) {
       this.assertLegacyAuthoringRole(user);
       return this.sopCatalogService.updatePenyusunHeader(user, detailOrSopId, dto, logsLimit);
     }
     const process = await this.processContextService.assertCanAuthor(
       user.sub,
-      context.binding.processId,
+      context.processId,
     );
     const statusContext = await this.sopCatalogRepository.findLatestDetailStatusContext(
       context.resolved.detailSopId,
@@ -232,15 +201,38 @@ export class ProcessSopAuthoringService {
     return this.withProcessContext(refreshed, process.processId, process.nama);
   }
 
-  private async resolveBinding(detailOrSopId: string) {
+  async deleteVersionDraft(user: JwtAccessPayload, detailSopId: string): Promise<void> {
+    const context = await this.resolveProcessContext(detailSopId);
+    if (context.processId === null) {
+      await this.sopCatalogService.hapusVersiDraft(user, detailSopId);
+      return;
+    }
+    await this.processContextService.assertCanAuthor(user.sub, context.processId);
+    assertSopCatalogRepoOk(await this.sopCatalogRepository.deleteVersiDraft(context.resolved.detailSopId));
+  }
+
+  async deleteInitialDraft(user: JwtAccessPayload, detailSopId: string): Promise<void> {
+    const context = await this.resolveProcessContext(detailSopId);
+    if (context.processId === null) {
+      await this.sopCatalogService.hapusSopDraftAwal(user, detailSopId);
+      return;
+    }
+    await this.processContextService.assertCanAuthor(user.sub, context.processId);
+    assertSopCatalogRepoOk(
+      await this.sopCatalogRepository.deleteSopDraftAwal(context.resolved.detailSopId),
+    );
+  }
+
+  private async resolveProcessContext(detailOrSopId: string) {
     const resolved = await this.sopCatalogRepository.findDetailIdByDetailOrSopId(detailOrSopId);
     if (resolved === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
-    const binding = await this.prisma.processSopBinding.findUnique({
+    const sop = await this.prisma.sOP.findUnique({
       where: { sopId: resolved.sopId },
+      select: { processId: true },
     });
-    return { resolved, binding };
+    return { resolved, processId: sop?.processId ?? null };
   }
 
   private isLegacyAuthoringRole(user: JwtAccessPayload): boolean {

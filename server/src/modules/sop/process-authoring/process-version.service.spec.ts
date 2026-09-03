@@ -15,7 +15,7 @@ const user = {
 describe('ProcessVersionService', () => {
   function setup(binding: { processId: string } | null = { processId: 'process-a' }) {
     const prisma = {
-      processSopBinding: { findUnique: jest.fn().mockResolvedValue(binding) },
+      sOP: { findUnique: jest.fn().mockResolvedValue(binding) },
     } as unknown as PrismaService;
     const processContext = {
       assertCanAuthor: jest.fn().mockResolvedValue({ processId: 'process-a', nama: 'Process A' }),
@@ -24,18 +24,33 @@ describe('ProcessVersionService', () => {
       findDetailIdByDetailOrSopId: jest.fn().mockResolvedValue({
         detailSopId: 'detail-v1',
         sopId: 'sop-a',
+        processId: binding?.processId ?? null,
+        sopOpdId: null,
       }),
       findLatestDetailStatusContext: jest.fn().mockResolvedValue({ detailSopId: 'detail-v1' }),
       cloneDetailSopFromSource: jest.fn().mockResolvedValue({
         ok: true,
         data: { detailSopId: 'detail-v2', versi: 2 },
       }),
+      findRiwayatVersiBySopId: jest.fn().mockResolvedValue([
+        {
+          detailSopId: 'detail-v1',
+          versi: 1,
+          nomorSOP: 'SOP-001',
+          status: 'BERLAKU',
+          revisiDariDetailSopId: null,
+          revisiDariVersi: null,
+          updatedAt: new Date('2026-09-01T00:00:00.000Z'),
+          canHapusDraft: false,
+        },
+      ]),
     } as unknown as SopCatalogRepository;
     const catalog = {
       buatVersiBaruDariSumber: jest.fn().mockResolvedValue({ detail: { id: 'legacy-v2' } }),
       getPenyusunWorkbenchForEvaluasiContext: jest.fn().mockResolvedValue({
         detail: { id: 'detail-v2', sop: { id: 'sop-a' } },
       }),
+      getRiwayatVersi: jest.fn(),
     } as unknown as SopCatalogService;
     return {
       service: new ProcessVersionService(prisma, processContext, repository, catalog),
@@ -76,5 +91,16 @@ describe('ProcessVersionService', () => {
       ForbiddenException,
     );
     expect(ctx.repository.cloneDetailSopFromSource).not.toHaveBeenCalled();
+  });
+
+  it('reads native version history through Process authorization', async () => {
+    const ctx = setup();
+
+    await expect(ctx.service.getVersionHistory(user, 'sop-a')).resolves.toMatchObject([
+      expect.objectContaining({ detailSopId: 'detail-v1', canBuatVersiBaru: true }),
+    ]);
+    expect(ctx.processContext.assertCanAuthor).toHaveBeenCalledWith('member-a', 'process-a');
+    expect(ctx.repository.findRiwayatVersiBySopId).toHaveBeenCalledWith('sop-a');
+    expect(ctx.catalog.getRiwayatVersi).not.toHaveBeenCalled();
   });
 });

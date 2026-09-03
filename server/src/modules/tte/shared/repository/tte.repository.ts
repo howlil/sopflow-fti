@@ -138,7 +138,7 @@ export class TteRepository {
       jabatan: row.jabatan,
       pangkat: row.pangkat,
       peran: row.peran,
-      opdId: row.opdId,
+      opdId: row.opdId!,
       opdNama: row.opd?.nama ?? 'Biro Organisasi',
     };
   }
@@ -712,7 +712,7 @@ export class TteRepository {
         items.push({
           detailSopId: detail.detailSopId,
           sopId: detail.sopId,
-          opdId: detail.sop.opdId,
+          opdId: detail.sop.opdId!,
           judulSop: detail.sop.judul,
           nomorSOP: detail.nomorSOP,
           versi: detail.versi,
@@ -864,7 +864,7 @@ export class TteRepository {
           detailSopId: string;
           nomorSOP: string;
           status: StatusSOP;
-          sop: { opdId: string; judul: string };
+          sop: { opdId: string | null; judul: string };
         };
       }>;
     },

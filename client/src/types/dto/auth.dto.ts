@@ -24,7 +24,7 @@ export interface PublicPenggunaLoginData {
   nama: string;
   peran: PeranPengguna;
   platformRole: PlatformRole;
-  opdId: string;
+  opdId: string | null;
   nip: string;
   jabatan: string;
   pangkat: string;

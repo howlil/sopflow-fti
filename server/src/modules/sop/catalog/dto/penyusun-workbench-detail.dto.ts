@@ -6,8 +6,11 @@ export class PenyusunWorkbenchSopHeaderDto {
   @ApiProperty()
   readonly id!: string;
 
-  @ApiProperty()
-  readonly opdId!: string;
+  @ApiPropertyOptional({ format: 'uuid', nullable: true, description: 'Legacy compatibility shadow' })
+  readonly opdId!: string | null;
+
+  @ApiPropertyOptional({ format: 'uuid', nullable: true, description: 'Native Process owner' })
+  readonly processId!: string | null;
 
   @ApiProperty()
   readonly judul!: string;

@@ -68,7 +68,8 @@ export interface SopRiwayatVersiRow {
 /** Header SOP + meta lama (POST/PATCH detail, mock); daftar penyusun memakai `SopDaftarRow`. */
 export interface Sop {
   id: string;
-  opdId: string;
+  opdId: string | null;
+  processId?: string | null;
   judul: string;
   createdAt: string;
   updatedAt: string;

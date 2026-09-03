@@ -72,18 +72,15 @@ export function useCabutSop() {
   };
 }
 
-/** Query master Pelaksana untuk OPD aktif. */
-export function usePelaksana(opdId?: string) {
-  const user = useAuthStore((state) => state.user);
-  const effectiveOpdId = opdId || user?.opdId;
+/** Query katalog Pelaksana global; native Process SOP tidak membutuhkan OPD context. */
+export function usePelaksana(_legacyOpdId?: string) {
   const {
     data: list = [],
     isLoading,
     error,
   } = useQuery<Pelaksana[]>({
-    queryKey: queryKeys.pelaksanaByOpd(effectiveOpdId || ""),
-    queryFn: () => sopApi.findPelaksana(effectiveOpdId || ""),
-    enabled: !!effectiveOpdId,
+    queryKey: queryKeys.pelaksana,
+    queryFn: () => sopApi.findPelaksana(""),
     staleTime: STALE_TIME.MEDIUM,
   });
   return { list, isLoading, error };

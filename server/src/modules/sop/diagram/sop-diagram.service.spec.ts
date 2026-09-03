@@ -15,10 +15,10 @@ describe('Pengujian SopDiagramService', () => {
   } as never;
 
   function createService(overrides?: {
-    resolved?: { detailSopId: string; sopOpdId: string } | null;
+    resolved?: { detailSopId: string; sopOpdId: string | null; processId: string | null } | null;
     status?: string | null;
   }) {
-    const defaultResolved = { detailSopId: 'det-1', sopOpdId: 'opd-1' };
+    const defaultResolved = { detailSopId: 'det-1', sopOpdId: 'opd-1', processId: null };
     const resolved =
       overrides !== undefined && 'resolved' in overrides ? overrides.resolved : defaultResolved;
     const sopDiagramRepository = {
@@ -34,16 +34,29 @@ describe('Pengujian SopDiagramService', () => {
       getPenyusunWorkbench: jest
         .fn()
         .mockResolvedValue({ detail: { id: 'det-1' }, langkah: [], logEdit: [] }),
+      getPenyusunWorkbenchForEvaluasiContext: jest
+        .fn()
+        .mockResolvedValue({ detail: { id: 'det-1' }, langkah: [], logEdit: [] }),
     };
     const userOpdAccessService = {
       assertSameOpd: jest.fn().mockResolvedValue(undefined),
+    };
+    const processContextService = {
+      assertCanAuthor: jest.fn().mockResolvedValue({ processId: 'process-1' }),
     };
     const service = new SopDiagramService(
       sopDiagramRepository as never,
       sopCatalogService as never,
       userOpdAccessService as never,
+      processContextService as never,
     );
-    return { service, sopDiagramRepository, sopCatalogService };
+    return {
+      service,
+      sopDiagramRepository,
+      sopCatalogService,
+      userOpdAccessService,
+      processContextService,
+    };
   }
 
   it('seharusnya melempar NotFoundException ketika detail tidak ditemukan', async () => {
@@ -63,6 +76,22 @@ describe('Pengujian SopDiagramService', () => {
     expect(sopDiagramRepository.upsertConfig).toHaveBeenCalled();
     expect(sopCatalogService.getPenyusunWorkbench).toHaveBeenCalled();
     expect(actual.detail.id).toBe('det-1');
+  });
+
+  it('seharusnya mengotorisasi diagram native melalui Process, bukan OPD atau role legacy', async () => {
+    const { service, userOpdAccessService, processContextService, sopCatalogService } = createService({
+      resolved: { detailSopId: 'det-1', sopOpdId: null, processId: 'process-1' },
+    });
+    const nativeUser = { sub: 'member-1', peran: PeranPengguna.EVALUATOR, email: 'a@b.c' } as never;
+
+    await service.updateDiagram(nativeUser, 'det-1', { jenis: JenisDiagram.FLOWCHART });
+
+    expect(processContextService.assertCanAuthor).toHaveBeenCalledWith('member-1', 'process-1');
+    expect(userOpdAccessService.assertSameOpd).not.toHaveBeenCalled();
+    expect(sopCatalogService.getPenyusunWorkbenchForEvaluasiContext).toHaveBeenCalledWith(
+      'det-1',
+      undefined,
+    );
   });
 
   it('seharusnya menolak tidak valid path overrides', async () => {

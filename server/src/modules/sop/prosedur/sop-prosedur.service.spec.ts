@@ -11,7 +11,6 @@ import { SopProsedurService } from './sop-prosedur.service';
 describe('SopProsedurService Process-native actor policy', () => {
   const repo = {
     findDetailIdByDetailOrSopId: jest.fn(),
-    findProcessBindingBySopId: jest.fn(),
     findDetailStatus: jest.fn(),
     findGlobalPelaksana: jest.fn(),
     findExistingSwimlanePelaksanaIds: jest.fn(),
@@ -51,8 +50,8 @@ describe('SopProsedurService Process-native actor policy', () => {
       detailSopId: 'detail-1',
       sopId: 'sop-1',
       sopOpdId: 'legacy-opd-1',
+      processId: 'process-1',
     });
-    repo.findProcessBindingBySopId.mockResolvedValue({ processId: 'process-1' });
     repo.findDetailStatus.mockResolvedValue(StatusSOP.DRAFT);
     repo.findGlobalPelaksana.mockResolvedValue(new Map([['actor-1', 'Dosen']]));
     repo.findExistingSwimlanePelaksanaIds.mockResolvedValue(['actor-1']);
@@ -94,7 +93,12 @@ describe('SopProsedurService Process-native actor policy', () => {
   });
 
   it('keeps legacy unbound SOP on PENYUSUN + OPD compatibility authorization', async () => {
-    repo.findProcessBindingBySopId.mockResolvedValue(null);
+    repo.findDetailIdByDetailOrSopId.mockResolvedValue({
+      detailSopId: 'detail-1',
+      sopId: 'sop-1',
+      sopOpdId: 'legacy-opd-1',
+      processId: null,
+    });
     await service.updateProsedur(legacyPenyusun, 'detail-1', {});
     expect(legacyOpd.assertSameOpd).toHaveBeenCalledWith(
       'penyusun-1',
@@ -105,7 +109,12 @@ describe('SopProsedurService Process-native actor policy', () => {
   });
 
   it('rejects non-legacy authors for an unbound legacy SOP', async () => {
-    repo.findProcessBindingBySopId.mockResolvedValue(null);
+    repo.findDetailIdByDetailOrSopId.mockResolvedValue({
+      detailSopId: 'detail-1',
+      sopId: 'sop-1',
+      sopOpdId: 'legacy-opd-1',
+      processId: null,
+    });
     await expect(service.updateProsedur(processMember, 'detail-1', {})).rejects.toBeInstanceOf(
       ForbiddenException,
     );

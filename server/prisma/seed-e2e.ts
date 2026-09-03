@@ -211,7 +211,7 @@ async function main(): Promise<void> {
       await tx.riwayatOpdPengguna.create({
         data: {
           penggunaId: created.penggunaId,
-          opdId: created.opdId,
+          opdId: created.opdId!,
           isAktif: true,
         },
       });

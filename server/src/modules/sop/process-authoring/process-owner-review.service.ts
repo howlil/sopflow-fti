@@ -200,17 +200,17 @@ export class ProcessOwnerReviewService {
     if (resolved === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
-    const binding = await this.prisma.processSopBinding.findUnique({
+    const sop = await this.prisma.sOP.findUnique({
       where: { sopId: resolved.sopId },
       select: { processId: true },
     });
-    if (binding === null) {
+    if (sop?.processId === null || sop === null) {
       throw new ConflictException('SOP legacy belum terikat Process dan tetap memakai workflow kompatibilitas');
     }
     return {
       detailSopId: resolved.detailSopId,
       sopId: resolved.sopId,
-      processId: binding.processId,
+      processId: sop.processId,
     };
   }
 }

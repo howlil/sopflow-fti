@@ -74,14 +74,14 @@ export class ProcessSopRevocationService {
     if (processes.length === 0) return [];
 
     const processById = new Map(processes.map((process) => [process.processId, process]));
-    const bindings = await this.prisma.processSopBinding.findMany({
+    const nativeSops = await this.prisma.sOP.findMany({
       where: { processId: { in: processes.map((process) => process.processId) } },
       select: { sopId: true, processId: true },
     });
-    if (bindings.length === 0) return [];
+    if (nativeSops.length === 0) return [];
 
     const details = await this.prisma.detailSOP.findMany({
-      where: { sopId: { in: bindings.map((binding) => binding.sopId) } },
+      where: { sopId: { in: nativeSops.map((sop) => sop.sopId) } },
       select: {
         detailSopId: true,
         sopId: true,
@@ -102,9 +102,10 @@ export class ProcessSopRevocationService {
     }
 
     const rows: ProcessRevocationQueueRow[] = [];
-    for (const binding of bindings) {
-      const process = processById.get(binding.processId);
-      const sopDetails = detailsBySopId.get(binding.sopId) ?? [];
+    for (const sop of nativeSops) {
+      if (sop.processId === null) continue;
+      const process = processById.get(sop.processId);
+      const sopDetails = detailsBySopId.get(sop.sopId) ?? [];
       if (!process || sopDetails.length === 0) continue;
       if (hasRevisiInFlight(sopDetails.map((detail) => detail.status))) continue;
       const effective = sopDetails.find((detail) => detail.status === StatusSOP.BERLAKU);
@@ -132,17 +133,18 @@ export class ProcessSopRevocationService {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
 
-    const binding = await this.prisma.processSopBinding.findUnique({
+    const sop = await this.prisma.sOP.findUnique({
       where: { sopId: resolved.sopId },
       select: { processId: true },
     });
-    if (binding === null) {
+    if (sop?.processId === null || sop === null) {
       throw new ConflictException(
         'SOP legacy belum terikat Process dan tetap memakai workflow kompatibilitas',
       );
     }
+    const processId = sop.processId;
 
-    await this.authorityService.assertCanApprove(user.sub, binding.processId);
+    await this.authorityService.assertCanApprove(user.sub, processId);
 
     const history = await this.sopCatalogRepository.findRiwayatVersiBySopId(resolved.sopId);
     if (hasRevisiInFlight(history.map((row) => row.status))) {
@@ -157,7 +159,7 @@ export class ProcessSopRevocationService {
 
     const [process, detail] = await Promise.all([
       this.prisma.process.findUnique({
-        where: { processId: binding.processId },
+        where: { processId },
         select: { ownerId: true, nama: true },
       }),
       this.prisma.detailSOP.findUnique({
@@ -212,7 +214,7 @@ export class ProcessSopRevocationService {
         {
           detailSopId: effective.detailSopId,
           sopId: resolved.sopId,
-          processId: binding.processId,
+          processId,
           penggunaId: authorId,
           kind: ProcessNotificationKind.PROCESS_SOP_REVOKED,
           processName: process.nama,
@@ -220,7 +222,7 @@ export class ProcessSopRevocationService {
         {
           detailSopId: effective.detailSopId,
           sopId: resolved.sopId,
-          processId: binding.processId,
+          processId,
           penggunaId: process.ownerId,
           kind: ProcessNotificationKind.PROCESS_SOP_REVOKED,
           processName: process.nama,
@@ -232,7 +234,7 @@ export class ProcessSopRevocationService {
     return {
       detailSopId: effective.detailSopId,
       sopId: resolved.sopId,
-      processId: binding.processId,
+      processId,
       status: StatusSOP.DICABUT,
     };
   }

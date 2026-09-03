@@ -6,7 +6,7 @@ import {
 
 export type ActionablePengajuan = Readonly<{
   pengajuanEvaluasiId: string;
-  opdId: string;
+  opdId: string | null;
   opdNama: string;
   nomorBA: string | null;
   status: StatusPengajuanEvaluasi;
@@ -15,7 +15,7 @@ export type ActionablePengajuan = Readonly<{
 
 export type ActiveNotificationRecipient = Readonly<{
   penggunaId: string;
-  opdId: string;
+  opdId: string | null;
   email: string;
   nama: string;
   peran: PeranPengguna;

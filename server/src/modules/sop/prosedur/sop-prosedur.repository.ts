@@ -36,19 +36,20 @@ export class SopProsedurRepository {
 
   async findDetailIdByDetailOrSopId(
     detailOrSopId: string,
-  ): Promise<{ detailSopId: string; sopId: string; sopOpdId: string } | null> {
+  ): Promise<{ detailSopId: string; sopId: string; sopOpdId: string | null; processId: string | null } | null> {
     const direct = await this.prisma.detailSOP.findUnique({
       where: { detailSopId: detailOrSopId },
-      select: { detailSopId: true, sopId: true, sop: { select: { opdId: true } } },
+      select: { detailSopId: true, sopId: true, sop: { select: { opdId: true, processId: true } } },
     });
     if (direct !== null) {
-      return { detailSopId: direct.detailSopId, sopId: direct.sopId, sopOpdId: direct.sop.opdId };
+      return { detailSopId: direct.detailSopId, sopId: direct.sopId, sopOpdId: direct.sop.opdId, processId: direct.sop.processId };
     }
     const header = await this.prisma.sOP.findUnique({
       where: { sopId: detailOrSopId },
       select: {
         sopId: true,
         opdId: true,
+        processId: true,
         detailSops: {
           orderBy: { versi: 'desc' },
           take: 1,
@@ -58,14 +59,15 @@ export class SopProsedurRepository {
     });
     const latest = header?.detailSops[0]?.detailSopId;
     if (header === null || latest === undefined) return null;
-    return { detailSopId: latest, sopId: header.sopId, sopOpdId: header.opdId };
+    return { detailSopId: latest, sopId: header.sopId, sopOpdId: header.opdId, processId: header.processId };
   }
 
-  async findProcessBindingBySopId(sopId: string): Promise<{ processId: string } | null> {
-    return this.prisma.processSopBinding.findUnique({
+  async findProcessIdBySopId(sopId: string): Promise<string | null> {
+    const row = await this.prisma.sOP.findUnique({
       where: { sopId },
       select: { processId: true },
     });
+    return row?.processId ?? null;
   }
 
   async findDetailStatus(

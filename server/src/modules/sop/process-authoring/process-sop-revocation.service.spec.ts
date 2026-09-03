@@ -36,7 +36,7 @@ function makeService(options?: { transitionCount?: number }) {
       ]),
       findUnique: jest.fn().mockResolvedValue({ ownerId: 'owner-1', nama: 'Process Fakultas' }),
     },
-    processSopBinding: {
+    sOP: {
       findMany: jest.fn().mockResolvedValue([{ sopId: 'sop-a', processId: 'process-a' }]),
       findUnique: jest.fn().mockResolvedValue({ processId: 'process-a' }),
     },
@@ -163,7 +163,7 @@ describe('ProcessSopRevocationService', () => {
 
   it('keeps legacy unbound SOP on the compatibility revocation path', async () => {
     const { service, prisma, authority, processNotifications } = makeService();
-    (prisma.processSopBinding.findUnique as jest.Mock).mockResolvedValue(null);
+    (prisma.sOP.findUnique as jest.Mock).mockResolvedValue(null);
 
     await expect(service.revoke(user, 'detail-a')).rejects.toThrow(
       'SOP legacy belum terikat Process dan tetap memakai workflow kompatibilitas',

@@ -6,7 +6,7 @@ import type { SopCatalogService } from '../catalog/sop-catalog.service';
 import { ProcessSopAuthoringService } from './process-sop-authoring.service';
 
 describe('ProcessSopAuthoringService', () => {
-  it('does not leak a bound SOP through legacy same-OPD listing when Process access is absent', async () => {
+  it('lists only native SOPs for the user Process relationships', async () => {
     const now = new Date('2026-09-01T00:00:00.000Z');
     const accessibleTarget: SopDaftarDbRow = {
       sopId: 'sop-target-accessible',
@@ -27,7 +27,7 @@ describe('ProcessSopAuthoringService', () => {
     };
 
     const prisma = {
-      processSopBinding: {
+      sOP: {
         findMany: jest.fn().mockResolvedValue([
           { sopId: 'sop-target-inaccessible', processId: 'process-b' },
           { sopId: 'sop-target-accessible', processId: 'process-a' },
@@ -40,46 +40,7 @@ describe('ProcessSopAuthoringService', () => {
     const repository = {
       findDaftarAll: jest.fn().mockResolvedValue([accessibleTarget]),
     } as unknown as SopCatalogRepository;
-    const catalogService = {
-      listForCurrentUser: jest.fn().mockResolvedValue([
-        {
-          id: 'sop-target-inaccessible',
-          opdId: 'opd-same',
-          detailSopId: 'detail-inaccessible',
-          judul: 'Should not leak',
-          nomorSop: 'LEGACY/1',
-          versi: 1,
-          pembuat: 'User',
-          terakhirDiedit: { nama: null, waktu: now.toISOString() },
-          status: 'DRAFT',
-          statusLabel: 'Draft',
-          peraturanId: null,
-          terakhirDiperbarui: now.toISOString(),
-          versiBerlaku: null,
-          canBuatVersiBaru: false,
-          canCabutSop: false,
-          canHapusSopDraft: true,
-        },
-        {
-          id: 'sop-legacy-unbound',
-          opdId: 'opd-same',
-          detailSopId: 'detail-legacy',
-          judul: 'Legacy remains visible',
-          nomorSop: 'LEGACY/2',
-          versi: 1,
-          pembuat: 'User',
-          terakhirDiedit: { nama: null, waktu: now.toISOString() },
-          status: 'DRAFT',
-          statusLabel: 'Draft',
-          peraturanId: null,
-          terakhirDiperbarui: now.toISOString(),
-          versiBerlaku: null,
-          canBuatVersiBaru: false,
-          canCabutSop: false,
-          canHapusSopDraft: true,
-        },
-      ]),
-    } as unknown as SopCatalogService;
+    const catalogService = {} as unknown as SopCatalogService;
 
     const service = new ProcessSopAuthoringService(
       prisma,
@@ -98,9 +59,7 @@ describe('ProcessSopAuthoringService', () => {
       undefined,
     );
 
-    expect(rows.map((row) => row.id)).toEqual(
-      expect.arrayContaining(['sop-legacy-unbound', 'sop-target-accessible']),
-    );
+    expect(rows.map((row) => row.id)).toEqual(['sop-target-accessible']);
     expect(rows.map((row) => row.id)).not.toContain('sop-target-inaccessible');
     expect(rows.find((row) => row.id === 'sop-target-accessible')).toMatchObject({
       processId: 'process-a',
@@ -110,7 +69,7 @@ describe('ProcessSopAuthoringService', () => {
 
   it('does not expose legacy unbound SOPs to a non-authoring global role', async () => {
     const prisma = {
-      processSopBinding: { findMany: jest.fn().mockResolvedValue([]) },
+      sOP: { findMany: jest.fn().mockResolvedValue([]) },
     } as unknown as PrismaService;
     const processContext = {
       listForUser: jest.fn().mockResolvedValue([]),

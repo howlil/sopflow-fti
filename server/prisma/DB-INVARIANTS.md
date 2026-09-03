@@ -4,7 +4,7 @@ Dokumen ini merangkum aturan bisnis yang tidak cukup dijelaskan oleh foreign key
 
 ## Sumber Kebenaran OPD Aktif Pengguna
 
-`Pengguna.opdId` adalah sumber kebenaran OPD aktif pengguna selama legacy OPD workflow masih menjadi implementasi aktif.
+`Pengguna.opdId` adalah compatibility shadow nullable untuk legacy OPD workflow. Native FTI accounts may have no OPD; target authorization must use `platformRole`, Process relationship, and Organizational Authority instead.
 
 `RiwayatOpdPengguna` menyimpan histori pasangan pengguna dan OPD. Field `isAktif` hanya penanda tampilan riwayat yang disinkronkan oleh service:
 
@@ -26,7 +26,15 @@ Model FTI ditambahkan secara additive; invariant legacy OPD tetap berlaku pada c
 - Owner dan seluruh member yang ditugaskan harus merupakan pengguna aktif pada saat mutasi Process.
 - Assignment pada Process A tidak memberikan relationship pada Process B.
 
-`ProcessSopBinding` adalah compatibility seam untuk SOP target-path. Jika sebuah SOP memiliki binding Process, authoring/mutasi procedure ditentukan oleh relationship pengguna terhadap Process tersebut, bukan sekadar legacy role atau kesamaan `opdId`. SOP yang belum memiliki binding masih dapat menggunakan compatibility authorization sampai slice legacy contract cleanup.
+Native FTI SOP ownership is stored directly in nullable `SOP.processId`. A non-null value must reference an existing `Process`; target authoring, procedure mutation, versioning, review, approval, TTE, notification, revocation, and public discovery resolve from that relationship. `ProcessSopBinding` is retained only as historical/backfill evidence and an explicit compatibility boundary; it is not an active lookup.
+
+The M11 ownership migration follows `EXPAND -> BACKFILL -> CUTOVER -> PROVE -> CONTRACT`:
+
+- `EXPAND` adds nullable `SOP.processId` and makes `Pengguna.opdId` nullable without deleting legacy columns;
+- `BACKFILL` copies each existing `ProcessSopBinding.processId` to its SOP;
+- `CUTOVER` routes native runtime reads/writes through `SOP.processId`;
+- `PROVE` checks the native foreign key, zero unbackfilled bindings, zero ownership mismatches, and zero orphan Process references in Migration Smoke;
+- `CONTRACT` remains a later, separately authorized cleanup of compatibility schema/history.
 
 ## Contextual Final Approval
 
@@ -36,10 +44,12 @@ Model FTI ditambahkan secara additive; invariant legacy OPD tetap berlaku pada c
 - `SUPER_ADMIN` boleh memelihara konfigurasi authority, tetapi `platformRole = SUPER_ADMIN` tidak memberikan hak final approval dan tidak boleh menjadi workflow bypass.
 - `ProcessFinalApproval` adalah evidence satu-per-`DetailSOP` bahwa holder authority yang ter-resolve menyetujui versi SOP Process-bound tersebut.
 - Hanya versi `DetailSOP` terbaru dari SOP Process-bound yang dapat memperoleh contextual final approval. Versi lama yang pernah berada pada status siap approval ditolak setelah versi yang lebih baru tersedia.
-- SOP tanpa `ProcessSopBinding` tetap berada pada compatibility workflow dan tidak masuk contextual final-approval path.
+- SOP dengan `SOP.processId IS NULL` tetap berada pada compatibility workflow dan tidak masuk contextual final-approval path.
 - Final approval tidak membuat `DetailSOP` menjadi `BERLAKU`. TTE dan effective-state transition tetap merupakan boundary terpisah.
 
 ## Transisi Status DetailSOP
+
+The transitions below describe the retained legacy OPD/evaluation compatibility workflow. Native FTI Process SOPs use the Process Owner -> contextual authority -> TTE lifecycle implemented in the Process authoring modules; their target path does not authorize from the legacy role enum or OPD equality.
 
 Transisi manual lewat endpoint status hanya memperbolehkan:
 

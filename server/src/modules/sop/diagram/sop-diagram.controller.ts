@@ -20,8 +20,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type ApiSuccessResponse, Roles, UseJwtAndRolesGuards } from '../../../common';
-import { PeranPengguna } from '../../../generated/prisma';
+import { type ApiSuccessResponse, JwtAuthGuard } from '../../../common';
+import { UseGuards } from '@nestjs/common';
 import {
   ACCESS_TOKEN_COOKIE_NAME,
   type JwtAccessPayload,
@@ -31,13 +31,14 @@ import { UpdateSopDiagramDto } from './dto/diagram-path-overrides.dto';
 import { SopDiagramService } from './sop-diagram.service';
 
 @ApiTags('SOP')
-@Controller('sop/diagram')
-@UseJwtAndRolesGuards()
+// The Process path is the first-party contract; the legacy path remains as a
+// compatibility adapter for existing clients and historical SOPs.
+@Controller(['process-sop/diagram', 'sop/diagram'])
+@UseGuards(JwtAuthGuard)
 export class SopDiagramController {
   constructor(private readonly sopDiagramService: SopDiagramService) {}
 
   @Patch(':detailSopId')
-  @Roles(PeranPengguna.PENYUSUN, PeranPengguna.PJ_PENYUSUN)
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
   @ApiOperation({
     summary:

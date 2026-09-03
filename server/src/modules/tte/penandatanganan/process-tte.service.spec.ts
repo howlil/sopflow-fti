@@ -27,11 +27,10 @@ const user: JwtAccessPayload = {
 const context: ProcessTteSigningContext = {
   detailSopId: '00000000-0000-4000-8000-000000000010',
   sopId: '00000000-0000-4000-8000-000000000011',
-  opdId: '00000000-0000-4000-8000-000000000012',
+  processId: '00000000-0000-4000-8000-000000000012',
   judulSop: 'SOP Akademik',
   nomorSOP: 'SOP-01',
   versi: 2,
-  processId: '00000000-0000-4000-8000-000000000013',
   approval: {
     approvedById: user.sub,
     authority: OrganizationalAuthority.DEAN,
@@ -87,7 +86,7 @@ function createService(overrides?: {
       penggunaId: user.sub,
       nama: 'Dekan FTI',
       peran: PeranPengguna.PENYUSUN,
-      opdId: signingContext.opdId,
+      processId: signingContext.processId,
     }),
     findKredensial: jest.fn().mockResolvedValue({ hashPin: 'hash', updatedAt: new Date() }),
   } as unknown as jest.Mocked<TteRepository>;

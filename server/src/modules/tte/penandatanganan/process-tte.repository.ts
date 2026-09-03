@@ -11,7 +11,6 @@ import type { PdfSignatureMetadataInput } from '../shared/repository/tte.reposit
 export type ProcessTteSigningContext = {
   readonly detailSopId: string;
   readonly sopId: string;
-  readonly opdId: string;
   readonly judulSop: string;
   readonly nomorSOP: string;
   readonly versi: number;
@@ -290,7 +289,7 @@ export class ProcessTteRepository {
         nomorSOP: true,
         versi: true,
         status: true,
-        sop: { select: { opdId: true, judul: true } },
+        sop: { select: { processId: true, judul: true } },
       },
     });
     const detail =
@@ -304,7 +303,7 @@ export class ProcessTteRepository {
           nomorSOP: true,
           versi: true,
           status: true,
-          sop: { select: { opdId: true, judul: true } },
+          sop: { select: { processId: true, judul: true } },
         },
       }));
     if (detail === null) return { error: 'NOT_FOUND' as const };
@@ -318,11 +317,8 @@ export class ProcessTteRepository {
       return { error: 'NOT_LATEST' as const };
     }
 
-    const binding = await tx.processSopBinding.findUnique({
-      where: { sopId: detail.sopId },
-      select: { processId: true },
-    });
-    if (binding === null) return { error: 'LEGACY_UNBOUND' as const };
+    const processId = detail.sop.processId;
+    if (processId === null) return { error: 'LEGACY_UNBOUND' as const };
 
     const approval = await tx.processFinalApproval.findUnique({
       where: { detailSopId: detail.detailSopId },
@@ -335,7 +331,7 @@ export class ProcessTteRepository {
       },
     });
     if (approval === null) return { error: 'NOT_APPROVED' as const };
-    if (approval.processId !== binding.processId) {
+    if (approval.processId !== processId) {
       return { error: 'APPROVAL_CONTEXT_DRIFT' as const };
     }
     if (detail.status !== StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR) {
@@ -347,11 +343,10 @@ export class ProcessTteRepository {
       context: {
         detailSopId: detail.detailSopId,
         sopId: detail.sopId,
-        opdId: detail.sop.opdId,
         judulSop: detail.sop.judul,
         nomorSOP: detail.nomorSOP,
         versi: detail.versi,
-        processId: binding.processId,
+        processId,
         approval: {
           approvedById: approval.approvedById,
           authority: approval.authority,

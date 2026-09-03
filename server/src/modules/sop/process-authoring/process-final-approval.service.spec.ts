@@ -16,7 +16,7 @@ function makeService(status: StatusSOP = StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR) {
     detailSOP: {
       findFirst: jest.fn().mockResolvedValue({ detailSopId: 'detail-a' }),
     },
-    processSopBinding: {
+    sOP: {
       findUnique: jest.fn().mockResolvedValue({ processId: 'process-a' }),
     },
     processFinalApproval: {

@@ -32,7 +32,7 @@ function makeService(options?: { owner?: boolean; status?: StatusSOP; transition
     },
   };
   const prisma = {
-    processSopBinding: {
+    sOP: {
       findUnique: jest.fn().mockResolvedValue({ processId: 'process-a' }),
     },
     detailSOP: {

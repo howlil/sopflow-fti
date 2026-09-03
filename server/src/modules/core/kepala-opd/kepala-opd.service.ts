@@ -149,7 +149,7 @@ export class KepalaOpdService {
         throw new NotFoundException('OPD tujuan tidak ditemukan');
       }
       await this.assertNoOtherKepalaAktifInOpd(dto.opdId, penggunaId);
-      input.pindah = { opdAsalId: existing.opdId, opdTujuanId: dto.opdId };
+      input.pindah = { opdAsalId: existing.opdId!, opdTujuanId: dto.opdId };
     }
     const profil = this.buildProfilUpdate(dto);
     if (Object.keys(profil).length > 0) {
@@ -157,6 +157,9 @@ export class KepalaOpdService {
     }
     if (dto.status === 'AKTIF' && existing.deletedAt !== null) {
       const opdIdSetelahProfil = dto.opdId ?? existing.opdId;
+      if (opdIdSetelahProfil === null) {
+        throw new ConflictException('Kepala OPD harus memiliki OPD compatibility');
+      }
       const lain = await this.penggunaRepository.countAktifByOpdIdAndPeran(
         opdIdSetelahProfil,
         PeranPengguna.KEPALA_OPD,
@@ -225,7 +228,7 @@ export class KepalaOpdService {
       nohp: row.nohp,
       jabatan: row.jabatan,
       pangkat: row.pangkat,
-      opdId: row.opdId,
+      opdId: row.opdId!,
       namaOpd: row.opd.nama,
       isActive: row.deletedAt === null,
       updatedAt: row.updatedAt,

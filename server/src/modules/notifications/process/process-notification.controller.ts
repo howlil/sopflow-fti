@@ -8,11 +8,11 @@ import {
   Post,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type ApiSuccessResponse, Roles, UseJwtAndRolesGuards } from '../../../common';
-import { PeranPengguna } from '../../../generated/prisma';
+import { type ApiSuccessResponse, JwtAuthGuard } from '../../../common';
 import {
   ACCESS_TOKEN_COOKIE_NAME,
   type JwtAccessPayload,
@@ -22,22 +22,13 @@ import {
   type ProcessInAppNotification,
 } from './process-notification.service';
 
-const ALL_AUTHENTICATED_ROLES = [
-  PeranPengguna.PJ_EVALUATOR,
-  PeranPengguna.EVALUATOR,
-  PeranPengguna.PENYUSUN,
-  PeranPengguna.PJ_PENYUSUN,
-  PeranPengguna.KEPALA_OPD,
-] as const;
-
 @ApiTags('Notifications')
 @Controller('notifications/process')
-@UseJwtAndRolesGuards()
+@UseGuards(JwtAuthGuard)
 export class ProcessNotificationController {
   constructor(private readonly service: ProcessNotificationService) {}
 
   @Get()
-  @Roles(...ALL_AUTHENTICATED_ROLES)
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
   @ApiOperation({ summary: 'Daftar notifikasi Process milik sesi saat ini' })
   @ApiResponse({ status: 200 })
@@ -53,7 +44,6 @@ export class ProcessNotificationController {
   }
 
   @Get('summary')
-  @Roles(...ALL_AUTHENTICATED_ROLES)
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
   @ApiOperation({ summary: 'Ringkasan unread notification Process sesi saat ini' })
   async summary(
@@ -67,7 +57,6 @@ export class ProcessNotificationController {
   }
 
   @Post('items/:processNotificationId/read')
-  @Roles(...ALL_AUTHENTICATED_ROLES)
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
   @ApiOperation({ summary: 'Tandai satu notifikasi Process sebagai dibaca' })
   async markRead(
@@ -82,7 +71,6 @@ export class ProcessNotificationController {
   }
 
   @Post('read-all')
-  @Roles(...ALL_AUTHENTICATED_ROLES)
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
   @ApiOperation({ summary: 'Tandai semua notifikasi Process sebagai dibaca' })
   async markAllRead(

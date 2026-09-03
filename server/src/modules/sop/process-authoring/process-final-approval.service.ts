@@ -55,15 +55,19 @@ export class ProcessFinalApprovalService {
     if (processes.length === 0) return [];
 
     const processById = new Map(processes.map((process) => [process.processId, process]));
-    const bindings = await this.prisma.processSopBinding.findMany({
+    const nativeSops = await this.prisma.sOP.findMany({
       where: { processId: { in: processes.map((process) => process.processId) } },
       select: { sopId: true, processId: true },
     });
-    if (bindings.length === 0) return [];
+    if (nativeSops.length === 0) return [];
 
-    const bindingBySopId = new Map(bindings.map((binding) => [binding.sopId, binding]));
+    const processBySopId = new Map(
+      nativeSops
+        .filter((sop): sop is typeof sop & { processId: string } => sop.processId !== null)
+        .map((sop) => [sop.sopId, sop.processId]),
+    );
     const details = await this.prisma.detailSOP.findMany({
-      where: { sopId: { in: bindings.map((binding) => binding.sopId) } },
+      where: { sopId: { in: nativeSops.map((sop) => sop.sopId) } },
       select: {
         detailSopId: true,
         sopId: true,
@@ -91,9 +95,9 @@ export class ProcessFinalApprovalService {
     const approvalByDetail = new Map(approvals.map((approval) => [approval.detailSopId, approval]));
 
     return readyLatest.map((detail) => {
-      const binding = bindingBySopId.get(detail.sopId);
-      if (!binding) throw new Error('Process SOP binding disappeared while listing approval queue');
-      const process = processById.get(binding.processId);
+      const processId = processBySopId.get(detail.sopId);
+      if (!processId) throw new Error('Process SOP ownership disappeared while listing approval queue');
+      const process = processById.get(processId);
       if (!process) throw new Error('Process disappeared while listing approval queue');
       const approval = approvalByDetail.get(detail.detailSopId) ?? null;
       return {
@@ -213,13 +217,13 @@ export class ProcessFinalApprovalService {
     if (latest.detailSopId !== resolved.detailSopId) {
       throw new ConflictException('Final approval hanya dapat diberikan pada versi SOP terbaru');
     }
-    const binding = await this.prisma.processSopBinding.findUnique({
+    const sop = await this.prisma.sOP.findUnique({
       where: { sopId: resolved.sopId },
       select: { processId: true },
     });
-    if (binding === null) {
+    if (sop?.processId === null || sop === null) {
       throw new ConflictException('SOP legacy belum terikat Process dan tetap memakai workflow kompatibilitas');
     }
-    return { detailSopId: resolved.detailSopId, processId: binding.processId };
+    return { detailSopId: resolved.detailSopId, processId: sop.processId };
   }
 }
