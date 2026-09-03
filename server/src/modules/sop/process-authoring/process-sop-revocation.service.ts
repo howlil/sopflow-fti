@@ -168,6 +168,9 @@ export class ProcessSopRevocationService {
     if (process === null || detail === null) {
       throw new NotFoundException('Context Process SOP tidak ditemukan');
     }
+    if (detail.dibuatOlehId === null) {
+      throw new ConflictException('Author SOP Process tidak tersedia untuk feedback pencabutan');
+    }
 
     const revokedAt = new Date();
     let notifiedRecipients: string[] = [];
