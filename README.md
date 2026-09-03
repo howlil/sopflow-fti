@@ -30,7 +30,7 @@ Dokumentasi arsitektur lebih lengkap: `docs/arsitektur-sistem.md`.
    cp .env.example .env
    ```
 
-2. Isi secret dan nilai deployment pada `.env`.
+2. Isi lima nilai deployment pada `.env`.
 
 3. Validasi dan jalankan stack:
 
@@ -55,26 +55,26 @@ Dokumentasi arsitektur lebih lengkap: `docs/arsitektur-sistem.md`.
 
 ## Environment production
 
-Pada Compose saat ini nilai deployment yang wajib disediakan adalah:
+`compose.yml` sengaja mempunyai external environment surface yang kecil. Nilai yang wajib disediakan hanya:
 
 ```dotenv
-DB_ROOT_PASSWORD=change-me-root-password
-DB_NAME=sop_biro_organisasi
-DB_USER=sop_app
-DB_PASSWORD=change-me-db-password
-
-JWT_SECRET=change-me-jwt-secret-at-least-32-chars
-JWT_REFRESH_SECRET=change-me-refresh-secret-at-least-32-chars
-TTE_ENCRYPTION_SECRET=change-me-dedicated-tte-secret-at-least-32-chars
-
+DATABASE_PASSWORD=change-me-database-password
+JWT_SECRET=change-me-jwt-secret-at-least-32-characters
+JWT_REFRESH_SECRET=change-me-refresh-secret-at-least-32-characters
+TTE_ENCRYPTION_SECRET=change-me-dedicated-tte-secret-at-least-32-characters
 PUBLIC_APP_ORIGIN=https://sopflow.example.com
 ```
 
-`TTE_ENCRYPTION_SECRET` harus berbeda dari kedua JWT secret. Jangan commit secret yang sudah terisi.
+Aturan konfigurasi:
 
-`ALLOWED_ORIGINS` dapat digunakan bila deployment mempunyai lebih dari satu origin yang memang diizinkan. Production tidak menerima wildcard origin untuk request authenticated berbasis credentials.
+- gunakan nama kanonis aplikasi `DATABASE_PASSWORD`; jangan membuat alias deployment seperti `DB_PASSWORD`;
+- `TTE_ENCRYPTION_SECRET` harus berbeda dari kedua JWT secret;
+- database host, port, user, dan nama database memakai topology/default Compose yang stabil dan tidak perlu diduplikasi ke project environment;
+- `NODE_ENV`, memory tuning backend, serta listener frontend merupakan image/runtime defaults dan tidak perlu diulang di Compose atau MyPaas;
+- `DATABASE_URL` tidak diperlukan pada Compose karena Prisma membentuk URL dari `DATABASE_*`;
+- jangan menambahkan optional/tuning environment ke deployment hanya karena schema aplikasi mendukungnya. Tambahkan hanya bila ada kebutuhan runtime yang eksplisit.
 
-Nilai tuning/default lain tersedia pada `.env.example` dan `compose.yml`.
+`.env.example` adalah source of truth untuk external environment production yang diperlukan `compose.yml`. Jangan commit nilai secret sebenarnya.
 
 ## Notifikasi
 
@@ -107,9 +107,9 @@ Gunakan Docker Compose deployment.
 - Tidak perlu menambahkan `cap_add` atau `NET_BIND_SERVICE` pada frontend.
 - Backend `3001` dan MariaDB `3306` tidak perlu menjadi public application port.
 
-Set environment melalui project settings MyPaas berdasarkan `.env.example`. Jangan menambahkan `PORT`/`APP_PORT` hanya untuk public routing; frontend image sudah mempunyai internal listener `8080`.
+Set hanya lima environment dari `.env.example` melalui project settings MyPaas. Jangan menambahkan `PORT`/`APP_PORT`, database defaults, `DATABASE_URL`, atau frontend listener env hanya untuk public routing; image dan Compose sudah menetapkan nilai stabil tersebut.
 
-Backend menjalankan `pnpm prisma migrate deploy` sebelum `pnpm start:prod`. Compose saat ini tidak menjalankan seed otomatis pada setiap restart.
+Backend menjalankan `pnpm prisma migrate deploy` sebelum `pnpm start:prod`.
 
 ## Seed data
 
@@ -140,6 +140,8 @@ cd client
 pnpm test:e2e:critical
 ```
 
+Integration test Compose menggunakan nama `DATABASE_*` yang sama dengan aplikasi dan tidak meng-inject seluruh `server/.env.test`; hanya env yang diperlukan container test yang diberikan secara eksplisit. `server/.env.test` tetap menjadi konfigurasi minimal untuk menjalankan test dari host.
+
 Dokumentasi:
 
 - `docs/unit-test.md`
@@ -152,4 +154,3 @@ Jumlah test dan coverage yang tercatat pada dokumen penelitian adalah historical
 ## Catatan production TTE
 
 CA dan P12 internal SOPFlow bukan pengganti PSrE/BSrE. Jika sistem dikembangkan menjadi deployment pemerintahan production dengan kebutuhan sertifikat elektronik resmi, boundary signing sebaiknya diintegrasikan ke PSrE yang sesuai kebijakan instansi sehingga aplikasi tidak menjadi pemegang private key penandatangan.
-

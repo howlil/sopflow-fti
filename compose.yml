@@ -10,7 +10,7 @@ services:
       MARIADB_RANDOM_ROOT_PASSWORD: "1"
       MARIADB_DATABASE: sop_biro_organisasi
       MARIADB_USER: sop_app
-      MARIADB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
+      MARIADB_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
       TZ: Asia/Jakarta
     volumes:
       - db_data:/var/lib/mysql
@@ -22,7 +22,7 @@ services:
       retries: 10
 
   backend:
-    image: sop-arsip-backend:${APP_VERSION:-local}
+    image: sop-arsip-backend
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -31,14 +31,12 @@ services:
       db:
         condition: service_healthy
     environment:
-      NODE_OPTIONS: "--max-old-space-size=512"
-      NODE_ENV: production
       PUBLIC_APP_ORIGIN: ${PUBLIC_APP_ORIGIN:?set PUBLIC_APP_ORIGIN}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET}
       TTE_ENCRYPTION_SECRET: ${TTE_ENCRYPTION_SECRET:?set TTE_ENCRYPTION_SECRET}
       DATABASE_HOST: db
-      DATABASE_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
     command:
       - sh
       - -c
@@ -63,7 +61,7 @@ services:
       retries: 15
 
   frontend:
-    image: sop-arsip-frontend:${APP_VERSION:-local}
+    image: sop-arsip-frontend
     build:
       context: ./client
       dockerfile: Dockerfile
@@ -71,9 +69,6 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    environment:
-      SSR_HOST: 127.0.0.1
-      SSR_PORT: 4173
     expose:
       - "8080"
     cap_drop:
