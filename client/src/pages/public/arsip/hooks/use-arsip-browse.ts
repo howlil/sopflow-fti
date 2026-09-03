@@ -1,77 +1,81 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
-import { usePublicOpdList, usePublicSopGlobalList, usePublicSopList } from '@/api/sop-public'
+import {
+  usePublicFtiSopGlobalList,
+  usePublicProcessList,
+  usePublicProcessSopList,
+} from '@/api/sop-public'
 import { useDebouncedValue } from '@/hooks/use-debounced-value'
+import type { PublicProcessItem, PublicSopItem } from '@/types/dto/sop-public.dto'
 import { ROUTES } from '@/utils/constants'
-import type { PublicSopItem } from '@/types/dto/sop-public.dto'
-import { arsipHomeCrumb, type ArsipBreadcrumbItem } from '../components/arsip-chrome'
-import type { ArsipBrowseWorkspaceProps } from '../components/arsip-browse-workspace'
 import {
   ARSIP_AUTO_SELECT_SOP_MAX,
-  ARSIP_OPD_PAGE_SIZE,
+  ARSIP_PROCESS_PAGE_SIZE,
   ARSIP_SOP_PAGE_SIZE,
   type ArsipBrowseSearch,
 } from '../arsip-search-schema'
+import type { ArsipBrowseWorkspaceProps } from '../components/arsip-browse-workspace'
+import { arsipHomeCrumb, type ArsipBreadcrumbItem } from '../components/arsip-chrome'
+import { formatSopContext } from '../components/arsip-sop-table'
 
 const arsipRoute = getRouteApi('/arsip/')
 const EMPTY_PUBLIC_SOP_ITEMS: PublicSopItem[] = []
 
 export interface ArsipBrowseMobileState {
-  showOpd: boolean
+  showProcess: boolean
   showSopList: boolean
   showPreview: boolean
   isGlobalMode: boolean
   detailSopId?: string
 }
 
+function formatProcessContext(process: PublicProcessItem): string {
+  return process.scope === 'DEPARTMENT' && process.departmentName
+    ? `${process.departmentName} · ${process.nama}`
+    : `Fakultas · ${process.nama}`
+}
+
 export function useArsipBrowse() {
   const search = arsipRoute.useSearch()
   const navigate = arsipRoute.useNavigate()
-  const opdId = search.opdId
+  const processId = search.processId
   const detailSopId = search.detailSopId
   const q = search.q?.trim() ?? ''
   const sopSearchParam = search.sopSearch?.trim() ?? ''
-  const opdPage = search.opdPage ?? 1
+  const processPage = search.processPage ?? 1
   const sopPage = search.sopPage ?? 1
   const isGlobalMode = q.length > 0
 
   const [globalInput, setGlobalInput] = useState(q)
-  const [opdFilter, setOpdFilter] = useState('')
+  const [processFilter, setProcessFilter] = useState('')
   const [sopFilterInput, setSopFilterInput] = useState(sopSearchParam)
   const debouncedGlobal = useDebouncedValue(globalInput, 350)
-  const debouncedOpdFilter = useDebouncedValue(opdFilter, 350)
+  const debouncedProcessFilter = useDebouncedValue(processFilter, 350)
   const debouncedSopSearch = useDebouncedValue(sopFilterInput, 350)
 
-  useEffect(() => {
-    setGlobalInput(q)
-  }, [q])
-
-  useEffect(() => {
-    setSopFilterInput(sopSearchParam)
-  }, [sopSearchParam])
+  useEffect(() => setGlobalInput(q), [q])
+  useEffect(() => setSopFilterInput(sopSearchParam), [sopSearchParam])
 
   useEffect(() => {
     const next = debouncedGlobal.trim()
-    if (next === q) {
-      return
-    }
+    if (next === q) return
     void navigate({
       search: (prev: ArsipBrowseSearch) => ({
         ...prev,
         q: next || undefined,
-        opdId: next ? undefined : prev.opdId,
+        processId: next ? undefined : prev.processId,
         detailSopId: undefined,
         sopPage: 1,
         sopSearch: undefined,
+        opdId: undefined,
+        opdPage: undefined,
       }),
     })
-  }, [debouncedGlobal, q, navigate])
+  }, [debouncedGlobal, navigate, q])
 
   useEffect(() => {
     const next = debouncedSopSearch.trim()
-    if (next === sopSearchParam || isGlobalMode || !opdId) {
-      return
-    }
+    if (next === sopSearchParam || isGlobalMode || !processId) return
     void navigate({
       search: (prev: ArsipBrowseSearch) => ({
         ...prev,
@@ -80,108 +84,93 @@ export function useArsipBrowse() {
         detailSopId: undefined,
       }),
     })
-  }, [debouncedSopSearch, sopSearchParam, isGlobalMode, opdId, navigate])
+  }, [debouncedSopSearch, sopSearchParam, isGlobalMode, processId, navigate])
 
-  const opdQuery = usePublicOpdList({
-    page: opdPage,
-    limit: ARSIP_OPD_PAGE_SIZE,
-    search: debouncedOpdFilter || undefined,
+  const processQuery = usePublicProcessList({
+    page: processPage,
+    limit: ARSIP_PROCESS_PAGE_SIZE,
+    search: debouncedProcessFilter || undefined,
   })
-
-  const sopByOpdQuery = usePublicSopList(opdId ?? '', {
+  const sopByProcessQuery = usePublicProcessSopList(processId ?? '', {
     page: sopPage,
     limit: ARSIP_SOP_PAGE_SIZE,
     search: debouncedSopSearch || undefined,
   })
-
-  const globalSopQuery = usePublicSopGlobalList({
+  const globalSopQuery = usePublicFtiSopGlobalList({
     page: sopPage,
     limit: ARSIP_SOP_PAGE_SIZE,
     search: q,
   })
 
-  const opdItems = opdQuery.data?.items ?? []
-  const opdPagination = opdQuery.data?.pagination
-  const selectedOpdName =
-    sopByOpdQuery.data?.opd.nama ?? opdItems.find((o) => o.opdId === opdId)?.nama
+  const processItems = processQuery.data?.items ?? []
+  const processPagination = processQuery.data?.pagination
+  const selectedProcess =
+    sopByProcessQuery.data?.process ?? processItems.find((item) => item.processId === processId)
+  const selectedProcessName = selectedProcess ? formatProcessContext(selectedProcess) : undefined
 
   const sopItems = useMemo(
     () =>
       isGlobalMode
         ? (globalSopQuery.data?.items ?? EMPTY_PUBLIC_SOP_ITEMS)
-        : (sopByOpdQuery.data?.items ?? EMPTY_PUBLIC_SOP_ITEMS),
-    [globalSopQuery.data?.items, isGlobalMode, sopByOpdQuery.data?.items],
+        : (sopByProcessQuery.data?.items ?? EMPTY_PUBLIC_SOP_ITEMS),
+    [globalSopQuery.data?.items, isGlobalMode, sopByProcessQuery.data?.items],
   )
-
   const sopPagination = isGlobalMode
     ? globalSopQuery.data?.pagination
-    : sopByOpdQuery.data?.pagination
-
+    : sopByProcessQuery.data?.pagination
   const sopLoading = isGlobalMode
     ? globalSopQuery.isLoading
-    : Boolean(opdId) && sopByOpdQuery.isLoading
-
+    : Boolean(processId) && sopByProcessQuery.isLoading
   const sopError = isGlobalMode
     ? globalSopQuery.isError
-    : Boolean(opdId) && sopByOpdQuery.isError
-
+    : Boolean(processId) && sopByProcessQuery.isError
   const sopFetching = isGlobalMode
     ? globalSopQuery.isFetching
-    : Boolean(opdId) && sopByOpdQuery.isFetching
-
+    : Boolean(processId) && sopByProcessQuery.isFetching
   const sopListReady = isGlobalMode
     ? globalSopQuery.isSuccess
-    : Boolean(opdId) && sopByOpdQuery.isSuccess
-
+    : Boolean(processId) && sopByProcessQuery.isSuccess
   const totalSopCount = sopPagination?.totalItems ?? 0
   const hasSopSearchFilter = sopSearchParam.length > 0
 
   useEffect(() => {
-    if (detailSopId || isGlobalMode || !opdId || !sopListReady || sopItems.length === 0) {
-      return
-    }
-    if (totalSopCount > ARSIP_AUTO_SELECT_SOP_MAX) {
-      return
-    }
+    if (detailSopId || isGlobalMode || !processId || !sopListReady || sopItems.length === 0) return
+    if (totalSopCount > ARSIP_AUTO_SELECT_SOP_MAX) return
     const first = sopItems[0]
-    if (!first) {
-      return
-    }
+    if (!first) return
     void navigate({
-      search: (prev: ArsipBrowseSearch) => ({
-        ...prev,
-        detailSopId: first.detailSopId,
-      }),
+      search: (prev: ArsipBrowseSearch) => ({ ...prev, detailSopId: first.detailSopId }),
       replace: true,
     })
-  }, [detailSopId, isGlobalMode, opdId, sopListReady, sopItems, totalSopCount, navigate])
+  }, [detailSopId, isGlobalMode, processId, sopListReady, sopItems, totalSopCount, navigate])
 
-  function handleSelectOpd(id: string) {
+  function handleSelectProcess(id: string) {
     setGlobalInput('')
     setSopFilterInput('')
     void navigate({
       search: (prev: ArsipBrowseSearch) => ({
         ...prev,
-        opdId: id,
+        processId: id,
         q: undefined,
         detailSopId: undefined,
         sopPage: 1,
         sopSearch: undefined,
+        opdId: undefined,
+        opdPage: undefined,
       }),
     })
   }
 
-  function handleChangeOpd() {
+  function handleChangeProcess() {
     setSopFilterInput('')
     void navigate({
-      search: (prev: ArsipBrowseSearch) => {
-        const next = { ...prev }
-        delete next.opdId
-        delete next.detailSopId
-        delete next.sopPage
-        delete next.sopSearch
-        return next
-      },
+      search: (prev: ArsipBrowseSearch) => ({
+        ...prev,
+        processId: undefined,
+        detailSopId: undefined,
+        sopPage: undefined,
+        sopSearch: undefined,
+      }),
     })
   }
 
@@ -189,124 +178,106 @@ export function useArsipBrowse() {
     void navigate({
       search: (prev: ArsipBrowseSearch) => ({
         ...prev,
-        opdId: sop.opdId,
         detailSopId: sop.detailSopId,
+        processId: isGlobalMode ? prev.processId : (sop.processId ?? prev.processId),
       }),
     })
   }
 
   function handleClosePreview() {
-    void navigate({
-      search: (prev: ArsipBrowseSearch) => {
-        const next = { ...prev }
-        delete next.detailSopId
-        return next
-      },
-    })
+    void navigate({ search: (prev: ArsipBrowseSearch) => ({ ...prev, detailSopId: undefined }) })
   }
 
-  function handleMobileBackToOpd() {
+  function handleMobileBackToProcess() {
     setGlobalInput('')
     setSopFilterInput('')
-    void navigate({
-      search: { opdPage },
-    })
+    void navigate({ search: { processPage } })
   }
 
-  function handleOpdPageChange(page: number) {
-    void navigate({
-      search: (prev: ArsipBrowseSearch) => ({ ...prev, opdPage: page }),
-    })
+  function handleProcessPageChange(page: number) {
+    void navigate({ search: (prev: ArsipBrowseSearch) => ({ ...prev, processPage: page }) })
   }
 
   function handleSopPageChange(page: number) {
-    void navigate({
-      search: (prev: ArsipBrowseSearch) => ({ ...prev, sopPage: page }),
-    })
+    void navigate({ search: (prev: ArsipBrowseSearch) => ({ ...prev, sopPage: page }) })
   }
 
   function handleSopSearchChange(value: string) {
     setSopFilterInput(value)
   }
 
-  function handleOpdFilterChange(value: string) {
-    setOpdFilter(value)
-    void navigate({ search: (prev: ArsipBrowseSearch) => ({ ...prev, opdPage: 1 }) })
+  function handleProcessFilterChange(value: string) {
+    setProcessFilter(value)
+    void navigate({ search: (prev: ArsipBrowseSearch) => ({ ...prev, processPage: 1 }) })
   }
 
   const panelTitle = isGlobalMode
     ? 'Hasil pencarian'
-    : opdId
-      ? (selectedOpdName ?? 'Daftar SOP')
+    : processId
+      ? (selectedProcess?.nama ?? 'Daftar SOP')
       : 'Daftar SOP'
-
   const panelSubtitle = isGlobalMode
     ? `Kata kunci: “${q}”`
-    : opdId
-      ? 'Dokumen berstatus Berlaku'
+    : processId
+      ? (selectedProcessName ?? 'Dokumen berstatus Berlaku')
       : undefined
-
   const sopEmptyTitle = isGlobalMode
     ? 'Tidak ada SOP ditemukan'
     : hasSopSearchFilter
       ? 'Tidak ada SOP cocok'
       : 'Tidak ada SOP berlaku'
-
   const sopEmptyHint = isGlobalMode
-    ? 'Coba kata kunci lain atau pilih OPD di daftar.'
+    ? 'Coba judul, nomor SOP, nama Process, atau Departemen lain.'
     : hasSopSearchFilter
       ? 'Coba kata kunci lain pada filter di atas.'
-      : 'Belum ada dokumen berlaku pada OPD ini.'
+      : 'Belum ada dokumen resmi berlaku pada Process ini.'
 
-  const selectedSopJudul = useMemo(() => {
-    if (!detailSopId) {
-      return undefined
-    }
-    return sopItems.find((s) => s.detailSopId === detailSopId)?.judul
-  }, [detailSopId, sopItems])
-  const selectedSop = useMemo(() => {
-    if (!detailSopId) {
-      return undefined
-    }
-    return sopItems.find((s) => s.detailSopId === detailSopId)
-  }, [detailSopId, sopItems])
+  const selectedSop = detailSopId
+    ? sopItems.find((item) => item.detailSopId === detailSopId)
+    : undefined
+  const selectedSopContext = selectedSop ? formatSopContext(selectedSop) : selectedProcessName
 
   const breadcrumbItems = useMemo((): ArsipBreadcrumbItem[] => {
     const items: ArsipBreadcrumbItem[] = [arsipHomeCrumb()]
-    if (opdId && selectedOpdName) {
+    if (processId && selectedProcess) {
       items.push({
-        label: selectedOpdName,
+        label:
+          selectedProcess.scope === 'DEPARTMENT' && selectedProcess.departmentName
+            ? selectedProcess.departmentName
+            : 'Fakultas',
+      })
+      items.push({
+        label: selectedProcess.nama,
         to: ROUTES.ARSIP.PREFIX,
         search: {
-          opdId,
+          processId,
           sopPage: sopPage > 1 ? String(sopPage) : undefined,
           sopSearch: sopSearchParam || undefined,
         },
       })
     }
-    if (detailSopId) {
-      items.push({ label: selectedSopJudul ?? 'Dokumen SOP' })
-    }
+    if (detailSopId) items.push({ label: selectedSop?.judul ?? 'Dokumen SOP' })
     return items
-  }, [opdId, selectedOpdName, detailSopId, selectedSopJudul, sopPage, sopSearchParam])
+  }, [processId, selectedProcess, detailSopId, selectedSop?.judul, sopPage, sopSearchParam])
 
   const workspaceProps: ArsipBrowseWorkspaceProps = {
     isGlobalMode,
-    opdId,
-    selectedOpdName,
+    processId,
+    selectedProcessName,
     detailSopId,
     selectedSop,
-    opdItems,
-    opdFilter,
-    onOpdFilterChange: handleOpdFilterChange,
-    onSelectOpd: handleSelectOpd,
-    onChangeOpd: handleChangeOpd,
-    opdLoading: opdQuery.isLoading,
-    opdError: opdQuery.isError,
-    opdFetching: opdQuery.isFetching,
-    opdPagination,
-    opdPage,
-    onOpdPageChange: handleOpdPageChange,
+    selectedSopContext,
+    processItems,
+    processFilter,
+    onProcessFilterChange: handleProcessFilterChange,
+    onSelectProcess: handleSelectProcess,
+    onChangeProcess: handleChangeProcess,
+    processLoading: processQuery.isLoading,
+    processError: processQuery.isError,
+    processFetching: processQuery.isFetching,
+    processPagination,
+    processPage,
+    onProcessPageChange: handleProcessPageChange,
     sopPanelTitle: panelTitle,
     sopPanelSubtitle: panelSubtitle,
     sopItems,
@@ -316,22 +287,20 @@ export function useArsipBrowse() {
     sopLoading,
     sopError,
     sopFetching,
-    showOpdColumn: isGlobalMode,
-    showSopSearchFilter: Boolean(opdId) && !isGlobalMode,
+    showContextColumn: isGlobalMode,
+    showSopSearchFilter: Boolean(processId) && !isGlobalMode,
     sopSearch: sopFilterInput,
     onSopSearchChange: handleSopSearchChange,
     onSelectSop: handleSelectSop,
     onClosePreview: handleClosePreview,
-    onRefreshPreview: () => {
-      void (isGlobalMode ? globalSopQuery.refetch() : sopByOpdQuery.refetch())
-    },
+    onRefreshPreview: () => void (isGlobalMode ? globalSopQuery.refetch() : sopByProcessQuery.refetch()),
     sopEmptyTitle,
     sopEmptyHint,
   }
 
   const mobile: ArsipBrowseMobileState = {
-    showOpd: !isGlobalMode && !opdId && !detailSopId,
-    showSopList: (isGlobalMode || Boolean(opdId)) && !detailSopId,
+    showProcess: !isGlobalMode && !processId && !detailSopId,
+    showSopList: (isGlobalMode || Boolean(processId)) && !detailSopId,
     showPreview: Boolean(detailSopId),
     isGlobalMode,
     detailSopId,
@@ -341,21 +310,22 @@ export function useArsipBrowse() {
     globalInput,
     setGlobalInput,
     breadcrumbItems,
-    showBreadcrumb: Boolean(opdId || detailSopId),
+    showBreadcrumb: Boolean(processId || detailSopId),
     workspaceProps,
     mobile,
-    handleSelectOpd,
-    handleMobileBackToOpd,
+    handleSelectProcess,
+    handleMobileBackToProcess,
     handleSelectSop,
     handleClosePreview,
-    handleOpdPageChange,
+    handleProcessPageChange,
     handleSopPageChange,
     handleSopSearchChange,
-    opdQuery,
+    processQuery,
     panelTitle,
     panelSubtitle,
     sopItems,
     selectedSop,
+    selectedSopContext,
     sopPagination,
     sopPage,
     sopLoading,
@@ -364,7 +334,7 @@ export function useArsipBrowse() {
     sopEmptyTitle,
     sopEmptyHint,
     sopFilterInput,
-    opdId,
+    processId,
     isGlobalMode,
   }
 }
