@@ -20,6 +20,7 @@ RUN pnpm build && test -f dist/src/main.js
 FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+ENV NODE_OPTIONS=--max-old-space-size=512
 
 RUN apk add --no-cache wget \
   && corepack enable \
