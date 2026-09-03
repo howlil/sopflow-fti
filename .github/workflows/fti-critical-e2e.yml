@@ -1,35 +1,63 @@
-name: FTI Critical E2E
+name: Critical E2E
 
 on:
   workflow_dispatch:
+    inputs:
+      journeys:
+        description: 'Risk-selected journey IDs, for example: J35 J36 J37 J38, or --all'
+        required: true
+        type: string
   pull_request:
     paths:
       - '.github/workflows/fti-critical-e2e.yml'
       - 'client/e2e/**'
+      - 'client/playwright.config.ts'
       - 'client/scripts/run-e2e.mjs'
       - 'client/scripts/run-critical-e2e.mjs'
       - 'client/scripts/audit-e2e-journeys.mjs'
-      - 'client/src/pages/public/arsip/**'
-      - 'client/src/api/sop-public.ts'
-      - 'client/src/types/dto/sop-public.dto.ts'
-      - 'client/src/config/query-keys.ts'
-      - 'server/src/modules/sop/public/**'
-      - 'server/src/modules/sop/process-authoring/**'
-      - 'server/src/modules/tte/**'
-      - 'server/src/modules/sop/pdf/**'
-      - 'server/prisma/seed-e2e.ts'
-      - 'server/prisma/*.prisma'
-      - 'server/prisma/migrations/**'
+      - 'client/package.json'
 
 permissions:
   contents: read
 
 concurrency:
-  group: fti-critical-e2e-${{ github.ref }}
+  group: critical-e2e-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  fti-target-journeys:
+  registry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    defaults:
+      run:
+        working-directory: client
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: client/pnpm-lock.yaml
+
+      - name: Install client dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit critical journey registry
+        run: pnpm test:e2e:audit
+
+  selected-journeys:
+    if: github.event_name == 'workflow_dispatch'
+    needs: registry
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -56,6 +84,7 @@ jobs:
       E2E_SKIP_LOGIN_PREFLIGHT: 'true'
       E2E_SEED: 'false'
       E2E_CRITICAL: 'true'
+      E2E_CRITICAL_JOURNEYS: ${{ inputs.journeys }}
 
     steps:
       - name: Checkout
@@ -75,6 +104,46 @@ jobs:
           cache-dependency-path: |
             server/pnpm-lock.yaml
             client/pnpm-lock.yaml
+
+      - name: Resolve critical journey selection
+        id: selection
+        working-directory: client
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+
+          const raw = (process.env.E2E_CRITICAL_JOURNEYS ?? '').trim()
+          if (!raw) {
+            console.error('Critical E2E requires explicit journey IDs or --all.')
+            process.exit(1)
+          }
+
+          const all = Array.from({ length: 38 }, (_, index) => `J${String(index + 1).padStart(2, '0')}`)
+          const allowed = new Set(all)
+          let ids
+
+          if (raw === '--all') {
+            ids = all
+          } else {
+            ids = [...new Set(raw.split(/[\s,]+/).filter(Boolean).map((value) => value.toUpperCase()))]
+            const invalid = ids.filter((id) => !allowed.has(id))
+            if (invalid.length > 0) {
+              console.error(`Unknown critical journey id(s): ${invalid.join(', ')}`)
+              process.exit(1)
+            }
+          }
+
+          if (ids.length === 0) {
+            console.error('Critical E2E selection resolved to an empty set.')
+            process.exit(1)
+          }
+
+          const grep = `(?:${ids.join('|')})\\b`
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `grep=${grep}\n`)
+          console.log(`Critical E2E selection: ${ids.join(', ')}`)
+          NODE
 
       - name: Install server dependencies
         working-directory: server
@@ -139,13 +208,9 @@ jobs:
         working-directory: client
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Audit critical journey registry
+      - name: Run selected critical journeys
         working-directory: client
-        run: pnpm test:e2e:audit
-
-      - name: Run M10 risk-selected target journeys J35-J38
-        working-directory: client
-        run: node scripts/run-e2e.mjs journeys --grep 'J(35|36|37|38)\b' --project=chromium
+        run: node scripts/run-e2e.mjs journeys --grep "${{ steps.selection.outputs.grep }}" --project=chromium
 
       - name: Backend logs on failure
         if: failure()
