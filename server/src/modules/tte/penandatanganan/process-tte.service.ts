@@ -135,6 +135,9 @@ export class ProcessTteService {
             if (process === null || detail === null) {
               throw new ConflictException('Context feedback Process SOP tidak ditemukan');
             }
+            if (detail.dibuatOlehId === null) {
+              throw new ConflictException('Author SOP Process tidak tersedia untuk feedback efektif');
+            }
 
             notifiedRecipients = await this.processNotificationService.createManyInTransaction(tx, [
               {
