@@ -17,7 +17,7 @@ function signingContextTx() {
         nomorSOP: 'SOP-01',
         versi: 2,
         status: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
-        sop: { opdId: 'opd-1', judul: 'SOP Akademik' },
+        sop: { processId, judul: 'SOP Akademik' },
       }),
       findFirst: jest.fn().mockResolvedValue({ detailSopId }),
       findMany: jest.fn().mockResolvedValue([{ detailSopId: 'detail-old' }]),
@@ -25,9 +25,6 @@ function signingContextTx() {
         .fn()
         .mockResolvedValueOnce({ count: 1 })
         .mockResolvedValueOnce({ count: 0 }),
-    },
-    processSopBinding: {
-      findUnique: jest.fn().mockResolvedValue({ processId }),
     },
     processFinalApproval: {
       findUnique: jest.fn().mockResolvedValue({

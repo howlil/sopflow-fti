@@ -39,7 +39,7 @@ export class SopPublicService {
       }),
     ]);
     const items: PublicOpdItemDto[] = rows.map((row) => ({
-      opdId: row.opdId,
+      opdId: row.opdId!,
       nama: row.nama,
       jumlahSopBerlaku: row.jumlahSopBerlaku,
     }));

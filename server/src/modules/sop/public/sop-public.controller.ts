@@ -92,7 +92,7 @@ export class SopPublicController {
   @ApiOperation({
     summary: 'Daftar SOP resmi berlaku per Process FTI',
     description:
-      'Target-native public discovery melalui ProcessSopBinding. Legacy SOP.opdId bukan sumber klasifikasi untuk endpoint ini.',
+      'Target-native public discovery melalui SOP.processId. Legacy SOP.opdId bukan sumber klasifikasi untuk endpoint ini.',
   })
   @ApiNotFoundResponse({ description: 'Process tidak ditemukan' })
   async listSopByProcess(
@@ -110,7 +110,7 @@ export class SopPublicController {
   @ApiOperation({
     summary: 'Cari SOP resmi pada arsip FTI',
     description:
-      'Mencari judul, nomor SOP, Process, atau Departemen. Process-bound SOP diklasifikasikan melalui ProcessSopBinding; SOP legacy tanpa binding tetap tersedia satu kali sebagai compatibility result.',
+      'Mencari judul, nomor SOP, Process, atau Departemen. Process-bound SOP diklasifikasikan melalui SOP.processId; SOP legacy tanpa Process tetap tersedia satu kali sebagai compatibility result.',
   })
   async listFtiSopGlobal(
     @Query() query: PublicArsipQueryDto,

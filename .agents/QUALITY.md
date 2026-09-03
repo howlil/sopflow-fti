@@ -152,7 +152,7 @@ For a complete cross-owner chain, prefer focused API/domain/persistence integrat
 
 ### Public archive / discovery
 
-When Process-native public discovery changes, protect applicable invariants such as authoritative `ProcessSopBinding` classification, current `BERLAKU` + official `PUBLISHED` artifact filtering, faculty/department context, Process-scoped lists, legacy/unbound compatibility, official persisted artifact resolution, and revocation behavior.
+When Process-native public discovery changes, protect applicable invariants such as native `SOP.processId` classification, current `BERLAKU` + official `PUBLISHED` artifact filtering, faculty/department context, Process-scoped lists, legacy/unbound compatibility, official persisted artifact resolution, and revocation behavior.
 
 Use focused repository-owned integration across SQL/HTTP/projection boundaries when the change spans them. Browser E2E is not a required gate.
 

@@ -13,8 +13,8 @@ export class PublicOpdRingkasDto {
 
 /** Dokumen SOP berlaku untuk pratinjau publik (tanpa log audit / umpan balik evaluasi). */
 export class PublicSopDokumenDto {
-  @ApiProperty({ type: () => PublicOpdRingkasDto })
-  readonly opd!: PublicOpdRingkasDto;
+  @ApiPropertyOptional({ type: () => PublicOpdRingkasDto, nullable: true })
+  readonly opd!: PublicOpdRingkasDto | null;
 
   @ApiProperty({ type: () => PenyusunWorkbenchDetailDto })
   readonly detail!: PenyusunWorkbenchDetailDto;

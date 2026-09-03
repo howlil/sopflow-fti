@@ -25,12 +25,12 @@ export type PublicProcessDbRow = {
 export type PublicSopDbRow = {
   readonly detailSopId: string;
   readonly sopId: string;
-  readonly opdId: string;
+  readonly opdId: string | null;
   readonly judul: string;
   readonly nomorSOP: string;
   readonly versi: number;
   readonly tanggalEfektif: Date | null;
-  readonly opdNama: string;
+  readonly opdNama: string | null;
   readonly pdfPath: string;
 };
 
@@ -181,8 +181,8 @@ export class SopPublicRepository {
       SELECT COUNT(DISTINCT p.processId) AS total
       FROM Process p
       LEFT JOIN Department dep ON dep.departmentId = p.departmentId
-      JOIN ProcessSopBinding psb ON psb.processId = p.processId
-      JOIN DetailSOP d ON d.sopId = psb.sopId
+      JOIN SOP s ON s.processId = p.processId
+      JOIN DetailSOP d ON d.sopId = s.sopId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
       WHERE d.status = ${StatusSOP.BERLAKU}
         AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
@@ -210,8 +210,8 @@ export class SopPublicRepository {
         COUNT(DISTINCT d.detailSopId) AS jumlahSopBerlaku
       FROM Process p
       LEFT JOIN Department dep ON dep.departmentId = p.departmentId
-      JOIN ProcessSopBinding psb ON psb.processId = p.processId
-      JOIN DetailSOP d ON d.sopId = psb.sopId
+      JOIN SOP s ON s.processId = p.processId
+      JOIN DetailSOP d ON d.sopId = s.sopId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
       WHERE d.status = ${StatusSOP.BERLAKU}
         AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
@@ -244,9 +244,9 @@ export class SopPublicRepository {
         COUNT(DISTINCT d.detailSopId) AS jumlahSopBerlaku
       FROM Process p
       LEFT JOIN Department dep ON dep.departmentId = p.departmentId
-      LEFT JOIN ProcessSopBinding psb ON psb.processId = p.processId
+      LEFT JOIN SOP s ON s.processId = p.processId
       LEFT JOIN DetailSOP d
-        ON d.sopId = psb.sopId
+        ON d.sopId = s.sopId
         AND d.status = ${StatusSOP.BERLAKU}
       LEFT JOIN DokumenTte dt
         ON dt.detailSopId = d.detailSopId
@@ -266,11 +266,10 @@ export class SopPublicRepository {
   async countBerlakuSopByProcess(processId: string, search?: string): Promise<number> {
     const rows = await this.prisma.$queryRaw<Array<{ total: bigint | number }>>`
       SELECT COUNT(DISTINCT d.detailSopId) AS total
-      FROM ProcessSopBinding psb
-      JOIN SOP s ON s.sopId = psb.sopId
+      FROM SOP s
       JOIN DetailSOP d ON d.sopId = s.sopId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
-      WHERE psb.processId = ${processId}
+      WHERE s.processId = ${processId}
         AND d.status = ${StatusSOP.BERLAKU}
         AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
         AND dt.pdfStatus = ${'PUBLISHED'}
@@ -287,7 +286,7 @@ export class SopPublicRepository {
     take: number;
   }): Promise<PublicFtiSopDbRow[]> {
     return this.findPublishedProcessSopRows(
-      Prisma.sql`psb.processId = ${params.processId}`,
+      Prisma.sql`s.processId = ${params.processId}`,
       params.search,
       params.skip,
       params.take,
@@ -299,10 +298,9 @@ export class SopPublicRepository {
       SELECT COUNT(*) AS total
       FROM (
         SELECT DISTINCT d.detailSopId
-        FROM ProcessSopBinding psb
-        JOIN Process p ON p.processId = psb.processId
+        FROM SOP s
+        JOIN Process p ON p.processId = s.processId
         LEFT JOIN Department dep ON dep.departmentId = p.departmentId
-        JOIN SOP s ON s.sopId = psb.sopId
         JOIN DetailSOP d ON d.sopId = s.sopId
         JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
         WHERE d.status = ${StatusSOP.BERLAKU}
@@ -324,7 +322,7 @@ export class SopPublicRepository {
           AND dt.pdfStatus = ${'PUBLISHED'}
           AND dt.pdfPath IS NOT NULL
           AND NOT EXISTS (
-            SELECT 1 FROM ProcessSopBinding existingBinding WHERE existingBinding.sopId = s.sopId
+            SELECT 1 FROM SOP nativeSop WHERE nativeSop.sopId = s.sopId AND nativeSop.processId IS NOT NULL
           )
           ${this.searchSql(search, true)}
       ) catalog
@@ -355,11 +353,10 @@ export class SopPublicRepository {
           p.scope,
           p.departmentId,
           dep.nama AS departmentName
-        FROM ProcessSopBinding psb
-        JOIN Process p ON p.processId = psb.processId
+        FROM SOP s
+        JOIN Process p ON p.processId = s.processId
         LEFT JOIN Department dep ON dep.departmentId = p.departmentId
-        JOIN SOP s ON s.sopId = psb.sopId
-        JOIN OPD o ON o.opdId = s.opdId
+        LEFT JOIN OPD o ON o.opdId = s.opdId
         JOIN DetailSOP d ON d.sopId = s.sopId
         JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
         WHERE d.status = ${StatusSOP.BERLAKU}
@@ -394,9 +391,7 @@ export class SopPublicRepository {
           AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
           AND dt.pdfStatus = ${'PUBLISHED'}
           AND dt.pdfPath IS NOT NULL
-          AND NOT EXISTS (
-            SELECT 1 FROM ProcessSopBinding existingBinding WHERE existingBinding.sopId = s.sopId
-          )
+          AND s.processId IS NULL
           ${this.searchSql(params.search, true)}
       ) catalog
       ORDER BY judul ASC, nomorSOP ASC
@@ -409,11 +404,10 @@ export class SopPublicRepository {
       SELECT d.detailSopId, s.judul, d.nomorSOP, d.versi, dt.pdfPath, dt.pdfSha256
       FROM DetailSOP d
       JOIN SOP s ON s.sopId = d.sopId
-      JOIN OPD o ON o.opdId = s.opdId
-      LEFT JOIN ProcessSopBinding psb ON psb.sopId = s.sopId
+      LEFT JOIN OPD o ON o.opdId = s.opdId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
       WHERE d.detailSopId = ${detailSopId}
-        AND (psb.sopId IS NOT NULL OR o.deletedAt IS NULL)
+        AND (s.processId IS NOT NULL OR (o.opdId IS NOT NULL AND o.deletedAt IS NULL))
         AND d.status = ${StatusSOP.BERLAKU}
         AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
         AND dt.pdfStatus = ${'PUBLISHED'}
@@ -479,11 +473,10 @@ export class SopPublicRepository {
         p.scope,
         p.departmentId,
         dep.nama AS departmentName
-      FROM ProcessSopBinding psb
-      JOIN Process p ON p.processId = psb.processId
+      FROM SOP s
+      JOIN Process p ON p.processId = s.processId
       LEFT JOIN Department dep ON dep.departmentId = p.departmentId
-      JOIN SOP s ON s.sopId = psb.sopId
-      JOIN OPD o ON o.opdId = s.opdId
+      LEFT JOIN OPD o ON o.opdId = s.opdId
       JOIN DetailSOP d ON d.sopId = s.sopId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
       WHERE ${extraWhere}

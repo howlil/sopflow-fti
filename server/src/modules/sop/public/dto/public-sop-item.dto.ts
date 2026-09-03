@@ -9,8 +9,8 @@ export class PublicSopItemDto {
   @ApiProperty({ format: 'uuid' })
   readonly sopId!: string;
 
-  @ApiProperty({ format: 'uuid', description: 'Legacy compatibility shadow' })
-  readonly opdId!: string;
+  @ApiPropertyOptional({ format: 'uuid', nullable: true, description: 'Legacy compatibility shadow' })
+  readonly opdId!: string | null;
 
   @ApiProperty()
   readonly judul!: string;
@@ -24,8 +24,8 @@ export class PublicSopItemDto {
   @ApiPropertyOptional({ nullable: true, description: 'Tanggal efektif pengesahan (ISO 8601)' })
   readonly tanggalEfektif!: string | null;
 
-  @ApiProperty({ description: 'Nama OPD compatibility shadow / legacy classification' })
-  readonly opdNama!: string;
+  @ApiPropertyOptional({ nullable: true, description: 'Nama OPD compatibility shadow / legacy classification' })
+  readonly opdNama!: string | null;
 
   @ApiPropertyOptional({ format: 'uuid', nullable: true })
   readonly processId!: string | null;

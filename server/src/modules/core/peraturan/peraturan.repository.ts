@@ -11,7 +11,7 @@ export type PeraturanRow = {
   lastEditedBy: null | {
     penggunaId: string;
     nama: string;
-    opd: { opdId: string; nama: string };
+    opd: { opdId: string; nama: string } | null;
   };
   createdAt: Date;
   updatedAt: Date;

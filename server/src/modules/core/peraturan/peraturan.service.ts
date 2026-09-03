@@ -31,7 +31,10 @@ export class PeraturanService {
           : {
               id: row.lastEditedBy.penggunaId,
               nama: row.lastEditedBy.nama,
-              opd: { id: row.lastEditedBy.opd.opdId, nama: row.lastEditedBy.opd.nama },
+              opd:
+                row.lastEditedBy.opd === null
+                  ? { id: opdId, nama: 'Tidak tersedia' }
+                  : { id: row.lastEditedBy.opd.opdId, nama: row.lastEditedBy.opd.nama },
             },
       digunakan: row.dasarHukumCount,
     };

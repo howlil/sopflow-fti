@@ -177,14 +177,14 @@ Consequence:
 
 **Status:** ACTIVE
 
-The normal public archive experience for the FTI target product is organized by persisted organizational scope and `Process`, then by the current published SOPs bound to that Process. `ProcessSopBinding` is the authoritative target classification for Process-bound SOP publication/discovery.
+The normal public archive experience for the FTI target product is organized by persisted organizational scope and `Process`, then by the current published SOPs whose native `SOP.processId` points to that Process. `ProcessSopBinding` is retained only as migration/backfill evidence and an explicit compatibility boundary.
 
 Legacy OPD-based public endpoints remain compatibility contracts and legacy/unbound published SOPs may remain discoverable through an explicit compatibility fallback. A Process-bound SOP must not be duplicated in the target catalog merely because its legacy `SOP.opdId` compatibility shadow still exists.
 
 Rationale:
 
 - the target product model is Process-oriented, so public discovery should expose the same domain users see during authoring/review rather than require visitors to understand OPD-era ownership;
-- publication eligibility is a lifecycle/artifact fact (`BERLAKU` + official published PDF), while public classification is a Process-binding fact;
+- publication eligibility is a lifecycle/artifact fact (`BERLAKU` + official published PDF), while public classification is the native `SOP.processId` ownership fact;
 - preserving additive compatibility avoids destructive migration while allowing the target information architecture to become primary.
 
 Consequence:

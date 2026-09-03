@@ -33,7 +33,9 @@ import { UpdateSopProsedurDto } from './dto/update-sop-prosedur.dto';
 import { SopProsedurService } from './sop-prosedur.service';
 
 @ApiTags('SOP')
-@Controller('sop/langkah')
+// The Process path is the first-party contract; the legacy path remains as a
+// compatibility adapter for existing clients and historical SOPs.
+@Controller(['process-sop/langkah', 'sop/langkah'])
 @UseGuards(JwtAuthGuard)
 export class SopProsedurController {
   constructor(

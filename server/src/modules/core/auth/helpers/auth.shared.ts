@@ -173,7 +173,7 @@ export type PublicPengguna = {
   readonly nama: string;
   readonly peran: PeranPengguna;
   readonly platformRole: PlatformRole;
-  readonly opdId: string;
+  readonly opdId: string | null;
   readonly nip: string;
   readonly jabatan: string;
   readonly pangkat: string;

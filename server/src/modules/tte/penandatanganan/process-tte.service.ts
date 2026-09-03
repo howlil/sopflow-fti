@@ -98,7 +98,7 @@ export class ProcessTteService {
       signerName: pengguna.nama,
     });
     const relativePath = this.sopPdfStorageService.buildRelativePath({
-      opdId: prepared.item.opdId,
+      processId: prepared.item.processId,
       sopId: prepared.item.sopId,
       detailSopId: prepared.item.detailSopId,
       versi: prepared.item.versi,

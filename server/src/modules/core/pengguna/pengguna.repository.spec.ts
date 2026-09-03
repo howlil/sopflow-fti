@@ -36,4 +36,30 @@ describe('Pengujian PenggunaRepository.createPengguna', () => {
       }),
     });
   });
+
+  it('seharusnya dapat membuat akun platform tanpa fabricated OPD shadow', async () => {
+    const created = { penggunaId: 'native-user-1', platformRole: 'USER' };
+    const tx = {
+      pengguna: { create: jest.fn().mockResolvedValue(created) },
+    };
+    const nativePrisma = {
+      $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) => callback(tx)),
+    };
+    const nativeRepo = new PenggunaRepository(nativePrisma as unknown as PrismaService);
+
+    await nativeRepo.createPlatformAccountWithHistory({
+      email: 'native@example.test',
+      nama: 'Native User',
+      nip: '199001010000000001',
+      jabatan: 'Process Member',
+      pangkat: 'IV/a',
+      nohp: '6281234567890',
+      kataSandi: 'hash',
+    });
+
+    expect(tx.pengguna.create).toHaveBeenCalledWith({
+      data: expect.not.objectContaining({ opdId: expect.anything() }),
+      select: expect.anything(),
+    });
+  });
 });

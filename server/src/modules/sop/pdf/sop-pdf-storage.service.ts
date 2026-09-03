@@ -22,13 +22,16 @@ export class SopPdfStorageService {
   }
 
   buildRelativePath(params: {
-    opdId: string;
+    /** Native Process namespace. */
+    processId?: string;
+    /** Legacy compatibility namespace used only by the old evaluator workflow. */
+    opdId?: string;
     sopId: string;
     detailSopId: string;
     versi: number;
   }): string {
     return [
-      this.segment(params.opdId),
+      this.segment(params.processId ?? params.opdId ?? 'unscoped'),
       this.segment(params.sopId),
       `v${params.versi}-${this.segment(params.detailSopId)}.pdf`,
     ].join('/');

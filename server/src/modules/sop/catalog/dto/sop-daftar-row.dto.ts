@@ -7,8 +7,8 @@ export class SopDaftarRowDto {
   @ApiProperty({ description: 'ID header SOP (sopId)' })
   readonly id!: string;
 
-  @ApiProperty({ description: 'OPD pemilik header SOP' })
-  readonly opdId!: string;
+  @ApiPropertyOptional({ description: 'Legacy OPD compatibility shadow', nullable: true })
+  readonly opdId!: string | null;
 
   @ApiPropertyOptional({
     description: 'ID DetailSOP versi terakhir; null jika belum ada versi',

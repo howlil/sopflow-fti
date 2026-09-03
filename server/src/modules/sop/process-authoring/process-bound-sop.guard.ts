@@ -61,13 +61,13 @@ export class ProcessBoundSopGuard implements CanActivate {
     const sopId = directSop?.sopId ?? directDetail?.sopId;
     if (!sopId) return true;
 
-    const binding = await this.prisma.processSopBinding.findUnique({
+    const sop = await this.prisma.sOP.findUnique({
       where: { sopId },
       select: { processId: true },
     });
-    if (!binding) return true;
+    if (sop?.processId === null || sop === null) return true;
 
-    await this.processContextService.assertCanAuthor(user.sub, binding.processId);
+    await this.processContextService.assertCanAuthor(user.sub, sop.processId);
     return true;
   }
 }

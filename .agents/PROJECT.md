@@ -252,7 +252,7 @@ FACULTY / DEPARTMENT scope
 
 Committed semantics:
 
-- `ProcessSopBinding` is the current transitional authoritative classification for Process-bound SOPs in target public discovery until direct native SOP-to-Process ownership replaces it;
+- `SOP.processId` is the native authoritative ownership/classification for Process-bound SOPs in target public discovery; `ProcessSopBinding` remains only as migration/backfill evidence and explicit compatibility boundary;
 - a Process-bound SOP is public only when the relevant version is `BERLAKU` and has an official `PUBLISHED` PDF artifact;
 - faculty Processes and department Processes are discoverable from their persisted organizational scope; department context is shown for `DEPARTMENT` Processes;
 - selecting a Process returns only the current published SOPs bound to that Process;
@@ -440,8 +440,8 @@ Do not introduce without an explicit new product decision:
 
 The following remain implementation work until an explicit milestone activates them; their existence does not authorize autonomous cleanup:
 
-- direct native SOP-to-Process ownership cutover and retirement of `ProcessSopBinding` / `SOP.opdId`;
-- account/authorization cutover away from `Pengguna.opdId` and legacy global roles;
+- contract cleanup/retirement of `ProcessSopBinding` / `SOP.opdId` after compatibility evidence and external contracts permit it;
+- continued isolation of `Pengguna.opdId` and legacy global roles from native target authorization;
 - retirement or FTI-native replacement of remaining OPD-owned supporting-domain behavior;
 - isolation/retirement of legacy evaluation workflows that are not part of the target FTI product;
 - removal of legacy first-party routes, DTOs, API clients, tables, columns, enums, and compatibility APIs after exit criteria are met;

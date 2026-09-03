@@ -45,7 +45,7 @@ export const sopApi = {
   updateSopProsedur: (detailSopId: string, payload: UpdateSopProsedurDto) =>
     unwrapApiData(
       apiClient.patch<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/sop/langkah/${detailSopId}`,
+        `/process-sop/langkah/${detailSopId}`,
         payload,
       ),
     ),
@@ -53,7 +53,7 @@ export const sopApi = {
   updateSopDiagram: (detailSopId: string, payload: UpdateSopDiagramDto) =>
     unwrapApiData(
       apiClient.patch<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/sop/diagram/${detailSopId}`,
+        `/process-sop/diagram/${detailSopId}`,
         payload,
       ),
     ),
@@ -86,16 +86,16 @@ export const sopApi = {
 
   getRiwayatVersi: (sopId: string) =>
     unwrapApiData(
-      apiClient.get<ApiSuccessResponse<SopRiwayatVersiRow[]>>(`/sop/${sopId}/riwayat-versi`),
+      apiClient.get<ApiSuccessResponse<SopRiwayatVersiRow[]>>(`/process-sop/${sopId}/history`),
     ),
 
   hapusVersiDraft: (detailSopId: string) =>
     unwrapApiData(
-      apiClient.delete<ApiSuccessResponse<null>>(`/sop/${detailSopId}/versi-draft`),
+      apiClient.delete<ApiSuccessResponse<null>>(`/process-sop/${detailSopId}/versi-draft`),
     ),
 
   hapusSopDraftAwal: (detailSopId: string) =>
-    unwrapApiData(apiClient.delete<ApiSuccessResponse<null>>(`/sop/${detailSopId}/draft`)),
+    unwrapApiData(apiClient.delete<ApiSuccessResponse<null>>(`/process-sop/${detailSopId}/draft`)),
 
   // Parameter dipertahankan sementara agar consumer legacy tidak pecah; server mengabaikan OPD.
   findPelaksana: (_legacyOpdId: string) =>

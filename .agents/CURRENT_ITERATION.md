@@ -2,117 +2,43 @@
 
 ## Shape
 
-**Milestone:** M10 — FTI-Native Public SOP Discovery & Archive Cutover  
-**State:** INTEGRATED / RELEASE_READY  
-**Source branch:** `m10-public-fti-archive`  
-**PR:** #17  
-**Squash merge:** `d7013075de45a154088415adb67522a539d335bc`
-
-Outcome: public visitors discover current FTI SOPs through organizational scope and Process context, open the official published PDF, and stop seeing a Process-bound SOP immediately after contextual revocation, while legacy public endpoints remain compatibility contracts.
+**Milestone:** M11 — Native FTI Runtime Cutover
+**State:** IMPLEMENTED / VERIFICATION_PENDING
+**Scope:** All six M11 slices: native SOP ownership, native account/authorization prerequisites, approval/TTE/effective lifecycle, complete lifecycle, first-party FTI surface, and explicit legacy isolation.
 
 ## Position
 
 ```text
-J35 Public FTI Catalog                 VERIFIED / INTEGRATED
-J36 Public Process Discovery           VERIFIED / INTEGRATED
-J37 Official Document Continuity       VERIFIED / INTEGRATED
-J38 Publication Compatibility          VERIFIED / INTEGRATED
-M10 milestone gate                     PASS
-Release readiness                      RELEASE_READY
-Release/deployment                     NOT PERFORMED
+S1 Native SOP ownership                 IMPLEMENTED / LOCAL TESTED
+S2 Native account and authorization     IMPLEMENTED / LOCAL TYPECHECKED
+S3 Approval, TTE, effective lifecycle   IMPLEMENTED / LOCAL TESTED
+S4 Version/replacement/revocation       IMPLEMENTED / LOCAL TESTED
+S5 First-party FTI surface              IMPLEMENTED / LOCAL TYPECHECKED
+S6 Legacy isolation and contract        IMPLEMENTED / DOC + SEARCH AUDITED
+Migration-backed proof                  PENDING MIGRATION SMOKE
+Integration/release/deployment          NOT PERFORMED
 ```
 
-## Exact Source-Head Evidence
+## Delta
 
-Source head: `20316c17afcb41fef9d816dfd96bca9d02c6946c`
+- `SOP.processId` is the native ownership source; the additive migration backfills it from `ProcessSopBinding` and adds a restrictive foreign key.
+- `Pengguna.opdId` is nullable so a fresh native account does not need fabricated OPD membership. Native authorization uses platform role, Process relationship, and Organizational Authority.
+- Native authoring, procedure mutation, versioning, Process Owner review, contextual approval, TTE, notifications, revocation, and public FTI discovery read Process context directly. Native paths no longer look up `ProcessSopBinding`.
+- OPD fields/routes, legacy roles, evaluation workflow, `ProcessSopBinding`, and unbound SOP rows remain only behind explicit compatibility/historical boundaries. No destructive historical cleanup was performed.
+- The protected Edit SOP workspace was not redesigned or behaviorally rewritten.
 
-```text
-Server CI #262                       PASS
-Client CI #361                       PASS
-Migration Smoke                      NOT SELECTED — no Prisma schema/migration input changed
-```
+## Evidence
 
-The source head and squash merge share the same tree: `eced201a9b7076b859bf9b680b528bbd729098b9`.
-
-Current repository policy uses deterministic server/client/domain/integration/migration/container evidence selected by changed risk. Browser E2E, black-box testing, manual acceptance, and manual visual review are not milestone or release-readiness gates.
-
-## Integration
-
-```text
-PR #17                               MERGED
-Squash merge SHA                     d7013075de45a154088415adb67522a539d335bc
-```
-
-## Integrated Master Evidence
-
-Integrated master revision: `d7013075de45a154088415adb67522a539d335bc`
-
-```text
-Server CI #263                       PASS
-Client CI #362                       PASS
-```
-
-Migration Smoke did not run and was not required because M10 changed no Prisma schema or migration input.
-
-## Integrated Behavior
-
-### J35 — Public FTI Catalog
-
-- `ProcessSopBinding` is the authoritative target classification for Process-bound SOPs in the public catalog;
-- additive target endpoints are available under `/sop/public/fti/...`;
-- Process catalog rows expose faculty/department scope and Department context;
-- target-public rows require `BERLAKU` plus an official `PUBLISHED` PDF artifact;
-- Process-bound rows are excluded from the legacy-unbound fallback of target global search, preventing duplicate target publication results.
-
-### J36 — Public Process Discovery
-
-- normal `/arsip` navigation is Process-first rather than OPD-first;
-- faculty and department Processes are grouped from persisted organizational scope;
-- selecting a Process scopes the public SOP list to that Process;
-- global search remains a shortcut across SOP title/number, Process, and Department;
-- `processId` is the target route context while legacy `opdId` search input remains parse-compatible for old URLs.
-
-### J37 — Official Document Continuity
-
-- target public results reuse `/sop/public/pdf/:detailSopId`;
-- the existing PDF endpoint revalidates current effective/published evidence on each request;
-- the archive preview reuses the official PDF artifact rather than creating a parallel public document representation.
-
-### J38 — Publication Compatibility
-
-- legacy `/sop/public/opd`, `/sop/public/opd/:opdId/sop`, and `/sop/public/sop` endpoints remain available;
-- legacy/unbound published SOPs remain available through target global compatibility fallback;
-- a Process-bound SOP appears once in target global discovery despite its legacy OPD compatibility shadow;
-- contextual revocation removes it from current target discovery and official public PDF availability while preserving historical evidence.
-
-## Public API Additions
-
-```text
-GET /sop/public/fti/processes
-GET /sop/public/fti/processes/:processId/sop
-GET /sop/public/fti/sop
-```
-
-## Boundaries Preserved
-
-- no Prisma schema or migration change;
-- no authoring/review/approval/TTE/revocation authority change;
-- no destructive OPD/legacy data migration;
-- no removal of legacy public endpoints;
-- no Edit SOP protected-surface change;
-- no new PDF generation/storage model;
-- no public authentication requirement;
-- no release/deployment.
-
-## Release / Deployment
-
-```text
-RELEASED: NO
-DEPLOYED: NO
-```
-
-M10 is integrated and release-ready only. Release and deployment remain unauthorized.
+- `pnpm prisma generate` — PASS
+- `pnpm prisma validate` — PASS
+- server `pnpm typecheck` — PASS
+- client `pnpm typecheck` — PASS
+- focused native lifecycle test run — PASS, 11 suites / 55 tests
+- native account provisioning test — PASS, 1 suite / 2 tests (including no-OPD account creation)
+- client unit test run — PASS, 91 files / 407 tests (2 skipped)
+- server lint — NOT CLEAN: repository-wide baseline reports 1,144 errors / 73 warnings, including existing unsafe-test and line-ending/prettier findings; typecheck remains clean
+- local Migration Smoke — NOT RUN: Docker daemon unavailable on this host
 
 ## Next Move
 
-**STOP.** M10 is closed at `INTEGRATED / RELEASE_READY`. Do not invent or activate M11, promote deferred legacy cleanup, release, or deploy without a new explicit user instruction.
+Run the repository Migration Smoke gate in CI or a host with MariaDB 11.4/Docker. It must prove the full migration chain, the `SOP.processId` foreign key, zero unbackfilled or mismatched `ProcessSopBinding` rows, zero orphan Process references, and nullable `Pengguna.opdId`. After that evidence, review the M11 contract/retirement decision separately; do not delete historical schema or compatibility APIs as part of this iteration.

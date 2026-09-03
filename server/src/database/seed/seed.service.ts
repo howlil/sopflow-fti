@@ -260,7 +260,7 @@ export class SeedService {
           nohp: true,
         },
       });
-      result[user.email] = persisted;
+      result[user.email] = { ...persisted, opdId: persisted.opdId! };
     }
     return result;
   }

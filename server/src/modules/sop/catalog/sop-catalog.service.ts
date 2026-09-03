@@ -65,6 +65,19 @@ export class SopCatalogService {
     await this.userOpdAccessService.assertWorkbenchAccess(user, sopOpdId);
   }
 
+  private async assertLegacyContextOpdAccess(
+    user: JwtAccessPayload,
+    context: { processId: string | null; sopOpdId: string | null },
+  ): Promise<void> {
+    if (context.processId !== null) {
+      throw new ForbiddenException('SOP native harus diakses melalui Process workspace');
+    }
+    if (context.sopOpdId === null) {
+      throw new ForbiddenException('SOP legacy tidak memiliki OPD compatibility context');
+    }
+    await this.assertOpdAccessForWorkbench(user, context.sopOpdId);
+  }
+
   async getPenyusunWorkbench(
     user: JwtAccessPayload,
     detailSopId: string,
@@ -77,6 +90,9 @@ export class SopCatalogService {
     );
     if (row === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
+    }
+    if (row.sop.opdId === null) {
+      throw new ForbiddenException('SOP native harus diakses melalui Process workspace');
     }
     await this.assertOpdAccessForWorkbench(user, row.sop.opdId);
     return mapWorkbenchPayload(row);
@@ -113,7 +129,10 @@ export class SopCatalogService {
     }
     const workbench = mapWorkbenchPayload(row);
     return {
-      opd: { id: row.sop.opdId, nama: row.sop.opd.nama },
+      opd:
+        row.sop.opd === null || row.sop.opdId === null
+          ? null
+          : { id: row.sop.opdId, nama: row.sop.opd.nama },
       detail: { ...workbench.detail, nilaiEvaluasi: [] },
       langkah: workbench.langkah,
       diagramKonfigurasi: workbench.diagramKonfigurasi,
@@ -136,7 +155,7 @@ export class SopCatalogService {
     if (ctx === null) {
       throw new NotFoundException('SOP tidak ditemukan');
     }
-    await this.assertOpdAccessForWorkbench(user, ctx.sopOpdId);
+    await this.assertLegacyContextOpdAccess(user, ctx);
     const riwayat = await this.sopCatalogRepository.findRiwayatVersiBySopId(resolved.sopId);
     const allStatuses = riwayat.map((row) => row.status);
     if (hasRevisiInFlight(allStatuses)) {
@@ -177,7 +196,7 @@ export class SopCatalogService {
     if (ctx === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
-    await this.assertOpdAccessForWorkbench(user, ctx.sopOpdId);
+    await this.assertLegacyContextOpdAccess(user, ctx);
     assertAllowedSopStatusTransition({ role: user.peran, current: ctx.status, target: dto.status });
     const logsLimit = this.clampLogsLimit(logsLimitRaw);
     if (dto.status === StatusSOP.MENUNGGU_PENGAJUAN_EVALUASI) {
@@ -224,7 +243,7 @@ export class SopCatalogService {
         `Hanya SOP berstatus REVISI_DARI_EVALUATOR yang dapat dikirim ulang ke evaluator (status saat ini: ${String(ctx.status)})`,
       );
     }
-    await this.assertOpdAccessForWorkbench(user, ctx.sopOpdId);
+    await this.assertLegacyContextOpdAccess(user, ctx);
     const logsLimit = this.clampLogsLimit(logsLimitRaw);
     const draftPayload = await this.sopCatalogRepository.findWorkbenchPayloadByDetailOrSopId(
       ctx.detailSopId,
@@ -290,6 +309,9 @@ export class SopCatalogService {
     );
     if (existing === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
+    }
+    if (existing.sop.opdId === null) {
+      throw new ForbiddenException('SOP native harus diakses melalui Process workspace');
     }
     await this.assertOpdAccessForWorkbench(user, existing.sop.opdId);
     assertDetailSopEditable(existing.status);
@@ -398,7 +420,7 @@ export class SopCatalogService {
     if (source === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
-    await this.assertOpdAccessForWorkbench(user, source.sopOpdId);
+    await this.assertLegacyContextOpdAccess(user, source);
     try {
       const cloned = assertSopCatalogRepoOk(
         await this.sopCatalogRepository.cloneDetailSopFromSource({
@@ -425,7 +447,7 @@ export class SopCatalogService {
     if (firstDetail === null) {
       throw new NotFoundException('SOP tidak ditemukan');
     }
-    await this.assertOpdAccessForWorkbench(user, firstDetail.sopOpdId);
+    await this.assertLegacyContextOpdAccess(user, firstDetail);
     const rows = await this.sopCatalogRepository.findRiwayatVersiBySopId(resolvedSopId);
     const hasActiveRevision = hasRevisiInFlight(rows.map((row) => row.status));
     return rows.map((row) => {
@@ -449,7 +471,7 @@ export class SopCatalogService {
     this.assertPenyusunOrPj(user);
     const ctx = await this.sopCatalogRepository.findLatestDetailStatusContext(detailSopId);
     if (ctx === null) throw new NotFoundException('DetailSOP tidak ditemukan');
-    await this.assertOpdAccessForWorkbench(user, ctx.sopOpdId);
+    await this.assertLegacyContextOpdAccess(user, ctx);
     assertSopCatalogRepoOk(await this.sopCatalogRepository.deleteVersiDraft(ctx.detailSopId));
   }
 
@@ -457,7 +479,7 @@ export class SopCatalogService {
     this.assertPenyusunOrPj(user);
     const ctx = await this.sopCatalogRepository.findLatestDetailStatusContext(detailSopId);
     if (ctx === null) throw new NotFoundException('DetailSOP tidak ditemukan');
-    await this.assertOpdAccessForWorkbench(user, ctx.sopOpdId);
+    await this.assertLegacyContextOpdAccess(user, ctx);
     assertSopCatalogRepoOk(await this.sopCatalogRepository.deleteSopDraftAwal(ctx.detailSopId));
   }
 }

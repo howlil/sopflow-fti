@@ -28,7 +28,8 @@ export interface CreatePlatformAccountRepoInput {
   readonly jabatan: string;
   readonly nohp: string;
   readonly kataSandi: string;
-  readonly opdId: string;
+  /** Optional legacy compatibility shadow; native FTI accounts do not need it. */
+  readonly opdId?: string;
 }
 
 @Injectable()
@@ -51,13 +52,13 @@ export class PenggunaRepository {
       where: { peran: PeranPengguna.PJ_EVALUATOR, deletedAt: null },
       select: { opdId: true, opd: { select: { nama: true } } },
     });
-    if (row === null) {
+    if (row === null || row.opdId === null || row.opd === null) {
       return null;
     }
     return { opdId: row.opdId, nama: row.opd.nama };
   }
 
-  /** Compatibility OPD for target account rows while Pengguna.opdId remains required. */
+  /** Legacy compatibility helper; native platform-account creation does not call it. */
   async findPlatformAdminCompatibilityOpdId(): Promise<string | null> {
     const row = await this.prisma.pengguna.findFirst({
       where: { platformRole: PlatformRole.SUPER_ADMIN, deletedAt: null },
@@ -88,13 +89,15 @@ export class PenggunaRepository {
           jabatan: input.jabatan,
           nohp: input.nohp,
           kataSandi: input.kataSandi,
-          opdId: input.opdId,
+          ...(input.opdId !== undefined ? { opdId: input.opdId } : {}),
           peran: PeranPengguna.PENYUSUN,
           platformRole: PlatformRole.USER,
         },
         select: platformAccountSelect,
       });
-      await syncActiveRiwayatOpd(tx, created.penggunaId, input.opdId);
+      if (input.opdId !== undefined) {
+        await syncActiveRiwayatOpd(tx, created.penggunaId, input.opdId);
+      }
       return created;
     });
   }

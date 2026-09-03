@@ -124,7 +124,7 @@ export type SopDaftarDetailSlice = {
 
 export type SopDaftarDbRow = {
   sopId: string;
-  opdId: string;
+  opdId: string | null;
   judul: string;
   /** Versi terbaru (urutan versi desc). */
   detail: SopDaftarDetailSlice | undefined;
@@ -291,7 +291,7 @@ export class SopCatalogRepository {
 
   private mapSopDaftarRow(r: {
     sopId: string;
-    opdId: string;
+    opdId: string | null;
     judul: string;
     detailSops: {
       detailSopId: string;
@@ -476,23 +476,40 @@ export class SopCatalogRepository {
   }
 
   /**
-   * Resolve `id` (boleh detailSopId atau sopId header) menjadi pasangan (detailSopId, sopId).
+   * Resolve `id` (boleh detailSopId atau sopId header) menjadi pasangan detail/header
+   * sekaligus context ownership native/legacy.
    * Bila berupa sopId header, dipakai DetailSOP versi terbaru.
    */
   async findDetailIdByDetailOrSopId(
     detailOrSopId: string,
-  ): Promise<{ detailSopId: string; sopId: string } | null> {
+  ): Promise<{
+    detailSopId: string;
+    sopId: string;
+    sopOpdId: string | null;
+    processId: string | null;
+  } | null> {
     const direct = await this.prisma.detailSOP.findUnique({
       where: { detailSopId: detailOrSopId },
-      select: { detailSopId: true, sopId: true },
+      select: {
+        detailSopId: true,
+        sopId: true,
+        sop: { select: { opdId: true, processId: true } },
+      },
     });
     if (direct !== null) {
-      return direct;
+      return {
+        detailSopId: direct.detailSopId,
+        sopId: direct.sopId,
+        sopOpdId: direct.sop.opdId,
+        processId: direct.sop.processId,
+      };
     }
     const header = await this.prisma.sOP.findUnique({
       where: { sopId: detailOrSopId },
       select: {
         sopId: true,
+        opdId: true,
+        processId: true,
         detailSops: {
           orderBy: { versi: 'desc' },
           take: 1,
@@ -504,17 +521,23 @@ export class SopCatalogRepository {
     if (header === null || latest === undefined) {
       return null;
     }
-    return { detailSopId: latest, sopId: header.sopId };
+    return {
+      detailSopId: latest,
+      sopId: header.sopId,
+      sopOpdId: header.opdId,
+      processId: header.processId,
+    };
   }
 
   /**
-   * Status + OPD untuk DetailSOP terbaru; `detailOrSopId` boleh ID DetailSOP atau ID header SOP.
+   * Status + ownership context untuk DetailSOP terbaru; `detailOrSopId` boleh ID DetailSOP atau ID header SOP.
    */
   async findLatestDetailStatusContext(detailOrSopId: string): Promise<{
     detailSopId: string;
     sopId: string;
     status: StatusSOP;
-    sopOpdId: string;
+    sopOpdId: string | null;
+    processId: string | null;
   } | null> {
     const resolved = await this.findDetailIdByDetailOrSopId(detailOrSopId);
     if (resolved === null) {
@@ -526,7 +549,7 @@ export class SopCatalogRepository {
         detailSopId: true,
         sopId: true,
         status: true,
-        sop: { select: { opdId: true } },
+        sop: { select: { opdId: true, processId: true } },
       },
     });
     if (row === null) {
@@ -537,6 +560,7 @@ export class SopCatalogRepository {
       sopId: row.sopId,
       status: row.status,
       sopOpdId: row.sop.opdId,
+      processId: row.sop.processId,
     };
   }
 

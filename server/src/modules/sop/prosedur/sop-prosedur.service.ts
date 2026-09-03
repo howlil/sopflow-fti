@@ -43,9 +43,8 @@ export class SopProsedurService {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
 
-    const processBinding = await this.sopProsedurRepository.findProcessBindingBySopId(resolved.sopId);
-    if (processBinding !== null) {
-      await this.processContextService.assertCanAuthor(user.sub, processBinding.processId);
+    if (resolved.processId !== null) {
+      await this.processContextService.assertCanAuthor(user.sub, resolved.processId);
     } else {
       await this.assertLegacyPenyusunOpdAccess(user, resolved.sopOpdId);
     }
@@ -58,7 +57,7 @@ export class SopProsedurService {
 
     const changedFields = this.collectChangedFields(dto);
     if (changedFields.length === 0) {
-      return this.getAuthorizedWorkbench(user, resolved.detailSopId, processBinding !== null, logsLimit);
+      return this.getAuthorizedWorkbench(user, resolved.detailSopId, resolved.processId !== null, logsLimit);
     }
 
     const repoInput = await this.buildRepoInput(dto, resolved.detailSopId);
@@ -91,7 +90,7 @@ export class SopProsedurService {
       throw err;
     }
 
-    return this.getAuthorizedWorkbench(user, resolved.detailSopId, processBinding !== null, logsLimit);
+    return this.getAuthorizedWorkbench(user, resolved.detailSopId, resolved.processId !== null, logsLimit);
   }
 
   private async getAuthorizedWorkbench(
@@ -133,8 +132,11 @@ export class SopProsedurService {
 
   private async assertLegacyPenyusunOpdAccess(
     user: JwtAccessPayload,
-    sopOpdId: string,
+    sopOpdId: string | null,
   ): Promise<void> {
+    if (sopOpdId === null) {
+      throw new ForbiddenException('SOP belum memiliki Process atau compatibility OPD');
+    }
     if (user.peran !== PeranPengguna.PENYUSUN && user.peran !== PeranPengguna.PJ_PENYUSUN) {
       throw new ForbiddenException('Akses ditolak: SOP legacy hanya dapat diubah oleh penyusun');
     }

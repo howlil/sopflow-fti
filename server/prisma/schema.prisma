@@ -16,7 +16,7 @@ datasource db {
 model Pengguna {
   penggunaId                      String               @id @default(uuid()) @db.Char(36)
   email                           String               @unique @db.VarChar(31)
-  opdId                           String               @db.Char(36)
+  opdId                           String?              @db.Char(36)
   nama                            String               @db.VarChar(31)
   kataSandi                       String               @db.Char(60)
   peran                           PeranPengguna
@@ -46,7 +46,7 @@ model Pengguna {
   pengajuanEvaluasiDitandatangani PengajuanEvaluasi[]  @relation("PengajuanDitandatanganiOlehPjPenyusun")
   pengajuanEvaluasiDiverifikasi   PengajuanEvaluasi[]  @relation("PengajuanDiverifikasiOleh")
   peraturanTerakhirDiedit         Peraturan[]          @relation("PeraturanTerakhirDiedit")
-  opd                             OPD                  @relation(fields: [opdId], references: [opdId], onDelete: Restrict)
+  opd                             OPD?                 @relation(fields: [opdId], references: [opdId], onDelete: Restrict)
   pengingatWhatsApp               PengingatWhatsApp[]
   riwayatOpd                      RiwayatOpdPengguna[]
   tandaTangan                     RiwayatTandaTangan[]
@@ -95,7 +95,7 @@ model Department {
   processes    Process[]
 }
 
-/// Canonical FTI process ownership. SOP attachment is intentionally deferred to a later slice.
+/// Canonical FTI process ownership. Native SOPs attach directly to this Process.
 model Process {
   processId    String              @id @default(uuid()) @db.Char(36)
   nama         String              @db.VarChar(120)
@@ -107,6 +107,7 @@ model Process {
   department   Department?         @relation(fields: [departmentId], references: [departmentId], onDelete: Restrict)
   owner        Pengguna            @relation("ProcessOwner", fields: [ownerId], references: [penggunaId], onDelete: Restrict)
   members      ProcessMember[]
+  sops         SOP[]
 
   @@index([scope, departmentId], map: "Process_scope_departmentId_idx")
   @@index([ownerId], map: "Process_ownerId_idx")
@@ -159,14 +160,18 @@ model OPDPeraturan {
 /// =========================
 model SOP {
   sopId      String      @id @default(uuid()) @db.Char(36)
-  opdId      String      @db.Char(36)
+  opdId      String?     @db.Char(36)
+  processId  String?     @db.Char(36)
   judul      String      @db.VarChar(42)
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
   detailSops DetailSOP[]
-  opd        OPD         @relation(fields: [opdId], references: [opdId])
+  opd        OPD?        @relation(fields: [opdId], references: [opdId])
+  /// Native FTI ownership. Null is reserved for explicit legacy compatibility rows.
+  process    Process?    @relation(fields: [processId], references: [processId], onDelete: Restrict)
 
   @@index([opdId])
+  @@index([processId])
 }
 
 model DetailSOP {
