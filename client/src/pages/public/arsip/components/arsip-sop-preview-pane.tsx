@@ -10,7 +10,7 @@ export interface ArsipSopPreviewPaneProps {
   detailSopId: string
   pdfUrl?: string
   title?: string
-  opdName?: string
+  contextName?: string
   onClose: () => void
   onRefresh?: () => void
   variant: 'inline' | 'overlay'
@@ -21,7 +21,7 @@ export function ArsipSopPreviewPane({
   detailSopId,
   pdfUrl,
   title = 'Dokumen SOP',
-  opdName,
+  contextName,
   onClose,
   onRefresh,
   variant,
@@ -44,7 +44,7 @@ export function ArsipSopPreviewPane({
         <div className="min-w-0 flex-1 pr-2">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">PDF resmi</p>
           <h2 className="mt-0.5 line-clamp-2 text-base font-semibold text-foreground sm:text-lg">{title}</h2>
-          {opdName ? <p className="mt-1 text-sm text-secondary-foreground">{opdName}</p> : null}
+          {contextName ? <p className="mt-1 text-sm text-secondary-foreground">{contextName}</p> : null}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {resolvedPdfUrl ? <SopStatusBadge status="BERLAKU" label="Berlaku" showDomain={false} /> : null}
