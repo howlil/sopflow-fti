@@ -3,56 +3,86 @@
 ## Shape
 
 **Milestone:** M10 — FTI-Native Public SOP Discovery & Archive Cutover  
-**State:** IMPLEMENTED / VERIFICATION_PENDING  
-**Integration branch:** `m10-public-fti-archive`  
-**Base master:** `7b9941bebe6852b79dcdfadbf3efc345603e9c2d`
+**State:** INTEGRATED / RELEASE_READY  
+**Source branch:** `m10-public-fti-archive`  
+**PR:** #17  
+**Squash merge:** `d7013075de45a154088415adb67522a539d335bc`
 
-Outcome target: public visitors discover current FTI SOPs through organizational scope and Process context, open the official published PDF, and stop seeing a Process-bound SOP immediately after contextual revocation, while legacy public endpoints remain compatibility contracts.
-
-M10 is one bounded public-discovery capability delivered continuously through J35-J38.
+Outcome: public visitors discover current FTI SOPs through organizational scope and Process context, open the official published PDF, and stop seeing a Process-bound SOP immediately after contextual revocation, while legacy public endpoints remain compatibility contracts.
 
 ## Position
 
 ```text
-J35 Public FTI Catalog                 IMPLEMENTED
-J36 Public Process Discovery           IMPLEMENTED
-J37 Official Document Continuity       IMPLEMENTED
-J38 Publication Compatibility          IMPLEMENTED
-M10 milestone gate                     VERIFICATION_PENDING
-Release readiness                      NOT YET CLAIMED
+J35 Public FTI Catalog                 VERIFIED / INTEGRATED
+J36 Public Process Discovery           VERIFIED / INTEGRATED
+J37 Official Document Continuity       VERIFIED / INTEGRATED
+J38 Publication Compatibility          VERIFIED / INTEGRATED
+M10 milestone gate                     PASS
+Release readiness                      RELEASE_READY
 Release/deployment                     NOT PERFORMED
 ```
 
-## Implemented Behavior
+## Exact Source-Head Evidence
+
+Source head: `20316c17afcb41fef9d816dfd96bca9d02c6946c`
+
+```text
+Server CI #262                       PASS
+Client CI #361                       PASS
+FTI Critical E2E #110 — J35-J38      PASS
+Migration Smoke                       NOT SELECTED — no Prisma schema/migration input changed
+```
+
+The source head and squash merge share the same tree: `eced201a9b7076b859bf9b680b528bbd729098b9`.
+
+## Integration
+
+```text
+PR #17                               MERGED
+Squash merge SHA                     d7013075de45a154088415adb67522a539d335bc
+```
+
+## Integrated Master Evidence
+
+Integrated master revision: `d7013075de45a154088415adb67522a539d335bc`
+
+```text
+Server CI #263                       PASS
+Client CI #362                       PASS
+```
+
+FTI Critical E2E is pull-request scoped and therefore did not run again on master. Its exact source-head evidence applies to the identical integrated tree. Migration Smoke did not run and was not required because M10 changed no Prisma schema or migration input.
+
+## Integrated Behavior
 
 ### J35 — Public FTI Catalog
 
 - `ProcessSopBinding` is the authoritative target classification for Process-bound SOPs in the public catalog;
-- additive public endpoints are available under `/sop/public/fti/...`;
-- Process catalog rows expose Process scope and Department context;
-- only SOP versions that are `BERLAKU` and have an official `PUBLISHED` PDF are target-public;
-- Process-bound rows are excluded from the legacy-unbound fallback branch of target global search, preventing duplicate publication results.
+- additive target endpoints are available under `/sop/public/fti/...`;
+- Process catalog rows expose faculty/department scope and Department context;
+- target-public rows require `BERLAKU` plus an official `PUBLISHED` PDF artifact;
+- Process-bound rows are excluded from the legacy-unbound fallback of target global search, preventing duplicate target publication results.
 
 ### J36 — Public Process Discovery
 
 - normal `/arsip` navigation is Process-first rather than OPD-first;
-- faculty and department Processes are visually grouped from persisted `OrganizationalScope` / Department evidence;
-- selecting a Process loads only its current published SOPs;
-- global search remains a shortcut across title, SOP number, Process, and Department;
-- route state uses `processId`; legacy `opdId` remains accepted only as compatibility input so old URLs do not crash the route parser.
+- faculty and department Processes are grouped from persisted organizational scope;
+- selecting a Process scopes the public SOP list to that Process;
+- global search remains a shortcut across SOP title/number, Process, and Department;
+- `processId` is the target route context while legacy `opdId` search input remains parse-compatible for old URLs.
 
 ### J37 — Official Document Continuity
 
-- target catalog results continue to point at the existing `/sop/public/pdf/:detailSopId` official artifact endpoint;
-- PDF serving still re-validates current `BERLAKU` + published-artifact evidence on every request;
-- the public preview reuses the existing official PDF pane rather than introducing a second document representation.
+- target public results reuse `/sop/public/pdf/:detailSopId`;
+- the existing PDF endpoint revalidates current effective/published evidence on each request;
+- the archive preview reuses the official PDF artifact rather than creating a parallel public document representation.
 
 ### J38 — Publication Compatibility
 
-- legacy `/sop/public/opd`, `/sop/public/opd/:opdId/sop`, and `/sop/public/sop` APIs remain available;
-- legacy/unbound published SOPs remain discoverable through the target global archive fallback;
-- a Process-bound SOP appears once in target global discovery even though legacy compatibility data still exists;
-- contextual revocation removes the SOP from target public discovery and makes the existing official PDF endpoint return its revoked/unavailable response.
+- legacy `/sop/public/opd`, `/sop/public/opd/:opdId/sop`, and `/sop/public/sop` endpoints remain available;
+- legacy/unbound published SOPs remain available through target global compatibility fallback;
+- a Process-bound SOP appears once in target global discovery despite its legacy OPD compatibility shadow;
+- contextual revocation removes it from current target discovery and official public PDF availability while preserving historical evidence.
 
 ## Public API Additions
 
@@ -61,44 +91,6 @@ GET /sop/public/fti/processes
 GET /sop/public/fti/processes/:processId/sop
 GET /sop/public/fti/sop
 ```
-
-These endpoints are additive. No public legacy endpoint is removed or repurposed in M10.
-
-## Verification Selection
-
-Default M10 browser evidence is risk-selected to the changed capability:
-
-```text
-J35 Public FTI Catalog
-J36 Public Process Discovery
-J37 Official Document Continuity
-J38 Publication Compatibility
-```
-
-Expected milestone gate:
-
-```text
-Server CI
-- Prisma validate/generate
-- typecheck
-- core unit tests
-- focused public FTI catalog tests
-
-Client CI
-- production build / route generation
-- route-tree consistency
-- typecheck
-- unit tests
-
-FTI Critical E2E
-- journey registry audit
-- J35-J38 as one coherent browser run
-
-Migration Smoke
-- NOT SELECTED: M10 changes no Prisma schema or migration input
-```
-
-Older journeys are added only if an observed failure indicates broader coupling.
 
 ## Boundaries Preserved
 
@@ -111,10 +103,15 @@ Older journeys are added only if an observed failure indicates broader coupling.
 - no public authentication requirement;
 - no release/deployment.
 
-## Delta
+## Release / Deployment
 
-J35-J38 source implementation and focused journey coverage are present on the milestone branch. Exact-head CI/browser evidence, PR integration, and integrated-master evidence are still pending.
+```text
+RELEASED: NO
+DEPLOYED: NO
+```
+
+M10 is integrated and release-ready only. Release and deployment remain unauthorized.
 
 ## Next Move
 
-Complete final diff/static audit, open one coherent M10 PR, run Server CI + Client CI + FTI Critical E2E J35-J38 on the exact PR head, fix only failures that invalidate the bounded capability, merge after all required evidence is green, verify integrated master, then update this file to `INTEGRATED / RELEASE_READY` and **STOP**. Do not release or deploy.
+**STOP.** M10 is closed at `INTEGRATED / RELEASE_READY`. Do not invent or activate M11, promote deferred legacy cleanup, release, or deploy without a new explicit user instruction.
