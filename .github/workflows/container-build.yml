@@ -80,5 +80,8 @@ jobs:
 
       - name: Verify backend runtime payload without network
         run: |
-          docker run --rm --network none --entrypoint /app/node_modules/.bin/prisma sop-arsip-backend --version
+          docker run --rm --network none \
+            -e DATABASE_PASSWORD=ci-runtime-smoke-password \
+            --entrypoint /app/node_modules/.bin/prisma \
+            sop-arsip-backend --version
           docker run --rm --network none --entrypoint sh sop-arsip-backend -c 'test -f dist/src/database/seed/seed-initial.js && test -f dist/src/main.js'
