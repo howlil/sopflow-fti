@@ -7,7 +7,9 @@ import type { ApiSuccessResponse } from '@/types/dto/auth.dto'
 import type {
   PublicArsipQueryParams,
   PublicOpdPage,
+  PublicProcessPage,
   PublicSopByOpdPage,
+  PublicSopByProcessPage,
   PublicSopDokumen,
   PublicSopPage,
 } from '@/types/dto/sop-public.dto'
@@ -31,6 +33,27 @@ export const sopPublicApi = {
     unwrapApiData<PublicSopPage>(
       apiClient.get<ApiSuccessResponse<PublicSopPage>>(
         `/sop/public/sop${buildQueryString(params as Record<string, unknown> | undefined)}`,
+      ),
+    ),
+
+  listProcess: (params?: PublicArsipQueryParams) =>
+    unwrapApiData<PublicProcessPage>(
+      apiClient.get<ApiSuccessResponse<PublicProcessPage>>(
+        `/sop/public/fti/processes${buildQueryString(params as Record<string, unknown> | undefined)}`,
+      ),
+    ),
+
+  listSopByProcess: (processId: string, params?: PublicArsipQueryParams) =>
+    unwrapApiData<PublicSopByProcessPage>(
+      apiClient.get<ApiSuccessResponse<PublicSopByProcessPage>>(
+        `/sop/public/fti/processes/${encodeURIComponent(processId)}/sop${buildQueryString(params as Record<string, unknown> | undefined)}`,
+      ),
+    ),
+
+  listFtiSopGlobal: (params?: PublicArsipQueryParams) =>
+    unwrapApiData<PublicSopPage>(
+      apiClient.get<ApiSuccessResponse<PublicSopPage>>(
+        `/sop/public/fti/sop${buildQueryString(params as Record<string, unknown> | undefined)}`,
       ),
     ),
 
@@ -63,6 +86,32 @@ export function usePublicSopGlobalList(params: PublicArsipQueryParams) {
   return useQuery({
     queryKey: queryKeys.sopPublicSopGlobal(params),
     queryFn: () => sopPublicApi.listSopGlobal(params),
+    enabled: Boolean(params.search?.trim()),
+    ...SOP_EVALUASI_WORKFLOW_REFRESH_OPTIONS,
+  })
+}
+
+export function usePublicProcessList(params: PublicArsipQueryParams) {
+  return useQuery({
+    queryKey: queryKeys.sopPublicProcessList(params),
+    queryFn: () => sopPublicApi.listProcess(params),
+    ...SOP_EVALUASI_WORKFLOW_REFRESH_OPTIONS,
+  })
+}
+
+export function usePublicProcessSopList(processId: string, params: PublicArsipQueryParams) {
+  return useQuery({
+    queryKey: queryKeys.sopPublicProcessSopList(processId, params),
+    queryFn: () => sopPublicApi.listSopByProcess(processId, params),
+    enabled: Boolean(processId),
+    ...SOP_EVALUASI_WORKFLOW_REFRESH_OPTIONS,
+  })
+}
+
+export function usePublicFtiSopGlobalList(params: PublicArsipQueryParams) {
+  return useQuery({
+    queryKey: queryKeys.sopPublicFtiSopGlobal(params),
+    queryFn: () => sopPublicApi.listFtiSopGlobal(params),
     enabled: Boolean(params.search?.trim()),
     ...SOP_EVALUASI_WORKFLOW_REFRESH_OPTIONS,
   })
