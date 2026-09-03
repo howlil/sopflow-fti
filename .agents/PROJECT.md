@@ -235,6 +235,42 @@ Committed feedback semantics:
 
 Legacy notification history remains a separate compatibility persistence model. Presentation may combine both sources in the same notification bell, but M9 does not merge their persistence/history.
 
+## Public Archive & Discovery
+
+The normal public archive for the target FTI product is Process-first.
+
+Target discovery model:
+
+```text
+FACULTY / DEPARTMENT scope
+  -> Process
+       -> current published SOP
+            -> official published PDF
+```
+
+Committed semantics:
+
+- `ProcessSopBinding` is authoritative classification for Process-bound SOPs in target public discovery;
+- a Process-bound SOP is public only when the relevant version is `BERLAKU` and has an official `PUBLISHED` PDF artifact;
+- faculty Processes and department Processes are discoverable from their persisted organizational scope; department context is shown for `DEPARTMENT` Processes;
+- selecting a Process returns only the current published SOPs bound to that Process;
+- global public search may match SOP title, SOP number, Process name, and Department name;
+- target global search must not duplicate a Process-bound SOP through its legacy `SOP.opdId` compatibility shadow;
+- legacy/unbound published SOPs may remain discoverable through an explicit compatibility fallback while migration is incomplete;
+- public preview/open actions reuse the existing official PDF endpoint and therefore inherit its current-state checks;
+- contextual revocation removes a Process-bound SOP from current target discovery and official public PDF availability while preserving historical evidence;
+- legacy OPD-based public endpoints remain compatibility APIs and are not silently repurposed as target Process APIs.
+
+Additive target endpoints:
+
+```text
+GET /sop/public/fti/processes
+GET /sop/public/fti/processes/:processId/sop
+GET /sop/public/fti/sop
+```
+
+Normal `/arsip` navigation should expose FTI Process/scope terminology rather than requiring visitors to understand OPD-era ownership.
+
 ## Product Experience Direction
 
 Authenticated target navigation/work surfaces should be derived from actual capability:
@@ -300,7 +336,7 @@ Do not introduce without an explicit new product decision:
 - `SUPER_ADMIN` workflow bypass;
 - destructive historical OPD-to-FTI remapping;
 - arbitrary per-SOP final approver configuration when authority is derivable from scope;
-- a public archive information-architecture redesign;
+- a second parallel public archive taxonomy independent of Process binding;
 - bulk/scheduled revocation or a second revocation-approval workflow.
 
 ## Deferred / Transitional Work
@@ -317,7 +353,6 @@ The following may remain during the current migration and must not be promoted i
 
 Treat these as unresolved unless the user establishes them explicitly:
 
-- whether public archive grouping should eventually become Process-first, organizational-scope-first, or preserve the current compatibility IA;
 - exact long-term retirement criteria for legacy/unbound workflow routes and persisted role/status concepts;
 - whether exceptional administrative repair operations need a dedicated audited product surface.
 
