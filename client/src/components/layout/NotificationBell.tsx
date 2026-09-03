@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useRouter } from '@tanstack/react-router'
 import { Bell, CheckCheck, Inbox, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -37,6 +37,7 @@ function NotificationContent({ item }: { item: NotificationItem }) {
 }
 
 export function NotificationBell() {
+  const router = useRouter()
   const { items, unreadCount, loading, reload, markRead, markAllRead } =
     useInAppNotifications(10)
 
@@ -106,7 +107,11 @@ export function NotificationBell() {
                       to={item.actionHref}
                       data-process-notification-id={item.processNotificationId}
                       className="flex w-full items-start gap-2 px-2 py-2"
-                      onClick={handleSelect}
+                      onClick={(event) => {
+                        if (item.readAt) return
+                        event.preventDefault()
+                        void markRead(item).then(() => router.navigate({ to: item.actionHref }))
+                      }}
                     >
                       <NotificationContent item={item} />
                     </Link>
