@@ -1,12 +1,12 @@
 import { FileText, Loader2 } from 'lucide-react'
-import { cn } from '@/utils/cn'
 import { Card } from '@/components/ui/card'
 import { Pagination } from '@/components/ui/pagination'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/utils/cn'
+import type { PaginationMetaDto } from '@/types/dto/evaluasi.dto'
+import type { PublicSopItem } from '@/types/dto/sop-public.dto'
 import { ArsipSearchField } from './arsip-chrome'
 import { ArsipSopTable, type ArsipSopTableVariant } from './arsip-sop-table'
-import type { PublicSopItem } from '@/types/dto/sop-public.dto'
-import type { PaginationMetaDto } from '@/types/dto/evaluasi.dto'
 
 export interface ArsipSopPanelProps {
   title: string
@@ -18,7 +18,7 @@ export interface ArsipSopPanelProps {
   isLoading: boolean
   isError: boolean
   isFetching: boolean
-  showOpdColumn?: boolean
+  showContextColumn?: boolean
   selectedDetailSopId?: string
   onSelectSop: (sop: PublicSopItem) => void
   emptyTitle: string
@@ -41,7 +41,7 @@ export function ArsipSopPanel({
   isLoading,
   isError,
   isFetching,
-  showOpdColumn = false,
+  showContextColumn = false,
   selectedDetailSopId,
   onSelectSop,
   emptyTitle,
@@ -57,7 +57,8 @@ export function ArsipSopPanel({
     <section
       className={cn(
         'flex h-full min-h-0 flex-col bg-surface',
-        !embedded && 'min-h-[calc(100vh-12rem)] max-h-[calc(100vh-12rem)] rounded-xl border border-border shadow-surface',
+        !embedded &&
+          'min-h-[calc(100vh-12rem)] max-h-[calc(100vh-12rem)] rounded-xl border border-border shadow-surface',
       )}
       aria-label={title}
     >
@@ -75,7 +76,9 @@ export function ArsipSopPanel({
             onChange={onSopSearchChange}
             placeholder="Cari judul atau nomor SOP…"
           />
-          <p className="mt-1.5 text-xs text-muted-foreground">Kosongkan untuk melihat semua SOP OPD ini.</p>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            Kosongkan untuk melihat semua SOP pada Process ini.
+          </p>
         </div>
       ) : null}
       <div className={cn('flex-1 overflow-y-auto', embedded ? 'p-2 sm:p-3' : 'p-4 sm:p-5')}>
@@ -101,7 +104,7 @@ export function ArsipSopPanel({
           <div aria-live="polite">
             <ArsipSopTable
               items={items}
-              showOpdColumn={showOpdColumn}
+              showContextColumn={showContextColumn}
               selectedDetailSopId={selectedDetailSopId}
               onSelectSop={onSelectSop}
               variant={listVariant}
