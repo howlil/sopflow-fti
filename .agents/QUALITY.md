@@ -153,6 +153,10 @@ Verify:
 - absence of unintended delivery;
 - persistence/history isolation when Process and legacy sources are involved.
 
+For workflow-outcome feedback, also verify that notification persistence participates in the owning business transaction when the product promises atomic feedback. Realtime refresh is post-commit presentation behavior and must not be emitted for a rolled-back transition.
+
+When an event targets both the original Process-bound author and Process Owner, verify duplicate-recipient collapse when those identities are the same account.
+
 ## Browser / Critical E2E Selection
 
 Critical E2E is **risk-selected**, not cumulative-by-ID.
@@ -177,6 +181,8 @@ The local isolated critical runner must receive an explicit journey selection. `
 For M7 account/bootstrap work, the default regression boundary is J20-J23 plus the new J24-J27 journeys. Earlier journeys are added only if a specific affected boundary justifies them.
 
 For M8 contextual revocation, the default regression boundary is J28-J30. Add J17-J19 only if effective-version/replacement semantics are materially changed; do not run them merely because revocation touches an effective status.
+
+For M9 workflow feedback closure, the default browser boundary is J31-J34. These journeys directly exercise revision feedback, effective-state feedback, revocation feedback, and notification action/read integrity. Older approval/TTE/revocation journeys are added only if a failure indicates broader behavioral coupling. Because M9 extends the persisted `ProcessNotificationKind` enum, Migration Smoke is mandatory even though the schema change is additive.
 
 ## CI Baseline
 
