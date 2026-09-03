@@ -1,7 +1,13 @@
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { OrganizationalAuthority, PeranPengguna, StatusSOP } from '../../../generated/prisma';
+import {
+  OrganizationalAuthority,
+  PeranPengguna,
+  ProcessNotificationKind,
+  StatusSOP,
+} from '../../../generated/prisma';
 import type { JwtAccessPayload } from '../../../common';
+import type { ProcessNotificationService } from '../../notifications/process/process-notification.service';
 import type { SopOfficialPdfService } from '../../sop/pdf/sop-official-pdf.service';
 import type { SopPdfStorageService } from '../../sop/pdf/sop-pdf-storage.service';
 import type { TteRepository } from '../shared/repository/tte.repository';
@@ -38,8 +44,29 @@ function createService(overrides?: {
   contextResult?: unknown;
   context?: ProcessTteSigningContext;
   finalizeResult?: unknown;
+  processOwnerId?: string;
+  authorId?: string;
 }) {
   const signingContext = overrides?.context ?? context;
+  const finalizeResult =
+    overrides?.finalizeResult ?? {
+      ok: true,
+      detailSopId: signingContext.detailSopId,
+      dokumenTteId: 'doc-1',
+      authority: signingContext.approval.authority,
+      authorityKey: signingContext.approval.authorityKey,
+    };
+  const tx = {
+    process: {
+      findUnique: jest.fn().mockResolvedValue({
+        ownerId: overrides?.processOwnerId ?? 'owner-1',
+        nama: 'Akademik',
+      }),
+    },
+    detailSOP: {
+      findUnique: jest.fn().mockResolvedValue({ dibuatOlehId: overrides?.authorId ?? 'author-1' }),
+    },
+  };
   const processRepo = {
     findSigningContext: jest.fn().mockResolvedValue(
       overrides?.contextResult ?? { ok: true, context: signingContext },
@@ -48,15 +75,12 @@ function createService(overrides?: {
       ok: true,
       item: { ...signingContext, dokumenTteId: 'doc-1', hashDokumen: 'a'.repeat(64) },
     }),
-    finalizeWithArtifact: jest.fn().mockResolvedValue(
-      overrides?.finalizeResult ?? {
-        ok: true,
-        detailSopId: signingContext.detailSopId,
-        dokumenTteId: 'doc-1',
-        authority: signingContext.approval.authority,
-        authorityKey: signingContext.approval.authorityKey,
-      },
-    ),
+    finalizeWithArtifact: jest.fn().mockImplementation(async (_params, sideEffect) => {
+      if ((finalizeResult as { ok?: boolean }).ok === true && sideEffect !== undefined) {
+        await sideEffect(tx as never, signingContext);
+      }
+      return finalizeResult;
+    }),
   } as unknown as jest.Mocked<ProcessTteRepository>;
   const tteRepo = {
     findPenggunaAktif: jest.fn().mockResolvedValue({
@@ -99,8 +123,22 @@ function createService(overrides?: {
       },
     }),
   } as unknown as jest.Mocked<TtePdfSigningService>;
-  const service = new ProcessTteService(processRepo, tteRepo, publicUrl, officialPdf, storage, signer);
-  return { service, processRepo, storage, signer };
+  const processNotifications = {
+    createManyInTransaction: jest.fn().mockImplementation(async (_transaction, inputs) => [
+      ...new Set((inputs as { penggunaId: string }[]).map((input) => input.penggunaId)),
+    ]),
+    emitChangedMany: jest.fn(),
+  } as unknown as ProcessNotificationService;
+  const service = new ProcessTteService(
+    processRepo,
+    tteRepo,
+    publicUrl,
+    officialPdf,
+    storage,
+    signer,
+    processNotifications,
+  );
+  return { service, processRepo, storage, signer, processNotifications, tx };
 }
 
 const dto = {
@@ -132,8 +170,8 @@ describe('ProcessTteService', () => {
     await expect(service.sign(user, context.detailSopId, dto)).rejects.toThrow(ConflictException);
   });
 
-  it('menandatangani Faculty Process SOP dan meneruskan Dean authority snapshot ke hasil', async () => {
-    const { service, processRepo, signer } = createService();
+  it('menandatangani Faculty Process SOP, membuat effective feedback atomically, dan meneruskan Dean authority snapshot', async () => {
+    const { service, processRepo, signer, processNotifications, tx } = createService();
     const result = await service.sign(user, context.detailSopId, dto);
 
     expect(signer.signOfficialSopPdfWithUserCertificate).toHaveBeenCalledWith(
@@ -141,12 +179,39 @@ describe('ProcessTteService', () => {
     );
     expect(processRepo.finalizeWithArtifact).toHaveBeenCalledWith(
       expect.objectContaining({ userId: user.sub, peran: PeranPengguna.PENYUSUN }),
+      expect.any(Function),
     );
+    expect(processNotifications.createManyInTransaction).toHaveBeenCalledWith(
+      tx,
+      expect.arrayContaining([
+        expect.objectContaining({
+          penggunaId: 'author-1',
+          kind: ProcessNotificationKind.PROCESS_SOP_EFFECTIVE,
+          processName: 'Akademik',
+        }),
+        expect.objectContaining({
+          penggunaId: 'owner-1',
+          kind: ProcessNotificationKind.PROCESS_SOP_EFFECTIVE,
+        }),
+      ]),
+    );
+    expect(processNotifications.emitChangedMany).toHaveBeenCalledWith(['author-1', 'owner-1']);
     expect(result).toEqual(expect.objectContaining({
       detailSopId: context.detailSopId,
       authority: OrganizationalAuthority.DEAN,
       status: StatusSOP.BERLAKU,
     }));
+  });
+
+  it('deduplicates effective feedback when original author is also Process Owner', async () => {
+    const { service, processNotifications } = createService({
+      authorId: 'owner-author-1',
+      processOwnerId: 'owner-author-1',
+    });
+
+    await service.sign(user, context.detailSopId, dto);
+
+    expect(processNotifications.emitChangedMany).toHaveBeenCalledWith(['owner-author-1']);
   });
 
   it('menandatangani Department Process SOP dengan Head of Department authority snapshot', async () => {
@@ -175,9 +240,12 @@ describe('ProcessTteService', () => {
     }));
   });
 
-  it('menghapus artefak file jika finalisasi database gagal', async () => {
-    const { service, storage } = createService({ finalizeResult: { error: 'SOP_STATUS_DRIFT' } });
+  it('menghapus artefak file jika finalisasi database gagal dan tidak emits feedback', async () => {
+    const { service, storage, processNotifications } = createService({
+      finalizeResult: { error: 'SOP_STATUS_DRIFT' },
+    });
     await expect(service.sign(user, context.detailSopId, dto)).rejects.toThrow(/Status SOP berubah/);
     expect(storage.deleteStoredPdf).toHaveBeenCalledWith('opd/sop/v2.pdf');
+    expect(processNotifications.emitChangedMany).not.toHaveBeenCalled();
   });
 });
