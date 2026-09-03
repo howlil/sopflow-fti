@@ -42,9 +42,9 @@ services:
       - -c
       - |
         set -eu
-        pnpm prisma migrate deploy
+        ./node_modules/.bin/prisma migrate deploy
         node dist/src/database/seed/seed-initial.js
-        exec pnpm start:prod
+        exec node dist/src/main.js
     volumes:
       - sop_pdf_data:/app/storage/sop-pdf
     expose:
