@@ -1,0 +1,55 @@
+name: Compose Config
+
+on:
+  pull_request:
+    paths:
+      - 'compose.yml'
+      - 'docker-compose.test.yml'
+      - '.env.example'
+      - 'server/Dockerfile'
+      - 'client/Dockerfile'
+      - '.github/workflows/compose-config.yml'
+  push:
+    branches:
+      - master
+    paths:
+      - 'compose.yml'
+      - 'docker-compose.test.yml'
+      - '.env.example'
+      - 'server/Dockerfile'
+      - 'client/Dockerfile'
+      - '.github/workflows/compose-config.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate production Compose
+        run: docker compose --env-file .env.example -f compose.yml config >/dev/null
+
+      - name: Validate integration-test Compose
+        run: docker compose -f docker-compose.test.yml config >/dev/null
+
+      - name: Guard canonical production environment contract
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          compose_vars="$({ grep -oE '\$\{[A-Z0-9_]+' compose.yml || true; } | sed 's/${//' | sort -u)"
+          example_vars="$(grep -E '^[A-Z0-9_]+=' .env.example | cut -d= -f1 | sort -u)"
+
+          diff -u <(printf '%s\n' "$example_vars") <(printf '%s\n' "$compose_vars")
+
+          if grep -RE '\$\{(DB_PASSWORD|APP_VERSION)([:}]|$)' compose.yml docker-compose.test.yml; then
+            echo 'Legacy deployment environment alias detected.' >&2
+            exit 1
+          fi
+
+          grep -F 'DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}' compose.yml >/dev/null
