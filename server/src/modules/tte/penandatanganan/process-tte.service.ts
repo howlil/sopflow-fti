@@ -135,7 +135,8 @@ export class ProcessTteService {
             if (process === null || detail === null) {
               throw new ConflictException('Context feedback Process SOP tidak ditemukan');
             }
-            if (detail.dibuatOlehId === null) {
+            const authorId = detail.dibuatOlehId;
+            if (authorId === null) {
               throw new ConflictException('Author SOP Process tidak tersedia untuk feedback efektif');
             }
 
@@ -144,7 +145,7 @@ export class ProcessTteService {
                 detailSopId: finalizedContext.detailSopId,
                 sopId: finalizedContext.sopId,
                 processId: finalizedContext.processId,
-                penggunaId: detail.dibuatOlehId,
+                penggunaId: authorId,
                 kind: ProcessNotificationKind.PROCESS_SOP_EFFECTIVE,
                 processName: process.nama,
               },
