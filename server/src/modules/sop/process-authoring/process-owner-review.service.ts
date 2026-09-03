@@ -112,6 +112,9 @@ export class ProcessOwnerReviewService {
       if (detail === null) {
         throw new NotFoundException('DetailSOP tidak ditemukan');
       }
+      if (detail.dibuatOlehId === null) {
+        throw new ConflictException('Author SOP Process tidak tersedia untuk feedback revisi');
+      }
       notification = {
         detailSopId: context.detailSopId,
         sopId: context.sopId,
