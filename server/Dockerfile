@@ -2,7 +2,7 @@
 
 FROM node:22-alpine AS base
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
+RUN corepack enable && corepack prepare pnpm@11.21.0 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 FROM base AS dev-deps
@@ -23,8 +23,6 @@ ENV NODE_ENV=production
 ENV NODE_OPTIONS=--max-old-space-size=512
 
 RUN apk add --no-cache wget \
-  && corepack enable \
-  && corepack prepare pnpm@10.28.2 --activate \
   && mkdir -p /app/storage/sop-pdf \
   && chown -R node:node /app
 
@@ -39,4 +37,4 @@ COPY --from=builder --chown=node:node /app/package.json ./package.json
 
 USER node
 EXPOSE 3001
-CMD ["pnpm", "start:prod"]
+CMD ["node", "dist/src/main.js"]
