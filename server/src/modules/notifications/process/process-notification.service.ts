@@ -102,8 +102,31 @@ export class ProcessNotificationService {
     });
   }
 
+  async createManyInTransaction(
+    tx: Prisma.TransactionClient,
+    inputs: readonly ProcessNotificationCreateInput[],
+  ): Promise<string[]> {
+    const seenRecipients = new Set<string>();
+    const recipientIds: string[] = [];
+
+    for (const input of inputs) {
+      if (seenRecipients.has(input.penggunaId)) continue;
+      seenRecipients.add(input.penggunaId);
+      recipientIds.push(input.penggunaId);
+      await this.createInTransaction(tx, input);
+    }
+
+    return recipientIds;
+  }
+
   emitChanged(penggunaId: string): void {
     this.notificationEvents.emitChanged(penggunaId);
+  }
+
+  emitChangedMany(penggunaIds: readonly string[]): void {
+    for (const penggunaId of new Set(penggunaIds)) {
+      this.notificationEvents.emitChanged(penggunaId);
+    }
   }
 
   private buildMessage(input: ProcessNotificationCreateInput): {
@@ -112,22 +135,45 @@ export class ProcessNotificationService {
     body: string;
     actionHref: string;
   } {
-    if (input.kind === ProcessNotificationKind.PROCESS_OWNER_REVIEW_REQUESTED) {
-      return {
-        title: 'Review SOP Process diperlukan',
-        preview: `SOP pada Process ${input.processName} menunggu review Anda.`,
-        body: `SOP Process ${input.processName} telah disubmit dan menunggu keputusan Process Owner.`,
-        actionHref: '/work/queue',
-      };
+    switch (input.kind) {
+      case ProcessNotificationKind.PROCESS_OWNER_REVIEW_REQUESTED:
+        return {
+          title: 'Review SOP Process diperlukan',
+          preview: `SOP pada Process ${input.processName} menunggu review Anda.`,
+          body: `SOP Process ${input.processName} telah disubmit dan menunggu keputusan Process Owner.`,
+          actionHref: '/work/queue',
+        };
+      case ProcessNotificationKind.FINAL_APPROVAL_REQUESTED: {
+        const authority = input.authorityLabel ?? 'kewenangan organisasi';
+        return {
+          title: 'Persetujuan akhir SOP diperlukan',
+          preview: `SOP pada Process ${input.processName} menunggu persetujuan akhir Anda.`,
+          body: `SOP Process ${input.processName} telah diterima Process Owner dan menunggu persetujuan ${authority}.`,
+          actionHref: '/approval',
+        };
+      }
+      case ProcessNotificationKind.PROCESS_REVISION_REQUESTED:
+        return {
+          title: 'Revisi SOP Process diperlukan',
+          preview: `SOP pada Process ${input.processName} dikembalikan untuk revisi.`,
+          body: `Process Owner meminta revisi SOP Process ${input.processName}. Buka antrean kerja untuk melanjutkan perbaikan.`,
+          actionHref: '/work/queue',
+        };
+      case ProcessNotificationKind.PROCESS_SOP_EFFECTIVE:
+        return {
+          title: 'SOP Process sudah berlaku',
+          preview: `SOP pada Process ${input.processName} sudah efektif dan dipublikasikan.`,
+          body: `SOP Process ${input.processName} telah selesai ditandatangani dan sekarang berstatus berlaku.`,
+          actionHref: '/work/queue',
+        };
+      case ProcessNotificationKind.PROCESS_SOP_REVOKED:
+        return {
+          title: 'SOP Process sudah dicabut',
+          preview: `SOP pada Process ${input.processName} sudah tidak berlaku.`,
+          body: `SOP Process ${input.processName} telah dicabut oleh kewenangan organisasi dan dipertahankan sebagai riwayat.`,
+          actionHref: '/work/queue',
+        };
     }
-
-    const authority = input.authorityLabel ?? 'kewenangan organisasi';
-    return {
-      title: 'Persetujuan akhir SOP diperlukan',
-      preview: `SOP pada Process ${input.processName} menunggu persetujuan akhir Anda.`,
-      body: `SOP Process ${input.processName} telah diterima Process Owner dan menunggu persetujuan ${authority}.`,
-      actionHref: '/approval',
-    };
   }
 
   private normalizeLimit(limit: number): number {
