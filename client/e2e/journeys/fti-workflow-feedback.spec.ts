@@ -116,6 +116,11 @@ test.describe('End-to-End Business Journey — Process workflow feedback closure
     }
     await expectSingleProcessFeedback(authorApi, 'PROCESS_REVISION_REQUESTED', expected)
 
+    await test.step('Unread count merefleksikan feedback sebelum user membukanya', async () => {
+      const summary = await apiGet<{ unreadCount: number }>(authorApi, '/notifications/process/summary')
+      expect(summary.unreadCount).toBe(1)
+    })
+
     await test.step('Author membuka notification dan diarahkan ke target FTI-native work queue', async () => {
       const author = await roleSession(targetUsers.processMember)
       await openProcessFeedbackFromNotification(author.page, expected)
