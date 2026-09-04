@@ -5,7 +5,7 @@ import {
 } from '@playwright/test'
 import type { E2eUser } from '../fixtures/users'
 
-export const apiBaseURL = process.env.E2E_API_BASE_URL ?? 'http://127.0.0.1:3000/api/v1'
+export const apiBaseURL = process.env.E2E_API_BASE_URL ?? 'http://127.0.0.1:3001/api/v1'
 
 export const apiHealthURL =
   process.env.E2E_API_HEALTH_URL ??

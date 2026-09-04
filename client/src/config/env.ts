@@ -1,5 +1,5 @@
 /** API dev: Vite → backend di localhost. */
-const API_BASE_URL_DEVELOPMENT = 'http://localhost:3000/api/v1'
+const API_BASE_URL_DEVELOPMENT = 'http://localhost:3001/api/v1'
 
 /** API produksi: path relatif; Nginx frontend mem-proxy `/api` → backend (client/nginx.conf). */
 const API_BASE_URL_PRODUCTION = '/api/v1'

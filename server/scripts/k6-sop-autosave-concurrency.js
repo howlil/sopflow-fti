@@ -2,7 +2,7 @@ import http from 'k6/http'
 import { check, group, sleep } from 'k6'
 import { Counter, Rate } from 'k6/metrics'
 
-const BASE_URL = __ENV.API_BASE_URL || 'http://127.0.0.1:3000/api/v1'
+const BASE_URL = __ENV.API_BASE_URL || 'http://127.0.0.1:3001/api/v1'
 const EMAIL_A = __ENV.USER_A_EMAIL || 'penyusun.dinkes@gmail.com'
 const EMAIL_B = __ENV.USER_B_EMAIL || 'pjpenyusun.dinkes@gmail.com'
 const PASSWORD_A = __ENV.USER_A_PASSWORD || __ENV.SEED_PASSWORD || '@Password123:)'

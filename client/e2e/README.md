@@ -36,7 +36,7 @@ Aturannya:
 
 ## Menjalankan
 
-Backend test harus tersedia di port 3000. Dari folder `client`:
+Backend test harus tersedia di port 3001. Dari folder `client`:
 
 ```powershell
 pnpm test:e2e:install
@@ -74,9 +74,9 @@ pnpm test:e2e:ui
 | Variable | Default |
 |---|---|
 | `E2E_BASE_URL` | `http://127.0.0.1:5173` |
-| `E2E_API_BASE_URL` | `http://127.0.0.1:3000/api/v1` |
+| `E2E_API_BASE_URL` | `http://127.0.0.1:3001/api/v1` |
 | `E2E_BROWSER_API_BASE_URL` | API URL dengan host `localhost` |
-| `E2E_API_HEALTH_URL` | `http://127.0.0.1:3000/api/health` |
+| `E2E_API_HEALTH_URL` | `http://127.0.0.1:3001/api/health` |
 | `E2E_SEED_PASSWORD` | `@Password123:)` |
 | `E2E_SKIP_WEB_SERVER` | `false` |
 | `E2E_ALL_BROWSERS` | `false` |
