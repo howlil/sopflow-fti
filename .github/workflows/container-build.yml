@@ -5,6 +5,7 @@ on:
     paths:
       - 'compose.yml'
       - 'server/Dockerfile'
+      - 'server/docker-entrypoint.sh'
       - 'server/.dockerignore'
       - 'server/package.json'
       - 'server/pnpm-lock.yaml'
@@ -22,6 +23,7 @@ on:
     paths:
       - 'compose.yml'
       - 'server/Dockerfile'
+      - 'server/docker-entrypoint.sh'
       - 'server/.dockerignore'
       - 'server/package.json'
       - 'server/pnpm-lock.yaml'
@@ -72,8 +74,11 @@ jobs:
             exit 1
           fi
 
-          grep -F './node_modules/.bin/prisma migrate deploy' compose.yml >/dev/null
-          grep -F 'exec node dist/src/main.js' compose.yml >/dev/null
+          grep -F './node_modules/.bin/prisma migrate deploy' server/docker-entrypoint.sh >/dev/null
+          grep -F 'exec node dist/src/main.js' server/docker-entrypoint.sh >/dev/null
+          grep -F 'condition: service_started' compose.yml >/dev/null
+          grep -F 'http://127.0.0.1:8080/api/health/ready' compose.yml >/dev/null
+          sh -n server/docker-entrypoint.sh
 
       - name: Build application images
         run: docker compose --env-file .env.example -f compose.yml build backend frontend

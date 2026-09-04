@@ -37,14 +37,6 @@ services:
       TTE_ENCRYPTION_SECRET: ${TTE_ENCRYPTION_SECRET:?set TTE_ENCRYPTION_SECRET}
       DATABASE_HOST: db
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
-    command:
-      - sh
-      - -c
-      - |
-        set -eu
-        ./node_modules/.bin/prisma migrate deploy
-        node dist/src/database/seed/seed-initial.js
-        exec node dist/src/main.js
     volumes:
       - sop_pdf_data:/app/storage/sop-pdf
     expose:
@@ -68,13 +60,16 @@ services:
     restart: unless-stopped
     depends_on:
       backend:
-        condition: service_healthy
+        condition: service_started
     expose:
       - "8080"
     cap_drop:
       - ALL
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/"]
+      # The public service is ready only when its proxied backend is ready.
+      # Keeping this check here lets Compose start without blocking on a
+      # service_healthy dependency while MyPaaS still gets an end-to-end gate.
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/api/health/ready"]
       start_period: 30s
       interval: 10s
       timeout: 5s
