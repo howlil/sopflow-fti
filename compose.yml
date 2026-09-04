@@ -1,4 +1,5 @@
-name: sop-arsip
+# Do not set a fixed top-level Compose project name here. MyPaaS supplies a
+# unique project name with `-p` so each deployment gets an isolated network.
 
 services:
   db:
@@ -77,4 +78,9 @@ services:
 
 volumes:
   db_data:
+    # Keep the established database volume name while the Compose network is
+    # isolated by MyPaaS. This prevents a project-name cleanup from hiding the
+    # existing production data behind a newly named volume.
+    name: sop-arsip_db_data
   sop_pdf_data:
+    name: sop-arsip_sop_pdf_data

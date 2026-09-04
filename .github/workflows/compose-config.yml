@@ -53,3 +53,8 @@ jobs:
           fi
 
           grep -F 'DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}' compose.yml >/dev/null
+
+          if grep -Eq '^name:[[:space:]]' compose.yml; then
+            echo 'Compose must not hard-code a project name; the deployment platform owns project isolation.' >&2
+            exit 1
+          fi
