@@ -2,43 +2,41 @@
 
 ## Shape
 
-**Milestone:** M11 — Native FTI Runtime Cutover
-**State:** IMPLEMENTED / VERIFICATION_PENDING
-**Scope:** All six M11 slices: native SOP ownership, native account/authorization prerequisites, approval/TTE/effective lifecycle, complete lifecycle, first-party FTI surface, and explicit legacy isolation.
+**Milestone:** M12 — FTI Production Go-Live & Operational Closure
+**State:** ACTIVE / PRODUCTION ACCESS REQUIRED
+**Scope:** production preflight, migration/data-integrity proof, runtime cutover, deterministic native FTI qualification, failure/recovery proof, and release closure. No legacy OPD deletion or infrastructure-platform rewrite.
 
 ## Position
 
 ```text
-S1 Native SOP ownership                 IMPLEMENTED / LOCAL TESTED
-S2 Native account and authorization     IMPLEMENTED / LOCAL TYPECHECKED
-S3 Approval, TTE, effective lifecycle   IMPLEMENTED / LOCAL TESTED
-S4 Version/replacement/revocation       IMPLEMENTED / LOCAL TESTED
-S5 First-party FTI surface              IMPLEMENTED / LOCAL TYPECHECKED
-S6 Legacy isolation and contract        IMPLEMENTED / DOC + SEARCH AUDITED
-Migration-backed proof                  PENDING MIGRATION SMOKE
-Integration/release/deployment          NOT PERFORMED
+M11 native FTI runtime                  INTEGRATED / MASTER
+M11 integrated revision                 05b1adbc44db394b0bdff9dc7afd9ed10e71c145
+S1 Production configuration/preflight  PARTIAL / SOURCE + COMPOSE CONFIG
+S2 Production migration/integrity      NOT VERIFIED ON PRODUCTION DATABASE
+S3 Production runtime cutover          NOT VERIFIED
+S4 Native FTI workflow qualification   NOT RUN
+S5 Failure/recovery qualification       NOT RUN
+S6 Release closure                      NOT REACHED
 ```
 
 ## Delta
 
-- `SOP.processId` is the native ownership source; the additive migration backfills it from `ProcessSopBinding` and adds a restrictive foreign key.
-- `Pengguna.opdId` is nullable so a fresh native account does not need fabricated OPD membership. Native authorization uses platform role, Process relationship, and Organizational Authority.
-- Native authoring, procedure mutation, versioning, Process Owner review, contextual approval, TTE, notifications, revocation, and public FTI discovery read Process context directly. Native paths no longer look up `ProcessSopBinding`.
-- OPD fields/routes, legacy roles, evaluation workflow, `ProcessSopBinding`, and unbound SOP rows remain only behind explicit compatibility/historical boundaries. No destructive historical cleanup was performed.
-- The protected Edit SOP workspace was not redesigned or behaviorally rewritten.
+- M11 is integrated on local `master` and `origin/master`; post-merge Server CI, Client CI, FTI Domain CI, and Migration Smoke are green for the integrated revision.
+- The existing Compose contract is five external values from `.env.example`; backend startup applies `prisma migrate deploy` before starting the application, and readiness checks database plus persistent PDF storage.
+- Local `docker compose --env-file .env.example -f compose.yml config` passes, but Docker Desktop is unavailable on this host, so local image build/runtime evidence cannot be collected here.
+- The checkout `.env` is not a valid canonical production input: it contains legacy `DB_PASSWORD`/Wago entries and must not be used for M12 deployment. Real production secrets remain in the deployment secret store and have not been read or transmitted.
+- Read-only live probing of `https://sopflow.howlil.my.id` returned HTTP 200 with an empty body for `/`, `/api/health/live`, and `/api/health/ready`. This is not valid application health evidence and does not identify the running release.
+- No verified MyPaaS application/project target, deployment API credential, SSH credential, production backup/recovery point, or runtime revision identity is available in this environment. No production mutation has been attempted.
 
 ## Evidence
 
-- `pnpm prisma generate` — PASS
-- `pnpm prisma validate` — PASS
-- server `pnpm typecheck` — PASS
-- client `pnpm typecheck` — PASS
-- focused native lifecycle test run — PASS, 11 suites / 55 tests
-- native account provisioning test — PASS, 1 suite / 2 tests (including no-OPD account creation)
-- client unit test run — PASS, 91 files / 407 tests (2 skipped)
-- server lint — NOT CLEAN: repository-wide baseline reports 1,144 errors / 73 warnings, including existing unsafe-test and line-ending/prettier findings; typecheck remains clean
-- local Migration Smoke — NOT RUN: Docker daemon unavailable on this host
+- M11 integrated required checks — PASS on GitHub for `05b1adbc44db394b0bdff9dc7afd9ed10e71c145`.
+- Compose Config — PASS on the existing runtime-contract revision `686cd5248fab0abcb5a02d8cfa98a71c167ea0bc`; M11 did not modify Compose/Dockerfile inputs.
+- Container Build — PASS on the existing runtime-contract revision `686cd5248fab0abcb5a02d8cfa98a71c167ea0bc`; M11 did not modify Compose/Dockerfile inputs.
+- Current local Compose config — PASS with `.env.example`.
+- Live origin read-only probe — INSUFFICIENT: HTTP 200 but zero-byte bodies for root and both health paths.
+- Production migration, runtime identity, persistence, TTE/public workflow, restart, rollback, and recovery evidence — NOT AVAILABLE.
 
 ## Next Move
 
-Run the repository Migration Smoke gate in CI or a host with MariaDB 11.4/Docker. It must prove the full migration chain, the `SOP.processId` foreign key, zero unbackfilled or mismatched `ProcessSopBinding` rows, zero orphan Process references, and nullable `Pengguna.opdId`. After that evidence, review the M11 contract/retirement decision separately; do not delete historical schema or compatibility APIs as part of this iteration.
+Obtain or explicitly configure the verified MyPaaS deployment target and recovery point for `sopflow.howlil.my.id`, then execute in order: production preflight -> backup verification -> `prisma migrate deploy` -> integrity assertions -> image/runtime deploy -> readiness/API/persistence qualification -> focused native FTI lifecycle -> restart/recovery qualification -> exact revision closure. Keep the source SHA, image identity, migration revision, runtime identity, and evidence separate. Do not seed/reset production or bypass host-key/secret verification.
