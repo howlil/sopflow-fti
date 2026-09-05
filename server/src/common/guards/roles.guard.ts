@@ -2,20 +2,28 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import type { PeranPengguna } from '../../generated/prisma';
+import { PrismaService } from '../prisma/prisma.service';
 import type { JwtAccessPayload } from '../types/jwt-access-payload.type';
 
-/** Kunci metadata decorator `@Roles()` — diekspor untuk decorator dan uji. */
+/** Kunci metadata decorator `@Roles()` — hanya untuk endpoint compatibility legacy. */
 export const ROLES_METADATA_KEY = 'peran_diizinkan';
 
 /**
- * Otorisasi berdasarkan `@Roles(...)`.
- * Tanpa metadata peran di handler/kelas: lolos (asumsi sudah dilindungi JWT atau route publik tidak memakai guard ini).
+ * Compatibility guard untuk endpoint legacy yang belum dipensiunkan.
+ *
+ * Legacy role tidak lagi menjadi bagian dari first-party JWT. Endpoint yang masih
+ * memakai `@Roles(...)` membaca compatibility role dari persistence secara lokal.
+ * Native FTI workflow tidak boleh memakai guard ini; gunakan Process relationship,
+ * Organizational Authority, atau PlatformAdminGuard sesuai boundary masing-masing.
  */
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly prisma: PrismaService,
+  ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const allowed = this.reflector.getAllAndOverride<PeranPengguna[]>(ROLES_METADATA_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -28,8 +36,12 @@ export class RolesGuard implements CanActivate {
     if (user === undefined) {
       throw new ForbiddenException('Autentikasi diperlukan untuk mengakses sumber ini');
     }
-    if (!allowed.includes(user.peran)) {
-      throw new ForbiddenException('Peran Anda tidak memiliki akses ke operasi ini');
+    const legacyIdentity = await this.prisma.pengguna.findFirst({
+      where: { penggunaId: user.sub, deletedAt: null },
+      select: { peran: true },
+    });
+    if (legacyIdentity === null || !allowed.includes(legacyIdentity.peran)) {
+      throw new ForbiddenException('Peran compatibility Anda tidak memiliki akses ke operasi ini');
     }
     return true;
   }
