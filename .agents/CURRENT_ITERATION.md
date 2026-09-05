@@ -1,34 +1,72 @@
-# Current Iteration
+# Current Repository State
 
-## Shape
+This file is the canonical resumable state for ongoing work. Product truth and the committed end state are owned by `PROJECT.md`.
 
-**Milestone:** M14 - Full FTI Legacy Retirement
-**State:** S4 INTEGRATED / RELEASE_READY
-**Scope:** retire unused legacy evaluation-value/history and WhatsApp notification/reminder features using a staged, reversible database migration. Process-native review, approval, TTE, publication, revocation, notification, and reminder remain active.
+## Target Shape
 
-## Position
+**Canonical target:** Full FTI.
+
+Normal first-party SOP behavior must derive from native FTI semantics:
 
 ```text
-M11 native FTI runtime       INTEGRATED
-M12 production evidence      SEPARATE / NOT CLAIMED HERE
-M14 S4 legacy feature retire INTEGRATED
-M14 database contract        MIGRATION + DISPOSABLE SMOKE PASS
-M14 verification              TYPECHECK + TEST + BUILD PASS
-M14 delivery                  MASTER PUSHED
+Platform Role
++ Process Relationship
++ Organizational Authority
++ Process-owned SOP
 ```
 
-## Delta
+OPD identity, OPD ownership, and legacy global workflow roles may remain only at explicit historical/external compatibility boundaries once Full FTI exit criteria are satisfied.
 
-- Removed active server evaluation controllers/services/repositories and legacy reminder runtime from application wiring.
-- Removed active client evaluation API/query/cache/UI consumers, evaluator feedback/value panels, legacy evaluation submission action, and legacy notification composition.
-- Removed stale legacy evaluation/BA E2E journeys and unused BA archive print surfaces; Process-native journeys remain the browser contract.
-- Removed legacy BA evaluation TTE endpoints and compatibility signer repository/service; native Process TTE remains available.
-- Kept `PengajuanEvaluasi` and legacy TTE parent columns as historical compatibility parents; they are not active sources for new workflow actions.
-- Added migration `20260906120000_retire_legacy_evaluation_and_whatsapp` that renames `NilaiEvaluasi`, `LogNilaiEvaluasi`, `PengingatWhatsApp`, and `NotifikasiInApp` to `_retired_*` archive tables. The migration preserves rows and is recoverable by reverse rename if a separately approved retention operation requires it.
-- Replaced the legacy notification stream with the same SSE behavior on `ProcessNotificationController`, backed by `ProcessNotification` and `NotificationEventsService`.
-- Updated database invariants, architecture, and audit classification so archived legacy tables are observable but not active source-of-truth tables.
+## Current Position
 
-## Next Move
+**Repository HEAD audited:** `9d42db993cf1cdf590e1dd52b1411fe28081c54f`
 
-1. Keep production deployment/release claims separate; this checkout has no production deployment evidence.
-2. Keep the persistent `sop-test-db` fixture unchanged unless explicitly requested; do not claim production or external-consumer retirement from local evidence.
+**Delivery state of the latest completed capability:** `INTEGRATED / RELEASE_READY`.
+
+The latest integrated outcome retired unused legacy evaluation-value/history and WhatsApp/legacy notification-reminder runtime while preserving historical rows through the reversible archive migration `20260906120000_retire_legacy_evaluation_and_whatsapp`.
+
+Native Process workflow is already the active path for:
+
+- Process-bound SOP authoring;
+- Process Owner review and revision feedback;
+- contextual final approval;
+- Process-native TTE and publication/effective transition;
+- version replacement;
+- contextual revocation;
+- Process notifications and reminders;
+- Process-first public discovery and verification.
+
+Production release/deployment is **not claimed** by this state document without separate environment evidence.
+
+## Material Delta to `PROJECT.md`
+
+The repository must **not** yet claim `FULL_FTI / LEGACY_RETIRED`.
+
+Repository-wide evidence still shows first-party compatibility dependencies that are explicit Full FTI retirement targets, including:
+
+- client auth/user DTO and store shapes still carrying `opdId` and legacy `PeranPengguna`;
+- client SOP/Pelaksana/query surfaces that still accept or derive OPD context;
+- server `RolesGuard` / legacy role decorators still available for active legacy surfaces;
+- active OPD controller/service/repository code;
+- compatibility persistence such as `SOP.opdId`, `Pengguna.opdId`, and `ProcessSopBinding` while their retention contracts remain unresolved;
+- legacy/unbound route/API/public compatibility that may still be required by existing consumers.
+
+These are migration gaps against the committed Full FTI end state. Their existence is **not** authorization to remove them indiscriminately: `PROJECT.md` requires semantic cutover and proof of zero target dependency before contract cleanup.
+
+## Current Product-Bet State
+
+**No next product bet is implicitly authorized merely because the previous M14 work is integrated.**
+
+Before implementation resumes, select the highest-value remaining bottleneck against the core FTI journey and `PROJECT.md` exit criteria. Candidate gap areas above are evidence for that decision, not an automatic roadmap.
+
+When a product bet is authorized, record only:
+
+```text
+Outcome
+Current bottleneck
+Authorized delta
+Evidence
+Next meaningful action
+```
+
+Do not turn this file into a milestone archive, sprint ledger, or percentage-progress report.

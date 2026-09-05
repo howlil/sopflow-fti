@@ -1,119 +1,210 @@
 # SOPFlow Agent Gateway
 
-This is the thin, agent-agnostic entrypoint for software-engineering work in this repository.
+This is the repository entrypoint for software-engineering and product-engineering work in SOPFlow.
 
-Global canonical SWE instructions remain the primary operating reference and are **not duplicated here**. This file only maps those rules onto SOPFlow's repository knowledge, authority boundaries, active state, and task-specific implementation skills.
+The primary objective is:
+
+> **Meaningful user-outcome improvement with the smallest coherent amount of product and engineering complexity.**
+
+Do not optimize milestone count, sprint count, PR count, commit count, feature count, code volume, test count, documentation volume, or green CI badges as ends in themselves.
 
 ## Canonical Repository Sources
 
-Default reading order for meaningful work:
+For meaningful work, use this authority map:
 
-1. `.agents/PROJECT.md` — **WHY + WHAT**: product behavior, scope, contracts, ownership, non-goals, open product questions.
-2. `.agents/ARCHITECTURE.md` — **WHERE + HOW boundaries**: system ownership, flows, technical invariants, material architecture boundaries.
-3. `.agents/CURRENT_ITERATION.md` — active milestone/slice, Feature Compass, evidence, blockers, next action.
+1. `.agents/PROJECT.md` — **canonical WHY + WHAT**: product purpose, committed behavior, target domain, scope, contracts, ownership semantics, non-goals, and unresolved product questions.
+2. `.agents/ARCHITECTURE.md` — **WHERE + HOW boundaries**: system ownership, flows, technical invariants, and material architecture boundaries.
+3. `.agents/CURRENT_ITERATION.md` — current repository position, integrated outcome, active authorized work if any, evidence, and next decision/action.
 4. `.agents/CODE_PATTERNS.md` — repository-specific implementation conventions.
-5. `.agents/QUALITY.md` — verification strategy, checks, CI/migration gates, release-readiness evidence.
+5. `.agents/QUALITY.md` — risk-proportional verification, CI/gate selection, and release-readiness evidence.
 6. `.agents/DECISIONS.md` — durable material decisions and rationale.
+7. `.agents/PROTECTED_SURFACES.md` — explicit user-protected product surfaces.
 
-Optional repository overrides exist only when there is a concrete durable need. Currently:
+Task-specific implementation skills:
 
-- `.agents/PROTECTED_SURFACES.md` — explicit user-protected product surfaces.
+- `.agents/skill/frontend/SKILL.md`
+- `.agents/skill/backend/SKILL.md`
 
-Read only the sources relevant to the affected boundary, but **always inspect `CURRENT_ITERATION.md` when continuing active work**. Read `PROTECTED_SURFACES.md` before any change that can affect a listed surface.
-
-## Task-Specific Skills
-
-Use the implementation skill that matches the code being changed:
-
-- `.agents/skill/frontend/SKILL.md` — frontend implementation using existing React/TanStack/API/query/UI/testing patterns.
-- `.agents/skill/backend/SKILL.md` — backend implementation using existing NestJS/service/repository/Prisma/authorization/transaction/testing patterns.
-
-These skills are derived from the existing codebase and exist to keep implementation consistent. They do not override `PROJECT.md`, `ARCHITECTURE.md`, `DECISIONS.md`, `PROTECTED_SURFACES.md`, or the current user instruction.
-
-For a cross-stack vertical slice, read both skills, but keep behavior ownership on the correct side of the API boundary instead of duplicating policy in frontend and backend.
+Skills encode local implementation patterns only. They do not own product truth, architecture, scope, or current state.
 
 ## Authority / Precedence
 
-When repository sources conflict, use:
+When sources conflict:
 
 ```text
 explicit current user instruction
--> PROJECT.md / approved material decisions
--> ARCHITECTURE.md / applicable protected or security/design override
+-> PROJECT.md / approved material product decisions
+-> ARCHITECTURE.md / protected security-data-design boundaries
 -> CURRENT_ITERATION.md
 -> CODE_PATTERNS.md / QUALITY.md
--> task-specific skill for the affected implementation boundary
--> current code, tests, migrations, CI, package scripts as implementation evidence
+-> task-specific implementation skill
+-> current code, schema, migrations, tests, CI as evidence of implemented reality
 -> historical plans, PR descriptions, stale docs
 ```
 
-One concept should have one canonical owner. Do not create parallel requirement, design, iteration-state, testing, Git-strategy, or development-rule documents when the content belongs to an existing canonical owner.
+`PROJECT.md` is the canonical target product source of truth. Current code is evidence of **where the migration currently is**, not authority to redefine the target. If code and `PROJECT.md` differ, classify the difference as an implementation/migration gap unless the user explicitly changes product truth.
 
-## Operating Model
+The user owns product WHY/WHAT, observable behavior, scope, acceptance criteria, public contracts, data/security boundaries, material architecture decisions, destructive migrations, and release/deploy authorization. The agent owns repository inspection, evidence gathering, local implementation design, debugging, risk-proportional verification, and coherent implementation inside those approved boundaries.
 
-Optimize for high user value, high product-capability density, correctness, and maintainability while minimizing user-outcome lead time, rework, waiting, verification waste, planning overhead, and integration ceremony.
+Do not silently expand product scope or resolve an open product question through implementation inference.
 
-For meaningful product work, use:
+## Product Direction Before Engineering Work
 
-`USER INTENT -> UNDERSTAND -> BOUND -> MILESTONE PLAN -> EXECUTE SLICES CONTINUOUSLY -> MILESTONE GATE -> RELEASE READY -> STOP`
+For non-trivial product work, establish direction before turning gaps into implementation activity:
 
-Small or unambiguous work may fuse stages. Planning is performed at the milestone boundary, not restarted between already-approved slices.
+```text
+PRODUCT THESIS
+-> PRIMARY USER / CORE JOB
+-> CORE JOURNEY
+-> PRODUCT STAGE
+-> CURRENT BOTTLENECK
+-> VALUE EVIDENCE
+-> PRODUCT BET
+-> SMALLEST COHERENT CHANGE
+-> VERIFY
+-> INTEGRATE
+-> OUTCOME REVIEW
+-> STOP / ITERATE / PIVOT
+```
 
-For milestone work:
+A code gap, TODO, old module, failed test, or available capability is not automatically the next product bet.
 
-- define one bounded capability/outcome that is meaningful to a user or operator;
-- decompose it into the fewest coherent vertical slices needed to reach that outcome;
-- execute approved slices continuously without sprint re-activation or repeated planning ceremony;
-- integrate at logical-change boundaries when useful, but do not turn each tiny implementation step into its own branch/PR/milestone;
-- prefer complete cross-boundary capability over horizontal layer completion;
-- stop when the approved milestone outcome is complete and sufficiently verified.
+Milestones and slices are optional planning representations. Use them only when they reduce ambiguity or coordinate a genuinely larger capability. Never create a milestone merely because the previous milestone finished, and never treat milestone percentage as product progress.
 
-The user owns product behavior/scope, public contracts, data ownership, security boundaries, material architecture decisions, and release/deploy direction. The agent owns routine implementation decisions inside those approved boundaries.
+## Engineering Lifecycle
 
-## Minimum Complete Change
+For an authorized change, use:
 
-Prefer the **smallest complete authorized implementation that delivers the intended capability**.
+```text
+USER INTENT
+-> UNDERSTAND
+-> BOUND
+-> SPECIFY / DESIGN when material
+-> IMPLEMENT
+-> VERIFY
+-> QUALITY GATES
+-> RELEASE READY
+-> STOP
+```
 
-This does **not** mean the smallest diff, fewest files, or smallest possible slice. A change is too small when it leaves the approved behavior unusable, non-demonstrable, dependent on another artificial planning cycle, or split only by technical layers.
+Stages may fuse for small, clear work. Do not add ceremony that does not change correctness, risk, or user outcome.
 
-Modify only what the complete capability requires. Reuse existing ownership and patterns first. Do not expand scope for unrelated cleanup, speculative abstraction, dependency upgrades, future-proofing, or nice-to-have product expansion.
+### Understand / Bound
 
-Stop/escalate for material ambiguity or a required destructive migration, public-contract change, security/privacy/data-ownership change, material architecture change, or conflict with an approved product invariant/protected surface.
+Before changing code:
 
-## Active-State Rule
+- identify the user-visible or operator-visible outcome;
+- inspect only the repository boundaries needed to understand ownership, invariants, interfaces, and failure modes;
+- identify the current behavior and the delta to `PROJECT.md` or the explicit user request;
+- lock scope before implementation;
+- surface only ambiguities that materially change behavior, contracts, data ownership, permissions, or architecture.
 
-`CURRENT_ITERATION.md` is the canonical resumable state for active meaningful work.
+### Minimum Coherent Change
 
-Keep it compact and current using:
+Prefer the smallest **complete** authorized change that delivers the intended behavior.
 
-`Shape -> Position -> Delta -> Next Move`
+This is not synonymous with the smallest diff. A change is too small if it leaves the intended capability unusable, breaks an invariant, or splits one coherent outcome into artificial technical layers.
 
-Its state must describe repository reality, not the intention from an earlier branch or PR. Never leave instructions such as `integrate Mx` after that milestone is already integrated.
+Default preference:
 
-Keep these states distinct and update them when reality changes:
+```text
+reuse existing owner/pattern
+-> extend locally
+-> small local abstraction when justified
+-> new component/module only when ownership requires it
+-> architecture change only with explicit authorization
+```
 
-`ACTIVE -> IMPLEMENTED -> VERIFIED -> INTEGRATED -> RELEASE_READY -> RELEASED -> DEPLOYED`
+Avoid unrelated refactors, speculative abstractions, dependency upgrades, future-proofing, architecture fashion, and cleanup that is not required by the approved outcome.
 
-A milestone may carry more than one dimension when useful, for example `IMPLEMENTED / VERIFICATION_PENDING`, but must not claim a stronger state than the evidence proves.
+## Current-State Discipline
 
-After integration, `master` must identify the integrated milestone/state and the next meaningful capability instead of preserving stale pre-merge instructions. Record only evidence and blockers needed for another agent to continue without conversation history; do not turn the file into a changelog or sprint archive.
+`.agents/CURRENT_ITERATION.md` is the resumable repository-state document, not a sprint diary.
 
-## Verification Boundary
+It must answer:
 
-Verification is risk-selected, not ceremony-selected.
+```text
+Target shape
+-> Current position
+-> Material delta
+-> Next meaningful decision/action
+```
 
-Use the cheapest, fastest evidence that can actually prove the changed behavior, then escalate only when a material failure mode remains invisible. Do not automatically execute a fixed `unit -> integration -> E2E -> staging` ladder.
+Keep implementation and delivery states distinct:
 
-For browser journeys, new/changed capability journeys are primary evidence. Add older regression journeys only when their protected boundary can plausibly be affected. Full historical E2E is reserved for a justified milestone/release gate, shared harness/infrastructure changes, or broad cross-cutting risk; it must not grow cumulatively by default merely because new journey IDs exist.
+```text
+IMPLEMENTED
+-> VERIFIED
+-> INTEGRATED
+-> RELEASE_READY
+-> RELEASED
+-> DEPLOYED
+```
 
-Detailed repository-specific evidence rules remain owned by `.agents/QUALITY.md`.
+Never claim a stronger state than the evidence supports. After work is integrated, remove stale branch/merge instructions. If no next product bet has been authorized, say so instead of inventing one.
+
+## Verification
+
+Verification is selected by changed risk, not by ritual.
+
+Start from the observable behavior or invariant that changed, then use the lowest sufficient deterministic evidence. Escalate only when a material failure mode remains invisible.
+
+Do not require a fixed `unit -> integration -> E2E -> staging` ladder, full-suite execution after every change, browser/manual acceptance, or black-box qualification by default. Use critical golden-path E2E only when it is the lowest useful repository-owned evidence for a material cross-boundary risk.
+
+Detailed gate ownership belongs to `.agents/QUALITY.md`.
+
+For debugging, report and reason in this order when useful:
+
+```text
+symptom
+-> evidence
+-> root cause
+-> fix
+-> verification
+```
+
+Repair implementation defects autonomously when the fix stays inside authorized boundaries. Stop/escalate when the required fix changes a protected contract, data/security boundary, destructive migration strategy, or material architecture.
+
+## Git / Integration
+
+Use branches, PRs, and commits to reduce integration risk and improve reviewability, not as progress metrics.
+
+- prefer one short-lived branch for one coherent change when a branch is useful;
+- commits should represent logical changes, not files or arbitrary steps;
+- do not create PR/branch ceremony for its own sake;
+- do not rewrite shared history or use destructive resets without explicit authorization;
+- merging, releasing, and deploying require the applicable user authorization;
+- branch-green, merged, release-ready, released, and deployed are different states.
+
+## Completion / Reporting
+
+A change is release-ready only when the approved target behavior is implemented, the relevant golden path and material failure/recovery behavior are sufficiently covered, required risk-selected gates are green, repository state/documentation is truthful, and no material blocker remains.
+
+Report implementation work using only decision-useful information:
+
+```text
+Status
+User-visible outcome
+Evidence
+Remaining material gap
+```
+
+For audits, use:
+
+```text
+Problem
+Impact
+Recommended Fix
+```
+
+Do not enumerate every file, test, command, commit, or ceremony unless it materially helps review or decision-making.
 
 ## Repository-Specific Protection
 
-The Edit SOP workspace is currently a durable protected surface. The exact semantic boundary is owned only by `.agents/PROTECTED_SURFACES.md`; do not copy or weaken that rule elsewhere.
+The Edit SOP workspace is a durable protected surface. The exact boundary is owned by `.agents/PROTECTED_SURFACES.md`. Do not modify it unless the user explicitly targets that surface.
 
 ## Documentation Rule
 
-Update only the canonical owner affected by durable change. Remove stale/duplicate repository guidance rather than preserving conflicting history.
+One concept has one canonical owner. Update only the document that owns durable truth; remove stale or duplicate guidance rather than creating parallel requirement, architecture, quality, iteration, or process documents.
 
-Task-specific implementation skills may exist under `.agents/skill/` when they encode recurring codebase-specific execution patterns. Do not use skills as parallel product specs, architecture docs, or iteration state.
+Historical decisions remain historical evidence. Do not rewrite them merely to make old wording match current terminology.
