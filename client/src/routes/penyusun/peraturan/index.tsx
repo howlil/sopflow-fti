@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ManajemenPeraturan } from '@/pages/penyusun/peraturan/ManajemenPeraturan'
-import { requireRoles } from '@/stores/authStore'
+import { requireAuthenticated } from '@/lib/auth/require-authenticated'
 
 export const Route = createFileRoute('/penyusun/peraturan/')({
-  beforeLoad: requireRoles(['PENYUSUN', 'PJ_PENYUSUN']),
+  beforeLoad: requireAuthenticated(),
   component: ManajemenPeraturan,
 })
