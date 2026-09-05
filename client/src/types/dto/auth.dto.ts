@@ -1,4 +1,4 @@
-import type { PeranPengguna, PlatformRole } from "@/types/dto/access.dto";
+import type { PlatformRole } from "@/types/dto/access.dto";
 
 export interface LoginRequest {
   email: string;
@@ -17,14 +17,12 @@ export interface PublicPenggunaTteStatus {
   pinSetAt?: string;
 }
 
-/** Payload `data` dari POST /auth/login (mirror server PublicPengguna) */
+/** Payload `data` dari auth first-party FTI. Workflow capability berasal dari Process/Authority API. */
 export interface PublicPenggunaLoginData {
   penggunaId: string;
   email: string;
   nama: string;
-  peran: PeranPengguna;
   platformRole: PlatformRole;
-  opdId: string | null;
   nip: string;
   jabatan: string;
   pangkat: string;
