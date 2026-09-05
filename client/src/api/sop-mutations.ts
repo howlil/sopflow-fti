@@ -3,12 +3,9 @@ import { sopApi } from "@/api/sop-client";
 import { queryKeys } from "@/config/query-keys";
 import { useMutationWithToast } from "@/hooks/useMutationWithToast";
 import { invalidateSopWorkflow } from "@/lib/api/cache-invalidation";
-import { useAuthStore } from "@/stores/authStore";
 import type {
   CreatePelaksanaMutationDto,
   Pelaksana,
-  PenyusunWorkbenchData,
-  SetSopStatusOverrideMutationDto,
   UpdatePelaksanaMutationDto,
   UpdateSopDiagramDto,
   UpdateSopHeaderDto,
@@ -16,98 +13,30 @@ import type {
 } from "@/types/dto/sop.dto";
 import { STALE_TIME } from "@/utils/constants";
 
-async function syncSopWorkbenchAfterStatusChange(
-  queryClient: ReturnType<typeof useQueryClient>,
-  data: PenyusunWorkbenchData,
-  requestedId: string,
-) {
-  queryClient.setQueryData(queryKeys.penyusunWorkbench(requestedId), data);
-  queryClient.setQueryData(queryKeys.penyusunWorkbench(data.detail.id), data);
-
-  await Promise.all([
-    invalidateSopWorkflow(queryClient),
-    queryClient.invalidateQueries({ queryKey: queryKeys.sopRiwayatVersi(data.detail.sopId) }),
-  ]);
-}
-
-/** Hook untuk mengubah status SOP melalui API. */
-export function useSopStatus() {
-  const queryClient = useQueryClient();
-  const updateStatusMutation = useMutationWithToast({
-    mutationFn: ({ sopId, status }: SetSopStatusOverrideMutationDto) =>
-      sopApi.updateStatus(sopId, { status }),
-    onSuccess: (data, variables) =>
-      syncSopWorkbenchAfterStatusChange(queryClient, data, variables.sopId),
-    successMessage: "Status SOP berhasil diubah",
-    useDetailedErrors: true,
-    errorMessagePrefix: "Gagal mengubah status SOP",
-  });
-
-  return {
-    setSopStatusOverride: (sopId: string, status: SetSopStatusOverrideMutationDto["status"]) => {
-      updateStatusMutation.mutate({ sopId, status });
-    },
-    setSopStatusOverrideAsync: updateStatusMutation.mutateAsync,
-    isUpdating: updateStatusMutation.isPending,
-    error: updateStatusMutation.error,
-  };
-}
-
-/** Hook untuk mencabut SOP BERLAKU (Kepala OPD). */
-export function useCabutSop() {
-  const queryClient = useQueryClient();
-  const mutation = useMutationWithToast({
-    mutationFn: (sopOrDetailId: string) => sopApi.cabutSop(sopOrDetailId),
-    onSuccess: (data, sopOrDetailId) =>
-      syncSopWorkbenchAfterStatusChange(queryClient, data, sopOrDetailId),
-    successMessage: 'SOP berhasil dicabut',
-    useDetailedErrors: true,
-    errorMessagePrefix: 'Gagal mencabut SOP',
-  });
-  return {
-    cabutSop: mutation.mutate,
-    cabutSopAsync: mutation.mutateAsync,
-    isCabutPending: mutation.isPending,
-    error: mutation.error,
-  };
-}
-
-/** Query katalog Pelaksana global; native Process SOP tidak membutuhkan OPD context. */
-export function usePelaksana(_legacyOpdId?: string) {
+/** Query katalog Pelaksana global FTI. */
+export function usePelaksana() {
   const {
     data: list = [],
     isLoading,
     error,
   } = useQuery<Pelaksana[]>({
     queryKey: queryKeys.pelaksana,
-    queryFn: () => sopApi.findPelaksana(""),
+    queryFn: sopApi.findPelaksana,
     staleTime: STALE_TIME.MEDIUM,
   });
   return { list, isLoading, error };
 }
 
-/** Mutation membuat Pelaksana baru. */
-export function useCreatePelaksana(opdId?: string) {
-  const user = useAuthStore((state) => state.user);
-  const effectiveOpdId = opdId || user?.opdId;
+/** Mutation membuat actor/pelaksana global FTI. */
+export function useCreatePelaksana() {
   return useMutationWithToast({
-    mutationFn: (data: CreatePelaksanaMutationDto) => {
-      const targetOpdId = data.opdId || effectiveOpdId;
-      if (!targetOpdId) {
-        throw new Error("opdId is required - Pelaksana harus memiliki OPD");
-      }
-      return sopApi.createPelaksana({
-        opdId: targetOpdId,
-        namaPelaksana: data.namaPelaksana,
-      });
-    },
+    mutationFn: (data: CreatePelaksanaMutationDto) => sopApi.createPelaksana(data.namaPelaksana),
     invalidateKeys: [queryKeys.pelaksana, queryKeys.sop],
     successMessage: "Pelaksana SOP berhasil ditambahkan",
     errorMessagePrefix: "Gagal menambah pelaksana",
   });
 }
 
-/** Mutation mengubah nama Pelaksana. */
 export function useUpdatePelaksana() {
   return useMutationWithToast({
     mutationFn: ({ id, namaPelaksana }: UpdatePelaksanaMutationDto) =>
@@ -118,7 +47,6 @@ export function useUpdatePelaksana() {
   });
 }
 
-/** Mutation menghapus Pelaksana. */
 export function useDeletePelaksana() {
   return useMutationWithToast({
     mutationFn: (id: string) => sopApi.deletePelaksana(id),
