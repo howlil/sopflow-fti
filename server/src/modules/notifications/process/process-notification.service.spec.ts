@@ -1,7 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import { ProcessNotificationKind } from '../../../generated/prisma';
-import type { NotificationEventsService } from '../reminders/notification-events.service';
+import type { NotificationEventsService } from '../shared/notification-events.service';
 import { ProcessNotificationService } from './process-notification.service';
 
 function makeService() {
@@ -79,6 +79,28 @@ describe('ProcessNotificationService', () => {
         kind: ProcessNotificationKind.FINAL_APPROVAL_REQUESTED,
         body: expect.stringContaining('Dean'),
         actionHref: '/approval',
+      }),
+    });
+  });
+
+  it('includes the native Process revision note in durable author feedback', async () => {
+    const { service } = makeService();
+    const tx = makeTx();
+
+    await service.createInTransaction(tx as never, {
+      detailSopId: 'detail-1',
+      sopId: 'sop-1',
+      processId: 'process-1',
+      penggunaId: 'author-1',
+      kind: ProcessNotificationKind.PROCESS_REVISION_REQUESTED,
+      processName: 'Akademik',
+      catatan: 'Perbaiki langkah 2 dan lengkapi output dokumen.',
+    });
+
+    expect(tx.processNotification.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        preview: expect.stringContaining('Perbaiki langkah 2'),
+        body: expect.stringContaining('Perbaiki langkah 2 dan lengkapi output dokumen.'),
       }),
     });
   });

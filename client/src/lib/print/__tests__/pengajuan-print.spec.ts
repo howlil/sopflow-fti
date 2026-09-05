@@ -4,7 +4,6 @@ import {
   printSopPdfDocument,
 } from '../print-sop-pdf'
 import {
-  canCetakBeritaAcaraPengajuan,
   canCetakSopArsipPengajuan,
   PRINT_DELAY_MS,
   printSopArsipFromPreviewProps,
@@ -21,15 +20,6 @@ const sampleSopPrintProps = {
   name: 'SOP Pengujian',
   number: '001/SOP',
 }
-
-describe('canCetakBeritaAcaraPengajuan', () => {
-  it('mengizinkan cetak BA setelah kedua PJ menandatangani', () => {
-    expect(canCetakBeritaAcaraPengajuan('DITANDATANGANI_PJ_PENYUSUN')).toBe(true)
-    expect(canCetakBeritaAcaraPengajuan('SELESAI')).toBe(true)
-    expect(canCetakBeritaAcaraPengajuan('DITANDATANGANI_PJ_EVALUATOR')).toBe(false)
-    expect(canCetakBeritaAcaraPengajuan(undefined)).toBe(false)
-  })
-})
 
 describe('canCetakSopArsipPengajuan', () => {
   it('mengizinkan cetak SOP arsip hanya saat status SELESAI', () => {

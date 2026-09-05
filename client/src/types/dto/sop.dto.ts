@@ -50,6 +50,44 @@ export interface SopDaftarRow {
   versiBerlaku?: SopDaftarVersiSlice | null;
   canBuatVersiBaru?: boolean;
   canCabutSop?: boolean;
+  lifecycle?: ProcessSopLifecycleProjection;
+}
+
+export type ProcessSopLifecycleStage =
+  | 'AUTHORING'
+  | 'PROCESS_REVIEW'
+  | 'FINAL_APPROVAL'
+  | 'TTE'
+  | 'EFFECTIVE'
+  | 'REVOKED';
+
+export type ProcessSopLifecycleResponsibilityType =
+  | 'CURRENT_USER'
+  | 'PROCESS_OWNER'
+  | 'DEAN'
+  | 'HEAD_OF_DEPARTMENT'
+  | 'NONE';
+
+export type ProcessSopLifecycleActionType =
+  | 'CONTINUE_AUTHORING'
+  | 'REVIEW_PROCESS'
+  | 'APPROVE_FINAL'
+  | 'SIGN_TTE'
+  | 'OPEN';
+
+export interface ProcessSopLifecycleProjection {
+  stage: ProcessSopLifecycleStage;
+  stateLabel: string;
+  responsibility: {
+    type: ProcessSopLifecycleResponsibilityType;
+    name: string | null;
+  };
+  action: {
+    type: ProcessSopLifecycleActionType;
+    label: string;
+    destination: 'SOP_DETAIL' | 'APPROVAL_INBOX';
+  } | null;
+  blockingReason: string | null;
 }
 
 export interface SopRiwayatVersiRow {
@@ -70,6 +108,7 @@ export interface Sop {
   id: string;
   opdId: string | null;
   processId?: string | null;
+  processNama?: string | null;
   judul: string;
   createdAt: string;
   updatedAt: string;
@@ -120,7 +159,6 @@ export interface SopDetail {
   relasiSopMasuk?: SopTerkait[];
   langkahSOP?: LangkahSOP[];
   swimlanes?: DetailSOPPelaksana[];
-  nilaiEvaluasi?: { id: string; hasil?: string; catatan?: string }[];
   /** Kepala OPD OPD pemilik SOP (mis. dari GET workbench); blok DISAHKAN OLEH. */
   kepalaOpd?: { nama: string | null; nip: string | null } | null;
   /** ID peraturan dasar hukum (urut createdAt asc), dari GET workbench. */
@@ -152,6 +190,7 @@ export interface PenyusunWorkbenchLogEdit {
 
 /** Respons GET `/sop/penyusun-workbench/:detailSopId`. */
 export interface PenyusunWorkbenchData {
+  lifecycle?: ProcessSopLifecycleProjection;
   detail: SopDetail;
   langkah: LangkahSOP[];
   logEdit: PenyusunWorkbenchLogEdit[];

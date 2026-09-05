@@ -26,10 +26,8 @@ import type { SOPDetailMetadata } from '@/types/ui/sop'
 import type { PenyusunWorkbenchData, StatusSOP } from '@/types/dto/sop.dto'
 import type { SopHeaderAutosaveStatus } from '@/pages/penyusun/sop/hooks/use-sop-header-autosave'
 import { usePenyusunWorkbench } from '@/api/sop'
-import { useMyProcesses } from '@/api/process-context'
 import { processReviewApi, type ProcessReviewDecision } from '@/api/process-review'
 import { queryKeys } from '@/config/query-keys'
-import { useAuthStore } from '@/stores/authStore'
 import { useSopEditor } from '../SopEditorContext'
 import { useToast } from '@/hooks/useToast'
 import { printSopArsipFromPreviewProps } from '@/lib/print/pengajuan-print'
@@ -39,17 +37,9 @@ export interface DetailSOPPenyusunHeaderProps {
   metadata: SOPDetailMetadata
   currentSopStatus: StatusSOP
   currentSopStatusLabel: string
-  isRevisionFlow: boolean
-  primaryActionLabel: string
-  /** Di alur revisi legacy: hanya PJ Penyusun yang melihat tombol kirim ulang. */
-  canShowKirimUlangAction?: boolean
   autosaveStatus?: SopHeaderAutosaveStatus
   onRetryAutosave?: () => void | Promise<void>
-  /** Fallback action untuk SOP legacy yang belum terikat Process. */
-  onComplete: () => void
-  isPrimaryActionPending?: boolean
   isReadOnly?: boolean
-  kirimUlangBlockingReason?: string | null
   canBuatVersiBaru?: boolean
   buatVersiBaruBlockingReason?: string | null
   onBuatVersiBaru?: () => void
@@ -83,32 +73,13 @@ function autosaveAppearance(status: SopHeaderAutosaveStatus): AutosaveAppearance
   }
 }
 
-function processStatusLabel(status: StatusSOP, fallback: string): string {
-  switch (status) {
-    case 'SEDANG_DIEVALUASI':
-      return 'Review Process Owner'
-    case 'REVISI_DARI_EVALUATOR':
-      return 'Perlu revisi'
-    case 'MENUNGGU_TTD_PJ_EVALUATOR':
-      return 'Siap untuk persetujuan'
-    default:
-      return fallback
-  }
-}
-
 export function DetailSOPPenyusunHeader({
   metadata,
   currentSopStatus,
   currentSopStatusLabel,
-  isRevisionFlow,
-  primaryActionLabel,
-  canShowKirimUlangAction = true,
   autosaveStatus = 'idle',
   onRetryAutosave,
-  onComplete,
-  isPrimaryActionPending = false,
   isReadOnly = false,
-  kirimUlangBlockingReason = null,
   canBuatVersiBaru = false,
   buatVersiBaruBlockingReason = null,
   onBuatVersiBaru,
@@ -116,8 +87,6 @@ export function DetailSOPPenyusunHeader({
 }: DetailSOPPenyusunHeaderProps) {
   const { sopDetailId, flushHeaderAutosave, flushProsedurAutosave } = useSopEditor()
   const { data: workbench, isLoading: isWorkbenchLoading } = usePenyusunWorkbench(sopDetailId)
-  const { data: myProcesses = [] } = useMyProcesses()
-  const currentUserId = useAuthStore((state) => state.user?.id)
   const queryClient = useQueryClient()
   const { showToast } = useToast()
   const [isPrinting, setIsPrinting] = useState(false)
@@ -128,16 +97,11 @@ export function DetailSOPPenyusunHeader({
   const processSop = workbench?.detail.sop as ProcessAwareWorkbenchSop | undefined
   const processId = processSop?.processId ?? null
   const isProcessWorkflow = processId !== null
-  const isProcessOwner =
-    processId !== null &&
-    currentUserId !== undefined &&
-    myProcesses.some(
-      (process) => process.processId === processId && process.ownerId === currentUserId,
-    )
-  const isWaitingForProcessReview = isProcessWorkflow && currentSopStatus === 'SEDANG_DIEVALUASI'
-  const displayedStatusLabel = isProcessWorkflow
-    ? processStatusLabel(currentSopStatus, currentSopStatusLabel)
-    : currentSopStatusLabel
+  const lifecycle = isProcessWorkflow ? workbench?.lifecycle : undefined
+  const isProcessOwner = lifecycle?.stage === 'PROCESS_REVIEW' && lifecycle.responsibility.type === 'CURRENT_USER'
+  const isWaitingForProcessReview = lifecycle?.stage === 'PROCESS_REVIEW'
+  const isProcessRevision = lifecycle?.stage === 'AUTHORING' && lifecycle.stateLabel === 'Perlu revisi'
+  const displayedStatusLabel = lifecycle?.stateLabel ?? currentSopStatusLabel
 
   const updateWorkbenchCache = (nextWorkbench: PenyusunWorkbenchData) => {
     if (!sopDetailId) return
@@ -219,24 +183,15 @@ export function DetailSOPPenyusunHeader({
   const hasSecondaryActions = hasPrintAction || hasVersionAction
   const documentTitle = metadata.nama ?? metadata.judul ?? 'SOP'
 
-  const confirmTitle = isProcessWorkflow
-    ? isRevisionFlow
-      ? 'Kirim revisi untuk review?'
-      : 'Kirim SOP untuk review?'
-    : isRevisionFlow
-      ? 'Kirim ulang evaluasi?'
-      : 'Yakin SOP sudah siap?'
+  const confirmTitle = isProcessRevision ? 'Kirim revisi untuk review?' : 'Kirim SOP untuk review?'
   const confirmDescription = isProcessWorkflow
-    ? 'Dokumen akan dikunci sementara dan masuk ke review Process Owner. Pastikan semua perubahan sudah tersimpan.'
-    : isRevisionFlow
-      ? (kirimUlangBlockingReason ??
-        'SOP akan dikirim ulang untuk evaluasi oleh tim evaluator. Pastikan semua perbaikan sudah tersimpan.')
-      : 'Status SOP akan diubah menjadi Menunggu pengajuan evaluasi. PJ Penyusun dapat membuka pengajuan evaluasi ke Biro Organisasi. Pastikan dokumen sudah lengkap sebelum melanjutkan.'
+    ? isProcessRevision
+      ? 'Dokumen akan dikirim kembali ke Process Owner. Pastikan semua perubahan sudah tersimpan.'
+      : 'Dokumen akan dikunci sementara dan masuk ke review Process Owner. Pastikan semua perubahan sudah tersimpan.'
+    : ''
   const confirmLabel = isProcessWorkflow
     ? 'Ya, kirim untuk review'
-    : isRevisionFlow
-      ? 'Ya, kirim ulang'
-      : 'Ya, selesai'
+    : 'Ya, kirim untuk review'
 
   const handleConfirmComplete = () => {
     setIsConfirmOpen(false)
@@ -244,7 +199,7 @@ export function DetailSOPPenyusunHeader({
       void submitProcessReview()
       return
     }
-    onComplete()
+    void submitProcessReview()
   }
 
   return (
@@ -293,24 +248,19 @@ export function DetailSOPPenyusunHeader({
             </Button>
           ) : null}
 
-          {!isReadOnly && (!isRevisionFlow || canShowKirimUlangAction || isProcessWorkflow) ? (
+          {!isReadOnly && isProcessWorkflow ? (
             <Button
               size="sm"
               className="h-8 gap-1.5 px-3 text-xs"
               onClick={() => setIsConfirmOpen(true)}
               disabled={
-                isPrimaryActionPending ||
-                isProcessActionPending ||
-                (!isProcessWorkflow && Boolean(kirimUlangBlockingReason))
+                isProcessActionPending
               }
-              title={!isProcessWorkflow ? (kirimUlangBlockingReason ?? undefined) : undefined}
             >
               <Check className="h-3.5 w-3.5" aria-hidden />
-              {isPrimaryActionPending || isProcessActionPending
+              {isProcessActionPending
                 ? 'Mengirim…'
-                : isProcessWorkflow
-                  ? 'Kirim untuk review'
-                  : primaryActionLabel}
+                : 'Kirim untuk review'}
             </Button>
           ) : null}
 
@@ -374,19 +324,11 @@ export function DetailSOPPenyusunHeader({
             ? 'Dokumen menunggu keputusan Anda sebagai Process Owner.'
             : 'Dokumen sedang direview oleh Process Owner dan untuk sementara bersifat read-only.'}
         </div>
-      ) : isRevisionFlow && !isReadOnly ? (
+      ) : isProcessRevision && !isReadOnly ? (
         <div className="mt-2 flex gap-2 border-t border-border pt-2 text-xs text-secondary-foreground">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700" aria-hidden />
           <p>
-            {isProcessWorkflow ? (
-              <>SOP dikembalikan oleh Process Owner. Selesaikan revisi lalu klik <span className="font-semibold">Kirim untuk review</span>.</>
-            ) : kirimUlangBlockingReason ? (
-              kirimUlangBlockingReason
-            ) : !canShowKirimUlangAction ? (
-              <>SOP ini dikembalikan oleh evaluator untuk revisi. Selesaikan perbaikan, lalu minta <span className="font-semibold">PJ Penyusun</span> mengirim ulang evaluasi.</>
-            ) : (
-              <>SOP ini dikembalikan oleh evaluator untuk revisi. Pastikan perbaikan tersimpan, lalu klik <span className="font-semibold">Kirim ulang evaluasi</span>.</>
-            )}
+            <>SOP dikembalikan oleh Process Owner. Selesaikan revisi lalu klik <span className="font-semibold">Kirim untuk review</span>.</>
           </p>
         </div>
       ) : null}

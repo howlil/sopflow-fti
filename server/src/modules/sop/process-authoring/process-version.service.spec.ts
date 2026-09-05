@@ -2,7 +2,8 @@ import { ForbiddenException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import type { ProcessContextService } from '../../core/process/process-context.service';
 import type { SopCatalogRepository } from '../catalog/sop-catalog.repository';
-import type { SopCatalogService } from '../catalog/sop-catalog.service';
+import type { SopLegacyVersionCompatibilityService } from '../catalog/sop-legacy-version-compatibility.service';
+import type { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
 import { ProcessVersionService } from './process-version.service';
 
 const user = {
@@ -45,18 +46,27 @@ describe('ProcessVersionService', () => {
         },
       ]),
     } as unknown as SopCatalogRepository;
-    const catalog = {
-      buatVersiBaruDariSumber: jest.fn().mockResolvedValue({ detail: { id: 'legacy-v2' } }),
-      getPenyusunWorkbenchForEvaluasiContext: jest.fn().mockResolvedValue({
+    const legacyVersionCompatibility = {
+      createVersion: jest.fn().mockResolvedValue({ detail: { id: 'legacy-v2' } }),
+      getVersionHistory: jest.fn(),
+    } as unknown as SopLegacyVersionCompatibilityService;
+    const workbenchReader = {
+      getForDetail: jest.fn().mockResolvedValue({
         detail: { id: 'detail-v2', sop: { id: 'sop-a' } },
       }),
-      getRiwayatVersi: jest.fn(),
-    } as unknown as SopCatalogService;
+    } as unknown as SopWorkbenchReader;
     return {
-      service: new ProcessVersionService(prisma, processContext, repository, catalog),
+      service: new ProcessVersionService(
+        prisma,
+        processContext,
+        repository,
+        legacyVersionCompatibility,
+        workbenchReader,
+      ),
       processContext: processContext as any,
       repository: repository as any,
-      catalog: catalog as any,
+      legacyVersionCompatibility: legacyVersionCompatibility as any,
+      workbenchReader: workbenchReader as any,
     };
   }
 
@@ -69,7 +79,8 @@ describe('ProcessVersionService', () => {
       sourceDetailSopId: 'detail-v1',
       penggunaId: 'member-a',
     });
-    expect(ctx.catalog.buatVersiBaruDariSumber).not.toHaveBeenCalled();
+    expect(ctx.legacyVersionCompatibility.createVersion).not.toHaveBeenCalled();
+    expect(ctx.workbenchReader.getForDetail).toHaveBeenCalledWith('detail-v2', undefined);
     expect(result.detail.sop).toMatchObject({ processId: 'process-a', processNama: 'Process A' });
   });
 
@@ -77,7 +88,11 @@ describe('ProcessVersionService', () => {
     const ctx = setup(null);
     await ctx.service.createVersion(user, 'detail-v1');
 
-    expect(ctx.catalog.buatVersiBaruDariSumber).toHaveBeenCalledWith(user, 'detail-v1', undefined);
+    expect(ctx.legacyVersionCompatibility.createVersion).toHaveBeenCalledWith(
+      user,
+      'detail-v1',
+      undefined,
+    );
     expect(ctx.processContext.assertCanAuthor).not.toHaveBeenCalled();
   });
 
@@ -101,6 +116,6 @@ describe('ProcessVersionService', () => {
     ]);
     expect(ctx.processContext.assertCanAuthor).toHaveBeenCalledWith('member-a', 'process-a');
     expect(ctx.repository.findRiwayatVersiBySopId).toHaveBeenCalledWith('sop-a');
-    expect(ctx.catalog.getRiwayatVersi).not.toHaveBeenCalled();
+    expect(ctx.legacyVersionCompatibility.getVersionHistory).not.toHaveBeenCalled();
   });
 });

@@ -5,7 +5,7 @@ import { Table } from '@/components/ui/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Pagination } from '@/components/ui/pagination'
 import { LoadingState } from '@/components/ui/loading-state'
-import type { PaginationMetaDto } from '@/types/dto/evaluasi.dto'
+import type { PaginationMetaDto } from '@/types/dto/common.dto'
 import { cn } from '@/utils/cn'
 
 export interface ExpandableGroupedTableProps<TGroup> {

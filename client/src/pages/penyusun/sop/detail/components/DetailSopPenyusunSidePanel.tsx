@@ -1,4 +1,4 @@
-import { PenLine, MessageSquare, Activity, History } from 'lucide-react'
+import { PenLine, Activity, History } from 'lucide-react'
 import {
   CollapsedStripButton,
   CollapsibleSidePanel,
@@ -6,8 +6,6 @@ import {
   CollapsibleSidePanelHeader,
   PanelTabStrip,
 } from '@/components/ui/collapsible-side-panel'
-import { UmpanBalikEvaluasiPanel } from '@/pages/penyusun/sop/components/UmpanBalikEvaluasiPanel'
-import type { UmpanBalikEvaluasiDetail } from '@/types/dto/evaluasi.dto'
 import { RiwayatStatusPanel } from '@/pages/penyusun/sop/components/RiwayatStatusPanel'
 import { RiwayatVersiPanel } from '@/pages/penyusun/sop/components/RiwayatVersiPanel'
 import { DetailSOPMetadataPanel } from './DetailSopMetadataPanel'
@@ -16,13 +14,11 @@ import type { PenyusunWorkbenchLogEdit, SopRiwayatVersiRow } from '@/types/dto/s
 export interface DetailSOPPenyusunSidePanelProps {
   collapsed: boolean
   onCollapsedChange: (collapsed: boolean) => void
-  rightPanelTab: 'edit' | 'komentar' | 'versi' | 'aktivitas'
-  onTabChange: (tab: 'edit' | 'komentar' | 'versi' | 'aktivitas') => void
+  rightPanelTab: 'edit' | 'versi' | 'aktivitas'
+  onTabChange: (tab: 'edit' | 'versi' | 'aktivitas') => void
   auditEntries: PenyusunWorkbenchLogEdit[]
   /** @deprecated Label metadata sekarang diturunkan dari mode read-only. */
   editTabLabel?: string
-  umpanBalik?: UmpanBalikEvaluasiDetail | null
-  isUmpanBalikLoading?: boolean
   isReadOnly?: boolean
   detailSopId: string
   sopId?: string
@@ -37,8 +33,6 @@ export function DetailSOPPenyusunSidePanel({
   rightPanelTab,
   onTabChange,
   auditEntries = [],
-  umpanBalik = null,
-  isUmpanBalikLoading = false,
   isReadOnly = false,
   detailSopId,
   sopId,
@@ -49,7 +43,6 @@ export function DetailSOPPenyusunSidePanel({
   const propertyLabel = isReadOnly ? 'Informasi' : 'Properti'
   const tabs = [
     { id: 'edit', label: propertyLabel, icon: <PenLine className="h-3.5 w-3.5" /> },
-    { id: 'komentar', label: 'Komentar evaluasi', icon: <MessageSquare className="h-3.5 w-3.5" /> },
     { id: 'versi', label: 'Versi', icon: <History className="h-3.5 w-3.5" /> },
     { id: 'aktivitas', label: 'Aktivitas', icon: <Activity className="h-3.5 w-3.5" /> },
   ]
@@ -80,16 +73,6 @@ export function DetailSOPPenyusunSidePanel({
           </CollapsibleSidePanelHeader>
           <CollapsibleSidePanelContent className="px-0 pb-2 pt-1">
             {rightPanelTab === 'edit' && <DetailSOPMetadataPanel />}
-            {rightPanelTab === 'komentar' && (
-              <div className="flex min-h-0 flex-1 flex-col px-2">
-                <div className="min-h-0 flex-1">
-                  <UmpanBalikEvaluasiPanel
-                    umpanBalik={umpanBalik}
-                    isLoading={isUmpanBalikLoading}
-                  />
-                </div>
-              </div>
-            )}
             {rightPanelTab === 'versi' && sopId ? (
               <div className="px-2">
                 <RiwayatVersiPanel

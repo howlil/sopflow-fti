@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SOPDetailMetadata } from '@/types/ui/sop'
 
 const retryAutosave = vi.fn()
-const onComplete = vi.fn()
 const onBuatVersiBaru = vi.fn()
 
 vi.mock('@/api/sop', () => ({
@@ -39,12 +38,8 @@ function renderHeader(
     } as SOPDetailMetadata,
     currentSopStatus: 'DRAFT',
     currentSopStatusLabel: 'Draft',
-    isRevisionFlow: false,
-    primaryActionLabel: 'Selesai',
-    canShowKirimUlangAction: true,
     autosaveStatus: 'saved',
     onRetryAutosave: retryAutosave,
-    onComplete,
     isReadOnly: false,
     canBuatVersiBaru: false,
     onBuatVersiBaru,
@@ -75,7 +70,7 @@ describe('DetailSOPPenyusunHeader', () => {
     expect(screen.getByText('SOP Pelayanan Administrasi')).toBeInTheDocument()
     expect(screen.getByText('v2')).toBeInTheDocument()
     expect(screen.getByText('Draft')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Selesai' })).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Selesai' })).not.toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('Tersimpan')
     expect(screen.queryByText('Dokumen SOP')).not.toBeInTheDocument()
   })

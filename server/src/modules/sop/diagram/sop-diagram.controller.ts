@@ -31,9 +31,7 @@ import { UpdateSopDiagramDto } from './dto/diagram-path-overrides.dto';
 import { SopDiagramService } from './sop-diagram.service';
 
 @ApiTags('SOP')
-// The Process path is the first-party contract; the legacy path remains as a
-// compatibility adapter for existing clients and historical SOPs.
-@Controller(['process-sop/diagram', 'sop/diagram'])
+@Controller('process-sop/diagram')
 @UseGuards(JwtAuthGuard)
 export class SopDiagramController {
   constructor(private readonly sopDiagramService: SopDiagramService) {}
@@ -42,7 +40,7 @@ export class SopDiagramController {
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
   @ApiOperation({
     summary:
-      'PATCH konfigurasi diagram SOP (layoutSeed + path manual). Param :detailSopId boleh DetailSOP atau SOP header.',
+      'PATCH konfigurasi diagram SOP Process-bound (layoutSeed + path manual). Param :detailSopId boleh DetailSOP atau SOP header.',
   })
   @ApiQuery({
     name: 'logsLimit',

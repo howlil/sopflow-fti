@@ -43,65 +43,84 @@ The M11 ownership migration follows `EXPAND -> BACKFILL -> CUTOVER -> PROVE -> C
 - Authority `HEAD_OF_DEPARTMENT` selalu dikunci ke satu `departmentId` dan hanya berlaku untuk Process scope `DEPARTMENT` pada Department tersebut.
 - `SUPER_ADMIN` boleh memelihara konfigurasi authority, tetapi `platformRole = SUPER_ADMIN` tidak memberikan hak final approval dan tidak boleh menjadi workflow bypass.
 - `ProcessFinalApproval` adalah evidence satu-per-`DetailSOP` bahwa holder authority yang ter-resolve menyetujui versi SOP Process-bound tersebut.
+- `ProcessFinalApproval.processReviewId` menghubungkan approval baru dengan evidence `ProcessReview` berkeputusan `ACCEPT` dan status tujuan `MENUNGGU_TTD_PJ_EVALUATOR`; kolom tetap nullable selama fase EXPAND agar approval native historis tidak perlu dipalsukan atau di-backfill tanpa bukti.
 - Hanya versi `DetailSOP` terbaru dari SOP Process-bound yang dapat memperoleh contextual final approval. Versi lama yang pernah berada pada status siap approval ditolak setelah versi yang lebih baru tersedia.
 - SOP dengan `SOP.processId IS NULL` tetap berada pada compatibility workflow dan tidak masuk contextual final-approval path.
 - Final approval tidak membuat `DetailSOP` menjadi `BERLAKU`. TTE dan effective-state transition tetap merupakan boundary terpisah.
 
 ## Transisi Status DetailSOP
 
-The transitions below describe the retained legacy OPD/evaluation compatibility workflow. Native FTI Process SOPs use the Process Owner -> contextual authority -> TTE lifecycle implemented in the Process authoring modules; their target path does not authorize from the legacy role enum or OPD equality.
+SOP Process-bound memakai lifecycle native Process Owner -> contextual authority
+-> TTE -> published/revoked. Status dan evidence aktifnya dimiliki oleh
+`ProcessReview`, `ProcessFinalApproval`, `DokumenTte`, `ProcessNotification`,
+dan `ProcessReminder`.
 
-Transisi manual lewat endpoint status hanya memperbolehkan:
-
-- `DRAFT`, `SEDANG_DISUSUN`, atau `REVISI_DARI_EVALUATOR` ke `MENUNGGU_PENGAJUAN_EVALUASI` oleh `PENYUSUN` atau `PJ_PENYUSUN`.
-- `MENUNGGU_PENGAJUAN_EVALUASI` ke `DIAJUKAN_EVALUASI` oleh `PJ_PENYUSUN`.
-- `BERLAKU` ke `DICABUT` oleh `KEPALA_OPD`.
-
-Transisi lain dikendalikan oleh proses evaluasi dan TTE:
-
-- Saat pengajuan evaluasi dibuat, `DetailSOP.MENUNGGU_PENGAJUAN_EVALUASI` berubah menjadi `SEDANG_DIEVALUASI`.
-- Jika evaluator memberi `PERLU_PERBAIKAN`, `DetailSOP` berubah menjadi `REVISI_DARI_EVALUATOR`.
-- Jika evaluator menolak pengajuan, seluruh `DetailSOP` di dalamnya berubah menjadi `DITOLAK_EVALUATOR`. Status ini terminal: versi lama tidak dapat diedit atau diajukan ulang, tetapi dapat dijadikan sumber versi baru.
-- Jika seluruh nilai evaluasi `SESUAI`, `DetailSOP` berubah menjadi `MENUNGGU_TTD_PJ_EVALUATOR`.
-- Setelah BA ditandatangani `PJ_PENYUSUN`, `DetailSOP` berubah menjadi `DIVERIFIKASI_PJ_EVALUATOR_ORGANISASI`.
-- `DetailSOP.BERLAKU` hanya boleh terjadi melalui TTE `KEPALA_OPD`; service menghitung satu tanggal efektif kalender WIB, menempelkannya ke PDF sebelum tanda tangan digital, memakai objek tanggal yang sama untuk `DetailSOP.tanggalEfektif`, membuat `DokumenTte` jenis `SOP_BERLAKU`, mencatat `RiwayatTandaTangan`, dan mengganti versi lama yang `BERLAKU` menjadi `DIGANTIKAN`.
+Status legacy evaluasi dan `PengajuanEvaluasi` masih dipertahankan hanya sebagai
+parent historis yang belum dihapus. Tidak ada service/controller aktif yang
+membuat nilai evaluasi, log nilai, BA evaluasi, atau reminder WhatsApp baru.
+`fti-baseline-audit.ts` tidak lagi menganggap tabel legacy tersebut sebagai
+source of truth.
 
 Database juga menjaga maksimal satu `DetailSOP.BERLAKU` per `SOP`.
 
-## Transisi Status PengajuanEvaluasi
+## Evidence Process Owner Review
 
-Alur status pengajuan evaluasi:
+`ProcessReview` adalah evidence append-only untuk keputusan Process Owner pada SOP yang sudah terikat Process.
 
-- `SEDANG_DIEVALUASI`: evaluator mengisi nilai per SOP.
-- `DITOLAK`: penolakan final oleh evaluator; semua nilai menjadi `DITOLAK`, semua versi SOP menjadi `DITOLAK_EVALUATOR`, dan pengajuan tidak dapat dibuka kembali.
-- `SELESAI_DIEVALUASI`: hanya boleh jika seluruh `NilaiEvaluasi.hasil = SESUAI`; untuk pengajuan `EVALUASI_REQUEST_EVALUATOR`, `nilaiOPD` wajib 1 sampai 5.
-- `DITANDATANGANI_PJ_EVALUATOR`: terjadi setelah BA ditandatangani `PJ_EVALUATOR`.
-- `DITANDATANGANI_PJ_PENYUSUN`: terjadi setelah BA ditandatangani `PJ_PENYUSUN`.
-- `SELESAI`: terjadi setelah `KEPALA_OPD` menandatangani semua SOP dalam pengajuan.
+- setiap review native menyimpan `detailSopId`, `sopId`, `processId`, dan `reviewedById` secara eksplisit;
+- `decision`, `previousStatus`, dan `nextStatus` menyimpan keputusan serta transisi yang benar-benar diproses;
+- perubahan status `DetailSOP`, pembuatan `ProcessReview`, dan notifikasi native harus berada dalam satu transaksi;
+- foreign key ke `DetailSOP`, `SOP`, `Process`, dan `Pengguna` memakai `RESTRICT` agar evidence tidak ikut hilang ketika data induk dipelihara;
+`PengajuanEvaluasi` hanya merupakan parent historis. Status/version legacy yang
+masih tersimpan tidak menjadi workflow aktif dan tidak boleh dipakai untuk
+otorisasi atau notifikasi baru.
 
-Service memakai optimistic locking melalui `PengajuanEvaluasi.version` saat mutasi status.
+## Retirement Legacy Evaluation dan WhatsApp
 
-## Invariant NilaiEvaluasi dan Tindak Lanjut
+Migration `20260906120000_retire_legacy_evaluation_and_whatsapp` mengganti nama
+tabel berikut ke nama arsip yang jelas dan reversible:
 
-- `NilaiEvaluasi.hasil = PERLU_PERBAIKAN` wajib memiliki `catatan` tidak kosong.
-- `NilaiEvaluasi.hasil = DITOLAK` hanya dapat ditetapkan oleh aksi penolakan tingkat pengajuan dan tidak memiliki tindak lanjut pada versi yang sama.
-- Saat hasil menjadi `PERLU_PERBAIKAN`, `statusTindakLanjut` wajib `TERBUKA`, sedangkan `ditindaklanjutiPada` dan `ditindaklanjutiOlehId` dikosongkan.
-- Penyusun atau PJ Penyusun hanya boleh menandai tindak lanjut `SELESAI` jika `hasil = PERLU_PERBAIKAN`, `statusTindakLanjut = TERBUKA`, dan `DetailSOP` sedang `REVISI_DARI_EVALUATOR`.
-- Pengajuan hanya boleh diselesaikan evaluator jika seluruh hasil sudah `SESUAI`.
-- `LogNilaiEvaluasi` mencatat perubahan hasil, catatan, dan status tindak lanjut.
+- `NilaiEvaluasi` -> `_retired_NilaiEvaluasi_20260906`;
+- `LogNilaiEvaluasi` -> `_retired_LogNilaiEvaluasi_20260906`;
+- `PengingatWhatsApp` -> `_retired_PengingatWhatsApp_20260906`;
+- `NotifikasiInApp` -> `_retired_NotifikasiInApp_20260906`.
 
-## Invariant OPD Pengajuan dan SOP
+Rows historis dipertahankan untuk retention/legal review, tetapi tabel arsip
+bukan source of truth aplikasi. Source of truth aktif adalah Process-native
+review, notification, reminder, approval, dan TTE.
 
-Semua `NilaiEvaluasi.detailSopId` dalam satu `PengajuanEvaluasi` harus berasal dari OPD yang sama dengan `PengajuanEvaluasi.opdId`.
+## Invariant Reminder Native Process
 
-Aturan ini dijaga oleh service saat pengajuan dibuat:
+`ProcessReminder` adalah state operasional mutable untuk SOP yang sudah terikat
+Process. `ProcessNotification` tetap menjadi histori event dan read-state; kedua
+tabel tidak boleh dipakai sebagai substitusi diam-diam satu sama lain.
 
-- Detail SOP wajib ditemukan pada OPD pengguna/pengajuan.
-- Detail SOP wajib berada pada status `MENUNGGU_PENGAJUAN_EVALUASI`.
-- Satu OPD tidak boleh punya lebih dari satu pengajuan aktif lintas jobdesk.
-- Pengecekan pengajuan aktif dan pembuatan pengajuan baru diserialisasi per OPD. `PengajuanEvaluasiRepository.runTransaction(..., opdId)` mengambil row lock `SELECT ... FOR UPDATE` pada baris `OPD` sebelum membaca pengajuan blocking, sehingga dua request paralel untuk OPD yang sama tidak dapat sama-sama melewati pengecekan.
+- setiap reminder harus menunjuk ke `DetailSOP`, `SOP`, `Process`, dan penerima
+  yang ada;
+- `DetailSOP.sopId` harus sama dengan `ProcessReminder.sopId`, dan
+  `SOP.processId` harus sama dengan `ProcessReminder.processId`;
+- reminder hanya dibuat untuk status native yang sesuai: `PROCESS_OWNER_REVIEW`
+  untuk `SEDANG_DIEVALUASI`, `PROCESS_REVISION` untuk `REVISI_DARI_EVALUATOR`,
+  dan `FINAL_APPROVAL` untuk `MENUNGGU_TTD_PJ_EVALUATOR`;
+- satu versi, penerima, dan jenis reminder hanya boleh memiliki satu state aktif
+  melalui unique key `(detailSopId, penggunaId, kind)`;
+- transisi native yang actionable mengganti state reminder lama dalam transaksi
+  yang sama dengan event notification; efektivitas atau pencabutan menghapus
+  state reminder aktif untuk versi tersebut;
+- `destinationPhone`, lock, retry, dan failure fields adalah operational state,
+  bukan bukti bahwa pengiriman berhasil.
 
-Invariant concurrency ini diuji terhadap MariaDB nyata pada `test/integration/database-invariants.integration-spec.ts`: dua request paralel untuk OPD yang sama harus menghasilkan tepat satu pengajuan aktif dan satu request konflik.
+`fti-baseline-audit.ts` memeriksa orphan/mismatch native reminder secara
+read-only. Pada database yang belum memasang migration native reminder, check
+ini bersifat kompatibilitas dan bernilai nol; status migrasi tetap harus
+diverifikasi terpisah oleh `prisma migrate status`.
+
+## Invariant OPD Historis
+
+`PengajuanEvaluasi` dan `opdId` pada parent legacy dipertahankan untuk
+retention/backward inspection saja. Tidak ada invariant aplikasi aktif yang
+mengizinkan pembuatan nilai evaluasi atau reminder baru pada parent tersebut.
+Workflow baru wajib menggunakan relasi Process dan evidence native.
 
 ## Invariant Pelaksana dan Langkah SOP
 
@@ -125,8 +144,9 @@ Target semantics Sprint 4:
 
 ## Invariant DokumenTte dan Tanda Tangan
 
-- `DokumenTte` wajib memiliki tepat satu parent: `detailSopId` atau `pengajuanEvaluasiId`.
-- Kondisi kedua parent kosong maupun kedua parent terisi ditolak oleh CHECK constraint migration dan diverifikasi oleh dedicated negative integration test.
+- `DokumenTte` historis wajib memiliki tepat satu parent: `detailSopId` atau `pengajuanEvaluasiId`.
+- Artifact TTE native yang parent-nya `detailSopId` dan SOP-nya sudah terikat Process menyimpan `processId` yang sama; kolom tetap nullable untuk histori lama.
+- TTE Process-native menolak artifact yang masih memakai parent legacy evaluasi; TTE BA evaluasi legacy sudah retired.
 - `DokumenTte.nomorDokumen` unik global.
 - `PengajuanEvaluasi.nomorBA` unik global saat terisi; nilai `NULL` diperbolehkan untuk pengajuan yang belum memiliki BA.
 - Satu dokumen hanya boleh memiliki satu tanda tangan per peran melalui unique `(dokumenTteId, peran)`.

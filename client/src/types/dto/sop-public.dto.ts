@@ -1,4 +1,4 @@
-import type { PaginationMetaDto } from '@/types/dto/evaluasi.dto'
+import type { PaginationMetaDto } from '@/types/dto/common.dto'
 import type { LangkahSOP, PenyusunWorkbenchData, SopDetail } from '@/types/dto/sop.dto'
 
 export interface PublicArsipQueryParams {
@@ -8,12 +8,6 @@ export interface PublicArsipQueryParams {
 }
 
 export type PublicOrganizationalScope = 'FACULTY' | 'DEPARTMENT'
-
-export interface PublicOpdItem {
-  opdId: string
-  nama: string
-  jumlahSopBerlaku: number
-}
 
 export interface PublicProcessItem {
   processId: string
@@ -41,11 +35,6 @@ export interface PublicSopItem {
   pdfUrl: string
 }
 
-export interface PublicOpdPage {
-  items: PublicOpdItem[]
-  pagination: PaginationMetaDto
-}
-
 export interface PublicProcessPage {
   items: PublicProcessItem[]
   pagination: PaginationMetaDto
@@ -54,10 +43,6 @@ export interface PublicProcessPage {
 export interface PublicSopPage {
   items: PublicSopItem[]
   pagination: PaginationMetaDto
-}
-
-export interface PublicSopByOpdPage extends PublicSopPage {
-  opd: { opdId: string; nama: string }
 }
 
 export interface PublicSopByProcessPage extends PublicSopPage {

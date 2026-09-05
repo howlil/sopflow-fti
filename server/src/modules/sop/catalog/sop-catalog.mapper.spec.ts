@@ -1,10 +1,8 @@
 import {
-  HasilEvaluasi,
   JenisLangkahProsedur,
   SatuanWaktu,
   StatusSOP,
 } from '../../../generated/prisma';
-import { buildNilaiEvaluasiClientId } from '../../evaluation/nilai/nilai-evaluasi-client-id';
 import type { SopWorkbenchDbPayload } from './sop-catalog.repository';
 import { mapDaftarRow, mapWorkbenchPayload, toIso } from './sop-catalog.mapper';
 
@@ -14,7 +12,7 @@ describe('Pengujian SopCatalogMapper', () => {
     expect(toIso(d)).toBe('2026-03-01T08:00:00.000Z');
   });
 
-  it('seharusnya memetakan workbench dengan keputusan langkah dan nilai evaluasi', () => {
+  it('seharusnya memetakan workbench dengan keputusan langkah', () => {
     const t = new Date('2026-03-02T10:00:00.000Z');
     const row = {
       detailSopId: 'det-1',
@@ -66,14 +64,6 @@ describe('Pengujian SopCatalogMapper', () => {
           pelaksana: { pelaksanaId: 'pel-1', opdId: 'opd-1', nama: 'Staf' },
         },
       ],
-      nilaiEvaluasi: [
-        {
-          pengajuanEvaluasiId: 'pe-1',
-          detailSopId: 'det-1',
-          hasil: HasilEvaluasi.PERLU_PERBAIKAN,
-          catatan: 'Perbaiki',
-        },
-      ],
       langkahSOP: [
         {
           langkahSopId: 'lang-1',
@@ -97,9 +87,6 @@ describe('Pengujian SopCatalogMapper', () => {
       logEditSop: [],
     } as unknown as SopWorkbenchDbPayload;
     const actual = mapWorkbenchPayload(row);
-    expect(actual.detail.nilaiEvaluasi?.[0]).toMatchObject({
-      id: buildNilaiEvaluasiClientId('pe-1', 'det-1'),
-    });
     expect(actual.langkah[0]?.jenis).toBe(String(JenisLangkahProsedur.KEPUTUSAN));
     expect(actual.detail.dasarHukumPeraturanIds).toEqual(['per-1']);
   });

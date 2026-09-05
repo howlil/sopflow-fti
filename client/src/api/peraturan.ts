@@ -51,21 +51,21 @@ export function usePeraturan(opdId?: string) {
 
   const createMutation = useMutationWithToast({
     mutationFn: (payload: CreatePeraturanDto) => peraturanApi.create(payload),
-    invalidateKeys: [queryKeys.peraturan, queryKeys.sop, queryKeys.evaluasi],
+    invalidateKeys: [queryKeys.peraturan, queryKeys.sop],
     successMessage: 'Peraturan berhasil ditambahkan',
     errorMessagePrefix: 'Gagal menambahkan peraturan',
   })
 
   const updateMutation = useMutationWithToast({
     mutationFn: ({ id, payload }: UpdatePeraturanMutationDto) => peraturanApi.update(id, payload),
-    invalidateKeys: [queryKeys.peraturan, queryKeys.sop, queryKeys.evaluasi],
+    invalidateKeys: [queryKeys.peraturan, queryKeys.sop],
     successMessage: 'Peraturan berhasil diperbarui',
     errorMessagePrefix: 'Gagal memperbarui peraturan',
   })
 
   const deleteMutation = useMutationWithToast({
     mutationFn: (id: string) => peraturanApi.delete(id),
-    invalidateKeys: [queryKeys.peraturan, queryKeys.sop, queryKeys.evaluasi],
+    invalidateKeys: [queryKeys.peraturan, queryKeys.sop],
     successMessage: 'Peraturan berhasil dihapus',
     errorMessagePrefix: 'Gagal menghapus peraturan',
   })

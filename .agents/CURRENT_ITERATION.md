@@ -2,41 +2,32 @@
 
 ## Shape
 
-**Milestone:** M12 — FTI Production Go-Live & Operational Closure
-**State:** ACTIVE / PRODUCTION ACCESS REQUIRED
-**Scope:** production preflight, migration/data-integrity proof, runtime cutover, deterministic native FTI qualification, failure/recovery proof, and release closure. No legacy OPD deletion or infrastructure-platform rewrite.
+**Milestone:** M14 - Full FTI Legacy Retirement
+**State:** S4 VERIFIED / DELIVERY_PENDING
+**Scope:** retire unused legacy evaluation-value/history and WhatsApp notification/reminder features using a staged, reversible database migration. Process-native review, approval, TTE, publication, revocation, notification, and reminder remain active.
 
 ## Position
 
 ```text
-M11 native FTI runtime                  INTEGRATED / MASTER
-M11 integrated revision                 05b1adbc44db394b0bdff9dc7afd9ed10e71c145
-S1 Production configuration/preflight  PARTIAL / SOURCE + COMPOSE CONFIG
-S2 Production migration/integrity      NOT VERIFIED ON PRODUCTION DATABASE
-S3 Production runtime cutover          NOT VERIFIED
-S4 Native FTI workflow qualification   NOT RUN
-S5 Failure/recovery qualification       NOT RUN
-S6 Release closure                      NOT REACHED
+M11 native FTI runtime       INTEGRATED
+M12 production evidence      SEPARATE / NOT CLAIMED HERE
+M14 S4 legacy feature retire VERIFIED
+M14 database contract        MIGRATION + DISPOSABLE SMOKE PASS
+M14 verification              TYPECHECK + TEST + BUILD PASS
 ```
 
 ## Delta
 
-- M11 is integrated on local `master` and `origin/master`; post-merge Server CI, Client CI, FTI Domain CI, and Migration Smoke are green for the integrated revision.
-- The existing Compose contract is five external values from `.env.example`; backend startup applies `prisma migrate deploy` before starting the application, and readiness checks database plus persistent PDF storage.
-- Local `docker compose --env-file .env.example -f compose.yml config` passes, but Docker Desktop is unavailable on this host, so local image build/runtime evidence cannot be collected here.
-- The checkout `.env` is not a valid canonical production input: it contains legacy `DB_PASSWORD`/Wago entries and must not be used for M12 deployment. Real production secrets remain in the deployment secret store and have not been read or transmitted.
-- Read-only live probing of `https://sopflow.howlil.my.id` returned HTTP 200 with an empty body for `/`, `/api/health/live`, and `/api/health/ready`. This is not valid application health evidence and does not identify the running release.
-- No verified MyPaaS application/project target, deployment API credential, SSH credential, production backup/recovery point, or runtime revision identity is available in this environment. No production mutation has been attempted.
-
-## Evidence
-
-- M11 integrated required checks — PASS on GitHub for `05b1adbc44db394b0bdff9dc7afd9ed10e71c145`.
-- Compose Config — PASS on the existing runtime-contract revision `686cd5248fab0abcb5a02d8cfa98a71c167ea0bc`; M11 did not modify Compose/Dockerfile inputs.
-- Container Build — PASS on the existing runtime-contract revision `686cd5248fab0abcb5a02d8cfa98a71c167ea0bc`; M11 did not modify Compose/Dockerfile inputs.
-- Current local Compose config — PASS with `.env.example`.
-- Live origin read-only probe — INSUFFICIENT: HTTP 200 but zero-byte bodies for root and both health paths.
-- Production migration, runtime identity, persistence, TTE/public workflow, restart, rollback, and recovery evidence — NOT AVAILABLE.
+- Removed active server evaluation controllers/services/repositories and legacy reminder runtime from application wiring.
+- Removed active client evaluation API/query/cache/UI consumers, evaluator feedback/value panels, legacy evaluation submission action, and legacy notification composition.
+- Removed stale legacy evaluation/BA E2E journeys and unused BA archive print surfaces; Process-native journeys remain the browser contract.
+- Removed legacy BA evaluation TTE endpoints and compatibility signer repository/service; native Process TTE remains available.
+- Kept `PengajuanEvaluasi` and legacy TTE parent columns as historical compatibility parents; they are not active sources for new workflow actions.
+- Added migration `20260906120000_retire_legacy_evaluation_and_whatsapp` that renames `NilaiEvaluasi`, `LogNilaiEvaluasi`, `PengingatWhatsApp`, and `NotifikasiInApp` to `_retired_*` archive tables. The migration preserves rows and is recoverable by reverse rename if a separately approved retention operation requires it.
+- Replaced the legacy notification stream with the same SSE behavior on `ProcessNotificationController`, backed by `ProcessNotification` and `NotificationEventsService`.
+- Updated database invariants, architecture, and audit classification so archived legacy tables are observable but not active source-of-truth tables.
 
 ## Next Move
 
-Obtain or explicitly configure the verified MyPaaS deployment target and recovery point for `sopflow.howlil.my.id`, then execute in order: production preflight -> backup verification -> `prisma migrate deploy` -> integrity assertions -> image/runtime deploy -> readiness/API/persistence qualification -> focused native FTI lifecycle -> restart/recovery qualification -> exact revision closure. Keep the source SHA, image identity, migration revision, runtime identity, and evidence separate. Do not seed/reset production or bypass host-key/secret verification.
+1. Review the complete working-tree diff and create the requested commit/PR through the repository delivery workflow when authorized.
+2. Keep the persistent `sop-test-db` fixture unchanged unless explicitly requested; do not claim production or external-consumer retirement from local evidence.

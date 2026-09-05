@@ -1,16 +1,15 @@
 import {
   BadRequestException,
-  ForbiddenException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { assertDetailSopEditable } from '../../../common/status/sop-editable.util';
 import type { JwtAccessPayload } from '../../../common';
-import { PeranPengguna, StatusSOP } from '../../../generated/prisma';
-import { UserOpdAccessService } from '../../core/opd/user-opd-access.service';
+import { StatusSOP } from '../../../generated/prisma';
 import { ProcessContextService } from '../../core/process/process-context.service';
-import { SopCatalogService } from '../catalog/sop-catalog.service';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
+import { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
 import type { UpdateSopDiagramDto } from './dto/diagram-path-overrides.dto';
 import { hasInvalidDiagramEdgeKeys, isValidDiagramPathOverrides } from './diagram-edge-key.util';
 import { SopDiagramRepository } from './sop-diagram.repository';
@@ -19,8 +18,7 @@ import { SopDiagramRepository } from './sop-diagram.repository';
 export class SopDiagramService {
   constructor(
     private readonly sopDiagramRepository: SopDiagramRepository,
-    private readonly sopCatalogService: SopCatalogService,
-    private readonly userOpdAccessService: UserOpdAccessService,
+    private readonly sopWorkbenchReader: SopWorkbenchReader,
     private readonly processContextService: ProcessContextService,
   ) {}
 
@@ -34,12 +32,12 @@ export class SopDiagramService {
     if (resolved === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
-    const isProcessBound = resolved.processId !== null;
-    if (resolved.processId !== null) {
-      await this.processContextService.assertCanAuthor(user.sub, resolved.processId);
-    } else {
-      await this.assertPenyusunOpdAccess(user, resolved.sopOpdId);
+    if (resolved.processId === null) {
+      throw new ConflictException(
+        'SOP belum memiliki Process ownership dan tidak tersedia pada endpoint native',
+      );
     }
+    await this.processContextService.assertCanAuthor(user.sub, resolved.processId);
     const detailStatus = await this.sopDiagramRepository.findDetailStatus(resolved.detailSopId);
     if (detailStatus === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
@@ -53,7 +51,7 @@ export class SopDiagramService {
     }
     const hasChange = dto.layoutSeed !== undefined || dto.pathOverrides !== undefined;
     if (!hasChange) {
-      return this.getAuthorizedWorkbench(user, resolved.detailSopId, isProcessBound, logsLimit);
+      return this.getAuthorizedWorkbench(resolved.detailSopId, logsLimit);
     }
     await this.sopDiagramRepository.upsertConfig({
       detailSopId: resolved.detailSopId,
@@ -61,35 +59,13 @@ export class SopDiagramService {
       layoutSeed: dto.layoutSeed,
       pathOverrides: dto.pathOverrides,
     });
-    return this.getAuthorizedWorkbench(user, resolved.detailSopId, isProcessBound, logsLimit);
+    return this.getAuthorizedWorkbench(resolved.detailSopId, logsLimit);
   }
 
   private async getAuthorizedWorkbench(
-    user: JwtAccessPayload,
     detailSopId: string,
-    isProcessBound: boolean,
     logsLimit?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
-    if (isProcessBound) {
-      return this.sopCatalogService.getPenyusunWorkbenchForEvaluasiContext(detailSopId, logsLimit);
-    }
-    return this.sopCatalogService.getPenyusunWorkbench(user, detailSopId, logsLimit);
-  }
-
-  private async assertPenyusunOpdAccess(
-    user: JwtAccessPayload,
-    sopOpdId: string | null,
-  ): Promise<void> {
-    if (sopOpdId === null) {
-      throw new ForbiddenException('SOP belum memiliki Process atau compatibility OPD');
-    }
-    if (user.peran !== PeranPengguna.PENYUSUN && user.peran !== PeranPengguna.PJ_PENYUSUN) {
-      throw new ForbiddenException('Akses ditolak: hanya penyusun yang dapat mengubah diagram');
-    }
-    await this.userOpdAccessService.assertSameOpd(
-      user.sub,
-      sopOpdId,
-      'Akses ditolak untuk DetailSOP ini',
-    );
+    return this.sopWorkbenchReader.getForDetail(detailSopId, logsLimit);
   }
 }

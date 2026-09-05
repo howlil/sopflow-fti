@@ -33,9 +33,7 @@ import { UpdateSopProsedurDto } from './dto/update-sop-prosedur.dto';
 import { SopProsedurService } from './sop-prosedur.service';
 
 @ApiTags('SOP')
-// The Process path is the first-party contract; the legacy path remains as a
-// compatibility adapter for existing clients and historical SOPs.
-@Controller(['process-sop/langkah', 'sop/langkah'])
+@Controller('process-sop/langkah')
 @UseGuards(JwtAuthGuard)
 export class SopProsedurController {
   constructor(
@@ -46,8 +44,7 @@ export class SopProsedurController {
   @Patch(':detailSopId')
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
   @ApiOperation({
-    summary:
-      'PATCH prosedur SOP. Process-bound SOP memakai Process Owner/Member authorization; SOP legacy mempertahankan compatibility penyusun + OPD.',
+    summary: 'PATCH prosedur SOP Process-bound dengan authorization Process Owner/Member',
   })
   @ApiQuery({
     name: 'logsLimit',

@@ -145,6 +145,14 @@ Current migration strategy is additive and reversible where practical:
 
 `server/prisma/DB-INVARIANTS.md` remains the detailed database-invariant companion and must stay aligned when persistence invariants change.
 
+Native Process Owner review decisions are persisted as append-only `ProcessReview` evidence. The row records the explicit DetailSOP, SOP, Process, reviewer, decision, optional review note, and status transition, and is created in the same transaction as the status CAS, edit log, and native notification. This is the active review source of truth; the former evaluation-value/history capability is retired and its tables are archived by forward migration.
+
+New native `ProcessFinalApproval` evidence links to the accepted `ProcessReview` through nullable `processReviewId`. The nullable expand-phase link preserves historical native approvals whose originating review evidence predates `ProcessReview`; the application populates it for new approvals when the accepted review is available.
+
+Native revision feedback uses the existing `ProcessNotification` persistence path: an optional `ProcessReview.catatan` is copied into the durable author notification body and a bounded preview. This keeps review evidence owned by `ProcessReview` while allowing the existing notification consumer to display feedback without coupling native Process work back to legacy evaluation/reminder tables.
+
+The target uses Process Owner review and contextual authority instead of a centralized evaluator role. Native review evidence is therefore `ProcessReview` plus the existing Process status lifecycle. Legacy per-detail scoring, follow-up, completion/rejection, and BA/reporting are retired from the active product; historical rows are retained only in explicitly archived tables.
+
 ## Full FTI Cutover Architecture
 
 The long-term architecture is **native FTI**, not a permanent FTI facade over an OPD core.
@@ -198,9 +206,23 @@ The architecture reaches Full FTI only when active first-party authoring, review
 
 ## Notification Boundary
 
-Legacy notification persistence is tied to legacy evaluation concepts. Process workflow notifications use separate target-native persistence.
+Process workflow notifications use target-native persistence. Legacy evaluation/reminder notification tables are archived and are not composed into the active notification bell.
 
-The notification bell may compose both sources into one read model, but persistence/history must remain distinct unless an explicit migration decision changes that contract.
+Runtime ownership follows the persistence boundary:
+
+```text
+ProcessNotificationModule
+  -> ProcessNotificationController
+  -> ProcessNotificationService
+  -> ProcessNotification persistence
+  -> ProcessReminderService
+       -> ProcessReminder mutable retry/lock state
+
+NotificationEventsModule
+  -> shared post-commit event stream used by Process notifications
+```
+
+Native Process authoring and Process TTE modules import `ProcessNotificationModule`; they must not import the retired legacy notification module. `ProcessReminderService` maps `PROCESS_OWNER_REVIEW_REQUESTED`, `PROCESS_REVISION_REQUESTED`, and `FINAL_APPROVAL_REQUESTED` to the current native recipient and replaces the active reminder set for that DetailSOP version transactionally. A successful `PROCESS_SOP_EFFECTIVE` or `PROCESS_SOP_REVOKED` event clears the active native reminder state. The mutable state preserves retry/lock/destination semantics without copying legacy roles or OPD ownership.
 
 ## TTE / PDF Boundary
 
@@ -214,6 +236,12 @@ TTE and signed PDF behavior is security/legal-evidence-sensitive. Keep these con
 - public verification path;
 - effective-version integrity.
 
+Native Process TTE artifacts use the shared `DokumenTte` storage with nullable `processId` as an explicit ownership marker. Historical `pengajuanEvaluasiId` artifacts remain untouched for legal retention. Process TTE rejects an explicit legacy-parent ownership mismatch.
+
+Public TTE verification treats a document as native Process evidence only when its detail parent and `processId` marker are both present. The native approval lookup matches both identifiers and signer; historical detail artifacts without the marker remain verifiable without being assigned native Process authority metadata.
+
+The legacy `PengajuanEvaluasi`-backed TTE workflows are retired from runtime. The shared repository exposes only native/shared credential, public verification, and PDF concerns; historical TTE rows remain in the database for retention.
+
 Do not infer end-to-end signing correctness from unit-level service behavior alone.
 
 ## Legacy Compatibility Boundary
@@ -223,6 +251,8 @@ Legacy concepts such as `OPD`, `PENYUSUN`, `PJ_PENYUSUN`, `EVALUATOR`, `PJ_EVALU
 Target-facing architecture should not introduce new dependencies on those concepts unless the change is explicitly a compatibility adapter. Legacy routes may remain operable while target Process/authority surfaces become primary.
 
 Compatibility is not a second target architecture. Once a target path has cut over and its retention requirements are satisfied, its legacy dependency should be retired rather than propagated forward.
+
+The former evaluation and WhatsApp reminder capability has no active endpoint ownership. Its legacy tables are renamed to `_retired_*` archive tables by migration `20260906120000_retire_legacy_evaluation_and_whatsapp`; `PengajuanEvaluasi` and its BA parent remain historical compatibility data only. The active endpoint surface is Process review, Process notification/reminder, contextual approval, native TTE, publication, revocation, and public discovery.
 
 ## Architecture Change Threshold
 

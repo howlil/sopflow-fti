@@ -1,22 +1,20 @@
 import { Module } from '@nestjs/common';
-import { NotificationModule } from '../../notifications/reminders/notification.module';
+import { ProcessNotificationModule } from '../../notifications/process/process-notification.module';
 import { SopPdfModule } from '../../sop/pdf/sop-pdf.module';
 import { TteSharedModule } from '../shared/tte-shared.module';
 import { ProcessTteController } from './process-tte.controller';
 import { ProcessTteRepository } from './process-tte.repository';
 import { ProcessTteService } from './process-tte.service';
-import { TtePenandatangananService } from './tte-penandatanganan.service';
 import { TtePdfSigningService } from './tte-pdf-signing.service';
 
 @Module({
-  imports: [TteSharedModule, SopPdfModule, NotificationModule],
+  imports: [TteSharedModule, SopPdfModule, ProcessNotificationModule],
   controllers: [ProcessTteController],
   providers: [
-    TtePenandatangananService,
     TtePdfSigningService,
     ProcessTteRepository,
     ProcessTteService,
   ],
-  exports: [TtePenandatangananService, TtePdfSigningService, ProcessTteService],
+  exports: [TtePdfSigningService, ProcessTteService],
 })
 export class TtePenandatangananModule {}

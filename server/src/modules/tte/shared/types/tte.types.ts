@@ -24,23 +24,6 @@ export type TteProfilResponse = {
   };
 };
 
-export type TteRiwayatResponse = {
-  readonly id: string;
-  readonly userId: string;
-  readonly peran: 'KEPALA_OPD' | 'PJ_EVALUATOR' | 'PJ_PENYUSUN';
-  readonly dokumenTteId: string;
-  readonly nomorDokumen: string;
-  readonly jenisDokumen: string;
-  readonly judulDokumen: string;
-  readonly hashDokumen: string;
-  readonly sopDetailId?: string;
-  readonly pengajuanEvaluasiId?: string;
-  readonly ditandatanganiPada: string;
-  readonly user?: { readonly id: string; readonly nama: string; readonly nip: string };
-  readonly qrVerificationUrl: string | null;
-  readonly qrPayload: string;
-};
-
 export type TtePengesahanPublicResponse = {
   readonly userId: string;
   readonly dokumenTteId: string;
@@ -61,14 +44,7 @@ export type TtePengesahanPublicResponse = {
     readonly jenisDokumen: string;
     readonly hashDokumen: string;
     readonly sopDetailId?: string;
-    readonly pengajuanEvaluasiId?: string;
   };
   readonly qrVerificationUrl: string | null;
   readonly qrPayload: string;
-};
-
-export type TteBatchSignSopPengajuanResponse = {
-  readonly pengajuanEvaluasiId: string;
-  readonly totalSopDitandatangani: number;
-  readonly ditandatanganiPada: string;
 };

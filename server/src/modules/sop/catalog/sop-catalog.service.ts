@@ -8,22 +8,19 @@ import {
 import type { JwtAccessPayload } from '../../../common';
 import { isPrismaUniqueConstraintError } from '../../../common/prisma/prisma-error.util';
 import { PeranPengguna, StatusSOP } from '../../../generated/prisma';
-import { displayStatusSop } from '../../../common/status/status-display';
 import { extractDbInvariantMessage } from '../../../common/prisma/prisma-db-invariant.util';
 import {
   assertDetailSopEditable,
   hasRevisiInFlight,
-  TERMINAL_DETAIL_STATUSES,
 } from '../../../common/status/sop-editable.util';
-import { UserOpdAccessService } from '../../core/opd/user-opd-access.service';
 import type { CreateSopDto } from './dto/create-sop.dto';
 import type { PenyusunWorkbenchDataDto } from './dto/penyusun-workbench-data.dto';
-import type { SopRiwayatVersiRowDto } from './dto/sop-riwayat-versi-row.dto';
 import type { SopDaftarRowDto } from './dto/sop-daftar-row.dto';
 import type { UpdateDetailSopStatusDto } from './dto/update-detail-sop-status.dto';
 import type { UpdateSopHeaderDto } from './dto/update-sop-header.dto';
 import type { ListSopQueryDto } from './dto/list-sop-query.dto';
 import type { PublicSopDokumenDto } from '../public/dto/public-sop-dokumen.dto';
+import type { SopRiwayatVersiRowDto } from './dto/sop-riwayat-versi-row.dto';
 import { assertSopCatalogRepoOk } from './sop-catalog-repo-error.util';
 import { assertSopWorkbenchCompleteForSiapDievaluasi } from './sop-completeness.validator';
 import { mapDaftarRow, mapWorkbenchPayload } from './sop-catalog.mapper';
@@ -33,6 +30,8 @@ import {
   type SopDaftarListFilters,
   type UpdateSopHeaderRepoInput,
 } from './sop-catalog.repository';
+import { SopLegacyAccessPolicy } from './sop-legacy-access.policy';
+import { SopLegacyVersionCompatibilityService } from './sop-legacy-version-compatibility.service';
 
 const DEFAULT_WORKBENCH_LOG_LIMIT = 100;
 const MAX_WORKBENCH_LOG_LIMIT = 500;
@@ -41,7 +40,8 @@ const MAX_WORKBENCH_LOG_LIMIT = 500;
 export class SopCatalogService {
   constructor(
     private readonly sopCatalogRepository: SopCatalogRepository,
-    private readonly userOpdAccessService: UserOpdAccessService,
+    private readonly sopLegacyAccessPolicy: SopLegacyAccessPolicy,
+    private readonly sopLegacyVersionCompatibility: SopLegacyVersionCompatibilityService,
   ) {}
 
   private clampLogsLimit(raw: number | undefined): number {
@@ -56,26 +56,6 @@ export class SopCatalogService {
       return MAX_WORKBENCH_LOG_LIMIT;
     }
     return n;
-  }
-
-  private async assertOpdAccessForWorkbench(
-    user: JwtAccessPayload,
-    sopOpdId: string,
-  ): Promise<void> {
-    await this.userOpdAccessService.assertWorkbenchAccess(user, sopOpdId);
-  }
-
-  private async assertLegacyContextOpdAccess(
-    user: JwtAccessPayload,
-    context: { processId: string | null; sopOpdId: string | null },
-  ): Promise<void> {
-    if (context.processId !== null) {
-      throw new ForbiddenException('SOP native harus diakses melalui Process workspace');
-    }
-    if (context.sopOpdId === null) {
-      throw new ForbiddenException('SOP legacy tidak memiliki OPD compatibility context');
-    }
-    await this.assertOpdAccessForWorkbench(user, context.sopOpdId);
   }
 
   async getPenyusunWorkbench(
@@ -94,27 +74,7 @@ export class SopCatalogService {
     if (row.sop.opdId === null) {
       throw new ForbiddenException('SOP native harus diakses melalui Process workspace');
     }
-    await this.assertOpdAccessForWorkbench(user, row.sop.opdId);
-    return mapWorkbenchPayload(row);
-  }
-
-  /**
-   * Workbench untuk pratinjau SOP dalam konteks pengajuan evaluasi (batch).
-   * Keanggotaan batch dan akses pengajuan sudah divalidasi di modul evaluation;
-   * tanpa assert OPD agar PJ/Evaluator lintas OPD dapat memuat dokumen lengkap.
-   */
-  async getPenyusunWorkbenchForEvaluasiContext(
-    detailSopId: string,
-    logsLimitRaw?: number,
-  ): Promise<PenyusunWorkbenchDataDto> {
-    const logsLimit = this.clampLogsLimit(logsLimitRaw);
-    const row = await this.sopCatalogRepository.findWorkbenchPayloadByDetailOrSopId(
-      detailSopId,
-      logsLimit,
-    );
-    if (row === null) {
-      throw new NotFoundException('DetailSOP tidak ditemukan');
-    }
+    await this.sopLegacyAccessPolicy.assertWorkbenchAccess(user, row.sop.opdId);
     return mapWorkbenchPayload(row);
   }
 
@@ -133,7 +93,7 @@ export class SopCatalogService {
         row.sop.opd === null || row.sop.opdId === null
           ? null
           : { id: row.sop.opdId, nama: row.sop.opd.nama },
-      detail: { ...workbench.detail, nilaiEvaluasi: [] },
+      detail: workbench.detail,
       langkah: workbench.langkah,
       diagramKonfigurasi: workbench.diagramKonfigurasi,
     };
@@ -155,7 +115,7 @@ export class SopCatalogService {
     if (ctx === null) {
       throw new NotFoundException('SOP tidak ditemukan');
     }
-    await this.assertLegacyContextOpdAccess(user, ctx);
+    await this.sopLegacyAccessPolicy.assertLegacyContextAccess(user, ctx);
     const riwayat = await this.sopCatalogRepository.findRiwayatVersiBySopId(resolved.sopId);
     const allStatuses = riwayat.map((row) => row.status);
     if (hasRevisiInFlight(allStatuses)) {
@@ -196,7 +156,7 @@ export class SopCatalogService {
     if (ctx === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
-    await this.assertLegacyContextOpdAccess(user, ctx);
+    await this.sopLegacyAccessPolicy.assertLegacyContextAccess(user, ctx);
     assertAllowedSopStatusTransition({ role: user.peran, current: ctx.status, target: dto.status });
     const logsLimit = this.clampLogsLimit(logsLimitRaw);
     if (dto.status === StatusSOP.MENUNGGU_PENGAJUAN_EVALUASI) {
@@ -243,7 +203,7 @@ export class SopCatalogService {
         `Hanya SOP berstatus REVISI_DARI_EVALUATOR yang dapat dikirim ulang ke evaluator (status saat ini: ${String(ctx.status)})`,
       );
     }
-    await this.assertLegacyContextOpdAccess(user, ctx);
+    await this.sopLegacyAccessPolicy.assertLegacyContextAccess(user, ctx);
     const logsLimit = this.clampLogsLimit(logsLimitRaw);
     const draftPayload = await this.sopCatalogRepository.findWorkbenchPayloadByDetailOrSopId(
       ctx.detailSopId,
@@ -313,7 +273,7 @@ export class SopCatalogService {
     if (existing.sop.opdId === null) {
       throw new ForbiddenException('SOP native harus diakses melalui Process workspace');
     }
-    await this.assertOpdAccessForWorkbench(user, existing.sop.opdId);
+    await this.sopLegacyAccessPolicy.assertWorkbenchAccess(user, existing.sop.opdId);
     assertDetailSopEditable(existing.status);
     const changedFields = this.collectChangedHeaderFields(dto);
     if (changedFields.length > 0) {
@@ -367,17 +327,17 @@ export class SopCatalogService {
     query?: ListSopQueryDto,
   ): Promise<SopDaftarRowDto[]> {
     const filters = this.normalizeListFilters(query);
-    if (this.userOpdAccessService.isEvaluatorRole(user.peran)) {
+    if (this.sopLegacyAccessPolicy.isEvaluatorRole(user.peran)) {
       const rows = await this.sopCatalogRepository.findDaftarAll(filters);
       return rows.map((row) => mapDaftarRow(row));
     }
-    const opdId = await this.userOpdAccessService.getRequiredUserOpdId(user.sub);
+    const opdId = await this.sopLegacyAccessPolicy.getRequiredUserOpdId(user.sub);
     const rows = await this.sopCatalogRepository.findDaftarByOpdId(opdId, filters);
     return rows.map((row) => mapDaftarRow(row));
   }
 
   async createForPenyusun(user: JwtAccessPayload, dto: CreateSopDto): Promise<SopDaftarRowDto> {
-    const opdId = await this.userOpdAccessService.getRequiredUserOpdId(user.sub);
+    const opdId = await this.sopLegacyAccessPolicy.getRequiredUserOpdId(user.sub);
     const trimmedJudul = dto.judul.trim();
     const namaLembaga =
       dto.namaLembaga === undefined || dto.namaLembaga === null ? '' : dto.namaLembaga.trim();
@@ -409,69 +369,18 @@ export class SopCatalogService {
     detailOrSopId: string,
     logsLimitRaw?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
-    this.assertPenyusunOrPj(user);
-    const resolved = await this.sopCatalogRepository.findDetailIdByDetailOrSopId(detailOrSopId);
-    if (resolved === null) {
-      throw new NotFoundException('DetailSOP tidak ditemukan');
-    }
-    const source = await this.sopCatalogRepository.findLatestDetailStatusContext(
-      resolved.detailSopId,
-    );
-    if (source === null) {
-      throw new NotFoundException('DetailSOP tidak ditemukan');
-    }
-    await this.assertLegacyContextOpdAccess(user, source);
-    try {
-      const cloned = assertSopCatalogRepoOk(
-        await this.sopCatalogRepository.cloneDetailSopFromSource({
-          sourceDetailSopId: source.detailSopId,
-          penggunaId: user.sub,
-        }),
-      );
-      return this.getPenyusunWorkbench(user, cloned.detailSopId, logsLimitRaw);
-    } catch (error) {
-      if (isPrismaUniqueConstraintError(error)) {
-        throw new ConflictException(
-          'Versi baru lain telah dibuat secara bersamaan. Muat ulang riwayat versi.',
-        );
-      }
-      throw error;
-    }
+    return this.sopLegacyVersionCompatibility.createVersion(user, detailOrSopId, logsLimitRaw);
   }
 
   async getRiwayatVersi(user: JwtAccessPayload, sopId: string): Promise<SopRiwayatVersiRowDto[]> {
-    const header = await this.sopCatalogRepository.findDetailIdByDetailOrSopId(sopId);
-    const resolvedSopId = header?.sopId ?? sopId;
-    const firstDetail =
-      await this.sopCatalogRepository.findLatestDetailStatusContext(resolvedSopId);
-    if (firstDetail === null) {
-      throw new NotFoundException('SOP tidak ditemukan');
-    }
-    await this.assertLegacyContextOpdAccess(user, firstDetail);
-    const rows = await this.sopCatalogRepository.findRiwayatVersiBySopId(resolvedSopId);
-    const hasActiveRevision = hasRevisiInFlight(rows.map((row) => row.status));
-    return rows.map((row) => {
-      const statusDisplay = displayStatusSop(row.status);
-      return {
-        detailSopId: row.detailSopId,
-        versi: row.versi,
-        nomorSOP: row.nomorSOP,
-        status: statusDisplay.value,
-        statusLabel: statusDisplay.label,
-        revisiDariDetailSopId: row.revisiDariDetailSopId,
-        revisiDariVersi: row.revisiDariVersi,
-        updatedAt: row.updatedAt.toISOString(),
-        canHapusDraft: row.canHapusDraft,
-        canBuatVersiBaru: !hasActiveRevision && TERMINAL_DETAIL_STATUSES.has(row.status),
-      };
-    });
+    return this.sopLegacyVersionCompatibility.getVersionHistory(user, sopId);
   }
 
   async hapusVersiDraft(user: JwtAccessPayload, detailSopId: string): Promise<void> {
     this.assertPenyusunOrPj(user);
     const ctx = await this.sopCatalogRepository.findLatestDetailStatusContext(detailSopId);
     if (ctx === null) throw new NotFoundException('DetailSOP tidak ditemukan');
-    await this.assertLegacyContextOpdAccess(user, ctx);
+    await this.sopLegacyAccessPolicy.assertLegacyContextAccess(user, ctx);
     assertSopCatalogRepoOk(await this.sopCatalogRepository.deleteVersiDraft(ctx.detailSopId));
   }
 
@@ -479,7 +388,7 @@ export class SopCatalogService {
     this.assertPenyusunOrPj(user);
     const ctx = await this.sopCatalogRepository.findLatestDetailStatusContext(detailSopId);
     if (ctx === null) throw new NotFoundException('DetailSOP tidak ditemukan');
-    await this.assertLegacyContextOpdAccess(user, ctx);
+    await this.sopLegacyAccessPolicy.assertLegacyContextAccess(user, ctx);
     assertSopCatalogRepoOk(await this.sopCatalogRepository.deleteSopDraftAwal(ctx.detailSopId));
   }
 }

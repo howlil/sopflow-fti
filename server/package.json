@@ -19,8 +19,7 @@
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
-    "test:core-unit": "jest auth.service.spec.ts auth.shared.spec.ts auth.controller.spec.ts auth.repository.spec.ts jwt-access.strategy.spec.ts auth.dto.spec.ts roles.guard.spec.ts penyusun.service.spec.ts kepala-opd.service.spec.ts kepala-opd.controller.spec.ts kepala-opd.repository.spec.ts kepala-opd.dto.spec.ts evaluator.service.spec.ts pelaksana.service.spec.ts pelaksana.controller.spec.ts pelaksana.repository.spec.ts pelaksana.dto.spec.ts peraturan.service.spec.ts sop-catalog.service.spec.ts sop-prosedur.service.spec.ts sop-diagram.service.spec.ts sop-completeness.validator.spec.ts sop-status-policy.spec.ts pengajuan-evaluasi.service.spec.ts evaluasi-nilai.service.spec.ts evaluasi-nilai.controller.spec.ts evaluasi-nilai.repository.spec.ts evaluasi-nilai.dto.spec.ts evaluasi-revisi.policy.spec.ts nilai-opd-skor.constants.spec.ts nilai-evaluasi-client-id.spec.ts evaluasi-umpan-balik.service.spec.ts tte.service.spec.ts tte-profil.service.spec.ts tte.controller.spec.ts tte-profil.dto.spec.ts tte.repository.spec.ts sop-public.service.spec.ts evaluasi-grafik.service.spec.ts indonesian-mobile-number.util.spec.ts notification-module-boundaries.spec.ts in-app-notification.service.spec.ts notification-recipient-resolver.service.spec.ts notification-reminder-reconciler.service.spec.ts notification-reminder-scheduler.service.spec.ts env.validation.spec.ts --runInBand",
-    "test:evaluasi-sop-unit": "jest sop-catalog.service.spec.ts pengajuan-evaluasi.service.spec.ts evaluasi-nilai.service.spec.ts evaluasi-nilai.controller.spec.ts evaluasi-nilai.repository.spec.ts evaluasi-nilai.dto.spec.ts evaluasi-revisi.policy.spec.ts nilai-opd-skor.constants.spec.ts nilai-evaluasi-client-id.spec.ts tte.service.spec.ts sop-public.service.spec.ts --runInBand",
+     "test:core-unit": "jest auth.service.spec.ts auth.shared.spec.ts auth.controller.spec.ts auth.repository.spec.ts jwt-access.strategy.spec.ts auth.dto.spec.ts roles.guard.spec.ts penyusun.service.spec.ts kepala-opd.service.spec.ts kepala-opd.controller.spec.ts kepala-opd.repository.spec.ts kepala-opd.dto.spec.ts evaluator.service.spec.ts pelaksana.service.spec.ts pelaksana.controller.spec.ts pelaksana.repository.spec.ts pelaksana.dto.spec.ts peraturan.service.spec.ts sop-catalog.service.spec.ts sop-prosedur.service.spec.ts sop-diagram.service.spec.ts sop-completeness.validator.spec.ts sop-status-policy.spec.ts tte-profil.service.spec.ts tte.controller.spec.ts tte-profil.dto.spec.ts sop-public.service.spec.ts indonesian-mobile-number.util.spec.ts notification-module-boundaries.spec.ts env.validation.spec.ts --runInBand",
     "test:integration": "node -e \"console.error('Integration test wajib Docker. Jalankan: pnpm test:integration:docker'); process.exit(1)\"",
     "test:integration:run": "jest --config ./test/jest-integration.json --runInBand",
     "test:integration:docker": "docker compose -f ../docker-compose.test.yml --profile test run --rm sop-integration-test",
@@ -32,6 +31,7 @@
     "pdf-signing:generate-cert": "node scripts/generate-pdf-signing-cert.cjs",
     "db:seed": "prisma migrate deploy && prisma db seed",
     "db:seed:e2e": "ts-node --transpile-only prisma/seed-e2e.ts",
+    "db:audit:fti": "ts-node --transpile-only prisma/fti-baseline-audit.ts",
     "db:fresh": "prisma migrate reset --force"
   },
   "dependencies": {

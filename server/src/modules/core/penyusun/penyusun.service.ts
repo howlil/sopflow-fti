@@ -228,8 +228,6 @@ export class PenyusunService {
       c.detailSopDibuat +
       c.detailSopDiedit +
       c.logEditSop +
-      c.logNilaiEvaluasi +
-      c.nilaiEvaluasiDiisi +
       c.pengajuanEvaluasiDiselesaikan +
       c.pengajuanEvaluasiDitandatangani +
       c.pengajuanEvaluasiDiverifikasi +

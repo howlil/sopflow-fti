@@ -5,6 +5,7 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import {
   OrganizationalAuthority,
   OrganizationalScope,
+  ProcessReviewDecision,
   StatusSOP,
 } from '../../../generated/prisma';
 import { OrganizationalAuthorityService } from '../../core/process/organizational-authority.service';
@@ -87,16 +88,18 @@ export class ProcessFinalApprovalService {
     const readyLatest = [...latestBySopId.values()].filter(
       (detail) => detail.status === StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
     );
-    const approvals = readyLatest.length === 0
-      ? []
-      : await this.prisma.processFinalApproval.findMany({
-          where: { detailSopId: { in: readyLatest.map((detail) => detail.detailSopId) } },
-        });
+    const approvals =
+      readyLatest.length === 0
+        ? []
+        : await this.prisma.processFinalApproval.findMany({
+            where: { detailSopId: { in: readyLatest.map((detail) => detail.detailSopId) } },
+          });
     const approvalByDetail = new Map(approvals.map((approval) => [approval.detailSopId, approval]));
 
     return readyLatest.map((detail) => {
       const processId = processBySopId.get(detail.sopId);
-      if (!processId) throw new Error('Process SOP ownership disappeared while listing approval queue');
+      if (!processId)
+        throw new Error('Process SOP ownership disappeared while listing approval queue');
       const process = processById.get(processId);
       if (!process) throw new Error('Process disappeared while listing approval queue');
       const approval = approvalByDetail.get(detail.detailSopId) ?? null;
@@ -180,12 +183,24 @@ export class ProcessFinalApprovalService {
       );
     }
 
+    const acceptedReview = await this.prisma.processReview.findFirst({
+      where: {
+        detailSopId: context.detailSopId,
+        processId: context.processId,
+        decision: ProcessReviewDecision.ACCEPT,
+        nextStatus: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { processReviewId: true },
+    });
+
     try {
       return await this.prisma.processFinalApproval.create({
         data: {
           detailSopId: context.detailSopId,
           processId: context.processId,
           approvedById: user.sub,
+          processReviewId: acceptedReview?.processReviewId ?? null,
           authority: authority.authority,
           authorityKey: authority.authorityKey,
         },
@@ -222,7 +237,9 @@ export class ProcessFinalApprovalService {
       select: { processId: true },
     });
     if (sop?.processId === null || sop === null) {
-      throw new ConflictException('SOP legacy belum terikat Process dan tetap memakai workflow kompatibilitas');
+      throw new ConflictException(
+        'SOP legacy belum terikat Process dan tetap memakai workflow kompatibilitas',
+      );
     }
     return { detailSopId: resolved.detailSopId, processId: sop.processId };
   }

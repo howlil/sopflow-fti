@@ -70,13 +70,6 @@ export const sopApi = {
       ),
     ),
 
-  kirimUlangEvaluasiSetelahRevisi: (detailSopId: string, params?: PenyusunWorkbenchQueryParams) =>
-    unwrapApiData(
-      apiClient.post<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/sop/penyusun-workbench/${detailSopId}/kirim-ulang-evaluasi${buildQueryString(params)}`,
-      ),
-    ),
-
   buatVersiBaru: (detailSopId: string, params?: PenyusunWorkbenchQueryParams) =>
     unwrapApiData(
       apiClient.post<ApiSuccessResponse<PenyusunWorkbenchData>>(

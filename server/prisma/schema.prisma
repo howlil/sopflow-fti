@@ -38,16 +38,12 @@ model Pengguna {
   detailSopDibuat                 DetailSOP[]          @relation("SOPDibuatOleh")
   detailSopDiedit                 DetailSOP[]          @relation("SOPDieditOleh")
   logEditSop                      LogEditSOP[]
-  logNilaiEvaluasi                LogNilaiEvaluasi[]
-  nilaiEvaluasiDiisi              NilaiEvaluasi[]      @relation("NilaiDiisiOleh")
-  nilaiEvaluasiDitindaklanjuti    NilaiEvaluasi[]      @relation("NilaiDitindaklanjutiOleh")
   pengajuanEvaluasiDiselesaikan   PengajuanEvaluasi[]  @relation("PengajuanDiselesaikanOleh")
   pengajuanEvaluasiDitolak        PengajuanEvaluasi[]  @relation("PengajuanDitolakOleh")
   pengajuanEvaluasiDitandatangani PengajuanEvaluasi[]  @relation("PengajuanDitandatanganiOlehPjPenyusun")
   pengajuanEvaluasiDiverifikasi   PengajuanEvaluasi[]  @relation("PengajuanDiverifikasiOleh")
   peraturanTerakhirDiedit         Peraturan[]          @relation("PeraturanTerakhirDiedit")
   opd                             OPD?                 @relation(fields: [opdId], references: [opdId], onDelete: Restrict)
-  pengingatWhatsApp               PengingatWhatsApp[]
   riwayatOpd                      RiwayatOpdPengguna[]
   tandaTangan                     RiwayatTandaTangan[]
   processOwned                    Process[]            @relation("ProcessOwner")
@@ -114,11 +110,11 @@ model Process {
 }
 
 model ProcessMember {
-  processId   String   @db.Char(36)
-  penggunaId  String   @db.Char(36)
-  createdAt   DateTime @default(now())
-  process     Process  @relation(fields: [processId], references: [processId], onDelete: Cascade)
-  pengguna    Pengguna @relation(fields: [penggunaId], references: [penggunaId], onDelete: Restrict)
+  processId  String   @db.Char(36)
+  penggunaId String   @db.Char(36)
+  createdAt  DateTime @default(now())
+  process    Process  @relation(fields: [processId], references: [processId], onDelete: Cascade)
+  pengguna   Pengguna @relation(fields: [penggunaId], references: [penggunaId], onDelete: Restrict)
 
   @@id([processId, penggunaId])
   @@index([penggunaId], map: "ProcessMember_penggunaId_idx")
@@ -205,7 +201,6 @@ model DetailSOP {
   lampiranPencatatanPendataan    LampiranPencatatanPendataan[]
   langkahSOP                     LangkahSOP[]
   logEditSop                     LogEditSOP[]
-  nilaiEvaluasi                  NilaiEvaluasi[]
   relasiSopKeluar                SopTerkait[]                     @relation("RelasiSOP")
   relasiSopMasuk                 SopTerkait[]                     @relation("RelasiSOPTerkait")
   dokumenTte                     DokumenTte[]
@@ -405,8 +400,7 @@ model PengajuanEvaluasi {
   diverifikasiOlehUserId             String?                 @db.Char(36)
   ditandatanganiOlehPjPenyusunUserId String?                 @db.Char(36)
   tanggalTTDBaPjPenyusun             DateTime?
-  /// Evaluator yang men-trigger "selesai evaluasi" → kirim ke PJ Evaluator Organisasi.
-  /// Syarat: semua NilaiEvaluasi dalam pengajuan ini sudah terisi hasil.
+  /// Historical compatibility parent; active review state is owned by ProcessReview.
   diselesaikanOlehId                 String?                 @db.Char(36)
   tanggalDiselesaikan                DateTime?
   /// Alasan resmi evaluator saat menolak pengajuan. Wajib ketika status DITOLAK.
@@ -418,98 +412,18 @@ model PengajuanEvaluasi {
   version                            Int                     @default(0)
   createdAt                          DateTime                @default(now())
   updatedAt                          DateTime                @updatedAt
-  logNilaiEvaluasi                   LogNilaiEvaluasi[]
-  nilaiEvaluasi                      NilaiEvaluasi[]
   diselesaikanOleh                   Pengguna?               @relation("PengajuanDiselesaikanOleh", fields: [diselesaikanOlehId], references: [penggunaId])
   ditolakOleh                        Pengguna?               @relation("PengajuanDitolakOleh", fields: [ditolakOlehId], references: [penggunaId], onDelete: Restrict)
   ditandatanganiOlehPjPenyusunUser   Pengguna?               @relation("PengajuanDitandatanganiOlehPjPenyusun", fields: [ditandatanganiOlehPjPenyusunUserId], references: [penggunaId], onDelete: Restrict)
   diverifikasiOlehUser               Pengguna?               @relation("PengajuanDiverifikasiOleh", fields: [diverifikasiOlehUserId], references: [penggunaId], onDelete: Restrict)
   dokumenTte                         DokumenTte[]
   opd                                OPD                     @relation(fields: [opdId], references: [opdId])
-  pengingatWhatsApp                  PengingatWhatsApp[]
 
   @@index([opdId, status, createdAt])
   @@index([opdId, status, updatedAt], map: "PengajuanEvaluasi_opdId_status_updatedAt_idx")
   @@index([opdId, status, tanggalDiselesaikan, updatedAt], map: "PengajuanEvaluasi_opd_status_selesai_idx")
   @@index([status, createdAt], map: "PengajuanEvaluasi_status_createdAt_idx")
   @@index([ditolakOlehId], map: "PengajuanEvaluasi_ditolakOlehId_idx")
-}
-
-/// State reminder WhatsApp yang masih aktif. Baris dihapus saat status pengajuan berubah;
-/// tabel ini bukan riwayat pengiriman dan tidak diekspos melalui API.
-model PengingatWhatsApp {
-  pengingatWhatsAppId String                 @id @default(uuid()) @db.Char(36)
-  pengajuanEvaluasiId String                 @db.Char(36)
-  penggunaId          String                 @db.Char(36)
-  jenis               JenisPengingatWhatsApp
-  nomorTujuan         String                 @db.VarChar(13)
-  nextSendAt          DateTime               @db.DateTime(3)
-  lastSentAt          DateTime?              @db.DateTime(3)
-  consecutiveFailures Int                    @default(0)
-  lastErrorKind       String?                @db.VarChar(14)
-  lockedUntil         DateTime?              @db.DateTime(3)
-  lockToken           String?                @db.Char(36)
-  inAppReadAt         DateTime?              @db.DateTime(3)
-  resolvedAt          DateTime?              @db.DateTime(3)
-  createdAt           DateTime               @default(now()) @db.DateTime(3)
-  updatedAt           DateTime               @updatedAt @db.DateTime(3)
-  pengajuanEvaluasi   PengajuanEvaluasi      @relation(fields: [pengajuanEvaluasiId], references: [pengajuanEvaluasiId], onDelete: Cascade)
-  pengguna            Pengguna               @relation(fields: [penggunaId], references: [penggunaId], onDelete: Cascade)
-
-  @@unique([pengajuanEvaluasiId, penggunaId, jenis], map: "PengingatWhatsApp_pengajuan_pengguna_jenis_key")
-  @@index([nextSendAt, lockedUntil], map: "PengingatWhatsApp_due_lock_idx")
-  @@index([pengajuanEvaluasiId], map: "PengingatWhatsApp_pengajuan_idx")
-  @@index([penggunaId, inAppReadAt, createdAt], map: "PengingatWhatsApp_in_app_user_idx")
-  @@index([penggunaId], map: "PengingatWhatsApp_pengguna_idx")
-}
-
-/// Hasil penilaian per DetailSOP dalam satu pengajuan evaluasi.
-/// Umpan balik evaluasi resmi = catatan + statusTindakLanjut pada baris ini (bukan tabel Komentar).
-model NilaiEvaluasi {
-  pengajuanEvaluasiId   String              @db.Char(36)
-  detailSopId           String              @db.Char(36)
-  hasil                 HasilEvaluasi?
-  /// Catatan formal evaluator; wajib jika hasil PERLU_PERBAIKAN.
-  catatan               String?             @db.Text
-  /// Status tindak lanjut umpan balik: TERBUKA (belum) | SELESAI (sudah ditandai penyusun).
-  statusTindakLanjut    StatusTindakLanjut?
-  ditindaklanjutiPada   DateTime?
-  ditindaklanjutiOlehId String?             @db.Char(36)
-  version               Int                 @default(0)
-  dinilaiOlehId         String?             @db.Char(36)
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  dinilaiOleh           Pengguna?           @relation("NilaiDiisiOleh", fields: [dinilaiOlehId], references: [penggunaId])
-  ditindaklanjutiOleh   Pengguna?           @relation("NilaiDitindaklanjutiOleh", fields: [ditindaklanjutiOlehId], references: [penggunaId])
-  pengajuanEvaluasi     PengajuanEvaluasi   @relation(fields: [pengajuanEvaluasiId], references: [pengajuanEvaluasiId])
-  detailSop             DetailSOP           @relation(fields: [detailSopId], references: [detailSopId])
-  logNilaiEvaluasi      LogNilaiEvaluasi[]
-
-  @@id([pengajuanEvaluasiId, detailSopId])
-  @@index([pengajuanEvaluasiId])
-  @@index([pengajuanEvaluasiId, hasil], map: "NilaiEvaluasi_pengajuanEvaluasiId_hasil_idx")
-  @@index([detailSopId])
-}
-
-model LogNilaiEvaluasi {
-  pengajuanEvaluasiId       String              @db.Char(36)
-  detailSopId               String              @db.Char(36)
-  penggunaId                String              @db.Char(36)
-  hasilSebelum              HasilEvaluasi?
-  hasilSesudah              HasilEvaluasi?
-  catatanSebelum            String?             @db.Text
-  catatanSesudah            String?             @db.Text
-  statusTindakLanjutSebelum StatusTindakLanjut?
-  statusTindakLanjutSesudah StatusTindakLanjut?
-  ditindaklanjutiOlehId     String?             @db.Char(36)
-  ditindaklanjutiPada       DateTime?
-  createdAt                 DateTime            @default(now()) @db.DateTime(3)
-  pengguna                  Pengguna            @relation(fields: [penggunaId], references: [penggunaId])
-  pengajuanEvaluasi         PengajuanEvaluasi   @relation(fields: [pengajuanEvaluasiId], references: [pengajuanEvaluasiId])
-  nilaiEvaluasi             NilaiEvaluasi       @relation(fields: [pengajuanEvaluasiId, detailSopId], references: [pengajuanEvaluasiId, detailSopId], onDelete: Cascade)
-
-  @@id([pengajuanEvaluasiId, detailSopId, penggunaId, createdAt])
-  @@index([detailSopId, createdAt])
 }
 
 /// =========================
@@ -534,6 +448,7 @@ model DokumenTte {
   pdfRevokedAt        DateTime?
   pdfStatus           String?              @db.VarChar(32)
   detailSopId         String?              @db.Char(36)
+  processId           String?              @db.Char(36)
   pengajuanEvaluasiId String?              @db.Char(36)
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
@@ -636,28 +551,9 @@ enum StatusPengajuanEvaluasi {
   SELESAI
 }
 
-enum HasilEvaluasi {
-  SESUAI
-  PERLU_PERBAIKAN
-  DITOLAK
-}
-
 enum JenisDokumenTte {
   BERITA_ACARA_EVALUASI
   SOP_BERLAKU
-}
-
-enum JenisPengingatWhatsApp {
-  EVALUASI_SOP
-  TTD_BA_PJ_EVALUATOR
-  TTD_BA_PJ_PENYUSUN
-  TTD_SOP_KEPALA_OPD
-}
-
-/// Status penyelesaian umpan balik evaluasi pada `NilaiEvaluasi.statusTindakLanjut`.
-enum StatusTindakLanjut {
-  TERBUKA
-  SELESAI
 }
 
 /// Kategori bagian SOP pada log aktivitas edit (`LogEditSOP.bagian`).

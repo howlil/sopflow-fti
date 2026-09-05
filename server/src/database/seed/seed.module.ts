@@ -14,9 +14,10 @@ import { SeedService } from './seed.service';
       isGlobal: true,
       cache: true,
       envFilePath: [
-        '.env',
-        `.env.${process.env.NODE_ENV ?? 'development'}`,
         `.env.${process.env.NODE_ENV ?? 'development'}.local`,
+        `.env.${process.env.NODE_ENV ?? 'development'}`,
+        '.env.local',
+        '.env',
       ],
       validate: validateEnv,
     }),

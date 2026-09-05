@@ -2,16 +2,19 @@ import {
   Controller,
   DefaultValuePipe,
   Get,
+  MessageEvent,
   Param,
   ParseIntPipe,
   ParseUUIDPipe,
   Post,
   Query,
   Req,
+  Sse,
   UseGuards,
 } from '@nestjs/common';
 import { ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
+import { filter, interval, map, merge, Observable } from 'rxjs';
 import { type ApiSuccessResponse, JwtAuthGuard } from '../../../common';
 import {
   ACCESS_TOKEN_COOKIE_NAME,
@@ -21,12 +24,16 @@ import {
   ProcessNotificationService,
   type ProcessInAppNotification,
 } from './process-notification.service';
+import { NotificationEventsService } from '../shared/notification-events.service';
 
 @ApiTags('Notifications')
 @Controller('notifications/process')
 @UseGuards(JwtAuthGuard)
 export class ProcessNotificationController {
-  constructor(private readonly service: ProcessNotificationService) {}
+  constructor(
+    private readonly service: ProcessNotificationService,
+    private readonly notificationEvents: NotificationEventsService,
+  ) {}
 
   @Get()
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
@@ -54,6 +61,27 @@ export class ProcessNotificationController {
       success: true,
       data: await this.service.getSummary(req.user.sub),
     };
+  }
+
+  @Sse('stream')
+  @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
+  @ApiOperation({ summary: 'Stream perubahan notifikasi Process via Server-Sent Events' })
+  stream(@Req() req: Request & { user: JwtAccessPayload }): Observable<MessageEvent> {
+    const penggunaId = req.user.sub;
+    const changed$ = this.notificationEvents.events$.pipe(
+      filter((event) => event.penggunaId === null || event.penggunaId === penggunaId),
+      map((event) => ({
+        type: event.type === 'heartbeat' ? 'notifications.heartbeat' : 'notifications.changed',
+        data: event,
+      })),
+    );
+    const heartbeat$ = interval(30_000).pipe(
+      map(() => ({
+        type: 'notifications.heartbeat',
+        data: { penggunaId, type: 'heartbeat' as const, at: new Date().toISOString() },
+      })),
+    );
+    return merge(changed$, heartbeat$);
   }
 
   @Post('items/:processNotificationId/read')

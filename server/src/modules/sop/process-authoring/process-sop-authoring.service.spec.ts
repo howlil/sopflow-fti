@@ -1,8 +1,9 @@
-import { PeranPengguna, StatusSOP } from '../../../generated/prisma';
+import { ConflictException } from '@nestjs/common';
+import { OrganizationalScope, PeranPengguna, StatusSOP } from '../../../generated/prisma';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import type { ProcessContextService } from '../../core/process/process-context.service';
 import type { SopCatalogRepository, SopDaftarDbRow } from '../catalog/sop-catalog.repository';
-import type { SopCatalogService } from '../catalog/sop-catalog.service';
+import type { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
 import { ProcessSopAuthoringService } from './process-sop-authoring.service';
 
 describe('ProcessSopAuthoringService', () => {
@@ -33,20 +34,39 @@ describe('ProcessSopAuthoringService', () => {
           { sopId: 'sop-target-accessible', processId: 'process-a' },
         ]),
       },
+      processFinalApproval: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      organizationalAuthorityAssignment: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      pengguna: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
     } as unknown as PrismaService;
     const processContext = {
-      listForUser: jest.fn().mockResolvedValue([{ processId: 'process-a', nama: 'Tugas Akhir' }]),
+      listForUser: jest.fn().mockResolvedValue([
+        {
+          processId: 'process-a',
+          nama: 'Tugas Akhir',
+          scope: OrganizationalScope.FACULTY,
+          ownerId: 'owner-1',
+          departmentId: null,
+          owner: { nama: 'Process Owner' },
+          department: null,
+        },
+      ]),
     } as unknown as ProcessContextService;
     const repository = {
       findDaftarAll: jest.fn().mockResolvedValue([accessibleTarget]),
     } as unknown as SopCatalogRepository;
-    const catalogService = {} as unknown as SopCatalogService;
+    const catalogService = {};
 
     const service = new ProcessSopAuthoringService(
       prisma,
       processContext,
       repository,
-      catalogService,
+      catalogService as unknown as SopWorkbenchReader,
     );
 
     const rows = await service.listForCurrentUser(
@@ -64,6 +84,11 @@ describe('ProcessSopAuthoringService', () => {
     expect(rows.find((row) => row.id === 'sop-target-accessible')).toMatchObject({
       processId: 'process-a',
       processNama: 'Tugas Akhir',
+      lifecycle: {
+        stage: 'AUTHORING',
+        stateLabel: 'Draft',
+        responsibility: { type: 'CURRENT_USER', name: 'Anda' },
+      },
     });
   });
 
@@ -79,12 +104,12 @@ describe('ProcessSopAuthoringService', () => {
     } as unknown as SopCatalogRepository;
     const catalogService = {
       listForCurrentUser: jest.fn(),
-    } as unknown as SopCatalogService;
+    };
     const service = new ProcessSopAuthoringService(
       prisma,
       processContext,
       repository,
-      catalogService,
+      catalogService as unknown as SopWorkbenchReader,
     );
 
     const rows = await service.listForCurrentUser(
@@ -98,6 +123,44 @@ describe('ProcessSopAuthoringService', () => {
     );
 
     expect(rows).toEqual([]);
-    expect(catalogService.listForCurrentUser).not.toHaveBeenCalled();
+    expect(catalogService.listForCurrentUser.mock.calls).toHaveLength(0);
+  });
+
+  it('rejects an unbound SOP on the native workbench endpoint', async () => {
+    const prisma = {
+      sOP: {
+        findUnique: jest.fn().mockResolvedValue({ processId: null }),
+      },
+    } as unknown as PrismaService;
+    const processContext = {} as unknown as ProcessContextService;
+    const repository = {
+      findDetailIdByDetailOrSopId: jest.fn().mockResolvedValue({
+        sopId: 'legacy-sop',
+        detailSopId: 'legacy-detail',
+      }),
+    } as unknown as SopCatalogRepository;
+    const catalogService = {
+      getPenyusunWorkbench: jest.fn(),
+      getForDetail: jest.fn(),
+    };
+    const service = new ProcessSopAuthoringService(
+      prisma,
+      processContext,
+      repository,
+      catalogService as unknown as SopWorkbenchReader,
+    );
+
+    await expect(
+      service.getWorkbench(
+        {
+          sub: 'legacy-user',
+          email: 'legacy@example.test',
+          peran: PeranPengguna.PENYUSUN,
+          sesiTokenVersion: 1,
+        },
+        'legacy-detail',
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(catalogService.getPenyusunWorkbench.mock.calls).toHaveLength(0);
   });
 });

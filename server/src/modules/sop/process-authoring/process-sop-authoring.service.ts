@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,7 +9,7 @@ import { extractDbInvariantMessage } from '../../../common/prisma/prisma-db-inva
 import { isPrismaUniqueConstraintError } from '../../../common/prisma/prisma-error.util';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { assertDetailSopEditable } from '../../../common/status/sop-editable.util';
-import { PeranPengguna, StatusSOP } from '../../../generated/prisma';
+import { OrganizationalAuthority, OrganizationalScope, StatusSOP } from '../../../generated/prisma';
 import { ProcessContextService } from '../../core/process/process-context.service';
 import type { ListSopQueryDto } from '../catalog/dto/list-sop-query.dto';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
@@ -23,12 +22,25 @@ import {
   type UpdateSopHeaderRepoInput,
 } from '../catalog/sop-catalog.repository';
 import { assertSopCatalogRepoOk } from '../catalog/sop-catalog-repo-error.util';
-import { SopCatalogService } from '../catalog/sop-catalog.service';
+import { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
 import type { CreateProcessSopDto } from './dto/create-process-sop.dto';
+import {
+  projectProcessSopLifecycle,
+  type ProcessSopLifecycleProjection,
+} from './process-sop-lifecycle.projection';
 
 type ProcessAwareSopRow = SopDaftarRowDto & {
   processId: string | null;
   processNama: string | null;
+  lifecycle: ProcessSopLifecycleProjection;
+};
+
+type FinalApprovalReference = { detailSopId: string };
+type AuthorityAssignmentReference = {
+  authorityKey: string;
+  authority: OrganizationalAuthority;
+  departmentId: string | null;
+  holderId: string;
 };
 
 @Injectable()
@@ -37,7 +49,7 @@ export class ProcessSopAuthoringService {
     private readonly prisma: PrismaService,
     private readonly processContextService: ProcessContextService,
     private readonly sopCatalogRepository: SopCatalogRepository,
-    private readonly sopCatalogService: SopCatalogService,
+    private readonly sopWorkbenchReader: SopWorkbenchReader,
   ) {}
 
   async listForCurrentUser(
@@ -63,17 +75,110 @@ export class ProcessSopAuthoringService {
         .map((sop) => sop.sopId),
     );
 
-    const additionalTargetRows: ProcessAwareSopRow[] = allRows
+    const accessibleRows = allRows
       .filter((row) => accessibleTargetSopIds.has(row.sopId))
-      .map((row) => {
-        const processId = processBySop.get(row.sopId);
-        const process = processId === undefined ? undefined : processById.get(processId);
-        return {
-          ...mapDaftarRow(row),
-          processId: process?.processId ?? null,
-          processNama: process?.nama ?? null,
-        };
-      });
+      .map((row) => ({ row, processId: processBySop.get(row.sopId) }))
+      .filter(
+        (entry): entry is { row: (typeof allRows)[number]; processId: string } =>
+          entry.processId !== undefined && processById.has(entry.processId),
+      );
+
+    if (accessibleRows.length === 0) return [];
+
+    const detailIds = accessibleRows
+      .map(({ row }) => row.detail?.detailSopId)
+      .filter((detailId): detailId is string => detailId !== undefined);
+    const authorityKeys = [
+      ...new Set(
+        accessibleRows.flatMap(({ processId }) => {
+          const process = processById.get(processId);
+          if (process === undefined) return [];
+          return [
+            process.scope === OrganizationalScope.FACULTY
+              ? 'DEAN'
+              : process.departmentId === null
+                ? null
+                : `HEAD_OF_DEPARTMENT:${process.departmentId}`,
+          ].filter((key): key is string => key !== null);
+        }),
+      ),
+    ];
+    const [approvals, assignments]: [FinalApprovalReference[], AuthorityAssignmentReference[]] =
+      await Promise.all([
+        detailIds.length === 0
+          ? []
+          : this.prisma.processFinalApproval.findMany({
+              where: { detailSopId: { in: detailIds } },
+              select: { detailSopId: true },
+            }),
+        authorityKeys.length === 0
+          ? []
+          : this.prisma.organizationalAuthorityAssignment.findMany({
+              where: { authorityKey: { in: authorityKeys } },
+              select: { authorityKey: true, authority: true, departmentId: true, holderId: true },
+            }),
+      ]);
+    const approvalIds = new Set(approvals.map((approval) => approval.detailSopId));
+    const assignmentByKey = new Map<string, AuthorityAssignmentReference>(
+      assignments.map((assignment): [string, AuthorityAssignmentReference] => [
+        assignment.authorityKey,
+        assignment,
+      ]),
+    );
+    const holderIds = [...new Set(assignments.map((assignment) => assignment.holderId))];
+    const holders =
+      holderIds.length === 0
+        ? []
+        : await this.prisma.pengguna.findMany({
+            where: { penggunaId: { in: holderIds }, deletedAt: null },
+            select: { penggunaId: true, nama: true },
+          });
+    const holderById = new Map(holders.map((holder) => [holder.penggunaId, holder]));
+
+    const additionalTargetRows: ProcessAwareSopRow[] = accessibleRows.map(({ row, processId }) => {
+      const process = processById.get(processId);
+      if (process === undefined) {
+        throw new Error('Process disappeared while projecting Process SOP lifecycle');
+      }
+      const mapped = mapDaftarRow(row);
+      const detailSopId = mapped.detailSopId ?? mapped.id;
+      const authorityKey =
+        process.scope === OrganizationalScope.FACULTY
+          ? 'DEAN'
+          : process.departmentId === null
+            ? null
+            : `HEAD_OF_DEPARTMENT:${process.departmentId}`;
+      const assignment = authorityKey === null ? undefined : assignmentByKey.get(authorityKey);
+      const expectedAuthority =
+        process.scope === OrganizationalScope.FACULTY
+          ? OrganizationalAuthority.DEAN
+          : OrganizationalAuthority.HEAD_OF_DEPARTMENT;
+      const isConsistentAuthority =
+        assignment !== undefined &&
+        assignment.authority === expectedAuthority &&
+        assignment.departmentId === process.departmentId;
+      const holder = assignment === undefined ? undefined : holderById.get(assignment.holderId);
+      return {
+        ...mapped,
+        processId: process.processId,
+        processNama: process.nama,
+        lifecycle: projectProcessSopLifecycle({
+          status: mapped.status,
+          approvalExists: approvalIds.has(detailSopId),
+          currentUserId: user.sub,
+          detailSopId,
+          process: {
+            scope: process.scope,
+            ownerId: process.ownerId,
+            ownerName: process.owner?.nama ?? null,
+            departmentName: process.department?.nama ?? null,
+          },
+          authority: !isConsistentAuthority
+            ? null
+            : { holderId: assignment.holderId, holderName: holder?.nama ?? null },
+        }),
+      };
+    });
 
     return additionalTargetRows.sort((a, b) => {
       const aTime = a.terakhirDiperbarui ?? '';
@@ -115,7 +220,9 @@ export class ProcessSopAuthoringService {
       throw error;
     }
 
-    const row = (await this.sopCatalogRepository.findDaftarAll()).find((item) => item.sopId === sopId);
+    const row = (await this.sopCatalogRepository.findDaftarAll()).find(
+      (item) => item.sopId === sopId,
+    );
     if (row === undefined) {
       throw new NotFoundException('SOP tidak ditemukan setelah dibuat');
     }
@@ -123,6 +230,19 @@ export class ProcessSopAuthoringService {
       ...mapDaftarRow(row),
       processId: process.processId,
       processNama: process.nama,
+      lifecycle: projectProcessSopLifecycle({
+        status: row.detail?.status ?? StatusSOP.DRAFT,
+        approvalExists: false,
+        currentUserId: user.sub,
+        detailSopId: row.detail?.detailSopId ?? row.sopId,
+        process: {
+          scope: process.scope,
+          ownerId: process.ownerId,
+          ownerName: process.owner?.nama ?? null,
+          departmentName: process.department?.nama ?? null,
+        },
+        authority: null,
+      }),
     };
   }
 
@@ -133,18 +253,20 @@ export class ProcessSopAuthoringService {
   ): Promise<PenyusunWorkbenchDataDto> {
     const context = await this.resolveProcessContext(detailOrSopId);
     if (context.processId === null) {
-      this.assertLegacyAuthoringRole(user);
-      return this.sopCatalogService.getPenyusunWorkbench(user, detailOrSopId, logsLimit);
+      throw new ConflictException(
+        'SOP belum memiliki Process ownership dan tidak tersedia pada endpoint native',
+      );
     }
-    const process = await this.processContextService.assertCanAuthor(
-      user.sub,
-      context.processId,
-    );
-    const workbench = await this.sopCatalogService.getPenyusunWorkbenchForEvaluasiContext(
+    const process = await this.processContextService.assertCanAuthor(user.sub, context.processId);
+    const workbench = await this.sopWorkbenchReader.getForDetail(
       context.resolved.detailSopId,
       logsLimit,
     );
-    return this.withProcessContext(workbench, process.processId, process.nama);
+    return this.withProcessContext(
+      await this.withProcessLifecycle(user, workbench, process),
+      process.processId,
+      process.nama,
+    );
   }
 
   async updateHeader(
@@ -155,13 +277,11 @@ export class ProcessSopAuthoringService {
   ): Promise<PenyusunWorkbenchDataDto> {
     const context = await this.resolveProcessContext(detailOrSopId);
     if (context.processId === null) {
-      this.assertLegacyAuthoringRole(user);
-      return this.sopCatalogService.updatePenyusunHeader(user, detailOrSopId, dto, logsLimit);
+      throw new ConflictException(
+        'SOP belum memiliki Process ownership dan tidak tersedia pada endpoint native',
+      );
     }
-    const process = await this.processContextService.assertCanAuthor(
-      user.sub,
-      context.processId,
-    );
+    const process = await this.processContextService.assertCanAuthor(user.sub, context.processId);
     const statusContext = await this.sopCatalogRepository.findLatestDetailStatusContext(
       context.resolved.detailSopId,
     );
@@ -194,28 +314,36 @@ export class ProcessSopAuthoringService {
       }
     }
 
-    const refreshed = await this.sopCatalogService.getPenyusunWorkbenchForEvaluasiContext(
+    const refreshed = await this.sopWorkbenchReader.getForDetail(
       context.resolved.detailSopId,
       logsLimit,
     );
-    return this.withProcessContext(refreshed, process.processId, process.nama);
+    return this.withProcessContext(
+      await this.withProcessLifecycle(user, refreshed, process),
+      process.processId,
+      process.nama,
+    );
   }
 
   async deleteVersionDraft(user: JwtAccessPayload, detailSopId: string): Promise<void> {
     const context = await this.resolveProcessContext(detailSopId);
     if (context.processId === null) {
-      await this.sopCatalogService.hapusVersiDraft(user, detailSopId);
-      return;
+      throw new ConflictException(
+        'SOP belum memiliki Process ownership dan tidak tersedia pada endpoint native',
+      );
     }
     await this.processContextService.assertCanAuthor(user.sub, context.processId);
-    assertSopCatalogRepoOk(await this.sopCatalogRepository.deleteVersiDraft(context.resolved.detailSopId));
+    assertSopCatalogRepoOk(
+      await this.sopCatalogRepository.deleteVersiDraft(context.resolved.detailSopId),
+    );
   }
 
   async deleteInitialDraft(user: JwtAccessPayload, detailSopId: string): Promise<void> {
     const context = await this.resolveProcessContext(detailSopId);
     if (context.processId === null) {
-      await this.sopCatalogService.hapusSopDraftAwal(user, detailSopId);
-      return;
+      throw new ConflictException(
+        'SOP belum memiliki Process ownership dan tidak tersedia pada endpoint native',
+      );
     }
     await this.processContextService.assertCanAuthor(user.sub, context.processId);
     assertSopCatalogRepoOk(
@@ -235,18 +363,6 @@ export class ProcessSopAuthoringService {
     return { resolved, processId: sop?.processId ?? null };
   }
 
-  private isLegacyAuthoringRole(user: JwtAccessPayload): boolean {
-    return user.peran === PeranPengguna.PENYUSUN || user.peran === PeranPengguna.PJ_PENYUSUN;
-  }
-
-  private assertLegacyAuthoringRole(user: JwtAccessPayload): void {
-    if (!this.isLegacyAuthoringRole(user)) {
-      throw new ForbiddenException(
-        'SOP legacy hanya dapat diakses dari authoring oleh Penyusun atau PJ Penyusun',
-      );
-    }
-  }
-
   private withProcessContext(
     workbench: PenyusunWorkbenchDataDto,
     processId: string,
@@ -260,6 +376,66 @@ export class ProcessSopAuthoringService {
           ? ({ ...workbench.detail.sop, processId, processNama } as typeof workbench.detail.sop)
           : workbench.detail.sop,
       },
+    };
+  }
+
+  private async withProcessLifecycle(
+    user: JwtAccessPayload,
+    workbench: PenyusunWorkbenchDataDto,
+    process: Awaited<ReturnType<ProcessContextService['assertCanAuthor']>>,
+  ): Promise<PenyusunWorkbenchDataDto> {
+    const detailSopId = workbench.detail.id;
+    const approval = await this.prisma.processFinalApproval.findFirst({
+      where: { detailSopId },
+      select: { detailSopId: true },
+    });
+
+    const authorityKey =
+      process.scope === OrganizationalScope.FACULTY
+        ? 'DEAN'
+        : process.departmentId === null
+          ? null
+          : `HEAD_OF_DEPARTMENT:${process.departmentId}`;
+    let authority: { holderId: string; holderName: string | null } | null = null;
+    if (authorityKey !== null) {
+      const assignment = await this.prisma.organizationalAuthorityAssignment.findFirst({
+        where: { authorityKey },
+        select: { authority: true, departmentId: true, holderId: true },
+      });
+      const expectedAuthority =
+        process.scope === OrganizationalScope.FACULTY
+          ? OrganizationalAuthority.DEAN
+          : OrganizationalAuthority.HEAD_OF_DEPARTMENT;
+      if (
+        assignment !== null &&
+        assignment.authority === expectedAuthority &&
+        assignment.departmentId === process.departmentId
+      ) {
+        const holder = await this.prisma.pengguna.findFirst({
+          where: { penggunaId: assignment.holderId, deletedAt: null },
+          select: { nama: true },
+        });
+        if (holder !== null) {
+          authority = { holderId: assignment.holderId, holderName: holder.nama };
+        }
+      }
+    }
+
+    return {
+      ...workbench,
+      lifecycle: projectProcessSopLifecycle({
+        status: workbench.detail.status,
+        approvalExists: approval !== null,
+        currentUserId: user.sub,
+        detailSopId,
+        process: {
+          scope: process.scope,
+          ownerId: process.ownerId,
+          ownerName: process.owner?.nama ?? null,
+          departmentName: process.department?.nama ?? null,
+        },
+        authority,
+      }),
     };
   }
 

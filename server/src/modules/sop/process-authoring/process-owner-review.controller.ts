@@ -15,9 +15,12 @@ import {
 import { ApiCookieAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { type ApiSuccessResponse, JwtAuthGuard } from '../../../common';
-import { ACCESS_TOKEN_COOKIE_NAME, type JwtAccessPayload } from '../../core/auth/helpers/auth.shared';
+import {
+  ACCESS_TOKEN_COOKIE_NAME,
+  type JwtAccessPayload,
+} from '../../core/auth/helpers/auth.shared';
 import { PelaksanaSnapshotService } from '../pelaksana/pelaksana-snapshot.service';
-import { ProcessReviewDecisionDto } from './dto/process-review-decision.dto';
+import { ProcessReviewDecision, ProcessReviewDecisionDto } from './dto/process-review-decision.dto';
 import { ProcessOwnerReviewService } from './process-owner-review.service';
 
 @ApiTags('Process Owner Review')
@@ -32,7 +35,11 @@ export class ProcessOwnerReviewController {
 
   @Post(':detailOrSopId/submit-review')
   @HttpCode(HttpStatus.OK)
-  @ApiQuery({ name: 'logsLimit', required: false, schema: { default: 100, minimum: 1, maximum: 500 } })
+  @ApiQuery({
+    name: 'logsLimit',
+    required: false,
+    schema: { default: 100, minimum: 1, maximum: 500 },
+  })
   @ApiOperation({ summary: 'Submit Process-bound SOP untuk review Process Owner' })
   async submitForReview(
     @Req() req: Request & { user: JwtAccessPayload },
@@ -49,7 +56,11 @@ export class ProcessOwnerReviewController {
 
   @Post(':detailOrSopId/review')
   @HttpCode(HttpStatus.OK)
-  @ApiQuery({ name: 'logsLimit', required: false, schema: { default: 100, minimum: 1, maximum: 500 } })
+  @ApiQuery({
+    name: 'logsLimit',
+    required: false,
+    schema: { default: 100, minimum: 1, maximum: 500 },
+  })
   @ApiOperation({ summary: 'Process Owner menerima SOP atau mengembalikannya untuk revisi' })
   async review(
     @Req() req: Request & { user: JwtAccessPayload },
@@ -57,10 +68,16 @@ export class ProcessOwnerReviewController {
     @Body() dto: ProcessReviewDecisionDto,
     @Query('logsLimit', new DefaultValuePipe(100), ParseIntPipe) logsLimit: number,
   ): Promise<ApiSuccessResponse<unknown>> {
-    const workbench = await this.service.review(req.user, detailOrSopId, dto.decision, logsLimit);
+    const workbench = await this.service.review(
+      req.user,
+      detailOrSopId,
+      dto.decision,
+      dto.catatan,
+      logsLimit,
+    );
     return {
       message:
-        dto.decision === 'ACCEPT'
+        dto.decision === ProcessReviewDecision.ACCEPT
           ? 'SOP diterima Process Owner dan siap menuju final approval'
           : 'SOP dikembalikan untuk revisi',
       success: true,

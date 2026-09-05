@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/unbound-method */
+
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import {
@@ -30,6 +32,9 @@ function makeService(options?: { owner?: boolean; status?: StatusSOP; transition
     logEditSOP: {
       create: jest.fn().mockResolvedValue({}),
     },
+    processReview: {
+      create: jest.fn().mockResolvedValue({}),
+    },
   };
   const prisma = {
     sOP: {
@@ -38,7 +43,7 @@ function makeService(options?: { owner?: boolean; status?: StatusSOP; transition
     detailSOP: {
       findUnique: jest.fn().mockResolvedValue({ dibuatOlehId: 'author-1' }),
     },
-    $transaction: jest.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
+    $transaction: jest.fn((callback: (client: typeof tx) => unknown) => callback(tx)),
   } as unknown as PrismaService;
   const processContext = {
     assertCanAuthor: jest.fn().mockResolvedValue({
@@ -46,13 +51,14 @@ function makeService(options?: { owner?: boolean; status?: StatusSOP; transition
       ownerId: 'owner-1',
       nama: 'Akademik',
     }),
-    assertCanReview: options?.owner === false
-      ? jest.fn().mockRejectedValue(new ForbiddenException())
-      : jest.fn().mockResolvedValue({
-          processId: 'process-a',
-          ownerId: 'user-1',
-          nama: 'Akademik',
-        }),
+    assertCanReview:
+      options?.owner === false
+        ? jest.fn().mockRejectedValue(new ForbiddenException())
+        : jest.fn().mockResolvedValue({
+            processId: 'process-a',
+            ownerId: 'user-1',
+            nama: 'Akademik',
+          }),
   } as unknown as ProcessContextService;
   const organizationalAuthority = {
     resolveForProcess: jest.fn().mockResolvedValue({
@@ -183,7 +189,7 @@ describe('ProcessOwnerReviewService', () => {
         status: StatusSOP.SEDANG_DIEVALUASI,
       });
 
-    await service.review(user, 'detail-a', ProcessReviewDecision.REVISION);
+    await service.review(user, 'detail-a', ProcessReviewDecision.REVISION, 'Perbaiki langkah 2');
 
     expect(processContext.assertCanReview).toHaveBeenCalledWith('user-1', 'process-a');
     expect(prisma.detailSOP.findUnique).toHaveBeenCalledWith({
@@ -206,6 +212,18 @@ describe('ProcessOwnerReviewService', () => {
         processName: 'Akademik',
       }),
     );
+    expect(tx.processReview.create).toHaveBeenCalledWith({
+      data: {
+        detailSopId: 'detail-a',
+        sopId: 'sop-a',
+        processId: 'process-a',
+        reviewedById: 'user-1',
+        decision: 'REVISION',
+        previousStatus: StatusSOP.SEDANG_DIEVALUASI,
+        nextStatus: StatusSOP.REVISI_DARI_EVALUATOR,
+        catatan: 'Perbaiki langkah 2',
+      },
+    });
     expect(processNotifications.emitChanged).toHaveBeenCalledWith('author-1');
   });
 
@@ -232,26 +250,55 @@ describe('ProcessOwnerReviewService', () => {
         authorityLabel: 'Dean',
       }),
     );
+    expect(tx.processReview.create).toHaveBeenCalledWith({
+      data: {
+        detailSopId: 'detail-a',
+        sopId: 'sop-a',
+        processId: 'process-a',
+        reviewedById: 'user-1',
+        decision: 'ACCEPT',
+        previousStatus: StatusSOP.SEDANG_DIEVALUASI,
+        nextStatus: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
+        catatan: null,
+      },
+    });
     expect(processNotifications.emitChanged).toHaveBeenCalledWith('dean-1');
   });
 
   it('rejects review decisions outside the submitted Process Owner review state', async () => {
     const { service } = makeService({ status: StatusSOP.DRAFT });
 
-    await expect(service.review(user, 'detail-a', ProcessReviewDecision.ACCEPT)).rejects.toBeInstanceOf(
-      ConflictException,
-    );
+    await expect(
+      service.review(user, 'detail-a', ProcessReviewDecision.ACCEPT),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('keeps revision-note input backward-compatible during the expand phase', async () => {
+    const { service, tx } = makeService({
+      owner: true,
+      status: StatusSOP.SEDANG_DIEVALUASI,
+    });
+
+    await service.review(user, 'detail-a', ProcessReviewDecision.REVISION);
+
+    expect(tx.processReview.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        decision: 'REVISION',
+        catatan: null,
+      }),
+    });
   });
 
   it('rejects a stale concurrent review decision instead of overwriting the winner', async () => {
-    const { service, processNotifications } = makeService({
+    const { service, processNotifications, tx } = makeService({
       status: StatusSOP.SEDANG_DIEVALUASI,
       transitionCount: 0,
     });
 
-    await expect(service.review(user, 'detail-a', ProcessReviewDecision.ACCEPT)).rejects.toBeInstanceOf(
-      ConflictException,
-    );
+    await expect(
+      service.review(user, 'detail-a', ProcessReviewDecision.ACCEPT),
+    ).rejects.toBeInstanceOf(ConflictException);
     expect(processNotifications.createInTransaction).not.toHaveBeenCalled();
+    expect(tx.processReview.create).not.toHaveBeenCalled();
   });
 });

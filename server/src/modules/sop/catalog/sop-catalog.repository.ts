@@ -3,13 +3,10 @@ import { TERMINAL_DETAIL_STATUSES } from '../../../common/status/sop-editable.ut
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import {
   BagianSOP,
-  HasilEvaluasi,
   JenisDokumenTte,
   PeranPengguna,
   Prisma,
-  StatusPengajuanEvaluasi,
   StatusSOP,
-  StatusTindakLanjut,
 } from '../../../generated/prisma';
 import { appendOrCreateLogSession } from '../collaboration/log-edit-session.helper';
 import {
@@ -84,9 +81,6 @@ export type SopWorkbenchDbPayload = Prisma.DetailSOPGetPayload<{
       };
     };
     swimlanes: { include: { pelaksana: true } };
-    nilaiEvaluasi: {
-      select: { pengajuanEvaluasiId: true; detailSopId: true; hasil: true; catatan: true };
-    };
     langkahSOP: { orderBy: { urutan: 'asc' }; include: { pelaksana: true } };
     logEditSop: {
       orderBy: { createdAt: 'desc' };
@@ -417,9 +411,6 @@ export class SopCatalogRepository {
           },
         },
         swimlanes: { include: { pelaksana: true } },
-        nilaiEvaluasi: {
-          select: { pengajuanEvaluasiId: true, detailSopId: true, hasil: true, catatan: true },
-        },
         langkahSOP: { orderBy: { urutan: 'asc' }, include: { pelaksana: true } },
         logEditSop: {
           orderBy: { createdAt: 'desc' },
@@ -607,49 +598,6 @@ export class SopCatalogRepository {
   }): Promise<void> {
     const { detailSopId, userId } = params;
     await this.prisma.$transaction(async (tx) => {
-      const nilai = await tx.nilaiEvaluasi.findFirst({
-        where: {
-          detailSopId,
-          hasil: HasilEvaluasi.PERLU_PERBAIKAN,
-          pengajuanEvaluasi: {
-            status: StatusPengajuanEvaluasi.SEDANG_DIEVALUASI,
-          },
-        },
-        orderBy: { updatedAt: 'desc' },
-      });
-      if (nilai !== null && nilai.statusTindakLanjut !== StatusTindakLanjut.SELESAI) {
-        const sekarang = new Date();
-        await tx.logNilaiEvaluasi.create({
-          data: {
-            pengajuanEvaluasiId: nilai.pengajuanEvaluasiId,
-            detailSopId,
-            penggunaId: userId,
-            createdAt: sekarang,
-            hasilSebelum: nilai.hasil,
-            hasilSesudah: nilai.hasil,
-            catatanSebelum: nilai.catatan ?? null,
-            catatanSesudah: nilai.catatan ?? null,
-            statusTindakLanjutSebelum: nilai.statusTindakLanjut ?? null,
-            statusTindakLanjutSesudah: StatusTindakLanjut.SELESAI,
-            ditindaklanjutiOlehId: userId,
-            ditindaklanjutiPada: sekarang,
-          },
-        });
-        await tx.nilaiEvaluasi.update({
-          where: {
-            pengajuanEvaluasiId_detailSopId: {
-              pengajuanEvaluasiId: nilai.pengajuanEvaluasiId,
-              detailSopId,
-            },
-          },
-          data: {
-            statusTindakLanjut: StatusTindakLanjut.SELESAI,
-            ditindaklanjutiOlehId: userId,
-            ditindaklanjutiPada: sekarang,
-            version: { increment: 1 },
-          },
-        });
-      }
       await tx.detailSOP.update({
         where: { detailSopId },
         data: {
@@ -847,7 +795,6 @@ export class SopCatalogRepository {
         revisiDariDetailSopId: true,
         updatedAt: true,
         revisiDari: { select: { versi: true } },
-        _count: { select: { nilaiEvaluasi: true } },
       },
     });
     return rows.map((r) => ({
@@ -858,10 +805,7 @@ export class SopCatalogRepository {
       revisiDariDetailSopId: r.revisiDariDetailSopId,
       revisiDariVersi: r.revisiDari?.versi ?? null,
       updatedAt: r.updatedAt,
-      canHapusDraft:
-        r.status === StatusSOP.DRAFT &&
-        r.revisiDariDetailSopId !== null &&
-        r._count.nilaiEvaluasi === 0,
+      canHapusDraft: r.status === StatusSOP.DRAFT && r.revisiDariDetailSopId !== null,
     }));
   }
 
@@ -1127,7 +1071,6 @@ export class SopCatalogRepository {
       select: {
         status: true,
         revisiDariDetailSopId: true,
-        _count: { select: { nilaiEvaluasi: true } },
       },
     });
     if (row === null) {
@@ -1140,12 +1083,6 @@ export class SopCatalogRepository {
       return sopCatalogRepoFail(
         'CONFLICT',
         'Hanya versi revisi yang dibuat dari versi sebelumnya yang dapat dihapus lewat endpoint ini',
-      );
-    }
-    if (row._count.nilaiEvaluasi > 0) {
-      return sopCatalogRepoFail(
-        'CONFLICT',
-        'Versi tidak dapat dihapus karena sudah terikat data evaluasi',
       );
     }
     await this.prisma.detailSOP.delete({ where: { detailSopId } });

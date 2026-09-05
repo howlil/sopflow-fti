@@ -50,8 +50,6 @@ export const ROUTES = {
   /** Arsip SOP berlaku — akses tanpa login. */
   ARSIP: {
     PREFIX: "/arsip",
-    OPD: "/arsip/$opdId",
-    DOKUMEN: "/arsip/$opdId/$detailSopId",
   },
   AUTH: {
     LOGIN: "/login",
@@ -71,30 +69,6 @@ export const ROUTES = {
     DETAIL_SOP: "/penyusun/sop/$id",
     PELAKSANA: "/penyusun/pelaksana",
     PERATURAN: "/penyusun/peraturan",
-    PJ_PENYUSUN_BERITA_ACARA: "/penyusun/pj-penyusun/berita-acara",
-    DETAIL_BERITA_ACARA: "/penyusun/pj-penyusun/berita-acara/$id",
-  },
-  KEPALA_OPD: {
-    ME: "/kepala-opd/me",
-    SOP: "/kepala-opd/sop",
-    DETAIL_SOP: "/kepala-opd/sop/$id",
-    PENGAJUAN: "/kepala-opd/pengajuan",
-    DETAIL_PENGAJUAN: "/kepala-opd/pengajuan/$id",
-  },
-  PJ_EVALUATOR: {
-    ME: "/pj-evaluator/me",
-    GRAFIK_EVALUASI: "/pj-evaluator/grafik-evaluasi",
-    OPD: "/pj-evaluator/opd",
-    PENYUSUN: "/pj-evaluator/penyusun",
-    EVALUATOR: "/pj-evaluator/evaluator",
-    EVALUASI: "/pj-evaluator/evaluasi",
-    DETAIL_EVALUASI: "/pj-evaluator/evaluasi/$id",
-  },
-  /** Workspace peran EVALUATOR (bukan PJ dashboard). */
-  EVALUATOR: {
-    ME: "/evaluator/me",
-    EVALUASI: "/evaluator/evaluasi",
-    DETAIL_EVALUASI_PENGAJUAN: "/evaluator/evaluasi/pengajuan/$id",
   },
 } as const;
 

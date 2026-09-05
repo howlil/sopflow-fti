@@ -23,7 +23,6 @@ export {
   useUpdateSopDiagram,
 } from "@/api/sop-mutations";
 export {
-  useDetailSopPenyusunActions,
   useDetailSopPenyusunData,
   useDetailSopPenyusun,
   type UseDetailSopPenyusunDataResult,

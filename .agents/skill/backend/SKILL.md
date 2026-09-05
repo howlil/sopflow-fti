@@ -300,7 +300,7 @@ resolve intended recipient from Process/authority context
 -> emit in-app change signal after commit
 ```
 
-Do not force new Process events into legacy `PengajuanEvaluasi` / `JenisPengingatWhatsApp` persistence merely because the UI bell reads both sources.
+Do not force new Process events into archived legacy `PengajuanEvaluasi` / `JenisPengingatWhatsApp` persistence. The UI bell reads only the Process-native notification source.
 
 ## Organizational Authority Pattern
 

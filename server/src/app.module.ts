@@ -13,12 +13,6 @@ import { PenggunaModule } from './modules/core/pengguna/pengguna.module';
 import { PenyusunModule } from './modules/core/penyusun/penyusun.module';
 import { PeraturanModule } from './modules/core/peraturan/peraturan.module';
 import { ProcessModule } from './modules/core/process/process.module';
-import { EvaluasiGrafikModule } from './modules/evaluation/grafik/evaluasi-grafik.module';
-import { EvaluasiNilaiModule } from './modules/evaluation/nilai/evaluasi-nilai.module';
-import { EvaluasiUmpanBalikModule } from './modules/evaluation/umpan-balik/evaluasi-umpan-balik.module';
-import { EvaluasiWorkspaceModule } from './modules/evaluation/workspace/evaluasi-workspace.module';
-import { PengajuanEvaluasiDetailModule } from './modules/evaluation/pengajuan-detail/pengajuan-evaluasi-detail.module';
-import { PengajuanEvaluasiModule } from './modules/evaluation/pengajuan/pengajuan-evaluasi.module';
 import { SopCatalogModule } from './modules/sop/catalog/sop-catalog.module';
 import { SopProsedurModule } from './modules/sop/prosedur/sop-prosedur.module';
 import { SopDiagramModule } from './modules/sop/diagram/sop-diagram.module';
@@ -30,7 +24,7 @@ import { TteProfilModule } from './modules/tte/profil/tte-profil.module';
 import { TtePenandatangananModule } from './modules/tte/penandatanganan/tte-penandatanganan.module';
 import { TteVerifikasiModule } from './modules/tte/verifikasi/tte-verifikasi.module';
 import { TteCoreModule } from './modules/tte/core/tte-core.module';
-import { NotificationModule } from './modules/notifications/reminders/notification.module';
+import { ProcessNotificationModule } from './modules/notifications/process/process-notification.module';
 
 @Module({
   imports: [
@@ -39,9 +33,10 @@ import { NotificationModule } from './modules/notifications/reminders/notificati
       isGlobal: true,
       cache: true,
       envFilePath: [
-        '.env',
-        `.env.${process.env.NODE_ENV ?? 'development'}`,
         `.env.${process.env.NODE_ENV ?? 'development'}.local`,
+        `.env.${process.env.NODE_ENV ?? 'development'}`,
+        '.env.local',
+        '.env',
       ],
       validate: validateEnv,
     }),
@@ -61,18 +56,12 @@ import { NotificationModule } from './modules/notifications/reminders/notificati
     SopDiagramModule,
     PeraturanModule,
     PelaksanaModule,
-    EvaluasiNilaiModule,
-    PengajuanEvaluasiModule,
-    PengajuanEvaluasiDetailModule,
-    EvaluasiWorkspaceModule,
-    EvaluasiUmpanBalikModule,
-    EvaluasiGrafikModule,
     TteSharedModule,
     TteProfilModule,
     TtePenandatangananModule,
     TteVerifikasiModule,
     TteCoreModule,
-    NotificationModule,
+    ProcessNotificationModule,
   ],
 })
 export class AppModule {}

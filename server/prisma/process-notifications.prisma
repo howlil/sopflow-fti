@@ -1,5 +1,5 @@
 /// Target-native in-app notification history for Process-bound SOP workflow events.
-/// Kept separate from legacy PengajuanEvaluasi/JenisPengingatWhatsApp persistence.
+/// Kept separate from archived legacy evaluation/reminder persistence.
 enum ProcessNotificationKind {
   PROCESS_OWNER_REVIEW_REQUESTED
   FINAL_APPROVAL_REQUESTED
@@ -14,13 +14,13 @@ model ProcessNotification {
   sopId                 String                  @db.Char(36)
   processId             String                  @db.Char(36)
   penggunaId            String                  @db.Char(36)
-  kind                   ProcessNotificationKind
-  title                  String                  @db.VarChar(160)
-  preview                String                  @db.VarChar(255)
-  body                   String                  @db.Text
-  actionHref             String                  @db.VarChar(255)
-  readAt                 DateTime?               @db.DateTime(3)
-  createdAt              DateTime                @default(now()) @db.DateTime(3)
+  kind                  ProcessNotificationKind
+  title                 String                  @db.VarChar(160)
+  preview               String                  @db.VarChar(255)
+  body                  String                  @db.Text
+  actionHref            String                  @db.VarChar(255)
+  readAt                DateTime?               @db.DateTime(3)
+  createdAt             DateTime                @default(now()) @db.DateTime(3)
 
   @@index([penggunaId, readAt, createdAt], map: "ProcessNotification_pengguna_read_created_idx")
   @@index([detailSopId, createdAt], map: "ProcessNotification_detail_created_idx")

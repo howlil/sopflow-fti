@@ -12,8 +12,6 @@ export type PenyusunDeleteGuardRow = Pengguna & {
     detailSopDibuat: number;
     detailSopDiedit: number;
     logEditSop: number;
-    logNilaiEvaluasi: number;
-    nilaiEvaluasiDiisi: number;
     pengajuanEvaluasiDiselesaikan: number;
     pengajuanEvaluasiDitandatangani: number;
     pengajuanEvaluasiDiverifikasi: number;
@@ -205,8 +203,6 @@ export class PenyusunRepository {
             detailSopDibuat: true,
             detailSopDiedit: true,
             logEditSop: true,
-            logNilaiEvaluasi: true,
-            nilaiEvaluasiDiisi: true,
             pengajuanEvaluasiDiselesaikan: true,
             pengajuanEvaluasiDitandatangani: true,
             pengajuanEvaluasiDiverifikasi: true,

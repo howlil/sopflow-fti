@@ -90,9 +90,9 @@ Consequence:
 
 **Status:** ACTIVE
 
-Process workflow notifications are stored separately from legacy `PengajuanEvaluasi` / `JenisPengingatWhatsApp` notification history.
+Process workflow notifications are stored separately from legacy evaluation/reminder history.
 
-The UI may compose legacy and Process notifications into one bell/read model.
+The active UI reads the Process-native notification stream; archived legacy notification state is not composed into the bell.
 
 Rationale:
 
@@ -255,3 +255,81 @@ Consequences:
 Exit condition:
 
 The repository may claim `FULL_FTI / LEGACY_RETIRED` only when active first-party FTI workflows, authorization, TTE, notification, publication, versioning, revocation, and public discovery run without OPD/global-role fallback, native data backfill is proven complete, and any remaining OPD references are limited to immutable history or explicitly documented compatibility adapters.
+
+## D13 — Evaluation Semantics Are Preserved With Process Actors
+
+**Status:** SUPERSEDED BY D15
+
+The legacy evaluation capability is migrated by preserving its business semantics—submission, per-DetailSOP result, formal feedback, follow-up state, append-only history, completion, rejection, reporting, and required BA/TTE evidence—while replacing its actor and ownership source with the FTI Process model.
+
+Actor mapping for the target path is:
+
+```text
+PENYUSUN / PJ_PENYUSUN -> Process-authorized SOP author
+EVALUATOR / PJ_EVALUATOR -> Process Owner or explicitly designated Process reviewer
+KEPALA_OPD -> contextual DEAN / HEAD_OF_DEPARTMENT authority
+OPD -> Process and its organizational scope
+```
+
+The target path must not authorize from `Pengguna.peran`, `Pengguna.opdId`, or OPD equality. Historical evaluation rows remain preserved and readable through an explicit compatibility boundary until native parity and consumer cutover are proven.
+
+Rationale:
+
+- the user-facing evaluation behavior remains familiar and legally/audit-relevant evidence is not discarded;
+- FTI actors are contextual to the Process and do not recreate a centralized legacy evaluator organization;
+- preserving behavior while changing ownership enables additive backfill and staged consumer cutover.
+
+Consequence:
+
+- native evaluation schema must be additive and Process/DetailSOP-owned;
+- per-detail feedback/follow-up and append-only history are parity requirements, not optional simplifications;
+- legacy evaluation tables cannot be dropped until native parity, data backfill, consumer migration, and retention evidence pass.
+
+## D14 — Reminder Semantics Are Preserved With Native Process Triggers
+
+**Status:** SUPERSEDED BY D15
+
+Reminder behavior remains semantically equivalent during migration: trigger eligibility, recipient resolution, delivery/retry/lock state, read/unread state, and resolution are preserved. The target source of truth is the native Process evaluation/workflow state and Process relationships, not `PengajuanEvaluasi`, `Pengguna.peran`, or `Pengguna.opdId`.
+
+The native reminder path must remain separate from the immutable `ProcessNotification` event history where operational retry/lock state is required. Legacy `PengingatWhatsApp` and `NotifikasiInApp` remain compatibility data until their rows are backfilled or retained under an explicit policy and no active first-party consumer depends on them.
+
+Rationale:
+
+- reminder behavior is part of the existing operational contract and must not disappear during actor migration;
+- event history and delivery work state have different lifecycle and retry requirements;
+- Process context is the committed FTI source for target recipient resolution.
+
+Consequence:
+
+- native reminder tables must be introduced additively and tied to the native evaluation/workflow aggregate;
+- native reminders may compose into the existing notification presentation, but must not silently reuse legacy ownership fields;
+- destructive cleanup requires separate data, consumer, and delivery verification.
+
+## D15 — Retire Unused Legacy Evaluation Values, Logs, and WhatsApp State
+
+**Status:** ACTIVE
+
+The current product no longer uses per-detail evaluation values/history,
+legacy evaluation feedback/BA workflow, or WhatsApp reminder/in-app legacy
+notification state. These capabilities are retired from the active runtime,
+API, client, and application module graph. The Process-native review,
+notification, reminder, contextual approval, and TTE contracts remain the only
+active workflow path.
+
+The cleanup is staged and history-preserving. Migration
+`20260906120000_retire_legacy_evaluation_and_whatsapp` renames the four legacy
+tables to `_retired_*` archive names instead of dropping rows. `PengajuanEvaluasi`
+and the legacy TTE parent column remain as historical compatibility parents;
+removing them is a separate future retention decision.
+
+Consequences:
+
+- no first-party runtime may import or expose the retired evaluation/reminder
+  modules, controllers, services, or client APIs;
+- `ProcessReview` owns active review decisions and notes;
+- `ProcessNotification` plus `ProcessReminder` own active notification history
+  and reminder state;
+- archive tables are observable by read-only audit but are not active source of
+  truth;
+- old migration files remain immutable, and rollback/recovery is performed by
+  a separately reviewed forward operation if required.

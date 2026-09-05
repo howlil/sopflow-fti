@@ -6,6 +6,7 @@ import {
   BagianSOP,
   OrganizationalAuthority,
   ProcessNotificationKind,
+  ProcessReviewDecision as ProcessReviewDecisionDb,
   StatusSOP,
 } from '../../../generated/prisma';
 import { OrganizationalAuthorityService } from '../../core/process/organizational-authority.service';
@@ -81,8 +82,10 @@ export class ProcessOwnerReviewService {
     user: JwtAccessPayload,
     detailOrSopId: string,
     decision: ProcessReviewDecision,
+    catatanRaw?: string,
     logsLimit?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
+    const catatan = catatanRaw?.trim() || null;
     const context = await this.resolveTargetContext(detailOrSopId);
     const process = await this.processContextService.assertCanReview(user.sub, context.processId);
 
@@ -122,9 +125,12 @@ export class ProcessOwnerReviewService {
         penggunaId: detail.dibuatOlehId,
         kind: ProcessNotificationKind.PROCESS_REVISION_REQUESTED,
         processName: process.nama,
+        catatan: catatan ?? undefined,
       };
     } else {
-      const authority = await this.organizationalAuthorityService.resolveForProcess(context.processId);
+      const authority = await this.organizationalAuthorityService.resolveForProcess(
+        context.processId,
+      );
       notification = {
         detailSopId: context.detailSopId,
         sopId: context.sopId,
@@ -133,9 +139,7 @@ export class ProcessOwnerReviewService {
         kind: ProcessNotificationKind.FINAL_APPROVAL_REQUESTED,
         processName: process.nama,
         authorityLabel:
-          authority.authority === OrganizationalAuthority.DEAN
-            ? 'Dean'
-            : 'Kepala Departemen',
+          authority.authority === OrganizationalAuthority.DEAN ? 'Dean' : 'Kepala Departemen',
       };
     }
 
@@ -145,6 +149,19 @@ export class ProcessOwnerReviewService {
       targetStatus,
       userId: user.sub,
       notification,
+      reviewEvidence: {
+        detailSopId: context.detailSopId,
+        sopId: context.sopId,
+        processId: context.processId,
+        reviewedById: user.sub,
+        decision:
+          decision === ProcessReviewDecision.REVISION
+            ? ProcessReviewDecisionDb.REVISION
+            : ProcessReviewDecisionDb.ACCEPT,
+        previousStatus: statusContext.status,
+        nextStatus: targetStatus,
+        catatan,
+      },
     });
 
     return this.processSopAuthoringService.getWorkbench(user, context.detailSopId, logsLimit);
@@ -156,6 +173,16 @@ export class ProcessOwnerReviewService {
     targetStatus: StatusSOP;
     userId: string;
     notification?: ProcessNotificationCreateInput;
+    reviewEvidence?: {
+      detailSopId: string;
+      sopId: string;
+      processId: string;
+      reviewedById: string;
+      decision: ProcessReviewDecisionDb;
+      previousStatus: StatusSOP;
+      nextStatus: StatusSOP;
+      catatan?: string | null;
+    };
   }): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       const updated = await tx.detailSOP.updateMany({
@@ -184,6 +211,9 @@ export class ProcessOwnerReviewService {
       if (params.notification !== undefined) {
         await this.processNotificationService.createInTransaction(tx, params.notification);
       }
+      if (params.reviewEvidence !== undefined) {
+        await tx.processReview.create({ data: params.reviewEvidence });
+      }
     });
 
     if (params.notification !== undefined) {
@@ -205,7 +235,9 @@ export class ProcessOwnerReviewService {
       select: { processId: true },
     });
     if (sop?.processId === null || sop === null) {
-      throw new ConflictException('SOP legacy belum terikat Process dan tetap memakai workflow kompatibilitas');
+      throw new ConflictException(
+        'SOP legacy belum terikat Process dan tetap memakai workflow kompatibilitas',
+      );
     }
     return {
       detailSopId: resolved.detailSopId,

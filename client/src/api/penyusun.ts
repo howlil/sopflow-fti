@@ -81,7 +81,7 @@ export function usePenyusun(search?: string) {
 
   const createMutation = useMutationWithToast({
     mutationFn: (payload: CreatePenggunaPenyusunDto) => penyusunApi.create(payload),
-    invalidateKeys: [queryKeys.penyusun, queryKeys.sop, queryKeys.evaluasi],
+    invalidateKeys: [queryKeys.penyusun, queryKeys.sop],
     successMessage: 'Penyusun berhasil ditambahkan',
     errorMessagePrefix: 'Gagal menambahkan penyusun',
     onSuccess: (created) => invalidateRiwayatUntuk(created.id),
@@ -89,14 +89,14 @@ export function usePenyusun(search?: string) {
 
   const updateMutation = useMutationWithToast({
     mutationFn: ({ id, payload }: UpdatePenyusunMutationDto) => penyusunApi.update(id, payload),
-    invalidateKeys: [queryKeys.penyusun, queryKeys.sop, queryKeys.evaluasi],
+    invalidateKeys: [queryKeys.penyusun, queryKeys.sop],
     successMessage: 'Data penyusun berhasil diperbarui',
     errorMessagePrefix: 'Gagal memperbarui penyusun',
   })
 
   const nonaktifkanMutation = useMutationWithToast({
     mutationFn: (id: string) => penyusunApi.nonaktifkan(id),
-    invalidateKeys: [queryKeys.penyusun, queryKeys.sop, queryKeys.evaluasi],
+    invalidateKeys: [queryKeys.penyusun, queryKeys.sop],
     successMessage: 'Penyusun dinonaktifkan',
     errorMessagePrefix: 'Gagal menonaktifkan penyusun',
     onSuccess: (_void, id) => invalidateRiwayatUntuk(id),
@@ -104,7 +104,7 @@ export function usePenyusun(search?: string) {
 
   const aktifkanMutation = useMutationWithToast({
     mutationFn: (id: string) => penyusunApi.aktifkan(id),
-    invalidateKeys: [queryKeys.penyusun, queryKeys.sop, queryKeys.evaluasi],
+    invalidateKeys: [queryKeys.penyusun, queryKeys.sop],
     successMessage: 'Penyusun diaktifkan kembali',
     errorMessagePrefix: 'Gagal mengaktifkan penyusun',
     onSuccess: (row) => invalidateRiwayatUntuk(row.id),
@@ -113,7 +113,7 @@ export function usePenyusun(search?: string) {
   const pindahMutation = useMutationWithToast({
     mutationFn: ({ id, opdId }: PindahTimPenyusunMutationDto) =>
       penyusunApi.pindah(id, { opdId }),
-    invalidateKeys: [queryKeys.penyusun, queryKeys.sop, queryKeys.evaluasi],
+    invalidateKeys: [queryKeys.penyusun, queryKeys.sop],
     successMessage: 'Penyusun berhasil dipindahkan',
     errorMessagePrefix: 'Gagal memindahkan penyusun',
     onSuccess: (_data, vars) => invalidateRiwayatUntuk(vars.id),
@@ -121,7 +121,7 @@ export function usePenyusun(search?: string) {
 
   const hapusPermanenMutation = useMutationWithToast({
     mutationFn: (id: string) => penyusunApi.hapusPermanen(id),
-    invalidateKeys: [queryKeys.penyusun, queryKeys.sop, queryKeys.evaluasi],
+    invalidateKeys: [queryKeys.penyusun, queryKeys.sop],
     successMessage: 'Penyusun berhasil dihapus permanen',
     errorMessagePrefix: 'Gagal menghapus penyusun',
     onSuccess: (_void, id) => invalidateRiwayatUntuk(id),

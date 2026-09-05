@@ -4,9 +4,6 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('@/pages/penyusun/sop/detail/components/DetailSopMetadataPanel', () => ({
   DetailSOPMetadataPanel: () => <div>Metadata probe</div>,
 }))
-vi.mock('@/pages/penyusun/sop/components/UmpanBalikEvaluasiPanel', () => ({
-  UmpanBalikEvaluasiPanel: () => <div>Komentar probe</div>,
-}))
 vi.mock('@/pages/penyusun/sop/components/RiwayatVersiPanel', () => ({
   RiwayatVersiPanel: () => <div>Versi probe</div>,
 }))
@@ -36,7 +33,6 @@ describe('DetailSOPPenyusunSidePanel', () => {
     renderPanel(false)
 
     expect(screen.getByRole('tab', { name: 'Properti' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Komentar evaluasi' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Versi' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Aktivitas' })).toBeInTheDocument()
   })

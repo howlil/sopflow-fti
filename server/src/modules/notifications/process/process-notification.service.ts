@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { Prisma, ProcessNotificationKind } from '../../../generated/prisma';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { NotificationEventsService } from '../reminders/notification-events.service';
+import { NotificationEventsService } from '../shared/notification-events.service';
+import { ProcessReminderService } from './process-reminder.service';
+
+function truncatePreview(value: string, maxLength = 255): string {
+  return value.length <= maxLength ? value : `${value.slice(0, maxLength - 3)}...`;
+}
 
 export type ProcessNotificationCreateInput = Readonly<{
   detailSopId: string;
@@ -11,6 +16,7 @@ export type ProcessNotificationCreateInput = Readonly<{
   kind: ProcessNotificationKind;
   processName: string;
   authorityLabel?: string;
+  catatan?: string;
 }>;
 
 export type ProcessInAppNotification = Readonly<{
@@ -29,6 +35,7 @@ export class ProcessNotificationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationEvents: NotificationEventsService,
+    @Optional() private readonly processReminderService?: ProcessReminderService,
   ) {}
 
   async getSummary(penggunaId: string): Promise<{ unreadCount: number }> {
@@ -72,9 +79,7 @@ export class ProcessNotificationService {
     return this.getSummary(penggunaId);
   }
 
-  async markAllRead(
-    penggunaId: string,
-  ): Promise<{ unreadCount: number; updated: number }> {
+  async markAllRead(penggunaId: string): Promise<{ unreadCount: number; updated: number }> {
     const result = await this.prisma.processNotification.updateMany({
       where: { penggunaId, readAt: null },
       data: { readAt: new Date() },
@@ -100,6 +105,7 @@ export class ProcessNotificationService {
         ...message,
       },
     });
+    await this.processReminderService?.syncForNotificationInTransaction(tx, input);
   }
 
   async createManyInTransaction(
@@ -152,13 +158,22 @@ export class ProcessNotificationService {
           actionHref: '/approval',
         };
       }
-      case ProcessNotificationKind.PROCESS_REVISION_REQUESTED:
+      case ProcessNotificationKind.PROCESS_REVISION_REQUESTED: {
+        const catatan = input.catatan?.trim() || undefined;
+        const previewCatatan =
+          catatan === undefined
+            ? ''
+            : ` Catatan: ${catatan.length > 140 ? `${catatan.slice(0, 137)}...` : catatan}`;
+        const bodyCatatan = catatan === undefined ? '' : ` Catatan pemilik proses: ${catatan}`;
         return {
           title: 'Revisi SOP Process diperlukan',
-          preview: `SOP pada Process ${input.processName} dikembalikan untuk revisi.`,
-          body: `Process Owner meminta revisi SOP Process ${input.processName}. Buka antrean kerja untuk melanjutkan perbaikan.`,
+          preview: truncatePreview(
+            `SOP pada Process ${input.processName} dikembalikan untuk revisi.${previewCatatan}`,
+          ),
+          body: `Process Owner meminta revisi SOP Process ${input.processName}.${bodyCatatan} Buka antrean kerja untuk melanjutkan perbaikan.`,
           actionHref: '/work/queue',
         };
+      }
       case ProcessNotificationKind.PROCESS_SOP_EFFECTIVE:
         return {
           title: 'SOP Process sudah berlaku',

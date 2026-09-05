@@ -35,20 +35,24 @@ export class TteVerifikasiService {
       hashDokumen: row.dokumenTte.hashDokumen,
     });
 
-    if (row.dokumenTte.detailSopId && this.processVerificationRepository === undefined) {
+    const { detailSopId, processId } = row.dokumenTte;
+    const isNativeProcessArtifact = detailSopId !== null && processId !== null;
+    if (isNativeProcessArtifact && this.processVerificationRepository === undefined) {
       throw new Error('Process TTE verification repository tidak tersedia');
     }
-    const processApproval = row.dokumenTte.detailSopId
+    const processApproval = isNativeProcessArtifact
       ? await this.processVerificationRepository!.findApprovalForSignedDetail(
-          row.dokumenTte.detailSopId,
+          detailSopId,
           row.userId,
+          processId,
         )
       : null;
-    const authorityLabel = processApproval === null
-      ? undefined
-      : processApproval.authority === OrganizationalAuthority.DEAN
-        ? 'Dekan' as const
-        : 'Kepala Departemen' as const;
+    const authorityLabel =
+      processApproval === null
+        ? undefined
+        : processApproval.authority === OrganizationalAuthority.DEAN
+          ? ('Dekan' as const)
+          : ('Kepala Departemen' as const);
 
     return {
       userId: row.userId,
@@ -73,7 +77,6 @@ export class TteVerifikasiService {
         jenisDokumen: String(row.dokumenTte.jenisDokumen),
         hashDokumen: row.dokumenTte.hashDokumen,
         sopDetailId: row.dokumenTte.detailSopId ?? undefined,
-        pengajuanEvaluasiId: row.dokumenTte.pengajuanEvaluasiId ?? undefined,
       },
       qrVerificationUrl: qr.qrVerificationUrl,
       qrPayload: qr.qrPayload,

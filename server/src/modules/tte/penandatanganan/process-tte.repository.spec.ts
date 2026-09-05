@@ -1,4 +1,11 @@
-import { JenisDokumenTte, OrganizationalAuthority, PeranPengguna, StatusSOP } from '../../../generated/prisma';
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
+import {
+  JenisDokumenTte,
+  OrganizationalAuthority,
+  PeranPengguna,
+  StatusSOP,
+} from '../../../generated/prisma';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import { ProcessTteRepository } from './process-tte.repository';
 
@@ -21,10 +28,7 @@ function signingContextTx() {
       }),
       findFirst: jest.fn().mockResolvedValue({ detailSopId }),
       findMany: jest.fn().mockResolvedValue([{ detailSopId: 'detail-old' }]),
-      updateMany: jest
-        .fn()
-        .mockResolvedValueOnce({ count: 1 })
-        .mockResolvedValueOnce({ count: 0 }),
+      updateMany: jest.fn().mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 }),
     },
     processFinalApproval: {
       findUnique: jest.fn().mockResolvedValue({
@@ -39,10 +43,17 @@ function signingContextTx() {
       findUnique: jest.fn().mockResolvedValue({
         dokumenTteId,
         detailSopId,
+        processId,
         pengajuanEvaluasiId: null,
         jenisDokumen: JenisDokumenTte.SOP_BERLAKU,
       }),
-      update: jest.fn(),
+      update: jest.fn().mockResolvedValue({
+        dokumenTteId,
+        detailSopId,
+        processId,
+        pengajuanEvaluasiId: null,
+        jenisDokumen: JenisDokumenTte.SOP_BERLAKU,
+      }),
       create: jest.fn(),
     },
     riwayatTandaTangan: {
@@ -130,6 +141,62 @@ describe('ProcessTteRepository effective-state integrity', () => {
     });
 
     expect(result).toEqual({ error: 'ALREADY_SIGNED' });
+    expect(tx.dokumenTte.update).not.toHaveBeenCalled();
+  });
+
+  it('backfills Process ownership on an existing native TTE document during preparation', async () => {
+    const tx = signingContextTx();
+    tx.dokumenTte.findUnique.mockResolvedValue({
+      dokumenTteId,
+      detailSopId,
+      processId: null,
+      pengajuanEvaluasiId: null,
+      jenisDokumen: JenisDokumenTte.SOP_BERLAKU,
+    });
+    const prisma = {
+      $transaction: jest.fn((callback: (transaction: typeof tx) => unknown) => callback(tx)),
+    } as unknown as PrismaService;
+    const repository = new ProcessTteRepository(prisma);
+
+    await expect(
+      repository.prepareDocument({
+        detailOrSopId: detailSopId,
+        userId,
+        hashDokumen: 'b'.repeat(64),
+        nomorDokumen: 'SOP-01-v2',
+        judulDokumen: 'Pengesahan SOP Akademik',
+      }),
+    ).resolves.toMatchObject({ ok: true });
+
+    expect(tx.dokumenTte.update).toHaveBeenCalledWith({
+      where: { dokumenTteId },
+      data: expect.objectContaining({ processId }),
+    });
+  });
+
+  it('rejects a TTE document whose explicit Process ownership drifts from the SOP', async () => {
+    const tx = signingContextTx();
+    tx.dokumenTte.findUnique.mockResolvedValue({
+      dokumenTteId,
+      detailSopId,
+      processId: '00000000-0000-4000-8000-000000000099',
+      pengajuanEvaluasiId: null,
+      jenisDokumen: JenisDokumenTte.SOP_BERLAKU,
+    });
+    const prisma = {
+      $transaction: jest.fn((callback: (transaction: typeof tx) => unknown) => callback(tx)),
+    } as unknown as PrismaService;
+    const repository = new ProcessTteRepository(prisma);
+
+    await expect(
+      repository.prepareDocument({
+        detailOrSopId: detailSopId,
+        userId,
+        hashDokumen: 'b'.repeat(64),
+        nomorDokumen: 'SOP-01-v2',
+        judulDokumen: 'Pengesahan SOP Akademik',
+      }),
+    ).resolves.toEqual({ error: 'INVALID_DOC_PARENT' });
     expect(tx.dokumenTte.update).not.toHaveBeenCalled();
   });
 });

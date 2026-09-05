@@ -2,14 +2,18 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import type { JwtAccessPayload } from '../../../common';
 import { isPrismaUniqueConstraintError } from '../../../common/prisma/prisma-error.util';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { TERMINAL_DETAIL_STATUSES, hasRevisiInFlight } from '../../../common/status/sop-editable.util';
+import {
+  TERMINAL_DETAIL_STATUSES,
+  hasRevisiInFlight,
+} from '../../../common/status/sop-editable.util';
 import { displayStatusSop } from '../../../common/status/status-display';
 import { ProcessContextService } from '../../core/process/process-context.service';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
 import type { SopRiwayatVersiRowDto } from '../catalog/dto/sop-riwayat-versi-row.dto';
 import { assertSopCatalogRepoOk } from '../catalog/sop-catalog-repo-error.util';
 import { SopCatalogRepository } from '../catalog/sop-catalog.repository';
-import { SopCatalogService } from '../catalog/sop-catalog.service';
+import { SopLegacyVersionCompatibilityService } from '../catalog/sop-legacy-version-compatibility.service';
+import { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
 
 @Injectable()
 export class ProcessVersionService {
@@ -17,7 +21,8 @@ export class ProcessVersionService {
     private readonly prisma: PrismaService,
     private readonly processContextService: ProcessContextService,
     private readonly sopCatalogRepository: SopCatalogRepository,
-    private readonly sopCatalogService: SopCatalogService,
+    private readonly sopLegacyVersionCompatibility: SopLegacyVersionCompatibilityService,
+    private readonly sopWorkbenchReader: SopWorkbenchReader,
   ) {}
 
   async createVersion(
@@ -35,9 +40,9 @@ export class ProcessVersionService {
       select: { processId: true },
     });
 
-    // Compatibility path remains owned by the legacy catalog service.
+    // Compatibility path remains owned by the explicit legacy version boundary.
     if (sop?.processId === null || sop === null) {
-      return this.sopCatalogService.buatVersiBaruDariSumber(user, detailOrSopId, logsLimit);
+      return this.sopLegacyVersionCompatibility.createVersion(user, detailOrSopId, logsLimit);
     }
 
     const process = await this.processContextService.assertCanAuthor(user.sub, sop.processId);
@@ -55,10 +60,7 @@ export class ProcessVersionService {
           penggunaId: user.sub,
         }),
       );
-      const workbench = await this.sopCatalogService.getPenyusunWorkbenchForEvaluasiContext(
-        cloned.detailSopId,
-        logsLimit,
-      );
+      const workbench = await this.sopWorkbenchReader.getForDetail(cloned.detailSopId, logsLimit);
       return {
         ...workbench,
         detail: {
@@ -82,16 +84,13 @@ export class ProcessVersionService {
     }
   }
 
-  async getVersionHistory(
-    user: JwtAccessPayload,
-    sopId: string,
-  ): Promise<SopRiwayatVersiRowDto[]> {
+  async getVersionHistory(user: JwtAccessPayload, sopId: string): Promise<SopRiwayatVersiRowDto[]> {
     const resolved = await this.sopCatalogRepository.findDetailIdByDetailOrSopId(sopId);
     if (resolved === null) {
       throw new NotFoundException('SOP tidak ditemukan');
     }
     if (resolved.processId === null) {
-      return this.sopCatalogService.getRiwayatVersi(user, sopId);
+      return this.sopLegacyVersionCompatibility.getVersionHistory(user, sopId);
     }
 
     await this.processContextService.assertCanAuthor(user.sub, resolved.processId);

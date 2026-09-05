@@ -3,16 +3,6 @@
  * Centralized query key management
  */
 
-type EvaluasiRingkasQueryKeyParams = {
-  page?: number
-  limit?: number
-  opdId?: string
-  status?: string
-  jenis?: string
-  search?: string
-  statusIn?: readonly string[]
-}
-
 export const queryKeys = {
   // Auth
   auth: ['auth'] as const,
@@ -34,13 +24,6 @@ export const queryKeys = {
   processAdminDepartments: ['processAdmin', 'departments'] as const,
   processAdminUsers: ['processAdmin', 'users'] as const,
   processAdminProcesses: ['processAdmin', 'processes'] as const,
-
-  /** Manajemen Kepala OPD (Biro) — GET/PATCH/DELETE `/kepala-opd` */
-  kepalaOpd: ['kepalaOpd'] as const,
-  /** GET `/kepala-opd` — termasuk query `search` */
-  kepalaOpdList: (search?: string) =>
-    ['kepalaOpd', 'list', 'v2', search ?? ''] as const,
-  kepalaOpdRiwayat: (penggunaId: string) => ['kepalaOpd', 'riwayatOpd', penggunaId] as const,
 
   // Peraturan
   peraturan: ['peraturan'] as const,
@@ -76,57 +59,6 @@ export const queryKeys = {
   penyusunRiwayatOpd: (penggunaId: string) =>
     ['penyusun', 'riwayatOpd', penggunaId] as const,
 
-  /** Manajemen anggota evaluator Biro — GET/POST/PATCH/DELETE `/evaluator` */
-  evaluatorAnggota: ['evaluatorAnggota'] as const,
-  /** GET `/evaluator` — termasuk query `search` */
-  evaluatorAnggotaList: (search?: string) =>
-    ['evaluatorAnggota', 'list', 'v3', search ?? ''] as const,
-
-  // Evaluasi
-  evaluasi: ['evaluasi'] as const,
-  evaluasiList: (params?: {
-    opdId?: string
-    status?: string
-    jenis?: string
-    statusIn?: readonly string[]
-  }) =>
-    [
-      'evaluasi',
-      'list',
-      params?.opdId,
-      params?.status,
-      params?.jenis,
-      params?.statusIn?.length ? [...params.statusIn].slice().sort().join(',') : '',
-    ] as const,
-  evaluasiPengajuanShell: (id: string) => ['evaluasi', 'pengajuan', 'shell', id] as const,
-  evaluasiPengajuanSopDokumen: (
-    pengajuanId: string,
-    detailSopId: string,
-    logsLimit?: number,
-  ) => ['evaluasi', 'pengajuan', 'sopDokumen', pengajuanId, detailSopId, logsLimit ?? 100] as const,
-  evaluasiPengajuanBeritaAcara: (id: string) => ['evaluasi', 'pengajuan', 'beritaAcara', id] as const,
-  evaluasiGrafikTahunan: (params?: { tahun?: number; tahunDari?: number; tahunSampai?: number }) =>
-    ['evaluasi', 'grafikTahunan', params ?? {}] as const,
-  /** GET `/evaluasi/workspace/opd/:opdId` — invalidate seluruh subtree dengan prefix ini setelah mutasi nilai */
-  evaluasiWorkspaceOpdAll: ['evaluasi', 'workspaceOpd'] as const,
-  evaluasiWorkspaceOpdSayaAll: ['evaluasi', 'workspaceOpdSaya'] as const,
-  evaluasiWorkspaceOpdSaya: (
-    params?: { detailSopId?: string; expand?: string; riwayatLimit?: number },
-  ) => ['evaluasi', 'workspaceOpdSaya', params ?? {}] as const,
-  evaluasiWorkspaceOpd: (
-    opdId: string,
-    params?: { detailSopId?: string; expand?: string; riwayatLimit?: number },
-  ) => ['evaluasi', 'workspaceOpd', opdId, params ?? {}] as const,
-  evaluasiWorkspacePengajuanAll: ['evaluasi', 'workspacePengajuan'] as const,
-  evaluasiWorkspacePengajuan: (
-    pengajuanId: string,
-    params?: { detailSopId?: string; expand?: string; riwayatLimit?: number },
-  ) => ['evaluasi', 'workspacePengajuan', pengajuanId, params ?? {}] as const,
-  evaluasiRingkas: (params?: EvaluasiRingkasQueryKeyParams) =>
-    ['evaluasi', 'ringkas', params ?? {}] as const,
-  /** Invalidate semua query GET `/evaluasi/ringkas` */
-  evaluasiRingkasAll: ['evaluasi', 'ringkas'] as const,
-
   // TTE
   tte: ['tte'] as const,
   tteProfil: ['tte', 'profil'] as const,
@@ -136,17 +68,7 @@ export const queryKeys = {
   /** GET `/tte/public/pdf-signing/status` */
   ttePdfSigningStatus: ['tte', 'pdf-signing-status'] as const,
 
-  /** GET `/evaluasi/umpan-balik/detail/:detailSopId` */
-  evaluasiUmpanBalik: (detailSopId: string) =>
-    ['evaluasi', 'umpan-balik', detailSopId] as const,
-
-  /** Arsip SOP publik — compatibility GET `/sop/public/...` */
-  sopPublicOpdList: (params?: { page?: number; limit?: number; search?: string }) =>
-    ['sop', 'public', 'opd', params ?? {}] as const,
-  sopPublicSopList: (
-    opdId: string,
-    params?: { page?: number; limit?: number; search?: string },
-  ) => ['sop', 'public', 'opd', opdId, 'sop', params ?? {}] as const,
+  /** Arsip SOP publik — compatibility document endpoint */
   sopPublicSopGlobal: (params?: { page?: number; limit?: number; search?: string }) =>
     ['sop', 'public', 'sop', params ?? {}] as const,
 

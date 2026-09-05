@@ -40,23 +40,18 @@ export function useInAppNotifications(limit = 10) {
     requestId.current = currentRequest
     setState((current) => ({ ...current, loading: true }))
     try {
-      const [legacySummary, legacyItems, processSummary, processItems] = await Promise.all([
-        notificationApi.summary(),
-        notificationApi.list(limit),
+      const [processSummary, processItems] = await Promise.all([
         notificationApi.processSummary(),
         notificationApi.processList(limit),
       ])
       if (requestId.current === currentRequest) {
         const items = sortNotifications(
-          [
-            ...legacyItems.map((item) => ({ ...item, source: 'LEGACY' as const })),
-            ...processItems.map((item) => ({ ...item, source: 'PROCESS' as const })),
-          ],
+          processItems.map((item) => ({ ...item, source: 'PROCESS' as const })),
           limit,
         )
         setState({
           items,
-          unreadCount: legacySummary.unreadCount + processSummary.unreadCount,
+          unreadCount: processSummary.unreadCount,
           loading: false,
         })
       }
@@ -93,28 +88,20 @@ export function useInAppNotifications(limit = 10) {
 
   const markRead = useCallback(async (item: NotificationItem) => {
     if (item.readAt) return
-    if (item.source === 'PROCESS') {
-      await notificationApi.markProcessRead(item.processNotificationId)
-    } else {
-      await notificationApi.markRead(item.pengajuanEvaluasiId, item.jenis)
-    }
+    await notificationApi.markProcessRead(item.processNotificationId)
     const readAt = new Date().toISOString()
     setState((current) => ({
       ...current,
       unreadCount: Math.max(0, current.unreadCount - 1),
       items: current.items.map((candidate) => {
-        const matches = candidate.source === 'PROCESS'
-          ? item.source === 'PROCESS' && candidate.processNotificationId === item.processNotificationId
-          : item.source === 'LEGACY' &&
-            candidate.pengajuanEvaluasiId === item.pengajuanEvaluasiId &&
-            candidate.jenis === item.jenis
+        const matches = candidate.processNotificationId === item.processNotificationId
         return matches ? { ...candidate, readAt } : candidate
       }),
     }))
   }, [])
 
   const markAllRead = useCallback(async () => {
-    await Promise.all([notificationApi.markAllRead(), notificationApi.markAllProcessRead()])
+    await notificationApi.markAllProcessRead()
     const readAt = new Date().toISOString()
     setState((current) => ({
       ...current,

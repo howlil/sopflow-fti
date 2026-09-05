@@ -4,8 +4,6 @@ import type { JwtAccessPayload } from '../../../common';
 import { RegisterTteDto } from '../shared/dto/register-tte.dto';
 
 import { SignPdfDto } from '../shared/dto/sign-pdf.dto';
-import { TandaTanganiDto } from '../shared/dto/tanda-tangani.dto';
-import { TandaTanganiSemuaSopDto } from '../shared/dto/tanda-tangani-semua-sop.dto';
 import { UpdateTtePinDto } from '../shared/dto/update-tte-pin.dto';
 import { GenerateP12Dto } from '../shared/dto/generate-p12.dto';
 import { UploadP12Dto } from '../shared/dto/upload-p12.dto';
@@ -13,7 +11,6 @@ import { SetupTteGenerateDto } from '../shared/dto/setup-tte-generate.dto';
 import { SetupTteUploadDto } from '../shared/dto/setup-tte-upload.dto';
 import { TtePdfSigningService } from '../penandatanganan/tte-pdf-signing.service';
 import type { VerifyPdfDto } from '../shared/dto/verify-pdf.dto';
-import { TtePenandatangananService } from '../penandatanganan/tte-penandatanganan.service';
 import { TteProfilService } from '../profil/tte-profil.service';
 import { TteVerifikasiService } from '../verifikasi/tte-verifikasi.service';
 
@@ -22,9 +19,7 @@ import {
   SignPdfResponse,
   VerifyPdfResponse,
   TteProfilResponse,
-  TteRiwayatResponse,
   TtePengesahanPublicResponse,
-  TteBatchSignSopPengajuanResponse,
 } from '../shared/types/tte.types';
 
 export type {
@@ -32,9 +27,7 @@ export type {
   SignPdfResponse,
   VerifyPdfResponse,
   TteProfilResponse,
-  TteRiwayatResponse,
   TtePengesahanPublicResponse,
-  TteBatchSignSopPengajuanResponse,
 } from '../shared/types/tte.types';
 
 /**
@@ -44,7 +37,6 @@ export type {
 export class TteService {
   constructor(
     private readonly profilService: TteProfilService,
-    private readonly penandatangananService: TtePenandatangananService,
     private readonly verifikasiService: TteVerifikasiService,
     private readonly pdfSigningService: TtePdfSigningService,
   ) {}
@@ -87,29 +79,6 @@ export class TteService {
     req?: Request,
   ): Promise<TtePengesahanPublicResponse> {
     return this.verifikasiService.getPengesahanPublic(dokumenTteId, userId, req);
-  }
-
-  tandaTanganiBa(
-    user: JwtAccessPayload,
-    pengajuanEvaluasiId: string,
-    dto: TandaTanganiDto,
-    req?: Request,
-  ): Promise<TteRiwayatResponse> {
-    return this.penandatangananService.tandaTanganiBa(user, pengajuanEvaluasiId, dto, req);
-  }
-
-  tandaTanganiSemuaSopPengajuan(
-    user: JwtAccessPayload,
-    pengajuanEvaluasiId: string,
-    dto: TandaTanganiSemuaSopDto,
-    req?: Request,
-  ): Promise<TteBatchSignSopPengajuanResponse> {
-    return this.penandatangananService.tandaTanganiSemuaSopPengajuan(
-      user,
-      pengajuanEvaluasiId,
-      dto,
-      req,
-    );
   }
 
   signPdf(user: JwtAccessPayload, dto: SignPdfDto): Promise<SignPdfResponse> {

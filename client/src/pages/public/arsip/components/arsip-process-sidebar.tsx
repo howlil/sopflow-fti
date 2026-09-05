@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card'
 import { Pagination } from '@/components/ui/pagination'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/utils/cn'
-import type { PaginationMetaDto } from '@/types/dto/evaluasi.dto'
+import type { PaginationMetaDto } from '@/types/dto/common.dto'
 import type { PublicProcessItem } from '@/types/dto/sop-public.dto'
 import { ArsipSearchField } from './arsip-chrome'
 

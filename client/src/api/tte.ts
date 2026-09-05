@@ -8,7 +8,6 @@ import type { ApiSuccessResponse } from "@/types/dto/auth.dto";
 import type {
   RegisterTteDto,
   UpdateTtePinDto,
-  RiwayatTandaTangan,
   SignPdfDto,
   SignPdfResponse,
   PdfSigningStatus,
@@ -16,11 +15,6 @@ import type {
   VerifyPdfResponse,
   TtePengesahanPublic,
   TteProfil,
-  TandaTanganiBaDto,
-  TandaTanganiBaMutationDto,
-  TandaTanganiSopPengajuanDto,
-  TandaTanganiSopPengajuanMutationDto,
-  TandaTanganiSopPengajuanResponse,
   GenerateP12Dto,
   UploadP12Dto,
   SetupTteGenerateDto,
@@ -98,24 +92,6 @@ export const tteApi = {
       }),
     ),
 
-  tandaTanganiBA: (pengajuanId: string, payload: TandaTanganiBaDto) =>
-    unwrapApiData<RiwayatTandaTangan>(
-      apiClient.post<ApiSuccessResponse<RiwayatTandaTangan>>(
-        `/tte/tanda-tangani/ba/${pengajuanId}`,
-        payload,
-      ),
-    ),
-
-  tandaTanganiSemuaSopPengajuan: (
-    pengajuanId: string,
-    payload: TandaTanganiSopPengajuanDto,
-  ) =>
-    unwrapApiData<TandaTanganiSopPengajuanResponse>(
-      apiClient.post<ApiSuccessResponse<TandaTanganiSopPengajuanResponse>>(
-        `/tte/tanda-tangani/pengajuan/${pengajuanId}/sop-semua`,
-        payload,
-      ),
-    ),
 };
 
 /**
@@ -125,9 +101,7 @@ export const tteApi = {
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/config/query-keys";
 import { useMutationWithToast } from "@/hooks/useMutationWithToast";
-import { isTteSetupRequiredError } from "@/lib/tte/tte-setup-state";
 import { STALE_TIME } from "@/utils/constants";
-import { SOP_EVALUASI_WORKFLOW_QUERY_KEYS } from "@/lib/api/cache-invalidation";
 
 export function useTTEProfil(options?: { enabled?: boolean }) {
   return useQuery({
@@ -216,47 +190,6 @@ export function useSetupTteUpload() {
     successMessage: "TTE berhasil disiapkan dengan sertifikat BSrE",
     useDetailedErrors: true,
     errorMessagePrefix: "Gagal menyiapkan TTE dengan sertifikat BSrE",
-  });
-}
-
-export function useTandaTanganiBA(options?: {
-  isPjPenyusun?: boolean;
-  /** Mengganti pesan sukses bawaan (satu sumber toast; jangan panggil showToast lagi setelah mutateAsync). */
-  successMessage?: string;
-  suppressSetupRequiredToast?: boolean;
-}) {
-  const defaultSuccessPjPenyusun =
-    "Berita Acara berhasil ditandatangani oleh PJ Penyusun.";
-  const defaultSuccessEvaluator = "Berita Acara berhasil ditandatangani";
-  const successMessage =
-    options?.successMessage ??
-    (options?.isPjPenyusun ? defaultSuccessPjPenyusun : defaultSuccessEvaluator);
-  return useMutationWithToast({
-    mutationFn: ({ pengajuanId, payload }: TandaTanganiBaMutationDto) =>
-      tteApi.tandaTanganiBA(pengajuanId, payload),
-    invalidateKeys: [...SOP_EVALUASI_WORKFLOW_QUERY_KEYS, queryKeys.tte],
-    successMessage,
-    useDetailedErrors: true,
-    errorMessagePrefix: "Gagal menandatangani Berita Acara",
-    shouldSuppressErrorToast: options?.suppressSetupRequiredToast
-      ? (error) => isTteSetupRequiredError(error)
-      : undefined,
-  });
-}
-
-export function useTandaTanganiSopPengajuan(options?: {
-  suppressSetupRequiredToast?: boolean;
-}) {
-  return useMutationWithToast({
-    mutationFn: ({ pengajuanId, payload }: TandaTanganiSopPengajuanMutationDto) =>
-      tteApi.tandaTanganiSemuaSopPengajuan(pengajuanId, payload),
-    invalidateKeys: [...SOP_EVALUASI_WORKFLOW_QUERY_KEYS, queryKeys.tte],
-    successMessage: "Seluruh SOP dalam pengajuan berhasil ditandatangani.",
-    useDetailedErrors: true,
-    errorMessagePrefix: "Gagal menandatangani seluruh SOP pengajuan",
-    shouldSuppressErrorToast: options?.suppressSetupRequiredToast
-      ? (error) => isTteSetupRequiredError(error)
-      : undefined,
   });
 }
 

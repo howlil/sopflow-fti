@@ -30,8 +30,6 @@ class TtePengesahanPublicDokumenDto {
   @ApiPropertyOptional({ nullable: true })
   sopDetailId?: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
-  pengajuanEvaluasiId?: string | null;
 }
 
 /** Respons GET publik `/tte/public/pengesahan/:dokumenTteId/:userId` (verifikasi scan QR). */

@@ -23,30 +23,6 @@ export interface TteProfil {
   };
 }
 
-export interface RiwayatTandaTangan {
-  id: string;
-  userId: string;
-  dokumenTteId: string;
-  peran: PeranTTE;
-  nomorDokumen: string;
-  jenisDokumen: string;
-  judulDokumen: string;
-  hashDokumen: string;
-  sopDetailId?: string;
-  pengajuanEvaluasiId?: string;
-  ditandatanganiPada: string;
-  user?: { id: string; nama: string; nip: string };
-  sopDetail?: {
-    id: string;
-    nomorSOP: string;
-    judul: string;
-  };
-  pengajuanEvaluasi?: {
-    id: string;
-    nomorBA?: string;
-  };
-}
-
 export interface TTESignaturePayload {
   /** Turunan `dokumenTteId:userId` — kompatibel dengan ringkasan baris riwayat. */
   id: string;
@@ -181,7 +157,6 @@ export interface TtePengesahanPublic {
     jenisDokumen: string;
     hashDokumen: string;
     sopDetailId?: string;
-    pengajuanEvaluasiId?: string;
   };
   qrVerificationUrl: string | null;
   qrPayload: string;
@@ -196,38 +171,6 @@ export interface RegisterTteDto {
 export interface UpdateTtePinDto {
   pinLama: string;
   pinBaru: string;
-}
-
-export interface TandaTanganiBaDto {
-  pin: string;
-  nomorDokumen: string;
-  judulDokumen: string;
-}
-
-export interface TandaTanganiBaMutationDto {
-  pengajuanId: string;
-  payload: TandaTanganiBaDto;
-}
-
-export interface TandaTanganiSopPengajuanDto {
-  pin: string;
-  nomorDokumen: string;
-  judulDokumen: string;
-  sopPdfs: Array<{
-    detailSopId: string;
-    pdfBase64: string;
-  }>;
-}
-
-export interface TandaTanganiSopPengajuanMutationDto {
-  pengajuanId: string;
-  payload: TandaTanganiSopPengajuanDto;
-}
-
-export interface TandaTanganiSopPengajuanResponse {
-  pengajuanEvaluasiId: string;
-  totalSopDitandatangani: number;
-  ditandatanganiPada: string;
 }
 
 export interface TandaTanganiProcessSopDto {

@@ -13,13 +13,6 @@ import { RouteFocusManager } from "@/components/ui/route-focus-manager";
 import { APP_DISPLAY_NAME } from "@/config/env";
 import { queryClient } from "@/config/query-client";
 import { useAuthStore, ensureAuthHydrated, syncAuthFromCookie } from "@/stores/authStore";
-import {
-  getRoleDefaultLandingPath,
-  isPathAccessibleByRole,
-  redirectArgsFromAppPath,
-} from "@/utils/role-routing";
-
-const ROLE_ROUTE_PREFIXES = ["/pj-evaluator", "/penyusun", "/kepala-opd", "/evaluator"] as const;
 
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
@@ -49,14 +42,9 @@ export const Route = createRootRoute({
       });
     }
 
-    const isRoleScopedPath = ROLE_ROUTE_PREFIXES.some(
-      (prefix) => path === prefix || path.startsWith(`${prefix}/`),
-    );
-    if (isRoleScopedPath && !isPathAccessibleByRole(path, user.peran)) {
-      throw redirect(
-        redirectArgsFromAppPath(getRoleDefaultLandingPath(user.peran) ?? "/"),
-      );
-    }
+    // Native target routes are guarded by capability-specific route/API
+    // boundaries. Do not reintroduce a global legacy-role gate for the shared
+    // Process editor.
   },
   pendingComponent: () => (
     <div className="min-h-screen flex items-center justify-center bg-surface-subtle">
@@ -105,7 +93,14 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body suppressHydrationWarning>
-        <ErrorBoundary fallback={<RouteErrorPage error={new Error("Terjadi kesalahan yang tidak terduga pada aplikasi.")} reset={() => window.location.reload()} />}>
+        <ErrorBoundary
+          fallback={
+            <RouteErrorPage
+              error={new Error("Terjadi kesalahan yang tidak terduga pada aplikasi.")}
+              reset={() => window.location.reload()}
+            />
+          }
+        >
           <QueryClientProvider client={queryClient}>
             <AppHydrationMarker />
             <RouteFocusManager>{children}</RouteFocusManager>

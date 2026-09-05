@@ -1,12 +1,5 @@
 import { useState, useMemo } from "react";
-import {
-  Eye,
-  Edit,
-  Send,
-  Plus,
-  FileText,
-  Trash2,
-} from "lucide-react";
+import { Eye, Edit, Plus, FileText, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/data-table";
 import { SearchInput } from "@/components/ui/search-input";
@@ -30,16 +23,13 @@ import type { StatusSOP } from "@/types/dto/sop.dto";
 import { SOPStatusFilterSelect } from "@/components/sop/sop-status-filter-select";
 import { SOP_STATUS_FILTER_OPTIONS } from "@/lib/status/sop-status.config";
 import { BuatSOPDialog } from "@/pages/penyusun/sop/components/BuatSOPDialog";
-import { BukaPengajuanEvaluasiDialog } from "@/pages/penyusun/sop/components/BukaPengajuanEvaluasiDialog";
 import {
   canEditSop,
-  canPjPenyusunRunCoordinatorActions,
   useDaftarSopData,
   useSopSuspense,
 } from "@/api/sop";
 import type { SopListQueryParams } from "@/types/dto/sop.dto";
 import { useDaftarSopFilters } from "@/pages/penyusun/sop/hooks/use-daftar-sop-filters";
-import { useAppRole } from "@/hooks/useAppRole";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { SopDaftarRow } from "@/types/dto/sop.dto";
@@ -59,7 +49,6 @@ export function ManajemenSOP() {
   const filterStatusId = "filter-status-sop";
   const filterTanggalDariId = "filter-tanggal-dari-sop";
   const filterTanggalSampaiId = "filter-tanggal-sampai-sop";
-  const { role } = useAppRole();
   const filters = useDaftarSopFilters();
   const sopListParams = useMemo((): SopListQueryParams | undefined => {
     const status =
@@ -79,8 +68,6 @@ export function ManajemenSOP() {
     searchQuery: filters.searchQuery,
   });
 
-  const [isBukaPengajuanEvaluasiDialogOpen, setIsBukaPengajuanEvaluasiDialogOpen] =
-    useState(false);
   const [isBuatSOPDialogOpen, setIsBuatSOPDialogOpen] = useState(false);
   const [sopDraftToDelete, setSopDraftToDelete] = useState<SopDaftarRow | null>(null);
   const hapusSopDraft = useHapusSopDraftAwal();
@@ -176,17 +163,6 @@ export function ManajemenSOP() {
               </div>
             </FilterDropdownButton>
             <DataSurface.Actions>
-              {canPjPenyusunRunCoordinatorActions(role ?? "") ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1.5 text-xs"
-                  onClick={() => setIsBukaPengajuanEvaluasiDialogOpen(true)}
-                >
-                  <Send className="h-3.5 w-3.5" />
-                  Ajukan evaluasi SOP
-                </Button>
-              ) : null}
               <Button
                 size="sm"
                 className="h-8 gap-1.5 text-xs"
@@ -318,11 +294,6 @@ export function ManajemenSOP() {
           )}
         </Table.Paginated>
       </DataSurface.Root>
-
-      <BukaPengajuanEvaluasiDialog
-        open={isBukaPengajuanEvaluasiDialogOpen}
-        onOpenChange={setIsBukaPengajuanEvaluasiDialogOpen}
-      />
 
       <BuatSOPDialog
         open={isBuatSOPDialogOpen}

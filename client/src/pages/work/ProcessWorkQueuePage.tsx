@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { ClipboardCheck, FilePenLine, FileText, Plus } from 'lucide-react'
+import { ClipboardCheck, FileText, Plus } from 'lucide-react'
 import { useSopSuspense } from '@/api/sop'
 import { useMyProcesses } from '@/api/process-context'
 import { ListPageLayout } from '@/components/layout/ListPageLayout'
@@ -10,53 +10,24 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { BuatSOPDialog } from '@/pages/penyusun/sop/components/BuatSOPDialog'
 import { useDocumentTitle } from '@/hooks/use-document-title'
-import { useAuthStore } from '@/stores/authStore'
-import type { SopDaftarRow } from '@/types/dto/sop.dto'
+import type { ProcessSopLifecycleProjection, SopDaftarRow } from '@/types/dto/sop.dto'
 import { ROUTES } from '@/utils/constants'
 
 type ProcessAwareSopRow = SopDaftarRow & {
   processId?: string | null
   processNama?: string | null
-}
-
-const AUTHORING_STATUSES = new Set(['DRAFT', 'SEDANG_DISUSUN', 'REVISI_DARI_EVALUATOR'])
-
-function targetStatusLabel(status: string): string {
-  switch (status) {
-    case 'DRAFT':
-    case 'SEDANG_DISUSUN':
-      return 'Draft'
-    case 'REVISI_DARI_EVALUATOR':
-      return 'Perlu revisi'
-    case 'SEDANG_DIEVALUASI':
-      return 'Review Process Owner'
-    case 'MENUNGGU_TTD_PJ_EVALUATOR':
-      return 'Menunggu persetujuan akhir'
-    case 'BERLAKU':
-      return 'Berlaku'
-    case 'DIGANTIKAN':
-      return 'Digantikan'
-    case 'DICABUT':
-      return 'Dicabut'
-    default:
-      return status.replaceAll('_', ' ')
-  }
+  lifecycle: ProcessSopLifecycleProjection
 }
 
 function WorkRow({
   row,
-  ownerProcessIds,
 }: {
   row: ProcessAwareSopRow
-  ownerProcessIds: ReadonlySet<string>
 }) {
-  const isOwnerReview =
-    row.status === 'SEDANG_DIEVALUASI' &&
-    row.processId != null &&
-    ownerProcessIds.has(row.processId)
-  const isAuthoring = AUTHORING_STATUSES.has(row.status)
+  const { lifecycle } = row
+  const action = lifecycle.action
   const targetId = row.detailSopId ?? row.id
-  const actionLabel = isOwnerReview ? 'Review SOP' : isAuthoring ? 'Lanjutkan SOP' : 'Buka SOP'
+  const isActionable = action !== null && action.type !== 'OPEN'
 
   return (
     <Card className="border-border shadow-surface">
@@ -69,28 +40,39 @@ function WorkRow({
               {row.versi ? ` · v${row.versi}` : ''}
             </p>
           </div>
-          <Badge variant={isOwnerReview ? 'warning' : isAuthoring ? 'default' : 'secondary'}>
-            {targetStatusLabel(row.status)}
-          </Badge>
+          <Badge variant={isActionable ? 'warning' : 'secondary'}>{lifecycle.stateLabel}</Badge>
         </div>
         <p className="text-xs text-secondary-foreground">
           Process: <span className="font-medium text-foreground">{row.processNama ?? '—'}</span>
         </p>
       </CardHeader>
       <CardContent className="flex items-center justify-between gap-3 border-t border-border pt-3">
-        <p className="text-xs text-muted-foreground">
-          {isOwnerReview
-            ? 'Menunggu keputusan Anda sebagai Process Owner.'
-            : isAuthoring
-              ? 'Dapat dilanjutkan oleh Process Owner atau Member.'
-              : 'Tidak memerlukan tindakan penyusunan atau review saat ini.'}
-        </p>
-        <Button asChild size="sm" variant={isOwnerReview ? 'default' : 'outline'} className="shrink-0 gap-1.5">
-          <Link to={ROUTES.PENYUSUN.DETAIL_SOP} params={{ id: targetId }}>
-            {isOwnerReview ? <ClipboardCheck className="h-4 w-4" aria-hidden /> : <FilePenLine className="h-4 w-4" aria-hidden />}
-            {actionLabel}
-          </Link>
-        </Button>
+        <div className="min-w-0 text-xs text-muted-foreground">
+          <p>
+            {lifecycle.responsibility.type === 'CURRENT_USER'
+              ? 'Tindakan Anda tersedia.'
+              : lifecycle.blockingReason ?? 'Tidak ada tindakan saat ini.'}
+          </p>
+          {lifecycle.responsibility.type !== 'NONE' ? (
+            <p className="mt-1 text-secondary-foreground">
+              Berikutnya: {lifecycle.responsibility.name ?? lifecycle.responsibility.type}
+            </p>
+          ) : null}
+        </div>
+        {action !== null ? (
+          action.destination === 'APPROVAL_INBOX' ? (
+            <Button asChild size="sm" variant={isActionable ? 'default' : 'outline'} className="shrink-0 gap-1.5">
+              <Link to={ROUTES.APPROVAL.INBOX}>{action.label}</Link>
+            </Button>
+          ) : (
+            <Button asChild size="sm" variant={isActionable ? 'default' : 'outline'} className="shrink-0 gap-1.5">
+              <Link to={ROUTES.PENYUSUN.DETAIL_SOP} params={{ id: targetId }}>
+                {isActionable ? <ClipboardCheck className="h-4 w-4" aria-hidden /> : null}
+                {action.label}
+              </Link>
+            </Button>
+          )
+        ) : null}
       </CardContent>
     </Card>
   )
@@ -98,31 +80,37 @@ function WorkRow({
 
 export function ProcessWorkQueuePage() {
   useDocumentTitle('Pekerjaan SOP')
-  const user = useAuthStore((state) => state.user)
   const { data: processes = [] } = useMyProcesses()
   const { list, create } = useSopSuspense()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
 
-  const ownerProcessIds = useMemo(
-    () => new Set(processes.filter((process) => process.ownerId === user?.id).map((process) => process.processId)),
-    [processes, user?.id],
-  )
   const processRows = useMemo(
-    () => (list as ProcessAwareSopRow[]).filter((row) => row.processId != null),
+    () =>
+      (list as ProcessAwareSopRow[]).filter(
+        (row) => row.processId != null && row.lifecycle != null,
+      ),
     [list],
   )
   const actionRows = useMemo(
     () =>
       processRows.filter(
-        (row) =>
-          AUTHORING_STATUSES.has(row.status) ||
-          (row.status === 'SEDANG_DIEVALUASI' && row.processId != null && ownerProcessIds.has(row.processId)),
+        (row) => row.lifecycle.action !== null && row.lifecycle.action.type !== 'OPEN',
       ),
-    [ownerProcessIds, processRows],
+    [processRows],
   )
   const waitingRows = useMemo(
-    () => processRows.filter((row) => !actionRows.includes(row)),
-    [actionRows, processRows],
+    () =>
+      processRows.filter(
+        (row) =>
+          row.lifecycle.action === null &&
+          row.lifecycle.stage !== 'EFFECTIVE' &&
+          row.lifecycle.stage !== 'REVOKED',
+      ),
+    [processRows],
+  )
+  const currentRows = useMemo(
+    () => processRows.filter((row) => row.lifecycle.stage === 'EFFECTIVE' || row.lifecycle.stage === 'REVOKED'),
+    [processRows],
   )
 
   return (
@@ -149,7 +137,7 @@ export function ProcessWorkQueuePage() {
         {actionRows.length > 0 ? (
           <div className="grid gap-3 xl:grid-cols-2">
             {actionRows.map((row) => (
-              <WorkRow key={row.id} row={row} ownerProcessIds={ownerProcessIds} />
+              <WorkRow key={row.id} row={row} />
             ))}
           </div>
         ) : (
@@ -165,12 +153,27 @@ export function ProcessWorkQueuePage() {
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-secondary-foreground" aria-hidden />
-            <h2 className="text-sm font-semibold text-foreground">SOP Process lainnya</h2>
+            <h2 className="text-sm font-semibold text-foreground">Menunggu pihak lain</h2>
             <Badge variant="secondary">{waitingRows.length}</Badge>
           </div>
           <div className="grid gap-3 xl:grid-cols-2">
             {waitingRows.map((row) => (
-              <WorkRow key={row.id} row={row} ownerProcessIds={ownerProcessIds} />
+              <WorkRow key={row.id} row={row} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {currentRows.length > 0 ? (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-secondary-foreground" aria-hidden />
+            <h2 className="text-sm font-semibold text-foreground">Selesai / current</h2>
+            <Badge variant="secondary">{currentRows.length}</Badge>
+          </div>
+          <div className="grid gap-3 xl:grid-cols-2">
+            {currentRows.map((row) => (
+              <WorkRow key={row.id} row={row} />
             ))}
           </div>
         </section>

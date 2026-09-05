@@ -1,0 +1,34 @@
+/// Target-native operational reminder state for Process-bound SOP workflow.
+///
+/// This table is deliberately separate from ProcessNotification history: the
+/// former is mutable delivery/retry state, while the latter is in-app event
+/// history with read state.
+enum ProcessReminderKind {
+  PROCESS_OWNER_REVIEW
+  PROCESS_REVISION
+  FINAL_APPROVAL
+  TTE
+}
+
+model ProcessReminder {
+  processReminderId   String              @id @default(uuid()) @db.Char(36)
+  detailSopId         String              @db.Char(36)
+  sopId               String              @db.Char(36)
+  processId           String              @db.Char(36)
+  penggunaId          String              @db.Char(36)
+  kind                ProcessReminderKind
+  destinationPhone    String              @db.VarChar(13)
+  nextSendAt          DateTime            @db.DateTime(3)
+  lastSentAt          DateTime?           @db.DateTime(3)
+  consecutiveFailures Int                 @default(0)
+  lastErrorKind       String?             @db.VarChar(64)
+  lockedUntil         DateTime?           @db.DateTime(3)
+  lockToken           String?             @db.Char(36)
+  createdAt           DateTime            @default(now()) @db.DateTime(3)
+  updatedAt           DateTime            @updatedAt @db.DateTime(3)
+
+  @@unique([detailSopId, penggunaId, kind], map: "ProcessReminder_detail_recipient_kind_key")
+  @@index([nextSendAt, lockedUntil], map: "ProcessReminder_due_lock_idx")
+  @@index([processId, createdAt], map: "ProcessReminder_process_created_idx")
+  @@index([penggunaId, createdAt], map: "ProcessReminder_recipient_created_idx")
+}

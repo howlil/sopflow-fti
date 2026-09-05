@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  NotFoundException,
-  ForbiddenException,
-  ConflictException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
 import { JenisDiagram, PeranPengguna } from '../../../generated/prisma';
 import { SopDiagramService } from './sop-diagram.service';
 
@@ -18,7 +13,7 @@ describe('Pengujian SopDiagramService', () => {
     resolved?: { detailSopId: string; sopOpdId: string | null; processId: string | null } | null;
     status?: string | null;
   }) {
-    const defaultResolved = { detailSopId: 'det-1', sopOpdId: 'opd-1', processId: null };
+    const defaultResolved = { detailSopId: 'det-1', sopOpdId: 'opd-1', processId: 'process-1' };
     const resolved =
       overrides !== undefined && 'resolved' in overrides ? overrides.resolved : defaultResolved;
     const sopDiagramRepository = {
@@ -34,12 +29,9 @@ describe('Pengujian SopDiagramService', () => {
       getPenyusunWorkbench: jest
         .fn()
         .mockResolvedValue({ detail: { id: 'det-1' }, langkah: [], logEdit: [] }),
-      getPenyusunWorkbenchForEvaluasiContext: jest
+      getForDetail: jest
         .fn()
         .mockResolvedValue({ detail: { id: 'det-1' }, langkah: [], logEdit: [] }),
-    };
-    const userOpdAccessService = {
-      assertSameOpd: jest.fn().mockResolvedValue(undefined),
     };
     const processContextService = {
       assertCanAuthor: jest.fn().mockResolvedValue({ processId: 'process-1' }),
@@ -47,14 +39,12 @@ describe('Pengujian SopDiagramService', () => {
     const service = new SopDiagramService(
       sopDiagramRepository as never,
       sopCatalogService as never,
-      userOpdAccessService as never,
       processContextService as never,
     );
     return {
       service,
       sopDiagramRepository,
       sopCatalogService,
-      userOpdAccessService,
       processContextService,
     };
   }
@@ -74,12 +64,12 @@ describe('Pengujian SopDiagramService', () => {
       pathOverrides: { edges: {} },
     });
     expect(sopDiagramRepository.upsertConfig).toHaveBeenCalled();
-    expect(sopCatalogService.getPenyusunWorkbench).toHaveBeenCalled();
+    expect(sopCatalogService.getForDetail).toHaveBeenCalled();
     expect(actual.detail.id).toBe('det-1');
   });
 
   it('seharusnya mengotorisasi diagram native melalui Process, bukan OPD atau role legacy', async () => {
-    const { service, userOpdAccessService, processContextService, sopCatalogService } = createService({
+    const { service, processContextService, sopCatalogService } = createService({
       resolved: { detailSopId: 'det-1', sopOpdId: null, processId: 'process-1' },
     });
     const nativeUser = { sub: 'member-1', peran: PeranPengguna.EVALUATOR, email: 'a@b.c' } as never;
@@ -87,11 +77,7 @@ describe('Pengujian SopDiagramService', () => {
     await service.updateDiagram(nativeUser, 'det-1', { jenis: JenisDiagram.FLOWCHART });
 
     expect(processContextService.assertCanAuthor).toHaveBeenCalledWith('member-1', 'process-1');
-    expect(userOpdAccessService.assertSameOpd).not.toHaveBeenCalled();
-    expect(sopCatalogService.getPenyusunWorkbenchForEvaluasiContext).toHaveBeenCalledWith(
-      'det-1',
-      undefined,
-    );
+    expect(sopCatalogService.getForDetail).toHaveBeenCalledWith('det-1', undefined);
   });
 
   it('seharusnya menolak tidak valid path overrides', async () => {
@@ -107,12 +93,14 @@ describe('Pengujian SopDiagramService', () => {
   // --- COMPREHENSIVE TESTS (FALSE, WORST, EDGE CASES) ---
 
   describe('updateDiagram (Tambahan Kasus Otorisasi dan Validasi Status)', () => {
-    it('seharusnya melempar ForbiddenException jika peran bukan PENYUSUN/PJ_PENYUSUN (False Case)', async () => {
-      const { service } = createService();
-      const badUser = { sub: 'user-1', peran: PeranPengguna.EVALUATOR, email: 'a@b.c' } as never;
+    it('seharusnya menolak SOP tanpa Process ownership pada endpoint native', async () => {
+      const { service, processContextService } = createService({
+        resolved: { detailSopId: 'det-1', sopOpdId: 'opd-1', processId: null },
+      });
       await expect(
-        service.updateDiagram(badUser, 'det-1', { jenis: JenisDiagram.FLOWCHART }),
-      ).rejects.toBeInstanceOf(ForbiddenException);
+        service.updateDiagram(user, 'det-1', { jenis: JenisDiagram.FLOWCHART }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(processContextService.assertCanAuthor).not.toHaveBeenCalled();
     });
 
     it('seharusnya melempar NotFoundException jika status detail tidak ditemukan (Edge Case)', async () => {
@@ -167,7 +155,7 @@ describe('Pengujian SopDiagramService', () => {
       const { service, sopDiagramRepository, sopCatalogService } = createService();
       const actual = await service.updateDiagram(user, 'det-1', { jenis: JenisDiagram.FLOWCHART }); // tanpa layoutSeed atau pathOverrides
       expect(sopDiagramRepository.upsertConfig).not.toHaveBeenCalled();
-      expect(sopCatalogService.getPenyusunWorkbench).toHaveBeenCalled();
+      expect(sopCatalogService.getForDetail).toHaveBeenCalled();
       expect(actual.detail.id).toBe('det-1');
     });
   });

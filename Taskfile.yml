@@ -1,0 +1,125 @@
+version: '3'
+
+output: prefixed
+
+tasks:
+  default:
+    desc: Run server and client development servers in parallel
+    cmds:
+      - task: dev
+
+  dev:
+    desc: Start backend (NestJS) and frontend (Vite) concurrently
+    deps:
+      - server:dev
+      - client:dev
+
+  server:dev:
+    desc: Start backend development server (NestJS)
+    dir: server
+    cmds:
+      - pnpm start:dev
+
+  client:dev:
+    desc: Start frontend development server (Vite)
+    dir: client
+    cmds:
+      - pnpm dev
+
+  install:
+    desc: Install dependencies for both server and client in parallel
+    deps:
+      - server:install
+      - client:install
+
+  server:install:
+    desc: Install server dependencies
+    dir: server
+    cmds:
+      - pnpm install
+
+  client:install:
+    desc: Install client dependencies
+    dir: client
+    cmds:
+      - pnpm install
+
+  build:
+    desc: Build both server and client in parallel
+    deps:
+      - server:build
+      - client:build
+
+  server:build:
+    desc: Build NestJS backend
+    dir: server
+    cmds:
+      - pnpm build
+
+  client:build:
+    desc: Build Vite frontend
+    dir: client
+    cmds:
+      - pnpm build
+
+  check:
+    desc: Run typechecks and linters for client and server in parallel
+    deps:
+      - server:check
+      - client:check
+
+  server:check:
+    desc: Typecheck and lint server
+    dir: server
+    cmds:
+      - pnpm typecheck
+      - pnpm lint
+
+  client:check:
+    desc: Typecheck and lint client
+    dir: client
+    cmds:
+      - pnpm typecheck
+      - pnpm lint
+
+  test:
+    desc: Run unit tests for client and server in parallel
+    deps:
+      - server:test
+      - client:test
+
+  server:test:
+    desc: Run server unit tests
+    dir: server
+    cmds:
+      - pnpm test
+
+  client:test:
+    desc: Run client unit tests (Vitest)
+    dir: client
+    cmds:
+      - pnpm test
+
+  db:generate:
+    desc: Generate Prisma client
+    dir: server
+    cmds:
+      - pnpm prisma generate
+
+  db:migrate:
+    desc: Deploy Prisma migrations
+    dir: server
+    cmds:
+      - pnpm prisma migrate deploy
+
+  db:seed:
+    desc: Deploy migrations and run FTI database seed
+    dir: server
+    cmds:
+      - pnpm db:seed
+
+  db:fresh:
+    desc: Reset database and apply all migrations freshly
+    dir: server
+    cmds:
+      - pnpm db:fresh

@@ -1,15 +1,18 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../../core/auth/auth.module';
-import { OpdModule } from '../../core/opd/opd.module';
-import { EvaluasiNilaiModule } from '../../evaluation/nilai/evaluasi-nilai.module';
 import { SopCatalogController } from './sop-catalog.controller';
-import { SopCatalogRepository } from './sop-catalog.repository';
 import { SopCatalogService } from './sop-catalog.service';
+import { SopLegacyVersionCompatibilityModule } from './sop-legacy-version-compatibility.module';
+import { SopWorkbenchModule } from './sop-workbench.module';
 
 @Module({
-  imports: [AuthModule, OpdModule, EvaluasiNilaiModule],
+  imports: [
+    AuthModule,
+    SopLegacyVersionCompatibilityModule,
+    SopWorkbenchModule,
+  ],
   controllers: [SopCatalogController],
-  providers: [SopCatalogService, SopCatalogRepository],
-  exports: [SopCatalogService, SopCatalogRepository],
+  providers: [SopCatalogService],
+  exports: [SopCatalogService, SopWorkbenchModule],
 })
 export class SopCatalogModule {}

@@ -115,9 +115,6 @@ export class PenyusunWorkbenchDetailDto {
   @ApiPropertyOptional({ type: 'array', items: { type: 'object' } })
   readonly swimlanes?: unknown[];
 
-  @ApiPropertyOptional({ type: 'array', items: { type: 'object' } })
-  readonly nilaiEvaluasi?: unknown[];
-
   @ApiPropertyOptional({
     type: () => KepalaOpdRingkasDto,
     nullable: true,

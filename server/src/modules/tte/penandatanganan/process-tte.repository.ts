@@ -1,10 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  JenisDokumenTte,
-  PeranPengguna,
-  Prisma,
-  StatusSOP,
-} from '../../../generated/prisma';
+import { JenisDokumenTte, PeranPengguna, Prisma, StatusSOP } from '../../../generated/prisma';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { PdfSignatureMetadataInput } from '../shared/repository/tte.repository';
 
@@ -107,12 +102,16 @@ export class ProcessTteRepository {
             hashDokumen: params.hashDokumen,
             jenisDokumen: JenisDokumenTte.SOP_BERLAKU,
             detailSopId: context.detailSopId,
+            processId: context.processId,
           },
         });
       } else {
         if (
           dokumen.detailSopId !== context.detailSopId ||
           dokumen.pengajuanEvaluasiId !== null ||
+          (dokumen.processId !== null &&
+            dokumen.processId !== undefined &&
+            dokumen.processId !== context.processId) ||
           dokumen.jenisDokumen !== JenisDokumenTte.SOP_BERLAKU
         ) {
           return { error: 'INVALID_DOC_PARENT' as const };
@@ -130,6 +129,7 @@ export class ProcessTteRepository {
             nomorDokumen: params.nomorDokumen,
             judulDokumen: params.judulDokumen,
             hashDokumen: params.hashDokumen,
+            processId: context.processId,
           },
         });
       }
@@ -176,6 +176,9 @@ export class ProcessTteRepository {
           dokumen === null ||
           dokumen.dokumenTteId !== params.dokumenTteId ||
           dokumen.pengajuanEvaluasiId !== null ||
+          (dokumen.processId !== null &&
+            dokumen.processId !== undefined &&
+            dokumen.processId !== context.processId) ||
           dokumen.jenisDokumen !== JenisDokumenTte.SOP_BERLAKU
         ) {
           return { error: 'INVALID_DOC_PARENT' as const };

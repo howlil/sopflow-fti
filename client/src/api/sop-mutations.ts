@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sopApi } from "@/api/sop-client";
 import { queryKeys } from "@/config/query-keys";
 import { useMutationWithToast } from "@/hooks/useMutationWithToast";
-import { invalidateSopEvaluasiWorkflow } from "@/lib/api/cache-invalidation";
+import { invalidateSopWorkflow } from "@/lib/api/cache-invalidation";
 import { useAuthStore } from "@/stores/authStore";
 import type {
   CreatePelaksanaMutationDto,
@@ -25,7 +25,7 @@ async function syncSopWorkbenchAfterStatusChange(
   queryClient.setQueryData(queryKeys.penyusunWorkbench(data.detail.id), data);
 
   await Promise.all([
-    invalidateSopEvaluasiWorkflow(queryClient),
+    invalidateSopWorkflow(queryClient),
     queryClient.invalidateQueries({ queryKey: queryKeys.sopRiwayatVersi(data.detail.sopId) }),
   ]);
 }
@@ -101,7 +101,7 @@ export function useCreatePelaksana(opdId?: string) {
         namaPelaksana: data.namaPelaksana,
       });
     },
-    invalidateKeys: [queryKeys.pelaksana, queryKeys.sop, queryKeys.evaluasi],
+    invalidateKeys: [queryKeys.pelaksana, queryKeys.sop],
     successMessage: "Pelaksana SOP berhasil ditambahkan",
     errorMessagePrefix: "Gagal menambah pelaksana",
   });
@@ -112,7 +112,7 @@ export function useUpdatePelaksana() {
   return useMutationWithToast({
     mutationFn: ({ id, namaPelaksana }: UpdatePelaksanaMutationDto) =>
       sopApi.updatePelaksana(id, namaPelaksana),
-    invalidateKeys: [queryKeys.pelaksana, queryKeys.sop, queryKeys.evaluasi],
+    invalidateKeys: [queryKeys.pelaksana, queryKeys.sop],
     successMessage: "Pelaksana SOP berhasil diperbarui",
     errorMessagePrefix: "Gagal memperbarui pelaksana",
   });
@@ -122,7 +122,7 @@ export function useUpdatePelaksana() {
 export function useDeletePelaksana() {
   return useMutationWithToast({
     mutationFn: (id: string) => sopApi.deletePelaksana(id),
-    invalidateKeys: [queryKeys.pelaksana, queryKeys.sop, queryKeys.evaluasi],
+    invalidateKeys: [queryKeys.pelaksana, queryKeys.sop],
     successMessage: "Pelaksana SOP berhasil dihapus",
     errorMessagePrefix: "Gagal menghapus pelaksana",
   });
@@ -177,7 +177,7 @@ export function useUpdateSopHeader(detailSopId: string) {
       if (data.detail.id !== detailSopId) {
         queryClient.setQueryData(queryKeys.penyusunWorkbench(data.detail.id), data);
       }
-      void invalidateSopEvaluasiWorkflow(queryClient, 'none');
+      void invalidateSopWorkflow(queryClient, 'none');
     },
   });
 }
@@ -192,7 +192,7 @@ export function useUpdateSopProsedur(detailSopId: string) {
       if (data.detail.id !== detailSopId) {
         queryClient.setQueryData(queryKeys.penyusunWorkbench(data.detail.id), data);
       }
-      void invalidateSopEvaluasiWorkflow(queryClient, 'none');
+      void invalidateSopWorkflow(queryClient, 'none');
     },
   });
 }
@@ -206,7 +206,7 @@ export function useUpdateSopDiagram(detailSopId: string) {
       if (data.detail.id !== detailSopId) {
         queryClient.setQueryData(queryKeys.penyusunWorkbench(data.detail.id), data);
       }
-      void invalidateSopEvaluasiWorkflow(queryClient, 'none');
+      void invalidateSopWorkflow(queryClient, 'none');
     },
   });
 }

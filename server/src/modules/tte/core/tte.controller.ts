@@ -2,8 +2,6 @@ import {
   Body,
   Controller,
   Get,
-  Param,
-  ParseUUIDPipe,
   Patch,
   Post,
   Req,
@@ -11,7 +9,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { type ApiSuccessResponse, Roles, UseJwtAndRolesGuards } from '../../../common';
 import type { JwtAccessPayload } from '../../../common/types/jwt-access-payload.type';
@@ -19,8 +17,6 @@ import { PeranPengguna } from '../../../generated/prisma';
 import { ACCESS_TOKEN_COOKIE_NAME } from '../../core/auth/helpers/auth.shared';
 import { RegisterTteDto } from '../shared/dto/register-tte.dto';
 import { SignPdfDto } from '../shared/dto/sign-pdf.dto';
-import { TandaTanganiDto } from '../shared/dto/tanda-tangani.dto';
-import { TandaTanganiSemuaSopDto } from '../shared/dto/tanda-tangani-semua-sop.dto';
 import { UpdateTtePinDto } from '../shared/dto/update-tte-pin.dto';
 import { GenerateP12Dto } from '../shared/dto/generate-p12.dto';
 import { UploadP12Dto } from '../shared/dto/upload-p12.dto';
@@ -28,10 +24,8 @@ import { SetupTteGenerateDto } from '../shared/dto/setup-tte-generate.dto';
 import { SetupTteUploadDto } from '../shared/dto/setup-tte-upload.dto';
 import {
   TteService,
-  type TteBatchSignSopPengajuanResponse,
   type SignPdfResponse,
   type TteProfilResponse,
-  type TteRiwayatResponse,
 } from './tte.service';
 
 @ApiTags('TTE')
@@ -96,25 +90,6 @@ export class TteController {
   async setupTteWithUpload(@Req() req: Request & { user: JwtAccessPayload }, @Body() dto: SetupTteUploadDto, @UploadedFile() file: any): Promise<ApiSuccessResponse<TteProfilResponse>> {
     const data = await this.tteService.setupTteWithUpload(req.user, dto, file);
     return { message: 'TTE berhasil disiapkan dengan sertifikat BSrE', success: true, data };
-  }
-
-  @Post('tanda-tangani/ba/:pengajuanId')
-  @Roles(PeranPengguna.PJ_EVALUATOR, PeranPengguna.PJ_PENYUSUN)
-  @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
-  @ApiOperation({ summary: 'Tanda tangani Berita Acara evaluasi' })
-  @ApiResponse({ status: 200, description: 'Berhasil' })
-  async tandaTanganiBa(@Req() req: Request & { user: JwtAccessPayload }, @Param('pengajuanId', ParseUUIDPipe) pengajuanId: string, @Body() dto: TandaTanganiDto): Promise<ApiSuccessResponse<TteRiwayatResponse>> {
-    const data = await this.tteService.tandaTanganiBa(req.user, pengajuanId, dto, req);
-    return { message: 'Berita Acara berhasil ditandatangani', success: true, data };
-  }
-
-  @Post('tanda-tangani/pengajuan/:pengajuanId/sop-semua')
-  @Roles(PeranPengguna.KEPALA_OPD)
-  @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
-  @ApiOperation({ summary: 'Tanda tangani seluruh SOP dalam satu pengajuan (legacy Kepala OPD)' })
-  async tandaTanganiSemuaSopPengajuan(@Req() req: Request & { user: JwtAccessPayload }, @Param('pengajuanId', ParseUUIDPipe) pengajuanId: string, @Body() dto: TandaTanganiSemuaSopDto): Promise<ApiSuccessResponse<TteBatchSignSopPengajuanResponse>> {
-    const data = await this.tteService.tandaTanganiSemuaSopPengajuan(req.user, pengajuanId, dto, req);
-    return { message: 'Seluruh SOP dalam pengajuan berhasil ditandatangani', success: true, data };
   }
 
   @Post('pdf/sign')

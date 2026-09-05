@@ -19,7 +19,9 @@ export async function acceptProcessSopViaUi(
   await dialog.getByRole('button', { name: 'Ya, terima', exact: true }).click()
   await expect(dialog).toBeHidden({ timeout: 15_000 })
 
-  await expect(page.getByText('Siap untuk persetujuan', { exact: true })).toBeVisible({
+  await expect(
+    page.getByText('Menunggu persetujuan akhir', { exact: true }).first(),
+  ).toBeVisible({
     timeout: 15_000,
   })
   await expectNoAppShellError(page)

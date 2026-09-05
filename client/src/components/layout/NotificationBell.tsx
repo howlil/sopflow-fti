@@ -91,16 +91,8 @@ export function NotificationBell() {
             </div>
           ) : (
             items.map((item) => {
-              const key = item.source === 'PROCESS'
-                ? `process:${item.processNotificationId}`
-                : `legacy:${item.pengajuanEvaluasiId}:${item.jenis}`
-              const handleSelect = () => {
-                if (!item.readAt) void markRead(item)
-              }
-
-              if (item.source === 'PROCESS') {
                 return (
-                  <DropdownMenuItem key={key} asChild>
+                  <DropdownMenuItem key={`process:${item.processNotificationId}`} asChild>
                     <a
                       href={item.actionHref}
                       data-process-notification-id={item.processNotificationId}
@@ -120,17 +112,6 @@ export function NotificationBell() {
                       <NotificationContent item={item} />
                     </a>
                   </DropdownMenuItem>
-                )
-              }
-
-              return (
-                <DropdownMenuItem
-                  key={key}
-                  className="items-start gap-2 px-2 py-2"
-                  onSelect={handleSelect}
-                >
-                  <NotificationContent item={item} />
-                </DropdownMenuItem>
               )
             })
           )}

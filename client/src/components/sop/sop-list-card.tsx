@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button'
-import type { TahapPenilaianSop } from '@/lib/evaluasi/evaluasi-domain'
 import { cn } from '@/utils/cn'
 
 export interface SOPListItem {
@@ -8,11 +7,6 @@ export interface SOPListItem {
   nomor: string
   statusDokumen?: string
   statusDokumenLabel?: string
-  hasilEvaluasi?: string
-  hasilEvaluasiLabel?: string
-  statusTindakLanjut?: string | null
-  statusTindakLanjutLabel?: string | null
-  tahapPenilaian?: TahapPenilaianSop
 }
 
 export interface SOPListCardProps {
@@ -80,10 +74,7 @@ function StatusChip({
 
 function renderQuietStatus(sop: SOPListItem, compact: boolean) {
   const statusDokumenLabel = sop.statusDokumenLabel
-  const hasPenilaian =
-    sop.hasilEvaluasi !== undefined && sop.hasilEvaluasiLabel !== undefined
-
-  if (!statusDokumenLabel && !hasPenilaian && !sop.statusTindakLanjutLabel) return null
+  if (!statusDokumenLabel) return null
 
   return (
     <div
@@ -93,14 +84,6 @@ function renderQuietStatus(sop: SOPListItem, compact: boolean) {
       )}
     >
       <StatusChip label={statusDokumenLabel} status={sop.statusDokumen} compact={compact} />
-      {hasPenilaian ? (
-        <StatusChip label={sop.hasilEvaluasiLabel} status={sop.hasilEvaluasi} compact={compact} />
-      ) : null}
-      <StatusChip
-        label={sop.statusTindakLanjutLabel}
-        status={sop.statusTindakLanjut}
-        compact={compact}
-      />
     </div>
   )
 }

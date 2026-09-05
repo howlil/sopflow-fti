@@ -104,16 +104,15 @@ E2E_PENYUSUN_PASSWORD
 ```text
 e2e/
   journeys/
-    evaluation-lifecycle.spec.ts   # J01-J04
-    sop-lifecycle.spec.ts          # J05-J06
-    public-integrity.spec.ts       # J07
+    fti-process-review.spec.ts     # Process-native review
+    fti-process-version-creation.spec.ts
+    fti-public-archive.spec.ts     # public discovery
   fixtures/
     business-test.ts               # isolated browser context per role
     users.ts
   support/
-    business-actions.ts            # browser-visible business actions
-    business-audit.ts              # read-only server invariant assertions
-    business-preconditions.ts      # mutation API only for setup/boundaries
+    fti-process-actions.ts         # Process-native browser actions
+    fti-process-preconditions.ts   # Process-native setup/boundaries
     ...
   *.spec.ts                        # functional/system regression tests
 ```

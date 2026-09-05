@@ -5,10 +5,11 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 export class ProcessTteVerificationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findApprovalForSignedDetail(detailSopId: string, signerId: string) {
+  async findApprovalForSignedDetail(detailSopId: string, signerId: string, processId: string) {
     return this.prisma.processFinalApproval.findFirst({
       where: {
         detailSopId,
+        processId,
         approvedById: signerId,
       },
       select: {

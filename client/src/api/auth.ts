@@ -74,7 +74,7 @@ export function useAuth() {
       showToast(`Selamat datang, ${u.nama}!`, "success");
 
       const resolveLanding = () =>
-        redirect ? resolvePostLoginPath(redirect, u.peran) : ROUTES.WORK;
+        redirect ? resolvePostLoginPath(redirect) : ROUTES.WORK;
 
       try {
         await ensureAuthHydrated(1000);

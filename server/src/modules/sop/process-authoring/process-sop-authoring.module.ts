@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ProcessModule } from '../../core/process/process.module';
-import { NotificationModule } from '../../notifications/reminders/notification.module';
-import { SopCatalogModule } from '../catalog/sop-catalog.module';
+import { ProcessNotificationModule } from '../../notifications/process/process-notification.module';
+import { SopLegacyVersionCompatibilityModule } from '../catalog/sop-legacy-version-compatibility.module';
+import { SopWorkbenchModule } from '../catalog/sop-workbench.module';
 import { PelaksanaModule } from '../pelaksana/pelaksana.module';
 import { ProcessBoundSopGuard } from './process-bound-sop.guard';
 import { ProcessFinalApprovalController } from './process-final-approval.controller';
@@ -16,7 +17,13 @@ import { ProcessSopRevocationService } from './process-sop-revocation.service';
 import { ProcessVersionService } from './process-version.service';
 
 @Module({
-  imports: [ProcessModule, NotificationModule, SopCatalogModule, PelaksanaModule],
+  imports: [
+    ProcessModule,
+    ProcessNotificationModule,
+    SopWorkbenchModule,
+    SopLegacyVersionCompatibilityModule,
+    PelaksanaModule,
+  ],
   controllers: [
     ProcessSopAuthoringController,
     ProcessOwnerReviewController,

@@ -23,7 +23,7 @@ export const Route = createFileRoute('/login/')({
       return;
     }
     const path = search.redirect
-      ? resolvePostLoginPath(search.redirect, user.peran)
+      ? resolvePostLoginPath(search.redirect)
       : ROUTES.WORK;
     throw redirect(redirectArgsFromAppPath(path));
   },

@@ -62,10 +62,6 @@ describe('Pengujian TteProfilService', () => {
       findRiwayatForPdfSigning: jest.fn(),
       updateRiwayatPdfSignatureMetadata: jest.fn(),
       findRiwayatByPdfSignatureBinding: jest.fn(),
-      assertRiwayatBelumAda: jest.fn(),
-      transaksiTandaTanganiBaEvaluator: jest.fn(),
-      transaksiTandaTanganiBaPjPenyusun: jest.fn(),
-      transaksiTandaTanganiSemuaSopPengajuan: jest.fn(),
       ...partial,
     } as unknown as jest.Mocked<TteRepository>;
   }

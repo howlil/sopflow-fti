@@ -5,6 +5,11 @@ import type { PenyusunWorkbenchData } from '@/types/dto/sop.dto'
 
 export type ProcessReviewDecision = 'REVISION' | 'ACCEPT'
 
+export type ProcessReviewDecisionPayload = {
+  decision: ProcessReviewDecision
+  catatan?: string
+}
+
 export const processReviewApi = {
   submit: (detailOrSopId: string) =>
     unwrapApiData(
@@ -13,11 +18,18 @@ export const processReviewApi = {
       ),
     ),
 
-  decide: (detailOrSopId: string, decision: ProcessReviewDecision) =>
+  decide: (
+    detailOrSopId: string,
+    decision: ProcessReviewDecision,
+    catatan?: string,
+  ) =>
     unwrapApiData(
       apiClient.post<ApiSuccessResponse<PenyusunWorkbenchData>>(
         `/process-sop/${detailOrSopId}/review`,
-        { decision },
+        {
+          decision,
+          ...(catatan !== undefined ? { catatan } : {}),
+        } satisfies ProcessReviewDecisionPayload,
       ),
     ),
 }

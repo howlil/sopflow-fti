@@ -8,7 +8,7 @@ import {
   CollapsibleSidePanelHeader,
   SimplePanelHeader,
 } from '@/components/ui/collapsible-side-panel'
-import type { PaginationMetaDto } from '@/types/dto/evaluasi.dto'
+import type { PaginationMetaDto } from '@/types/dto/common.dto'
 import type { PublicProcessItem, PublicSopItem } from '@/types/dto/sop-public.dto'
 import { ArsipProcessSidebar } from './arsip-process-sidebar'
 import { ArsipSopPanel } from './arsip-sop-panel'

@@ -18,8 +18,6 @@ describe('SOPListCard', () => {
             nomor: '123456',
             statusDokumen: 'BERLAKU',
             statusDokumenLabel: 'Berlaku',
-            hasilEvaluasi: 'SESUAI',
-            hasilEvaluasiLabel: 'Sesuai',
           },
           {
             id: 'sop-2',
@@ -56,9 +54,7 @@ describe('SOPListCard', () => {
     expect(screen.queryByText('Dokumen')).not.toBeInTheDocument()
     expect(screen.queryByText('Penilaian')).not.toBeInTheDocument()
     expect(screen.getByText('Berlaku')).toHaveClass('rounded-sm')
-    expect(screen.getByText('Sesuai')).toHaveClass('rounded-sm')
     expect(screen.getByText('Berlaku')).toHaveClass('text-success-foreground')
-    expect(screen.getByText('Sesuai')).toHaveClass('text-success-foreground')
   })
 
   it('does not render pending process states as final green chips', () => {

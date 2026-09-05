@@ -4,7 +4,7 @@ import { queryKeys } from "@/config/query-keys";
 import { useMutationWithToast } from "@/hooks/useMutationWithToast";
 import { STALE_TIME } from "@/utils/constants";
 import { sopApi, type CreateProcessSopRequestDto } from "@/api/sop-client";
-import { SOP_EVALUASI_WORKFLOW_REFRESH_OPTIONS } from "@/lib/api/cache-invalidation";
+import { SOP_WORKFLOW_REFRESH_OPTIONS } from "@/lib/api/cache-invalidation";
 import type { SopDaftarRow, SopListQueryParams } from "@/types/dto/sop.dto";
 /**
  * useSop hook - TanStack Query
@@ -15,7 +15,7 @@ function sopListQueryOptions(params?: SopListQueryParams) {
   return {
     queryKey: queryKeys.sopList(params),
     queryFn: () => sopApi.findAll(params),
-    ...SOP_EVALUASI_WORKFLOW_REFRESH_OPTIONS,
+    ...SOP_WORKFLOW_REFRESH_OPTIONS,
   } as const;
 }
 

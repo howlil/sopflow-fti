@@ -28,12 +28,12 @@ export async function loginViaUi(page: Page, user: E2eUser): Promise<void> {
   await expectMainContent(page)
 }
 
-export async function waitForAppReady(page: Page): Promise<void> {
+export async function waitForAppReady(page: Page, timeout = 20_000): Promise<void> {
   await page.waitForLoadState('domcontentloaded')
   // SSR markup may be visible before React has attached event handlers. Waiting on
   // the root hydration marker prevents interactions from being overwritten by hydration.
-  await expect(page.locator('html[data-app-hydrated="true"]')).toBeAttached()
-  await expect(page.locator('body')).toBeVisible()
+  await expect(page.locator('html[data-app-hydrated="true"]')).toBeAttached({ timeout })
+  await expect(page.locator('body')).toBeVisible({ timeout })
 }
 
 export async function logoutViaUi(page: Page): Promise<void> {

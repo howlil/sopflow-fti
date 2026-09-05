@@ -12,3 +12,28 @@ model ProcessSopBinding {
   @@index([processId], map: "ProcessSopBinding_processId_idx")
   @@index([createdById], map: "ProcessSopBinding_createdById_idx")
 }
+
+/// Append-only evidence of a Process Owner decision on a Process-bound SOP version.
+/// The status transition, review evidence, and native notification are committed together.
+enum ProcessReviewDecision {
+  REVISION
+  ACCEPT
+}
+
+model ProcessReview {
+  processReviewId String                @id @default(uuid()) @db.Char(36)
+  detailSopId     String                @db.Char(36)
+  sopId           String                @db.Char(36)
+  processId       String                @db.Char(36)
+  reviewedById    String                @db.Char(36)
+  decision        ProcessReviewDecision
+  /// Catatan pemilik proses; wajib untuk keputusan REVISION, opsional untuk ACCEPT.
+  catatan         String?               @db.Text
+  previousStatus  StatusSOP
+  nextStatus      StatusSOP
+  createdAt       DateTime              @default(now()) @db.DateTime(3)
+
+  @@index([detailSopId, createdAt], map: "ProcessReview_detail_created_idx")
+  @@index([processId, createdAt], map: "ProcessReview_process_created_idx")
+  @@index([reviewedById, createdAt], map: "ProcessReview_reviewer_created_idx")
+}

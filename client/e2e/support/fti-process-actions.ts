@@ -49,7 +49,7 @@ export async function submitProcessSopForReviewViaUi(
   await expect(submit).toBeEnabled()
   await submit.click()
 
-  const dialog = page.getByRole('dialog', { name: 'Kirim SOP untuk review?' })
+  const dialog = page.getByRole('dialog', { name: /Kirim (SOP|revisi) untuk review\?/i })
   await expect(dialog).toBeVisible()
   await dialog.getByRole('button', { name: 'Ya, kirim untuk review', exact: true }).click()
   await expect(dialog).toBeHidden({ timeout: 15_000 })
@@ -69,7 +69,7 @@ export async function expectProcessReviewInOwnerQueue(
 ): Promise<void> {
   await expectWorkQueueRow(page, {
     title,
-    statusLabel: 'Review Process Owner',
+    statusLabel: 'Menunggu review Process Owner',
     actionLabel: 'Review SOP',
   })
 }
@@ -91,7 +91,7 @@ export async function requestProcessRevisionViaUi(
   await dialog.getByRole('button', { name: 'Ya, minta revisi', exact: true }).click()
   await expect(dialog).toBeHidden({ timeout: 15_000 })
 
-  await expect(page.getByText('Perlu revisi', { exact: true })).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('Perlu revisi', { exact: true }).first()).toBeVisible({ timeout: 15_000 })
   await expect(page.getByText('SOP dikembalikan oleh Process Owner.', { exact: false })).toBeVisible()
   await expectNoAppShellError(page)
 }
@@ -103,6 +103,6 @@ export async function expectProcessRevisionInMemberQueue(
   await expectWorkQueueRow(page, {
     title,
     statusLabel: 'Perlu revisi',
-    actionLabel: 'Lanjutkan SOP',
+    actionLabel: 'Perbaiki SOP',
   })
 }

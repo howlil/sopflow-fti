@@ -1,6 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/unbound-method */
+
 import { ConflictException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
-import { OrganizationalAuthority, StatusSOP } from '../../../generated/prisma';
+import {
+  OrganizationalAuthority,
+  ProcessReviewDecision,
+  StatusSOP,
+} from '../../../generated/prisma';
 import type { OrganizationalAuthorityService } from '../../core/process/organizational-authority.service';
 import type { SopCatalogRepository } from '../catalog/sop-catalog.repository';
 import { ProcessFinalApprovalService } from './process-final-approval.service';
@@ -11,13 +17,23 @@ jest.mock('../catalog/sop-catalog.mapper', () => ({
 
 const user = { sub: 'dean-1', peran: 'PENYUSUN' } as never;
 
-function makeService(status: StatusSOP = StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR) {
+function makeService(
+  status: StatusSOP = StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
+  acceptedReviewId: string | null = null,
+) {
   const prisma = {
     detailSOP: {
       findFirst: jest.fn().mockResolvedValue({ detailSopId: 'detail-a' }),
     },
     sOP: {
       findUnique: jest.fn().mockResolvedValue({ processId: 'process-a' }),
+    },
+    processReview: {
+      findFirst: jest
+        .fn()
+        .mockResolvedValue(
+          acceptedReviewId === null ? null : { processReviewId: acceptedReviewId },
+        ),
     },
     processFinalApproval: {
       create: jest.fn().mockResolvedValue({
@@ -74,7 +90,28 @@ describe('ProcessFinalApprovalService', () => {
         approvedById: 'dean-1',
         authority: OrganizationalAuthority.DEAN,
         authorityKey: 'DEAN',
+        processReviewId: null,
       }),
+    });
+  });
+
+  it('links new approval evidence to the latest accepted Process Owner review', async () => {
+    const { service, prisma } = makeService(StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR, 'review-1');
+
+    await service.approve(user, 'detail-a');
+
+    expect(prisma.processReview.findFirst).toHaveBeenCalledWith({
+      where: {
+        detailSopId: 'detail-a',
+        processId: 'process-a',
+        decision: ProcessReviewDecision.ACCEPT,
+        nextStatus: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { processReviewId: true },
+    });
+    expect(prisma.processFinalApproval.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ processReviewId: 'review-1' }),
     });
   });
 

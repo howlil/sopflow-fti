@@ -4,7 +4,6 @@ import {
   TERMINAL_DETAIL_STATUSES,
 } from '../../../common/status/sop-editable.util';
 import { StatusSOP } from '../../../generated/prisma';
-import { buildNilaiEvaluasiClientId } from '../../evaluation/nilai/nilai-evaluasi-client-id';
 import { encodeLogEditSopClientId } from '../collaboration/log-edit-session.helper';
 import type { PenyusunWorkbenchDataDto } from './dto/penyusun-workbench-data.dto';
 import type { SopDaftarRowDto } from './dto/sop-daftar-row.dto';
@@ -12,8 +11,17 @@ import type { SopDaftarVersiSliceDto } from './dto/sop-daftar-versi-slice.dto';
 import type { SopDaftarDbRow, SopWorkbenchDbPayload } from './sop-catalog.repository';
 import { mapDiagramConfigsToWorkbenchDto } from '../diagram/diagram-workbench.mapper';
 
-import type { BeritaAcaraTteSignaturePayloadDto } from '../../evaluation/pengajuan-detail/dto/berita-acara-evaluasi-view.dto';
 import { PeranPengguna } from '../../../generated/prisma';
+
+type TteSignaturePayloadDto = {
+  id: string;
+  dokumenTteId: string;
+  userId: string;
+  nip: string;
+  namaLengkap: string;
+  jabatan: string;
+  signedAt: string;
+};
 
 export function toIso(d: Date): string {
   return d.toISOString();
@@ -117,11 +125,6 @@ export function mapWorkbenchPayload(row: SopWorkbenchDbPayload): PenyusunWorkben
       namaPelaksana: sw.pelaksana.nama,
     },
   }));
-  const nilaiEvaluasi = row.nilaiEvaluasi.map((n) => ({
-    id: buildNilaiEvaluasiClientId(n.pengajuanEvaluasiId, n.detailSopId),
-    hasil: n.hasil === null || n.hasil === undefined ? undefined : String(n.hasil),
-    catatan: n.catatan ?? undefined,
-  }));
   const kp = row.sop.opd?.pengguna[0];
   const kepalaOpd: PenyusunWorkbenchDataDto['detail']['kepalaOpd'] =
     kp === null || kp === undefined ? null : { nama: kp.nama ?? null, nip: kp.nip ?? null };
@@ -158,7 +161,6 @@ export function mapWorkbenchPayload(row: SopWorkbenchDbPayload): PenyusunWorkben
     relasiSopKeluar,
     relasiSopMasuk,
     swimlanes,
-    nilaiEvaluasi,
     kepalaOpd,
     dasarHukumPeraturanIds,
     sopTerkaitDetailIds,
@@ -205,7 +207,7 @@ export function mapWorkbenchPayload(row: SopWorkbenchDbPayload): PenyusunWorkben
     };
   });
 
-  let tteSignaturePayloadKepalaOpd: BeritaAcaraTteSignaturePayloadDto | undefined;
+  let tteSignaturePayloadKepalaOpd: TteSignaturePayloadDto | undefined;
   if (row.dokumenTte && row.dokumenTte.length > 0) {
     const dokTte = row.dokumenTte[0];
     for (const rt of dokTte.riwayatTandaTangan) {

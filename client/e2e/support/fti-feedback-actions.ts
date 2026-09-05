@@ -26,8 +26,12 @@ export async function markAllProcessNotificationsRead(api: APIRequestContext): P
 export async function requestProcessRevisionViaApi(
   ownerApi: APIRequestContext,
   detailSopId: string,
+  catatan?: string,
 ): Promise<void> {
-  await apiPost(ownerApi, `/process-sop/${detailSopId}/review`, { decision: 'REVISION' })
+  await apiPost(ownerApi, `/process-sop/${detailSopId}/review`, {
+    decision: 'REVISION',
+    ...(catatan !== undefined ? { catatan } : {}),
+  })
 }
 
 export async function findProcessFeedback(

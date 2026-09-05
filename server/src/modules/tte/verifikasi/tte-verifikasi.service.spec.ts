@@ -9,7 +9,9 @@ import { TteVerifikasiService } from './tte-verifikasi.service';
 describe('Pengujian TteVerifikasiService', () => {
   let service: TteVerifikasiService;
   let mockTteRepository: Partial<TteRepository>;
-  let mockProcessVerificationRepository: jest.Mocked<Pick<ProcessTteVerificationRepository, 'findApprovalForSignedDetail'>>;
+  let mockProcessVerificationRepository: jest.Mocked<
+    Pick<ProcessTteVerificationRepository, 'findApprovalForSignedDetail'>
+  >;
   let mockConfigService: Partial<ConfigService>;
 
   const defaultRiwayatRow = {
@@ -30,6 +32,7 @@ describe('Pengujian TteVerifikasiService', () => {
       hashDokumen: 'abc123hash',
       detailSopId: 'sop-1',
       pengajuanEvaluasiId: null,
+      processId: 'process-1',
     },
   };
 
@@ -56,7 +59,9 @@ describe('Pengujian TteVerifikasiService', () => {
 
   describe('getPengesahanPublic', () => {
     it('seharusnya melempar NotFoundException jika data tidak ditemukan (False Case)', async () => {
-      (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue(null);
+      (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue(
+        null,
+      );
 
       await expect(service.getPengesahanPublic('dok-123', 'user-123')).rejects.toBeInstanceOf(
         NotFoundException,
@@ -95,19 +100,17 @@ describe('Pengujian TteVerifikasiService', () => {
       expect(result.penandatangan.jabatan).toBe('');
     });
 
-    it('seharusnya mengubah null menjadi undefined untuk sopDetailId dan pengajuanEvaluasiId jika kosong (Edge Case)', async () => {
+    it('seharusnya mengubah null menjadi undefined untuk sopDetailId jika kosong (Edge Case)', async () => {
       (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue({
         ...defaultRiwayatRow,
         dokumenTte: {
           ...defaultRiwayatRow.dokumenTte,
           detailSopId: null,
-          pengajuanEvaluasiId: null,
         },
       });
 
       const result = await service.getPengesahanPublic('dok-123', 'user-123');
       expect(result.dokumen.sopDetailId).toBeUndefined();
-      expect(result.dokumen.pengajuanEvaluasiId).toBeUndefined();
       expect(mockProcessVerificationRepository.findApprovalForSignedDetail).not.toHaveBeenCalled();
     });
 
@@ -148,7 +151,28 @@ describe('Pengujian TteVerifikasiService', () => {
       expect(mockProcessVerificationRepository.findApprovalForSignedDetail).toHaveBeenCalledWith(
         'sop-1',
         'user-123',
+        'process-1',
       );
+    });
+
+    it('tidak menganggap histori detail tanpa marker Process sebagai TTE native', async () => {
+      (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue({
+        ...defaultRiwayatRow,
+        dokumenTte: {
+          ...defaultRiwayatRow.dokumenTte,
+          processId: null,
+        },
+      });
+      mockProcessVerificationRepository.findApprovalForSignedDetail.mockResolvedValue({
+        authority: OrganizationalAuthority.DEAN,
+        authorityKey: 'DEAN',
+        approvedById: 'user-123',
+      });
+
+      const result = await service.getPengesahanPublic('dok-123', 'user-123');
+
+      expect(result.authority).toBeUndefined();
+      expect(mockProcessVerificationRepository.findApprovalForSignedDetail).not.toHaveBeenCalled();
     });
 
     it('menampilkan Kepala Departemen dari approval evidence untuk Department Process', async () => {
@@ -193,7 +217,6 @@ describe('Pengujian TteVerifikasiService', () => {
         qrVerificationUrl: 'https://verify.example.com/tte/verifikasi-dokumen/dok-123?h=abc123hash',
       });
       expect(result.authority).toBeUndefined();
-      expect(result.dokumen.pengajuanEvaluasiId).toBeUndefined();
     });
   });
 });

@@ -1,9 +1,13 @@
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import type { JwtAccessPayload } from '../../../common';
 import { JenisLangkahProsedur, PeranPengguna, StatusSOP } from '../../../generated/prisma';
-import { UserOpdAccessService } from '../../core/opd/user-opd-access.service';
 import { ProcessContextService } from '../../core/process/process-context.service';
-import { SopCatalogService } from '../catalog/sop-catalog.service';
+import { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
 import { SopProsedurRepository } from './sop-prosedur.repository';
 import { SopProsedurService } from './sop-prosedur.service';
@@ -19,9 +23,8 @@ describe('SopProsedurService Process-native actor policy', () => {
   };
   const catalog = {
     getPenyusunWorkbench: jest.fn(),
-    getPenyusunWorkbenchForEvaluasiContext: jest.fn(),
+    getForDetail: jest.fn(),
   };
-  const legacyOpd = { assertSameOpd: jest.fn() };
   const processContext = { assertCanAuthor: jest.fn() };
 
   const processMember: JwtAccessPayload = {
@@ -29,12 +32,10 @@ describe('SopProsedurService Process-native actor policy', () => {
     email: 'member@fti.test',
     peran: PeranPengguna.EVALUATOR,
   };
-  const legacyPenyusun: JwtAccessPayload = {
-    sub: 'penyusun-1',
-    email: 'penyusun@fti.test',
-    peran: PeranPengguna.PENYUSUN,
-  };
-  const workbench = { detail: { id: 'detail-1' }, langkah: [] } as unknown as PenyusunWorkbenchDataDto;
+  const workbench = {
+    detail: { id: 'detail-1' },
+    langkah: [],
+  } as unknown as PenyusunWorkbenchDataDto;
 
   let service: SopProsedurService;
 
@@ -42,8 +43,7 @@ describe('SopProsedurService Process-native actor policy', () => {
     jest.clearAllMocks();
     service = new SopProsedurService(
       repo as unknown as SopProsedurRepository,
-      catalog as unknown as SopCatalogService,
-      legacyOpd as unknown as UserOpdAccessService,
+      catalog as unknown as SopWorkbenchReader,
       processContext as unknown as ProcessContextService,
     );
     repo.findDetailIdByDetailOrSopId.mockResolvedValue({
@@ -58,9 +58,7 @@ describe('SopProsedurService Process-native actor policy', () => {
     repo.findExistingLangkahPelaksanaIds.mockResolvedValue([]);
     repo.updateProsedurTransaction.mockResolvedValue(undefined);
     processContext.assertCanAuthor.mockResolvedValue({ processId: 'process-1' });
-    legacyOpd.assertSameOpd.mockResolvedValue(undefined);
-    catalog.getPenyusunWorkbench.mockResolvedValue(workbench);
-    catalog.getPenyusunWorkbenchForEvaluasiContext.mockResolvedValue(workbench);
+    catalog.getForDetail.mockResolvedValue(workbench);
   });
 
   it('rejects an unknown SOP before authorization work', async () => {
@@ -76,7 +74,6 @@ describe('SopProsedurService Process-native actor policy', () => {
     });
 
     expect(processContext.assertCanAuthor).toHaveBeenCalledWith('member-1', 'process-1');
-    expect(legacyOpd.assertSameOpd).not.toHaveBeenCalled();
     expect(repo.updateProsedurTransaction).toHaveBeenCalledWith(
       expect.objectContaining({
         detailSopId: 'detail-1',
@@ -86,29 +83,15 @@ describe('SopProsedurService Process-native actor policy', () => {
   });
 
   it('propagates Process authorization denial for unrelated users', async () => {
-    processContext.assertCanAuthor.mockRejectedValue(new ForbiddenException('not a Process member'));
+    processContext.assertCanAuthor.mockRejectedValue(
+      new ForbiddenException('not a Process member'),
+    );
     await expect(service.updateProsedur(processMember, 'detail-1', {})).rejects.toBeInstanceOf(
       ForbiddenException,
     );
   });
 
-  it('keeps legacy unbound SOP on PENYUSUN + OPD compatibility authorization', async () => {
-    repo.findDetailIdByDetailOrSopId.mockResolvedValue({
-      detailSopId: 'detail-1',
-      sopId: 'sop-1',
-      sopOpdId: 'legacy-opd-1',
-      processId: null,
-    });
-    await service.updateProsedur(legacyPenyusun, 'detail-1', {});
-    expect(legacyOpd.assertSameOpd).toHaveBeenCalledWith(
-      'penyusun-1',
-      'legacy-opd-1',
-      'Akses ditolak untuk DetailSOP ini',
-    );
-    expect(catalog.getPenyusunWorkbench).toHaveBeenCalled();
-  });
-
-  it('rejects non-legacy authors for an unbound legacy SOP', async () => {
+  it('rejects an unbound SOP instead of using OPD compatibility authorization', async () => {
     repo.findDetailIdByDetailOrSopId.mockResolvedValue({
       detailSopId: 'detail-1',
       sopId: 'sop-1',
@@ -116,8 +99,10 @@ describe('SopProsedurService Process-native actor policy', () => {
       processId: null,
     });
     await expect(service.updateProsedur(processMember, 'detail-1', {})).rejects.toBeInstanceOf(
-      ForbiddenException,
+      ConflictException,
     );
+    expect(processContext.assertCanAuthor).not.toHaveBeenCalled();
+    expect(repo.updateProsedurTransaction).not.toHaveBeenCalled();
   });
 
   it('rejects an actor id that does not exist in the global catalog', async () => {

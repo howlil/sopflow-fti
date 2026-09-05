@@ -189,6 +189,84 @@ jobs:
             exit 1
           }
 
+          sop_opd_nullable="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -Nse "SELECT IS_NULLABLE = 'YES' FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = 'SOP' AND COLUMN_NAME = 'opdId'")"
+          test "$sop_opd_nullable" = "1" || {
+            echo "Expected SOP.opdId to be nullable for native Process SOPs"
+            exit 1
+          }
+
+      - name: Verify native Process review evidence boundary
+        run: |
+          review_table_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = 'ProcessReview'")"
+          test "$review_table_count" = "1" || {
+            echo "Expected ProcessReview table"
+            exit 1
+          }
+
+          review_note_column="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT CONCAT(IS_NULLABLE, '|', DATA_TYPE) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = 'ProcessReview' AND COLUMN_NAME = 'catatan'")"
+          test "$review_note_column" = "YES|text" || {
+            echo "Expected nullable TEXT ProcessReview.catatan column, got $review_note_column"
+            exit 1
+          }
+
+          review_fk_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'sop_biro_organisasi_test' AND CONSTRAINT_NAME IN ('ProcessReview_detailSopId_fkey', 'ProcessReview_sopId_fkey', 'ProcessReview_processId_fkey', 'ProcessReview_reviewedById_fkey')")"
+          test "$review_fk_count" = "4" || {
+            echo "Expected all four ProcessReview foreign keys, got $review_fk_count"
+            exit 1
+          }
+
+          approval_review_fk_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'sop_biro_organisasi_test' AND CONSTRAINT_NAME = 'ProcessFinalApproval_processReviewId_fkey'")"
+          test "$approval_review_fk_count" = "1" || {
+            echo "Expected ProcessFinalApproval.processReviewId foreign key"
+            exit 1
+          }
+
+          tte_process_fk_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'sop_biro_organisasi_test' AND CONSTRAINT_NAME = 'DokumenTte_processId_fkey'")"
+          test "$tte_process_fk_count" = "1" || {
+            echo "Expected DokumenTte.processId foreign key"
+            exit 1
+          }
+
+          tte_process_mismatch_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -Nse "SELECT COUNT(*) FROM DokumenTte d INNER JOIN DetailSOP ds ON ds.detailSopId = d.detailSopId INNER JOIN SOP s ON s.sopId = ds.sopId WHERE d.detailSopId IS NOT NULL AND d.pengajuanEvaluasiId IS NULL AND s.processId IS NOT NULL AND (d.processId IS NULL OR d.processId <> s.processId)")"
+          test "$tte_process_mismatch_count" = "0" || {
+            echo "Expected native TTE artifacts to carry matching Process ownership, got $tte_process_mismatch_count"
+            exit 1
+          }
+
+      - name: Verify native Process reminder boundary
+        run: |
+          reminder_table_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = 'ProcessReminder'")"
+          test "$reminder_table_count" = "1" || {
+            echo "Expected ProcessReminder table"
+            exit 1
+          }
+
+          reminder_fk_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'sop_biro_organisasi_test' AND CONSTRAINT_NAME IN ('ProcessReminder_detailSopId_fkey', 'ProcessReminder_sopId_fkey', 'ProcessReminder_processId_fkey', 'ProcessReminder_penggunaId_fkey')")"
+          test "$reminder_fk_count" = "4" || {
+            echo "Expected all four ProcessReminder foreign keys, got $reminder_fk_count"
+            exit 1
+          }
+
+          reminder_unique_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = 'ProcessReminder' AND INDEX_NAME = 'ProcessReminder_detail_recipient_kind_key' AND NON_UNIQUE = 0")"
+          test "$reminder_unique_count" = "3" || {
+            echo "Expected the three-column ProcessReminder identity unique key, got $reminder_unique_count"
+            exit 1
+          }
+
+      - name: Verify retired evaluation and WhatsApp tables are archived
+        run: |
+          active_legacy_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME IN ('NilaiEvaluasi', 'LogNilaiEvaluasi', 'PengingatWhatsApp', 'NotifikasiInApp')")"
+          test "$active_legacy_count" = "0" || {
+            echo "Retired legacy tables are still active: $active_legacy_count"
+            exit 1
+          }
+
+          retired_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME IN ('_retired_NilaiEvaluasi_20260906', '_retired_LogNilaiEvaluasi_20260906', '_retired_PengingatWhatsApp_20260906', '_retired_NotifikasiInApp_20260906')")"
+          test "$retired_count" = "4" || {
+            echo "Expected four archived legacy tables, got $retired_count"
+            exit 1
+          }
+
       - name: Validate target E2E seed against migrated schema
         run: pnpm db:seed:e2e
 
@@ -210,6 +288,9 @@ jobs:
             echo "Expected three target E2E authority assignments, got $target_authorities"
             exit 1
           }
+
+      - name: Run read-only FTI baseline and legacy classification audit
+        run: pnpm db:audit:fti
 
       - name: Database logs on failure
         if: failure()

@@ -1,12 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from '@tanstack/react-router'
 import { DetailPageLayout } from '@/components/layout/DetailPageLayout'
-import { useAppRole } from '@/hooks/useAppRole'
 import { useToast } from '@/hooks/useToast'
 import { ROUTES } from '@/utils/constants'
-import { useUmpanBalikEvaluasi } from '@/api/evaluasi'
-import { getKirimUlangBlockingReason } from '@/lib/evaluasi/evaluasi-domain'
-import { getKirimUlangRoleBlockingReason } from '@/lib/sop/sop-permissions'
 import {
   useBuatVersiBaru,
   useDetailSopPenyusun,
@@ -44,7 +40,6 @@ function combineAutosaveStatus(
 }
 
 export function DetailSOPPenyusun() {
-  const { role } = useAppRole()
   const { id } = useParams({ from: '/penyusun/sop/$id' })
   const navigate = useNavigate()
   const { showToast } = useToast()
@@ -70,12 +65,7 @@ export function DetailSOPPenyusun() {
     auditLogs,
     currentSopStatus,
     currentSopStatusLabel,
-    isRevisionFlow,
-    primaryActionLabel,
-    canKirimUlangKeEvaluator,
     handleMetadataChange,
-    handleComplete,
-    isKirimUlangKeEvaluatorPending,
     autosaveStatus,
     autosaveError,
     flushHeaderAutosave,
@@ -95,15 +85,6 @@ export function DetailSOPPenyusun() {
   /* `setMetadata` perlu di-cast karena hook mengembalikan dispatcher yang sama persis
      bentuknya dengan tipe context — alias ini hanya untuk memenuhi naming convention. */
   const setMetadata = _setMetadata
-
-  const { data: umpanBalik, isLoading: isUmpanBalikLoading } = useUmpanBalikEvaluasi(
-    id,
-    Boolean(id),
-  )
-  const kirimUlangBlockingReason = isRevisionFlow
-    ? getKirimUlangBlockingReason(umpanBalik ?? null) ??
-      getKirimUlangRoleBlockingReason(role)
-    : null
 
   const sopHeaderId = metadata.sopId
   const { data: riwayatVersi = [] } = useRiwayatVersi(sopHeaderId)
@@ -239,15 +220,9 @@ export function DetailSOPPenyusun() {
             metadata={metadata}
             currentSopStatus={currentSopStatus}
             currentSopStatusLabel={currentSopStatusLabel}
-            isRevisionFlow={isRevisionFlow}
-            primaryActionLabel={primaryActionLabel}
-            canShowKirimUlangAction={!isRevisionFlow || canKirimUlangKeEvaluator}
             autosaveStatus={combinedAutosaveStatus}
             onRetryAutosave={combinedFlushAutosave}
-            onComplete={() => handleComplete(id, role ?? null, navigate)}
             isReadOnly={isReadOnly}
-            isPrimaryActionPending={isKirimUlangKeEvaluatorPending}
-            kirimUlangBlockingReason={kirimUlangBlockingReason}
             canBuatVersiBaru={canBuatVersiBaru}
             buatVersiBaruBlockingReason={
               currentSopStatus === 'BERLAKU' ? buatVersiBaruBlockingReason : null
@@ -274,8 +249,6 @@ export function DetailSOPPenyusun() {
             onTabChange={setRightPanelTab}
             auditEntries={auditLogs ?? []}
             editTabLabel={isReadOnly ? 'Informasi' : 'Edit'}
-            umpanBalik={umpanBalik ?? null}
-            isUmpanBalikLoading={isUmpanBalikLoading}
             isReadOnly={isReadOnly}
             detailSopId={id}
             sopId={sopHeaderId}

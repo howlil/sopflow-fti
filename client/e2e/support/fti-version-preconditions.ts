@@ -117,5 +117,5 @@ export async function getProcessVersionHistory(
   sopId: string,
 ): Promise<ProcessVersionHistoryRow[]> {
   const api = await apiFor(actor)
-  return apiGet<ProcessVersionHistoryRow[]>(api, `/sop/${sopId}/riwayat-versi`)
+  return apiGet<ProcessVersionHistoryRow[]>(api, `/process-sop/${sopId}/history`)
 }

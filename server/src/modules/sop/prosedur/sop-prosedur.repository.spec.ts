@@ -20,6 +20,9 @@ function makeTx(existingLangkahIds: string[]): {
       if (table === 'langkahSOP' && op === 'findMany') {
         return existingLangkahIds.map((id) => ({ langkahSopId: id }));
       }
+      if (table === 'langkahSOP' && op === 'count') {
+        return existingLangkahIds.length;
+      }
       if (table === 'langkahSOP' && op === 'create') {
         const data = (args as { data: { langkahSopId: string } }).data;
         return { langkahSopId: data.langkahSopId };
@@ -35,8 +38,13 @@ function makeTx(existingLangkahIds: string[]): {
       deleteMany: record('detailSOPPelaksana', 'deleteMany'),
       createMany: record('detailSOPPelaksana', 'createMany'),
     },
+    detailSOPPelaksanaSnapshot: {
+      deleteMany: record('detailSOPPelaksanaSnapshot', 'deleteMany'),
+      createMany: record('detailSOPPelaksanaSnapshot', 'createMany'),
+    },
     langkahSOP: {
       findMany: record('langkahSOP', 'findMany'),
+      count: record('langkahSOP', 'count'),
       updateMany: record('langkahSOP', 'updateMany'),
       deleteMany: record('langkahSOP', 'deleteMany'),
       create: record('langkahSOP', 'create'),
@@ -75,7 +83,12 @@ describe('Pengujian SopProsedurRepository.updateProsedurTransaction', () => {
     await repo.updateProsedurTransaction({
       detailSopId: 'det-1',
       userId: 'u-1',
-      input: { pelaksana: [{ pelaksanaId: 'p-1' }, { pelaksanaId: 'p-2' }] },
+      input: {
+        pelaksana: [
+          { pelaksanaId: 'p-1', namaSnapshot: 'Pelaksana 1' },
+          { pelaksanaId: 'p-2', namaSnapshot: 'Pelaksana 2' },
+        ],
+      },
       changedFields: ['pelaksana'],
     });
     const swimlaneOps = calls.filter((c) => c.table === 'detailSOPPelaksana');
@@ -117,7 +130,7 @@ describe('Pengujian SopProsedurRepository.updateProsedurTransaction', () => {
       .filter((c) => ['langkahSOP', 'detailSOP', 'logEditSOP'].includes(c.table))
       .map((c) => `${c.table}.${c.op}`);
 
-    const idxFindMany = opsOrder.indexOf('langkahSOP.findMany');
+    const idxCount = opsOrder.indexOf('langkahSOP.count');
     const idxUpdateMany = opsOrder.indexOf('langkahSOP.updateMany');
     const idxLangkahDelete = opsOrder.indexOf('langkahSOP.deleteMany');
     const idxFirstCreate = opsOrder.indexOf('langkahSOP.create');
@@ -125,8 +138,8 @@ describe('Pengujian SopProsedurRepository.updateProsedurTransaction', () => {
     const idxDetailUpdate = opsOrder.indexOf('detailSOP.update');
     const idxLogCreate = opsOrder.lastIndexOf('logEditSOP.create');
 
-    expect(idxFindMany).toBeGreaterThanOrEqual(0);
-    expect(idxUpdateMany).toBeGreaterThan(idxFindMany);
+    expect(idxCount).toBeGreaterThanOrEqual(0);
+    expect(idxUpdateMany).toBeGreaterThan(idxCount);
     expect(idxLangkahDelete).toBeGreaterThan(idxUpdateMany);
     expect(idxFirstCreate).toBeGreaterThan(idxLangkahDelete);
     expect(idxBranchUpdate).toBeGreaterThan(idxFirstCreate);

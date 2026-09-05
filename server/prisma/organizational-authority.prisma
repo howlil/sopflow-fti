@@ -24,14 +24,16 @@ model OrganizationalAuthorityAssignment {
 /// Process-bound SOP version. TTE is deliberately separate: approval does not
 /// make the SOP BERLAKU by itself.
 model ProcessFinalApproval {
-  detailSopId  String                  @id @db.Char(36)
-  processId    String                  @db.Char(36)
-  approvedById String                  @db.Char(36)
-  authority    OrganizationalAuthority
-  authorityKey String                  @db.VarChar(64)
-  approvedAt   DateTime                @default(now())
+  detailSopId     String                  @id @db.Char(36)
+  processId       String                  @db.Char(36)
+  approvedById    String                  @db.Char(36)
+  processReviewId String?                 @db.Char(36)
+  authority       OrganizationalAuthority
+  authorityKey    String                  @db.VarChar(64)
+  approvedAt      DateTime                @default(now())
 
   @@index([processId, approvedAt], map: "ProcessFinalApproval_processId_approvedAt_idx")
   @@index([approvedById, approvedAt], map: "ProcessFinalApproval_approvedById_approvedAt_idx")
   @@index([authorityKey], map: "ProcessFinalApproval_authorityKey_idx")
+  @@index([processReviewId], map: "ProcessFinalApproval_processReviewId_idx")
 }

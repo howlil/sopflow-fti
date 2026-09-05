@@ -1,17 +1,15 @@
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { assertDetailSopEditable } from '../../../common/status/sop-editable.util';
 import type { JwtAccessPayload } from '../../../common';
-import { JenisLangkahProsedur, PeranPengguna, Prisma } from '../../../generated/prisma';
-import { UserOpdAccessService } from '../../core/opd/user-opd-access.service';
+import { JenisLangkahProsedur, Prisma } from '../../../generated/prisma';
 import { ProcessContextService } from '../../core/process/process-context.service';
-import { SopCatalogService } from '../catalog/sop-catalog.service';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
+import { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
 import type { LangkahPatchItem } from './dto/langkah-patch-item.dto';
 import type { UpdateSopProsedurDto } from './dto/update-sop-prosedur.dto';
 import {
@@ -27,8 +25,7 @@ const UPDATE_PROSEDUR_RETRY_BASE_DELAY_MS = 40;
 export class SopProsedurService {
   constructor(
     private readonly sopProsedurRepository: SopProsedurRepository,
-    private readonly sopCatalogService: SopCatalogService,
-    private readonly userOpdAccessService: UserOpdAccessService,
+    private readonly sopWorkbenchReader: SopWorkbenchReader,
     private readonly processContextService: ProcessContextService,
   ) {}
 
@@ -43,11 +40,12 @@ export class SopProsedurService {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
 
-    if (resolved.processId !== null) {
-      await this.processContextService.assertCanAuthor(user.sub, resolved.processId);
-    } else {
-      await this.assertLegacyPenyusunOpdAccess(user, resolved.sopOpdId);
+    if (resolved.processId === null) {
+      throw new ConflictException(
+        'SOP belum memiliki Process ownership dan tidak tersedia pada endpoint native',
+      );
     }
+    await this.processContextService.assertCanAuthor(user.sub, resolved.processId);
 
     const detailStatus = await this.sopProsedurRepository.findDetailStatus(resolved.detailSopId);
     if (detailStatus === null) {
@@ -57,7 +55,7 @@ export class SopProsedurService {
 
     const changedFields = this.collectChangedFields(dto);
     if (changedFields.length === 0) {
-      return this.getAuthorizedWorkbench(user, resolved.detailSopId, resolved.processId !== null, logsLimit);
+      return this.getAuthorizedWorkbench(resolved.detailSopId, logsLimit);
     }
 
     const repoInput = await this.buildRepoInput(dto, resolved.detailSopId);
@@ -90,19 +88,14 @@ export class SopProsedurService {
       throw err;
     }
 
-    return this.getAuthorizedWorkbench(user, resolved.detailSopId, resolved.processId !== null, logsLimit);
+    return this.getAuthorizedWorkbench(resolved.detailSopId, logsLimit);
   }
 
   private async getAuthorizedWorkbench(
-    user: JwtAccessPayload,
     detailSopId: string,
-    isProcessBound: boolean,
     logsLimit?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
-    if (isProcessBound) {
-      return this.sopCatalogService.getPenyusunWorkbenchForEvaluasiContext(detailSopId, logsLimit);
-    }
-    return this.sopCatalogService.getPenyusunWorkbench(user, detailSopId, logsLimit);
+    return this.sopWorkbenchReader.getForDetail(detailSopId, logsLimit);
   }
 
   private async runUpdateProsedurTransactionWithRetry(params: {
@@ -128,23 +121,6 @@ export class SopProsedurService {
       }
     }
     throw lastError;
-  }
-
-  private async assertLegacyPenyusunOpdAccess(
-    user: JwtAccessPayload,
-    sopOpdId: string | null,
-  ): Promise<void> {
-    if (sopOpdId === null) {
-      throw new ForbiddenException('SOP belum memiliki Process atau compatibility OPD');
-    }
-    if (user.peran !== PeranPengguna.PENYUSUN && user.peran !== PeranPengguna.PJ_PENYUSUN) {
-      throw new ForbiddenException('Akses ditolak: SOP legacy hanya dapat diubah oleh penyusun');
-    }
-    await this.userOpdAccessService.assertSameOpd(
-      user.sub,
-      sopOpdId,
-      'Akses ditolak untuk DetailSOP ini',
-    );
   }
 
   private collectChangedFields(dto: UpdateSopProsedurDto): string[] {
