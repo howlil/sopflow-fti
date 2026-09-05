@@ -9,8 +9,6 @@ export {
   type UseDaftarSopDataParams,
 } from "@/api/sop-queries";
 export {
-  useSopStatus,
-  useCabutSop,
   usePelaksana,
   useCreatePelaksana,
   useUpdatePelaksana,

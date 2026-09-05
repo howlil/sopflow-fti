@@ -8,7 +8,6 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Peraturan } from "@/types/dto/peraturan.dto";
 import { usePeraturan } from "@/api/peraturan";
-import { useAuthStore } from '@/stores/authStore'
 import { useToast } from "@/hooks/useToast"
 import { PeraturanTableTab } from './components/PeraturanTableTab'
 import { hasRequiredStringFields } from '@/lib/forms/validation'
@@ -17,16 +16,13 @@ const REQUIRED_PERATURAN_FIELDS = ['peraturan', 'nomor', 'tahun', 'tentang'] as 
 
 export function ManajemenPeraturan() {
   const { showToast } = useToast()
-  const currentUser = useAuthStore((s) => s.user)
-  const currentOpdId = currentUser?.opdId ?? ''
-
   const {
     list: peraturanList,
     isLoading: isLoadingPeraturan,
     create,
     update,
     delete: deletePeraturan,
-  } = usePeraturan(currentOpdId || undefined)
+  } = usePeraturan()
 
   const [searchQuery, setSearchQuery] = useState('')
   const [isPeraturanDialogOpen, setIsPeraturanDialogOpen] = useState(false)
@@ -55,9 +51,7 @@ export function ManajemenPeraturan() {
     )
   }, [peraturanList, searchQuery])
 
-  const canEditPeraturan = (p: Peraturan) => {
-    return p.opdId === currentOpdId;
-  };
+  const canEditPeraturan = () => true
 
   const openPeraturanDialog = (peraturan?: Peraturan) => {
     if (peraturan) {
@@ -88,10 +82,6 @@ export function ManajemenPeraturan() {
       return
     }
 
-    if (editingPeraturan && !canEditPeraturan(editingPeraturan)) {
-      showToast('Hanya peraturan yang dibuat oleh OPD Anda yang dapat diedit.', 'error')
-      return
-    }
     try {
       if (editingPeraturan) {
         await update({
@@ -119,10 +109,6 @@ export function ManajemenPeraturan() {
 
   const handleDeletePeraturan = (id: string) => {
     const peraturan = peraturanList.find((p) => p.id === id)
-    if (peraturan && !canEditPeraturan(peraturan)) {
-      showToast('Hanya peraturan yang dibuat oleh OPD Anda yang dapat dihapus.', 'error')
-      return
-    }
     if (peraturan && peraturan.digunakan && peraturan.digunakan > 0) {
       showToast(`Tidak dapat menghapus. Masih ada ${peraturan.digunakan} SOP yang mengaitkan peraturan ini.`, 'error')
       return

@@ -9,21 +9,18 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
-  Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiCookieAuth,
-  ApiForbiddenResponse,
   ApiOperation,
   ApiParam,
-  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type ApiSuccessResponse, Roles, UseJwtAndRolesGuards } from '../../../common';
-import { PeranPengguna } from '../../../generated/prisma';
+import { type ApiSuccessResponse, JwtAuthGuard } from '../../../common';
 import { ACCESS_TOKEN_COOKIE_NAME, type JwtAccessPayload } from '../auth/helpers/auth.shared';
 import { CreatePeraturanDto } from './dto/create-peraturan.dto';
 import { PeraturanResponseDto } from './dto/peraturan-response.dto';
@@ -32,68 +29,53 @@ import { PeraturanService } from './peraturan.service';
 
 @ApiTags('Peraturan')
 @Controller('peraturan')
-@UseJwtAndRolesGuards()
-@Roles(PeranPengguna.PENYUSUN, PeranPengguna.PJ_PENYUSUN)
+@UseGuards(JwtAuthGuard)
+@ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
 export class PeraturanController {
   constructor(private readonly peraturanService: PeraturanService) {}
 
   @Get()
-  @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
-  @ApiOperation({ summary: 'Daftar peraturan terkait OPD pengguna' })
-  @ApiQuery({ name: 'opdId', required: false, format: 'uuid' })
+  @ApiOperation({ summary: 'Daftar katalog peraturan global FTI' })
   @ApiResponse({ status: 200, type: [PeraturanResponseDto] })
-  @ApiForbiddenResponse()
-  async list(
-    @Req() req: Request & { user: JwtAccessPayload },
-    @Query('opdId') opdId?: string,
-  ): Promise<ApiSuccessResponse<PeraturanResponseDto[]>> {
-    const data = await this.peraturanService.list(req.user, opdId);
+  async list(): Promise<ApiSuccessResponse<PeraturanResponseDto[]>> {
     return {
       message: 'Daftar peraturan berhasil diambil',
       success: true,
-      data,
+      data: await this.peraturanService.list(),
     };
   }
 
   @Get(':id')
-  @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
-  @ApiOperation({ summary: 'Detail peraturan (harus terhubung ke OPD pengguna)' })
+  @ApiOperation({ summary: 'Detail peraturan global FTI' })
   @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiQuery({ name: 'opdId', required: false, format: 'uuid' })
   @ApiResponse({ status: 200, type: PeraturanResponseDto })
   async getById(
-    @Req() req: Request & { user: JwtAccessPayload },
     @Param('id', ParseUUIDPipe) id: string,
-    @Query('opdId') opdId?: string,
   ): Promise<ApiSuccessResponse<PeraturanResponseDto>> {
-    const data = await this.peraturanService.getById(req.user, id, opdId);
     return {
       message: 'Peraturan berhasil diambil',
       success: true,
-      data,
+      data: await this.peraturanService.getById(id),
     };
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
-  @ApiOperation({ summary: 'Buat master peraturan dan tautkan ke OPD pengguna' })
+  @ApiOperation({ summary: 'Tambah peraturan ke katalog global FTI' })
   @ApiResponse({ status: 201, type: PeraturanResponseDto })
   async create(
     @Req() req: Request & { user: JwtAccessPayload },
     @Body() dto: CreatePeraturanDto,
   ): Promise<ApiSuccessResponse<PeraturanResponseDto>> {
-    const data = await this.peraturanService.create(req.user, dto);
     return {
       message: 'Peraturan berhasil ditambahkan',
       success: true,
-      data,
+      data: await this.peraturanService.create(req.user, dto),
     };
   }
 
   @Patch(':id')
-  @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
-  @ApiOperation({ summary: 'Perbarui master peraturan' })
+  @ApiOperation({ summary: 'Perbarui peraturan global FTI' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiResponse({ status: 200, type: PeraturanResponseDto })
   async update(
@@ -101,24 +83,19 @@ export class PeraturanController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdatePeraturanDto,
   ): Promise<ApiSuccessResponse<PeraturanResponseDto>> {
-    const data = await this.peraturanService.update(req.user, id, dto);
     return {
       message: 'Peraturan berhasil diperbarui',
       success: true,
-      data,
+      data: await this.peraturanService.update(req.user, id, dto),
     };
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
-  @ApiOperation({ summary: 'Lepaskan peraturan dari OPD; hapus master jika tidak dipakai' })
+  @ApiOperation({ summary: 'Hapus peraturan global yang belum digunakan SOP' })
   @ApiParam({ name: 'id', format: 'uuid' })
-  async remove(
-    @Req() req: Request & { user: JwtAccessPayload },
-    @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<ApiSuccessResponse<null>> {
-    await this.peraturanService.remove(req.user, id);
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<ApiSuccessResponse<null>> {
+    await this.peraturanService.remove(id);
     return {
       message: 'Peraturan berhasil dihapus',
       success: true,

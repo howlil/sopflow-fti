@@ -16,8 +16,12 @@ export interface LegacySopAccessContext {
 export class SopLegacyAccessPolicy {
   constructor(private readonly userOpdAccessService: UserOpdAccessService) {}
 
-  isEvaluatorRole(role: PeranPengguna): boolean {
+  isEvaluatorRole(role: PeranPengguna | undefined): boolean {
     return this.userOpdAccessService.isEvaluatorRole(role);
+  }
+
+  getLegacyRole(penggunaId: string): Promise<PeranPengguna> {
+    return this.userOpdAccessService.getLegacyRole(penggunaId);
   }
 
   getRequiredUserOpdId(penggunaId: string): Promise<string> {

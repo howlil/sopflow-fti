@@ -67,14 +67,11 @@ export function PeraturanTableTab({
                     <Table.Td className="text-secondary-foreground">
                       {peraturan.lastEditedBy ? (
                         <div
-                          className="min-w-0 max-w-[18rem] space-y-0.5"
-                          title={`${peraturan.lastEditedBy.nama} (${peraturan.lastEditedBy.opd.nama})`}
+                          className="min-w-0 max-w-[18rem]"
+                          title={peraturan.lastEditedBy.nama}
                         >
                           <div className="truncate font-medium text-foreground">
                             {peraturan.lastEditedBy.nama}
-                          </div>
-                          <div className="truncate text-xs text-muted-foreground">
-                            {peraturan.lastEditedBy.opd.nama}
                           </div>
                         </div>
                       ) : (
@@ -87,7 +84,7 @@ export function PeraturanTableTab({
                           {
                             icon: Edit,
                             title: !canEditPeraturan(peraturan)
-                              ? 'Hanya peraturan yang Anda buat yang dapat diedit'
+                              ? 'Peraturan ini tidak dapat diedit'
                               : 'Edit',
                             onClick: () => onOpenPeraturanDialog(peraturan),
                             disabled: !canEditPeraturan(peraturan),
@@ -95,7 +92,7 @@ export function PeraturanTableTab({
                           {
                             icon: Trash2,
                             title: !canEditPeraturan(peraturan)
-                              ? 'Hanya peraturan yang Anda buat yang dapat dihapus'
+                              ? 'Peraturan ini tidak dapat dihapus'
                               : (peraturan.digunakan ?? 0) > 0
                                 ? 'Tidak dapat dihapus: sudah ada SOP yang mengait'
                                 : 'Hapus',

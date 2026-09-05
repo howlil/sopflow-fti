@@ -98,10 +98,10 @@ describe('Pengujian TteProfilService', () => {
     });
 
     it.each([
-      [PeranPengguna.KEPALA_OPD, 'KEPALA_OPD'],
-      [PeranPengguna.PJ_EVALUATOR, 'PJ_EVALUATOR'],
-      [PeranPengguna.PJ_PENYUSUN, 'PJ_PENYUSUN'],
-    ] as const)('seharusnya memetakan profil untuk peran %s', async (peran, expectedPeran) => {
+      PeranPengguna.KEPALA_OPD,
+      PeranPengguna.PJ_EVALUATOR,
+      PeranPengguna.PJ_PENYUSUN,
+    ] as const)('seharusnya tidak mengekspos legacy role pada profil kredensial %s', async (peran) => {
       const repo = createRepoMock({
         findPenggunaAktif: jest.fn().mockResolvedValue(pengguna(peran)),
         findKredensial: jest.fn().mockResolvedValue(kredensial),
@@ -112,7 +112,6 @@ describe('Pengujian TteProfilService', () => {
       expect(actual).toEqual({
         id: user.sub,
         userId: user.sub,
-        peran: expectedPeran,
         hasP12: false,
         createdAt: updatedAt.toISOString(),
         updatedAt: updatedAt.toISOString(),
@@ -125,20 +124,18 @@ describe('Pengujian TteProfilService', () => {
           pangkat: 'Pembina',
         },
       });
+      expect(actual).not.toHaveProperty('peran');
     });
 
-    it('seharusnya menyediakan profil kredensial untuk peran legacy non-TTE tanpa memberi authority tanda tangan', async () => {
+    it('seharusnya menyediakan profil kredensial untuk legacy role non-TTE tanpa memberi authority tanda tangan', async () => {
       const repo = createRepoMock({
         findPenggunaAktif: jest.fn().mockResolvedValue(pengguna(PeranPengguna.PENYUSUN)),
         findKredensial: jest.fn().mockResolvedValue(kredensial),
       });
 
-      await expect(service(repo).getProfil(user)).resolves.toEqual(
-        expect.objectContaining({
-          userId: user.sub,
-          peran: PeranPengguna.PENYUSUN,
-        }),
-      );
+      const actual = await service(repo).getProfil(user);
+      expect(actual).toEqual(expect.objectContaining({ userId: user.sub }));
+      expect(actual).not.toHaveProperty('peran');
     });
   });
 
@@ -257,7 +254,6 @@ describe('Pengujian TteProfilService', () => {
         pinLama: '1234',
         pinBaru: '5678',
       });
-
       expect(bcrypt.compare).toHaveBeenCalledWith('1234', kredensial.hashPin);
       expect(bcrypt.hash).toHaveBeenCalledWith('5678', 10);
       expect(repo.updateKredensialPinHash).toHaveBeenCalledWith({

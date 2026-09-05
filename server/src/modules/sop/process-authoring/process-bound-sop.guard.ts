@@ -2,16 +2,16 @@ import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../../../common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { PeranPengguna } from '../../../generated/prisma';
 import type { JwtAccessPayload } from '../../core/auth/helpers/auth.shared';
 import { ProcessContextService } from '../../core/process/process-context.service';
 
 /**
- * Transitional authoring guard for legacy `/sop/:id...` endpoints.
+ * Compatibility guard for legacy `/sop/:id...` endpoints.
  *
- * Once an SOP is bound to a Process, same-OPD membership must not remain an
- * authoring bypass for PENYUSUN/PJ_PENYUSUN. Other legacy workflow actors are
- * intentionally left unchanged until their later migration slices.
+ * Once an SOP is owned by a Process, a legacy route must not reintroduce OPD or
+ * global workflow-role authorization. Process membership/ownership is the only
+ * authoring authority for Process-bound SOPs. Unbound historical SOPs remain on
+ * their explicit legacy compatibility path until their retention contract is retired.
  */
 @Injectable()
 export class ProcessBoundSopGuard implements CanActivate {
@@ -40,12 +40,7 @@ export class ProcessBoundSopGuard implements CanActivate {
     if (!authenticated) return false;
 
     const user = request.user;
-    if (
-      !user ||
-      (user.peran !== PeranPengguna.PENYUSUN && user.peran !== PeranPengguna.PJ_PENYUSUN)
-    ) {
-      return true;
-    }
+    if (!user) return false;
 
     const directSop = await this.prisma.sOP.findUnique({
       where: { sopId: candidateId },

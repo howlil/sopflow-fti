@@ -6,11 +6,10 @@ export type {
   VerifyPdfResponse,
 } from '../../penandatanganan/tte-pdf-signing.service';
 
-/** Respons profil kredensial TTE. Authority tanda tangan tidak diturunkan dari field ini. */
+/** Credential state only. Signing authority is resolved from Organizational Authority. */
 export type TteProfilResponse = {
   readonly id: string;
   readonly userId: string;
-  readonly peran: PeranPengguna;
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly hasP12: boolean;
@@ -28,7 +27,7 @@ export type TtePengesahanPublicResponse = {
   readonly userId: string;
   readonly dokumenTteId: string;
   readonly ditandatanganiPada: string;
-  /** Compatibility account role. Do not use this field as Process-bound approval authority. */
+  /** Historical compatibility evidence only; never authorization for Process TTE. */
   readonly peran: PeranPengguna;
   readonly authority?: OrganizationalAuthority;
   readonly authorityLabel?: 'Dekan' | 'Kepala Departemen';

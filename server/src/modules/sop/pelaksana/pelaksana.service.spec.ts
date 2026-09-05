@@ -9,7 +9,7 @@ describe('PelaksanaService global catalog', () => {
     findAll: jest.fn(),
     findById: jest.fn(),
     findByNama: jest.fn(),
-    findLegacyOpdShadowByPenggunaId: jest.fn(),
+    findLegacyStorageShadow: jest.fn(),
     findAttributionByPelaksanaIds: jest.fn(),
     findPenggunaNames: jest.fn(),
     createGlobal: jest.fn(),
@@ -40,7 +40,7 @@ describe('PelaksanaService global catalog', () => {
     repo.findAttributionByPelaksanaIds.mockResolvedValue([]);
     repo.findPenggunaNames.mockResolvedValue(new Map());
     repo.findByNama.mockResolvedValue(null);
-    repo.findLegacyOpdShadowByPenggunaId.mockResolvedValue('legacy-opd-shadow');
+    repo.findLegacyStorageShadow.mockResolvedValue('legacy-opd-shadow');
   });
 
   it('lists the global catalog without OPD filtering', async () => {
@@ -59,7 +59,7 @@ describe('PelaksanaService global catalog', () => {
     expect(repo.findAll).toHaveBeenCalledTimes(1);
   });
 
-  it('allows any authenticated workflow role to create and records attribution', async () => {
+  it('creates from a persistence-only storage shadow and records attribution', async () => {
     repo.createGlobal.mockResolvedValue(row);
     repo.findAttributionByPelaksanaIds.mockResolvedValue([
       { pelaksanaId: 'pl-1', createdById: 'u-1', updatedById: 'u-1' },
@@ -68,9 +68,19 @@ describe('PelaksanaService global catalog', () => {
 
     const result = await service.create(user, { namaPelaksana: '  Dosen  ' });
 
+    expect(repo.findLegacyStorageShadow).toHaveBeenCalledTimes(1);
     expect(repo.createGlobal).toHaveBeenCalledWith('legacy-opd-shadow', 'Dosen', 'u-1');
     expect(result.createdBy).toEqual({ id: 'u-1', nama: 'User FTI' });
     expect(result.updatedBy).toEqual({ id: 'u-1', nama: 'User FTI' });
+  });
+
+  it('rejects creation when the temporary storage shadow is unavailable', async () => {
+    repo.findLegacyStorageShadow.mockResolvedValue(null);
+
+    await expect(service.create(user, { namaPelaksana: 'Dosen' })).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(repo.createGlobal).not.toHaveBeenCalled();
   });
 
   it('rejects a duplicate global name before creating another row', async () => {

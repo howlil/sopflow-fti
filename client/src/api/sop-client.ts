@@ -2,7 +2,6 @@ import { apiClient, buildQueryString } from '@/lib/api/api-client'
 import { unwrapApiData } from '@/lib/api/response'
 import type { ApiSuccessResponse } from '@/types/dto/auth.dto'
 import type {
-  CreatePelaksanaDto,
   CreateSopRequestDto,
   Pelaksana,
   PenyusunWorkbenchData,
@@ -13,7 +12,6 @@ import type {
   UpdateSopHeaderDto,
   UpdateSopProsedurDto,
   UpdateSopDiagramDto,
-  UpdateStatusDto,
 } from '@/types/dto/sop.dto'
 
 export type CreateProcessSopRequestDto = CreateSopRequestDto & { processId: string }
@@ -58,18 +56,6 @@ export const sopApi = {
       ),
     ),
 
-  updateStatus: (id: string, payload: UpdateStatusDto) =>
-    unwrapApiData(
-      apiClient.patch<ApiSuccessResponse<PenyusunWorkbenchData>>(`/sop/status/${id}`, payload),
-    ),
-
-  cabutSop: (id: string, params?: PenyusunWorkbenchQueryParams) =>
-    unwrapApiData(
-      apiClient.post<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/sop/cabut/${id}${buildQueryString(params)}`,
-      ),
-    ),
-
   buatVersiBaru: (detailSopId: string, params?: PenyusunWorkbenchQueryParams) =>
     unwrapApiData(
       apiClient.post<ApiSuccessResponse<PenyusunWorkbenchData>>(
@@ -90,12 +76,13 @@ export const sopApi = {
   hapusSopDraftAwal: (detailSopId: string) =>
     unwrapApiData(apiClient.delete<ApiSuccessResponse<null>>(`/process-sop/${detailSopId}/draft`)),
 
-  // Parameter dipertahankan sementara agar consumer legacy tidak pecah; server mengabaikan OPD.
-  findPelaksana: (_legacyOpdId: string) =>
+  findPelaksana: () =>
     unwrapApiData(apiClient.get<ApiSuccessResponse<Pelaksana[]>>('/pelaksana')),
 
-  createPelaksana: (payload: CreatePelaksanaDto) =>
-    unwrapApiData(apiClient.post<ApiSuccessResponse<Pelaksana>>('/pelaksana', payload)),
+  createPelaksana: (namaPelaksana: string) =>
+    unwrapApiData(
+      apiClient.post<ApiSuccessResponse<Pelaksana>>('/pelaksana', { namaPelaksana }),
+    ),
 
   updatePelaksana: (id: string, namaPelaksana: string) =>
     unwrapApiData(

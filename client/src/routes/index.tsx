@@ -3,7 +3,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { z } from 'zod'
 import { RouteErrorPage } from '@/components/ui/route-error'
 import { ROUTES } from '@/utils/constants'
-import { getRole, ensureAuthHydrated, syncAuthFromCookie } from '@/stores/authStore'
+import { ensureAuthHydrated, syncAuthFromCookie, useAuthStore } from '@/stores/authStore'
 
 const homeSearchSchema = z.object({
   denied: z.coerce.boolean().optional(),
@@ -32,10 +32,10 @@ export const Route = createFileRoute('/')({
   validateSearch: homeSearchSchema,
   beforeLoad: async () => {
     await ensureAuthHydrated()
-    if (!getRole()) {
+    if (!useAuthStore.getState().user) {
       await syncAuthFromCookie()
     }
-    if (getRole()) {
+    if (useAuthStore.getState().user) {
       throw redirect({ to: ROUTES.WORK })
     }
   },

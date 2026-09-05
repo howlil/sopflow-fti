@@ -19,13 +19,17 @@ export type PelaksanaAttributionRow = {
 export class PelaksanaRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Legacy OPD is retained only as the required storage shadow while migration is in progress. */
-  async findLegacyOpdShadowByPenggunaId(penggunaId: string): Promise<string | null> {
-    const row = await this.prisma.pengguna.findFirst({
-      where: { penggunaId, deletedAt: null },
+  /**
+   * Persistence-only shadow required by the pre-FTI schema. It is deliberately
+   * independent from the current user/Process and must never be treated as catalog ownership.
+   */
+  async findLegacyStorageShadow(): Promise<string | null> {
+    const fallback = await this.prisma.oPD.findFirst({
+      where: { deletedAt: null },
+      orderBy: { createdAt: 'asc' },
       select: { opdId: true },
     });
-    return row?.opdId ?? null;
+    return fallback?.opdId ?? null;
   }
 
   async findAll(): Promise<PelaksanaRow[]> {

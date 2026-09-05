@@ -5,7 +5,7 @@
 import type { CookieOptions } from 'express';
 import ms from 'ms';
 import type { StringValue } from 'ms';
-import type { PeranPengguna, PlatformRole } from '../../../../generated/prisma';
+import type { PlatformRole } from '../../../../generated/prisma';
 import type { JwtAccessPayload } from '../../../../common/types/jwt-access-payload.type';
 
 const DEFAULT_TIMESPAN = '15m' as const satisfies StringValue;
@@ -167,13 +167,15 @@ export type PublicPenggunaTteStatus = {
   readonly pinSetAt?: string;
 };
 
+/**
+ * First-party FTI identity contract. Workflow authority is resolved contextually
+ * from Process relationships and Organizational Authority, never from legacy OPD/role fields.
+ */
 export type PublicPengguna = {
   readonly penggunaId: string;
   readonly email: string;
   readonly nama: string;
-  readonly peran: PeranPengguna;
   readonly platformRole: PlatformRole;
-  readonly opdId: string | null;
   readonly nip: string;
   readonly jabatan: string;
   readonly pangkat: string;

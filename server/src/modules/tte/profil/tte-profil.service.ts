@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import type { JwtAccessPayload } from '../../../common';
-import { PeranPengguna } from '../../../generated/prisma';
 import { RegisterTteDto } from '../shared/dto/register-tte.dto';
 import { UpdateTtePinDto } from '../shared/dto/update-tte-pin.dto';
 import { GenerateP12Dto } from '../shared/dto/generate-p12.dto';
@@ -22,6 +21,8 @@ import { TteRepository } from '../shared/repository/tte.repository';
 import type { TteProfilResponse } from '../shared/types/tte.types';
 import * as crypto from 'crypto';
 
+const FTI_ORGANIZATION_NAME = 'Fakultas Teknologi Informasi';
+
 @Injectable()
 export class TteProfilService {
   constructor(
@@ -31,46 +32,33 @@ export class TteProfilService {
 
   async getProfil(user: JwtAccessPayload): Promise<TteProfilResponse | null> {
     const pengguna = await this.tteRepository.findPenggunaAktif(user.sub);
-    if (pengguna === null) {
-      throw new NotFoundException('Pengguna tidak ditemukan');
-    }
+    if (pengguna === null) throw new NotFoundException('Pengguna tidak ditemukan');
     const row = await this.tteRepository.findKredensial(user.sub);
-    if (row === null) {
-      return null;
-    }
+    if (row === null) return null;
     return this.buildProfilResponse(pengguna, row);
   }
 
   async registerProfil(user: JwtAccessPayload, dto: RegisterTteDto): Promise<TteProfilResponse> {
     const pengguna = await this.tteRepository.findPenggunaAktif(user.sub);
-    if (pengguna === null) {
-      throw new NotFoundException('Pengguna tidak ditemukan');
-    }
+    if (pengguna === null) throw new NotFoundException('Pengguna tidak ditemukan');
     const existing = await this.tteRepository.findKredensial(user.sub);
     if (existing !== null) {
       throw new ConflictException('PIN TTE sudah diatur. Gunakan ubah PIN jika ingin memperbarui.');
     }
     const hashPin = await bcrypt.hash(dto.pin, 10);
-    const row = await this.tteRepository.createKredensialPin({
-      userId: user.sub,
-      hashPin,
-    });
+    const row = await this.tteRepository.createKredensialPin({ userId: user.sub, hashPin });
     return this.buildProfilResponse(pengguna, row);
   }
 
   async updateProfilPin(user: JwtAccessPayload, dto: UpdateTtePinDto): Promise<TteProfilResponse> {
     const pengguna = await this.tteRepository.findPenggunaAktif(user.sub);
-    if (pengguna === null) {
-      throw new NotFoundException('Pengguna tidak ditemukan');
-    }
+    if (pengguna === null) throw new NotFoundException('Pengguna tidak ditemukan');
     const existing = await this.tteRepository.findKredensial(user.sub);
     if (existing === null) {
       throw new BadRequestException('PIN TTE belum diatur. Atur PIN terlebih dahulu.');
     }
     const pinValid = await bcrypt.compare(dto.pinLama, existing.hashPin);
-    if (!pinValid) {
-      throw new UnauthorizedException('PIN lama tidak sesuai');
-    }
+    if (!pinValid) throw new UnauthorizedException('PIN lama tidak sesuai');
 
     let encryptedPassphrase = existing.p12PassphraseEncrypted;
     const hasEncryptedPassphrase = typeof encryptedPassphrase === 'string';
@@ -114,20 +102,17 @@ export class TteProfilService {
     const p12Buffer = generatePersonalP12({
       nama: pengguna.nama,
       nip: pengguna.nip,
-      opdNama: pengguna.opdNama,
+      opdNama: FTI_ORGANIZATION_NAME,
       jabatan: pengguna.jabatan,
       passphrase: randomPassphrase,
     });
-
     const p12Base64 = p12Buffer.toString('base64');
     const encryptedPassphrase = encryptP12Passphrase(randomPassphrase, dto.pin);
-
     const row = await this.tteRepository.updateKredensialP12({
       userId: user.sub,
       p12Base64,
       p12PassphraseEncrypted: encryptedPassphrase,
     });
-
     return this.buildProfilResponse(pengguna, row);
   }
 
@@ -137,7 +122,6 @@ export class TteProfilService {
   ): Promise<TteProfilResponse> {
     const pengguna = await this.tteRepository.findPenggunaAktif(user.sub);
     if (pengguna === null) throw new NotFoundException('Pengguna tidak ditemukan');
-
     const existing = await this.tteRepository.findKredensial(user.sub);
     if (existing !== null) {
       throw new ConflictException(
@@ -150,21 +134,18 @@ export class TteProfilService {
     const p12Buffer = generatePersonalP12({
       nama: pengguna.nama,
       nip: pengguna.nip,
-      opdNama: pengguna.opdNama,
+      opdNama: FTI_ORGANIZATION_NAME,
       jabatan: pengguna.jabatan,
       passphrase: randomPassphrase,
     });
-
     const p12Base64 = p12Buffer.toString('base64');
     const encryptedPassphrase = encryptP12Passphrase(randomPassphrase, dto.pin);
-
     const row = await this.tteRepository.createKredensialPinDanP12({
       userId: user.sub,
       hashPin,
       p12Base64,
       p12PassphraseEncrypted: encryptedPassphrase,
     });
-
     return this.buildProfilResponse(pengguna, row);
   }
 
@@ -175,7 +156,6 @@ export class TteProfilService {
   ): Promise<TteProfilResponse> {
     const pengguna = await this.tteRepository.findPenggunaAktif(user.sub);
     if (pengguna === null) throw new NotFoundException('Pengguna tidak ditemukan');
-
     const existing = await this.tteRepository.findKredensial(user.sub);
     if (existing !== null) {
       throw new ConflictException(
@@ -193,14 +173,12 @@ export class TteProfilService {
     const hashPin = await bcrypt.hash(dto.pin, 10);
     const p12Base64 = file.buffer.toString('base64');
     const encryptedPassphrase = encryptP12Passphrase(dto.p12Passphrase, dto.pin);
-
     const row = await this.tteRepository.createKredensialPinDanP12({
       userId: user.sub,
       hashPin,
       p12Base64,
       p12PassphraseEncrypted: encryptedPassphrase,
     });
-
     return this.buildProfilResponse(pengguna, row);
   }
 
@@ -213,7 +191,6 @@ export class TteProfilService {
     if (pengguna === null) throw new NotFoundException('Pengguna tidak ditemukan');
     const existing = await this.tteRepository.findKredensial(user.sub);
     if (existing === null) throw new BadRequestException('PIN TTE belum diatur.');
-
     const pinValid = await bcrypt.compare(dto.pin, existing.hashPin);
     if (!pinValid) throw new UnauthorizedException('PIN tidak sesuai');
 
@@ -226,13 +203,11 @@ export class TteProfilService {
 
     const p12Base64 = file.buffer.toString('base64');
     const encryptedPassphrase = encryptP12Passphrase(dto.p12Passphrase, dto.pin);
-
     const row = await this.tteRepository.updateKredensialP12({
       userId: user.sub,
       p12Base64,
       p12PassphraseEncrypted: encryptedPassphrase,
     });
-
     return this.buildProfilResponse(pengguna, row);
   }
 
@@ -258,7 +233,6 @@ export class TteProfilService {
       nip: string;
       jabatan: string;
       pangkat: string;
-      peran: PeranPengguna;
     },
     row: { updatedAt: Date; p12Base64?: string | null },
   ): TteProfilResponse {
@@ -266,7 +240,6 @@ export class TteProfilService {
       id: pengguna.penggunaId,
       userId: pengguna.penggunaId,
       hasP12: Boolean(row.p12Base64),
-      peran: pengguna.peran,
       createdAt: row.updatedAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
       user: {

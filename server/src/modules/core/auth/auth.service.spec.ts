@@ -78,18 +78,10 @@ describe('Pengujian AuthService', () => {
     };
     const configService = {
       get: jest.fn((key: string, defaultValue?: string) => {
-        if (key === 'JWT_EXPIRATION') {
-          return '15m';
-        }
-        if (key === 'JWT_REFRESH_EXPIRATION') {
-          return '7d';
-        }
-        if (key === 'JWT_REFRESH_SECRET') {
-          return 'refresh-secret-min-32-characters';
-        }
-        if (key === 'JWT_SECRET') {
-          return 'access-secret-min-32-characters';
-        }
+        if (key === 'JWT_EXPIRATION') return '15m';
+        if (key === 'JWT_REFRESH_EXPIRATION') return '7d';
+        if (key === 'JWT_REFRESH_SECRET') return 'refresh-secret-min-32-characters';
+        if (key === 'JWT_SECRET') return 'access-secret-min-32-characters';
         return defaultValue;
       }),
     };
@@ -121,7 +113,7 @@ describe('Pengujian AuthService', () => {
     expect(jwtService.signAsync).not.toHaveBeenCalled();
   });
 
-  it('seharusnya mengembalikan token dan publik pengguna ketika kredensial valid', async () => {
+  it('seharusnya mengembalikan token dan identitas first-party FTI ketika kredensial valid', async () => {
     authRepository.findActivePenggunaByEmail.mockResolvedValue(sampleRow);
     (bcrypt.compare as jest.Mock).mockResolvedValue(true);
     const actual = await service.login({ email: sampleRow.email, password: 'ok' });
@@ -133,15 +125,15 @@ describe('Pengujian AuthService', () => {
       penggunaId: sampleRow.penggunaId,
       email: sampleRow.email,
       nama: sampleRow.nama,
-      peran: sampleRow.peran,
       platformRole: sampleRow.platformRole,
-      opdId: sampleRow.opdId,
       nip: sampleRow.nip,
       jabatan: sampleRow.jabatan,
       pangkat: sampleRow.pangkat,
       nohp: sampleRow.nohp,
       tte: { configured: false },
     });
+    expect(actual.pengguna).not.toHaveProperty('peran');
+    expect(actual.pengguna).not.toHaveProperty('opdId');
     expect(authRepository.startSession).toHaveBeenCalledWith(sampleRow.penggunaId);
     expect(authRepository.storeRefreshToken).toHaveBeenCalledWith(
       sampleRow.penggunaId,
@@ -152,7 +144,6 @@ describe('Pengujian AuthService', () => {
       {
         sub: sampleRow.penggunaId,
         email: sampleRow.email,
-        peran: sampleRow.peran,
         sesiTokenVersion: 1,
       },
       { expiresIn: 900 },
@@ -178,33 +169,29 @@ describe('Pengujian AuthService', () => {
     await expect(service.getMe('missing-id')).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('seharusnya mengembalikan data publik pengguna ketika getMe berhasil', async () => {
+  it('seharusnya mengembalikan data publik FTI tanpa legacy OPD/role ketika getMe berhasil', async () => {
     authRepository.findActivePenggunaById.mockResolvedValue(sampleRow);
     const actual = await service.getMe(sampleRow.penggunaId);
     expect(actual).toEqual({
       penggunaId: sampleRow.penggunaId,
       email: sampleRow.email,
       nama: sampleRow.nama,
-      peran: sampleRow.peran,
       platformRole: sampleRow.platformRole,
-      opdId: sampleRow.opdId,
       nip: sampleRow.nip,
       jabatan: sampleRow.jabatan,
       pangkat: sampleRow.pangkat,
       nohp: sampleRow.nohp,
       tte: { configured: false },
     });
+    expect(actual).not.toHaveProperty('peran');
+    expect(actual).not.toHaveProperty('opdId');
   });
 
   it('seharusnya memperbarui nomor HP dan mengembalikan profil terbaru', async () => {
     const updatedRow = { ...sampleRow, nohp: '6281234567890' };
     authRepository.findActivePenggunaById.mockResolvedValue(sampleRow);
     authRepository.updateNohp.mockResolvedValue(updatedRow);
-
-    const actual = await service.updateMyPhone(sampleRow.penggunaId, {
-      nohp: updatedRow.nohp,
-    });
-
+    const actual = await service.updateMyPhone(sampleRow.penggunaId, { nohp: updatedRow.nohp });
     expect(authRepository.updateNohp).toHaveBeenCalledWith(sampleRow.penggunaId, updatedRow.nohp);
     expect(actual.nohp).toBe(updatedRow.nohp);
     expect(actual.penggunaId).toBe(sampleRow.penggunaId);
@@ -212,18 +199,13 @@ describe('Pengujian AuthService', () => {
 
   it('seharusnya tidak menulis database ketika nomor HP tidak berubah', async () => {
     authRepository.findActivePenggunaById.mockResolvedValue(sampleRow);
-
-    const actual = await service.updateMyPhone(sampleRow.penggunaId, {
-      nohp: sampleRow.nohp,
-    });
-
+    const actual = await service.updateMyPhone(sampleRow.penggunaId, { nohp: sampleRow.nohp });
     expect(authRepository.updateNohp).not.toHaveBeenCalled();
     expect(actual.nohp).toBe(sampleRow.nohp);
   });
 
   it('seharusnya menolak pembaruan nomor HP untuk pengguna yang tidak aktif', async () => {
     authRepository.findActivePenggunaById.mockResolvedValue(null);
-
     await expect(
       service.updateMyPhone('missing-id', { nohp: '6281234567890' }),
     ).rejects.toBeInstanceOf(NotFoundException);
@@ -255,7 +237,7 @@ describe('Pengujian AuthService', () => {
     expect(authRepository.updateKataSandi).not.toHaveBeenCalled();
   });
 
-  it('seharusnya merotasi refresh token dan menerbitkan access token baru', async () => {
+  it('seharusnya merotasi refresh token dan menerbitkan access token baru tanpa legacy role', async () => {
     const rowWithRefresh: PenggunaAuthRecord = {
       ...sampleRow,
       refreshTokenHash: 'stored-refresh-hash',
@@ -297,7 +279,6 @@ describe('Pengujian AuthService', () => {
       {
         sub: sampleRow.penggunaId,
         email: sampleRow.email,
-        peran: sampleRow.peran,
         sesiTokenVersion: sampleRow.sesiTokenVersion + 1,
       },
       { expiresIn: 900 },

@@ -1,7 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { useAppRole } from "@/hooks/useAppRole";
-import { getMeRoute, navigateToAppPath } from "@/utils/role-routing";
+import { ROUTES } from "@/utils/constants";
 
 interface TteSetupRequiredDialogProps {
   open: boolean;
@@ -13,14 +12,10 @@ export function TteSetupRequiredDialog({
   onOpenChange,
 }: TteSetupRequiredDialogProps) {
   const navigate = useNavigate();
-  const { role } = useAppRole();
 
   const handleOpenProfile = () => {
     onOpenChange(false);
-    const meRoute = getMeRoute(role);
-    if (meRoute !== undefined) {
-      navigateToAppPath(navigate, meRoute);
-    }
+    navigate({ to: ROUTES.PENYUSUN.ME });
   };
 
   return (
@@ -28,7 +23,7 @@ export function TteSetupRequiredDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Setup TTE diperlukan"
-      description="Anda perlu menyiapkan PIN dan sertifikat TTE terlebih dahulu sebelum menandatangani BA atau mengesahkan SOP."
+      description="Anda perlu menyiapkan PIN dan sertifikat TTE terlebih dahulu sebelum menandatangani SOP."
       cancelLabel="Nanti"
       confirmLabel="Buka Setup TTE"
       onConfirm={handleOpenProfile}

@@ -9,10 +9,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useAppRole } from '@/hooks/useAppRole'
+import { useAuthStore } from '@/stores/authStore'
 import { cn } from '@/utils/cn'
 import { ROUTES } from '@/utils/constants'
-import { getMeRoute } from '@/utils/role-routing'
 
 export interface SidebarUserMenuProps {
   collapsed?: boolean
@@ -26,12 +25,11 @@ export function SidebarUserMenu({
   className,
 }: SidebarUserMenuProps) {
   const navigate = useNavigate()
-  const { role, getRoleLabel, getRoleNip, getRoleDisplayName } = useAppRole()
+  const user = useAuthStore((state) => state.user)
   const { logout } = useAuth()
-  const displayName = getRoleDisplayName()
-  const roleLabel = role ? getRoleLabel(role) : ''
-  const nip = getRoleNip()
-  const meRoute = getMeRoute(role)
+  const displayName = user?.nama ?? 'Pengguna FTI'
+  const identityLabel = user?.platformRole === 'SUPER_ADMIN' ? 'Administrator Platform' : 'Pengguna FTI'
+  const nip = user?.nip ?? ''
 
   const handleLogout = async () => {
     await logout()
@@ -70,7 +68,7 @@ export function SidebarUserMenu({
                 {displayName}
               </span>
               <span className="block truncate text-xs text-muted-foreground">
-                {roleLabel}
+                {identityLabel}
               </span>
             </span>
           </button>
@@ -83,24 +81,20 @@ export function SidebarUserMenu({
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col gap-0.5">
               <p className="text-sm font-medium text-foreground">{displayName}</p>
-              <p className="text-xs text-muted-foreground">{roleLabel}</p>
-              {nip ? (
-                <p className="text-xs text-muted-foreground">NIP. {nip}</p>
-              ) : null}
+              <p className="text-xs text-muted-foreground">{identityLabel}</p>
+              {nip ? <p className="text-xs text-muted-foreground">NIP. {nip}</p> : null}
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {meRoute ? (
-            <DropdownMenuItem
-              className="cursor-pointer"
-              onSelect={() => {
-                onNavigate?.()
-                navigate({ to: meRoute })
-              }}
-            >
-              Profil Saya
-            </DropdownMenuItem>
-          ) : null}
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onSelect={() => {
+              onNavigate?.()
+              navigate({ to: ROUTES.PENYUSUN.ME })
+            }}
+          >
+            Profil Saya
+          </DropdownMenuItem>
           <DropdownMenuItem
             className="cursor-pointer text-danger focus:bg-danger-subtle focus:text-danger-foreground"
             onSelect={() => void handleLogout()}

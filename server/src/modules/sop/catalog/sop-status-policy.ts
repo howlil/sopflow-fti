@@ -2,14 +2,13 @@ import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { PeranPengguna, StatusSOP } from '../../../generated/prisma';
 
 export type SopStatusTransitionInput = {
-  role: PeranPengguna;
+  /** Hydrated only by the explicit legacy `@Roles` compatibility guard. */
+  role: PeranPengguna | undefined;
   current: StatusSOP;
   target: StatusSOP;
 };
 
-/**
- * Validasi transisi status DetailSOP per peran; loncat status tidak diizinkan.
- */
+/** Compatibility-only OPD workflow policy. Native Process lifecycle does not call this function. */
 export function assertAllowedSopStatusTransition(input: SopStatusTransitionInput): void {
   const { role, current, target } = input;
   if (current === target) {
@@ -28,7 +27,7 @@ export function assertAllowedSopStatusTransition(input: SopStatusTransitionInput
     }
     if (role !== PeranPengguna.PENYUSUN && role !== PeranPengguna.PJ_PENYUSUN) {
       throw new ForbiddenException(
-        'Hanya penyusun yang dapat menandai SOP menunggu pengajuan evaluasi',
+        'Hanya penyusun compatibility yang dapat menandai SOP menunggu pengajuan evaluasi',
       );
     }
     return;
@@ -40,13 +39,13 @@ export function assertAllowedSopStatusTransition(input: SopStatusTransitionInput
       );
     }
     if (role !== PeranPengguna.PJ_PENYUSUN) {
-      throw new ForbiddenException('Hanya PJ Penyusun yang dapat mengajukan SOP ke evaluasi');
+      throw new ForbiddenException('Hanya PJ Penyusun compatibility yang dapat mengajukan SOP ke evaluasi');
     }
     return;
   }
   if (target === StatusSOP.BERLAKU) {
     throw new ConflictException(
-      'Pengesahan SOP menjadi BERLAKU wajib melalui endpoint TTE Kepala OPD',
+      'Pengesahan SOP legacy menjadi BERLAKU wajib melalui endpoint TTE compatibility',
     );
   }
   if (target === StatusSOP.DICABUT) {
@@ -54,9 +53,9 @@ export function assertAllowedSopStatusTransition(input: SopStatusTransitionInput
       throw new ConflictException('Hanya SOP berstatus BERLAKU yang dapat dicabut');
     }
     if (role !== PeranPengguna.KEPALA_OPD) {
-      throw new ForbiddenException('Hanya Kepala OPD yang dapat mencabut SOP');
+      throw new ForbiddenException('Hanya Kepala OPD compatibility yang dapat mencabut SOP legacy');
     }
     return;
   }
-  throw new ConflictException(`Transisi ke ${String(target)} tidak diizinkan melalui endpoint ini`);
+  throw new ConflictException(`Transisi ke ${String(target)} tidak diizinkan melalui endpoint legacy`);
 }
