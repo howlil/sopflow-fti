@@ -18,14 +18,15 @@ export class PelaksanaService {
     const nama = dto.namaPelaksana.trim();
     await this.assertNamaAvailable(nama);
 
-    // Temporary storage compatibility only: Pelaksana is globally reusable and is not owned by this OPD.
-    const opdShadowId = await this.pelaksanaRepository.findLegacyOpdShadowByPenggunaId(user.sub);
-    if (opdShadowId === null) {
-      throw new NotFoundException('Pengguna aktif tidak ditemukan');
+    // The old non-null OPD column is only a storage compatibility shadow. It must not
+    // depend on the creator's identity and is never exposed as Pelaksana ownership.
+    const storageShadow = await this.pelaksanaRepository.findLegacyStorageShadow();
+    if (storageShadow === null) {
+      throw new ConflictException('Storage compatibility Pelaksana belum tersedia');
     }
 
     try {
-      const row = await this.pelaksanaRepository.createGlobal(opdShadowId, nama, user.sub);
+      const row = await this.pelaksanaRepository.createGlobal(storageShadow, nama, user.sub);
       return (await this.mapRows([row]))[0];
     } catch (error) {
       this.rethrowUniqueNameConflict(error);
