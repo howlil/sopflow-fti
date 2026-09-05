@@ -1,14 +1,12 @@
-import { useId, useMemo, useState } from "react";
+import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/ui/form-field";
 import { SetPageHeader } from "@/components/layout/PageHeaderProvider";
 import { useAuth } from "@/api/auth";
-import { useOpd } from "@/api/opd";
 import { useTTEProfil } from "@/api/tte";
 import { useMyOrganizationalAuthorities } from "@/api/organizational-authority";
-import { useAppRole } from "@/hooks/useAppRole";
-import { roleMendukungTte } from "@/utils/role-routing";
+import { useAuthStore } from "@/stores/authStore";
 import { TteSetupSection } from "@/pages/akun/components/TteSetupSection";
 import { PhoneProfileSection } from "@/pages/akun/components/PhoneProfileSection";
 import {
@@ -16,7 +14,6 @@ import {
   EyeOff,
   Mail,
   Briefcase,
-  Building2,
   Hash,
   BadgeCheck,
   Lock,
@@ -25,7 +22,6 @@ import {
 import { useState as useSt } from "react";
 import { formatIndonesianMobileNumberForInput } from "@/utils/indonesian-mobile-number";
 
-// ─── Atom: info row dalam kartu profil ────────────────────────────
 function ProfileRow({
   icon,
   label,
@@ -47,7 +43,6 @@ function ProfileRow({
   );
 }
 
-// ─── Password input with toggle ────────────────────────────────────
 function PasswordInput({
   label,
   value,
@@ -94,15 +89,12 @@ function PasswordInput({
   );
 }
 
-// ─── Main page ──────────────────────────────────────────────────────
 export function ProfilSayaPage() {
-  const { user, role, getRoleLabel, getRoleNip, getRoleDisplayName } = useAppRole();
+  const user = useAuthStore((state) => state.user);
   const { changePassword, isChangingPassword, updateMyPhone, isUpdatingMyPhone } = useAuth();
   const { data: myAuthorities = [] } = useMyOrganizationalAuthorities();
-  // Credential availability is not signing authority. Contextual Dean/Kadep may hold any legacy account role.
-  const tteEnabled = roleMendukungTte(role) || myAuthorities.length > 0;
+  const tteEnabled = myAuthorities.length > 0;
   const { data: profile, isLoading: isProfilLoading } = useTTEProfil({ enabled: tteEnabled });
-  const { list: opdList } = useOpd();
 
   const [kataSandiLama, setKataSandiLama] = useState("");
   const [kataSandiBaru, setKataSandiBaru] = useState("");
@@ -111,14 +103,17 @@ export function ProfilSayaPage() {
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const passwordFeedbackId = useId();
 
-  const displayName = getRoleDisplayName() || user?.nama || "—";
-  const displayNip = getRoleNip() || user?.nip || "—";
-  const peranLabel = role ? getRoleLabel(role) : "—";
-
-  const opdNama = useMemo(() => {
-    if (!user?.opdId) return "—";
-    return opdList.find((o) => o.id === user.opdId)?.nama ?? user.opdId;
-  }, [opdList, user?.opdId]);
+  const displayName = user?.nama || "—";
+  const displayNip = user?.nip || "—";
+  const authorityLabel = myAuthorities.length
+    ? myAuthorities
+        .map((assignment) =>
+          assignment.authority === 'DEAN' ? 'Dekan' : 'Kepala Departemen',
+        )
+        .join(', ')
+    : null;
+  const identityLabel =
+    authorityLabel ?? (user?.platformRole === 'SUPER_ADMIN' ? 'Administrator Platform' : 'Pengguna FTI');
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,10 +143,8 @@ export function ProfilSayaPage() {
       <SetPageHeader breadcrumb={[{ label: "Profil Saya" }]} title="Profil Saya" />
 
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] xl:grid-cols-[380px_1fr] gap-6 items-start">
-        {/* ── Kolom kiri: Info akun (Sidebar) ── */}
         <div className="space-y-4 lg:sticky lg:top-6">
           <section className="bg-surface rounded-xl border border-border overflow-hidden">
-            {/* Avatar + nama */}
             <div className="px-5 pt-6 pb-5 flex items-center gap-4 border-b border-border">
               <div className="w-12 h-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
                 <span className="text-lg font-bold text-blue-600">
@@ -160,11 +153,10 @@ export function ProfilSayaPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{peranLabel}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{identityLabel}</p>
               </div>
             </div>
 
-            {/* Info rows */}
             <div className="px-5 py-2">
               <ProfileRow icon={<Hash className="w-3.5 h-3.5" />} label="NIP" value={displayNip} />
               <ProfileRow
@@ -188,15 +180,14 @@ export function ProfilSayaPage() {
                 value={user?.pangkat?.trim() || undefined}
               />
               <ProfileRow
-                icon={<Building2 className="w-3.5 h-3.5" />}
-                label="OPD"
-                value={opdNama}
+                icon={<BadgeCheck className="w-3.5 h-3.5" />}
+                label="Kewenangan FTI"
+                value={authorityLabel}
               />
             </div>
           </section>
         </div>
 
-        {/* ── Kolom kanan: Keamanan + TTE ── */}
         <div className="space-y-6">
           <PhoneProfileSection
             currentPhone={user?.nohp}
@@ -204,7 +195,6 @@ export function ProfilSayaPage() {
             onSave={async (nohp) => (await updateMyPhone({ nohp })).data.nohp}
           />
 
-          {/* Ubah kata sandi */}
           <section className="bg-surface rounded-xl border border-border overflow-hidden">
             <div className="px-5 py-4 border-b border-border flex items-center gap-2.5">
               <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -280,7 +270,6 @@ export function ProfilSayaPage() {
             </form>
           </section>
 
-          {/* TTE section */}
           {tteEnabled && (
             <TteSetupSection
               profile={profile}
