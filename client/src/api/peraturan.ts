@@ -1,10 +1,6 @@
-/**
- * Peraturan API service
- * Matches server: PeraturanController (bungkus ApiSuccessResponse)
- */
-
+/** Peraturan API service — global FTI catalog. */
 import { useQuery } from '@tanstack/react-query'
-import { apiClient, buildQueryString } from '@/lib/api/api-client'
+import { apiClient } from '@/lib/api/api-client'
 import { unwrapApiData, unwrapApiVoid } from '@/lib/api/response'
 import { queryKeys } from '@/config/query-keys'
 import { useMutationWithToast } from '@/hooks/useMutationWithToast'
@@ -12,21 +8,15 @@ import { STALE_TIME } from '@/utils/constants'
 import type { ApiSuccessResponse } from '@/types/dto/auth.dto'
 import type {
   CreatePeraturanDto,
-  PeraturanListQueryParams,
   PeraturanResponse,
   UpdatePeraturanDto,
   UpdatePeraturanMutationDto,
 } from '@/types/dto/peraturan.dto'
 
 export const peraturanApi = {
-  findAll: (params?: PeraturanListQueryParams): Promise<PeraturanResponse[]> =>
-    unwrapApiData(
-      apiClient.get<ApiSuccessResponse<PeraturanResponse[]>>(
-        `/peraturan${buildQueryString(params as Record<string, unknown> | undefined)}`,
-      ),
-    ),
+  findAll: (): Promise<PeraturanResponse[]> =>
+    unwrapApiData(apiClient.get<ApiSuccessResponse<PeraturanResponse[]>>('/peraturan')),
 
-  /** Buat master peraturan + tautan ke OPD pengguna (opdId dari JWT di server). */
   create: (payload: CreatePeraturanDto): Promise<PeraturanResponse> =>
     unwrapApiData(apiClient.post<ApiSuccessResponse<PeraturanResponse>>('/peraturan', payload)),
 
@@ -38,14 +28,14 @@ export const peraturanApi = {
   },
 }
 
-export function usePeraturan(opdId?: string) {
+export function usePeraturan() {
   const {
     data: list = [],
     isLoading,
     error,
   } = useQuery({
-    queryKey: queryKeys.peraturanList(opdId),
-    queryFn: () => peraturanApi.findAll(opdId ? ({ opdId } as PeraturanListQueryParams) : undefined),
+    queryKey: queryKeys.peraturanList,
+    queryFn: peraturanApi.findAll,
     staleTime: STALE_TIME.MEDIUM,
   })
 
