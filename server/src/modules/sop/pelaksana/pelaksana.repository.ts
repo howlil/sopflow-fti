@@ -24,11 +24,6 @@ export class PelaksanaRepository {
    * independent from the current user/Process and must never be treated as catalog ownership.
    */
   async findLegacyStorageShadow(): Promise<string | null> {
-    const preferred = await this.prisma.oPD.findFirst({
-      where: { deletedAt: null, isBiroOrganisasi: true },
-      select: { opdId: true },
-    });
-    if (preferred !== null) return preferred.opdId;
     const fallback = await this.prisma.oPD.findFirst({
       where: { deletedAt: null },
       orderBy: { createdAt: 'asc' },
