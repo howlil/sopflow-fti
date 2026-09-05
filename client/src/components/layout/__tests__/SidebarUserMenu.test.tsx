@@ -3,26 +3,28 @@ import { describe, expect, it, vi } from 'vitest'
 
 const navigate = vi.fn()
 const logout = vi.fn().mockResolvedValue(undefined)
+const user = {
+  penggunaId: 'u-1',
+  email: 'user@fti.test',
+  nama: 'Pengguna Uji',
+  platformRole: 'USER' as const,
+  nip: '123456789',
+  jabatan: 'Staf',
+  pangkat: 'III/a',
+  nohp: null,
+  tte: { configured: false },
+}
 
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => navigate,
 }))
 
-vi.mock('@/hooks/useAppRole', () => ({
-  useAppRole: () => ({
-    role: 'PJ_PENYUSUN',
-    getRoleLabel: () => 'PJ Penyusun',
-    getRoleNip: () => '123456789',
-    getRoleDisplayName: () => 'Pengguna Uji',
-  }),
+vi.mock('@/stores/authStore', () => ({
+  useAuthStore: (selector: (state: { user: typeof user }) => unknown) => selector({ user }),
 }))
 
 vi.mock('@/api/auth', () => ({
   useAuth: () => ({ logout }),
-}))
-
-vi.mock('@/utils/role-routing', () => ({
-  getMeRoute: () => '/penyusun/me',
 }))
 
 import { SidebarUserMenu } from '@/components/layout/SidebarUserMenu'
@@ -35,11 +37,11 @@ function openProfileMenu() {
 }
 
 describe('SidebarUserMenu', () => {
-  it('menampilkan identitas ringkas dan detail akun di menu', async () => {
+  it('menampilkan identitas first-party FTI dan detail akun', async () => {
     render(<SidebarUserMenu />)
 
     expect(screen.getByText('Pengguna Uji')).toBeInTheDocument()
-    expect(screen.getByText('PJ Penyusun')).toBeInTheDocument()
+    expect(screen.getByText('Pengguna FTI')).toBeInTheDocument()
 
     openProfileMenu()
 
