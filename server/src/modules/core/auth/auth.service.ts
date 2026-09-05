@@ -171,9 +171,7 @@ export class AuthService {
       penggunaId: row.penggunaId,
       email: row.email,
       nama: row.nama,
-      peran: row.peran,
       platformRole: row.platformRole,
-      opdId: row.opdId,
       nip: row.nip,
       jabatan: row.jabatan,
       pangkat: row.pangkat,
@@ -192,7 +190,6 @@ export class AuthService {
     const payload: JwtAccessPayload = {
       sub: row.penggunaId,
       email: row.email,
-      peran: row.peran,
       sesiTokenVersion: row.sesiTokenVersion,
     };
     const { expiresInSeconds, maxAgeMs } = resolveAccessTokenExpiry(
