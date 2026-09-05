@@ -16,7 +16,7 @@ export interface LegacySopAccessContext {
 export class SopLegacyAccessPolicy {
   constructor(private readonly userOpdAccessService: UserOpdAccessService) {}
 
-  isEvaluatorRole(role: PeranPengguna): boolean {
+  isEvaluatorRole(role: PeranPengguna | undefined): boolean {
     return this.userOpdAccessService.isEvaluatorRole(role);
   }
 
