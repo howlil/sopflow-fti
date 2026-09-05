@@ -1,18 +1,20 @@
 /**
- * Hook akses role & helpers — satu titik akses untuk UI.
- * Uses Zustand selectors with shallow comparison for optimal performance.
+ * Deprecated UI compatibility shim.
+ *
+ * First-party FTI capability must come from Process relationships,
+ * Organizational Authority, or Platform Role. Auth state intentionally has no
+ * legacy workflow role. Keep these helpers temporarily only for old consumers
+ * while they are retired; no native surface should branch on them.
  */
 import { useAuthStore } from "@/stores/authStore";
 import { ROLES, ROLE_LABELS } from "@/utils/constants";
 import type { RoleKey } from "@/types/dto/access.dto";
-import { toNavigationRole } from "@/utils/role-key";
 
 export { ROLES };
 
 export function useAppRole() {
   const user = useAuthStore((state) => state.user);
-  const role =
-    user?.peran !== undefined ? toNavigationRole(user.peran) : undefined;
+  const role: RoleKey | undefined = undefined;
 
   const getRoleLabel = (r: RoleKey) => ROLE_LABELS[r] ?? r;
   const getRoleNip = () => user?.nip ?? "";
@@ -26,10 +28,10 @@ export function useAppRole() {
     getRoleNip,
     getRoleUserName,
     getRoleDisplayName,
-    isPjEvaluator: role === ROLES.PJ_EVALUATOR,
-    isEvaluator: role === ROLES.EVALUATOR,
-    isKepalaOPD: role === ROLES.KEPALA_OPD,
-    isPenyusun: role === ROLES.PENYUSUN,
-    isPjPenyusun: role === ROLES.PJ_PENYUSUN,
+    isPjEvaluator: false,
+    isEvaluator: false,
+    isKepalaOPD: false,
+    isPenyusun: false,
+    isPjPenyusun: false,
   };
 }
