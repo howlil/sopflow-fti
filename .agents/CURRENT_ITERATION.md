@@ -3,7 +3,7 @@
 ## Shape
 
 **Milestone:** M14 - Full FTI Legacy Retirement
-**State:** S4 VERIFIED / DELIVERY_PENDING
+**State:** S4 INTEGRATED / RELEASE_READY
 **Scope:** retire unused legacy evaluation-value/history and WhatsApp notification/reminder features using a staged, reversible database migration. Process-native review, approval, TTE, publication, revocation, notification, and reminder remain active.
 
 ## Position
@@ -11,9 +11,10 @@
 ```text
 M11 native FTI runtime       INTEGRATED
 M12 production evidence      SEPARATE / NOT CLAIMED HERE
-M14 S4 legacy feature retire VERIFIED
+M14 S4 legacy feature retire INTEGRATED
 M14 database contract        MIGRATION + DISPOSABLE SMOKE PASS
 M14 verification              TYPECHECK + TEST + BUILD PASS
+M14 delivery                  MASTER PUSHED
 ```
 
 ## Delta
@@ -29,5 +30,5 @@ M14 verification              TYPECHECK + TEST + BUILD PASS
 
 ## Next Move
 
-1. Review the complete working-tree diff and create the requested commit/PR through the repository delivery workflow when authorized.
+1. Keep production deployment/release claims separate; this checkout has no production deployment evidence.
 2. Keep the persistent `sop-test-db` fixture unchanged unless explicitly requested; do not claim production or external-consumer retirement from local evidence.
