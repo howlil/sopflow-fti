@@ -5,12 +5,9 @@ import { CommonModule } from './common/common.module';
 import { WinstonLoggerConfig } from './common/logger/winston.config';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { validateEnv } from './config/env.validation';
+import { LegacyOpdCompatibilityModule } from './modules/compatibility/legacy-opd/legacy-opd-compatibility.module';
 import { AuthModule } from './modules/core/auth/auth.module';
-import { EvaluatorModule } from './modules/core/evaluator/evaluator.module';
-import { KepalaOpdModule } from './modules/core/kepala-opd/kepala-opd.module';
-import { OpdModule } from './modules/core/opd/opd.module';
 import { PenggunaModule } from './modules/core/pengguna/pengguna.module';
-import { PenyusunModule } from './modules/core/penyusun/penyusun.module';
 import { PeraturanModule } from './modules/core/peraturan/peraturan.module';
 import { ProcessModule } from './modules/core/process/process.module';
 import { SopCatalogModule } from './modules/sop/catalog/sop-catalog.module';
@@ -43,11 +40,7 @@ import { ProcessNotificationModule } from './modules/notifications/process/proce
     WinstonModule.forRoot(WinstonLoggerConfig),
     PrismaModule,
     AuthModule,
-    OpdModule,
     PenggunaModule,
-    EvaluatorModule,
-    KepalaOpdModule,
-    PenyusunModule,
     ProcessModule,
     SopCatalogModule,
     ProcessSopAuthoringModule,
@@ -62,6 +55,7 @@ import { ProcessNotificationModule } from './modules/notifications/process/proce
     TteVerifikasiModule,
     TteCoreModule,
     ProcessNotificationModule,
+    LegacyOpdCompatibilityModule,
   ],
 })
 export class AppModule {}
