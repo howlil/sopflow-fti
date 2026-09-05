@@ -20,6 +20,10 @@ export class SopLegacyAccessPolicy {
     return this.userOpdAccessService.isEvaluatorRole(role);
   }
 
+  getLegacyRole(penggunaId: string): Promise<PeranPengguna> {
+    return this.userOpdAccessService.getLegacyRole(penggunaId);
+  }
+
   getRequiredUserOpdId(penggunaId: string): Promise<string> {
     return this.userOpdAccessService.getRequiredUserOpdId(penggunaId);
   }
