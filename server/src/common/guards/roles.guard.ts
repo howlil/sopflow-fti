@@ -10,11 +10,8 @@ export const ROLES_METADATA_KEY = 'peran_diizinkan';
 
 /**
  * Compatibility guard untuk endpoint legacy yang belum dipensiunkan.
- *
- * Legacy role tidak lagi menjadi bagian dari first-party JWT. Endpoint yang masih
- * memakai `@Roles(...)` membaca compatibility role dari persistence secara lokal.
- * Native FTI workflow tidak boleh memakai guard ini; gunakan Process relationship,
- * Organizational Authority, atau PlatformAdminGuard sesuai boundary masing-masing.
+ * Legacy role tidak ada di JWT; guard mengambilnya dari persistence dan hanya
+ * menghidrasinya ke request compatibility yang secara eksplisit memakai `@Roles`.
  */
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -28,9 +25,8 @@ export class RolesGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (allowed === undefined || allowed.length === 0) {
-      return true;
-    }
+    if (allowed === undefined || allowed.length === 0) return true;
+
     const req = context.switchToHttp().getRequest<Request & { user?: JwtAccessPayload }>();
     const user = req.user;
     if (user === undefined) {
@@ -43,6 +39,7 @@ export class RolesGuard implements CanActivate {
     if (legacyIdentity === null || !allowed.includes(legacyIdentity.peran)) {
       throw new ForbiddenException('Peran compatibility Anda tidak memiliki akses ke operasi ini');
     }
+    user.peran = legacyIdentity.peran;
     return true;
   }
 }
