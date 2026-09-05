@@ -25,47 +25,37 @@ export const queryKeys = {
   processAdminUsers: ['processAdmin', 'users'] as const,
   processAdminProcesses: ['processAdmin', 'processes'] as const,
 
-  // Peraturan
+  // Global FTI regulation catalog
   peraturan: ['peraturan'] as const,
-  peraturanList: (opdId?: string) => ['peraturan', 'list', opdId] as const,
+  peraturanList: ['peraturan', 'list'] as const,
 
   // SOP
   sop: ['sop'] as const,
   sopRiwayatVersi: (sopId: string) => ['sop', 'riwayat-versi', sopId] as const,
   sopList: (params?: {
-    opdId?: string
     status?: string
     tanggalDari?: string
     tanggalSampai?: string
   }) => ['sop', 'list', params] as const,
-  /** GET `/sop/penyusun-workbench/:detailSopId` — agregat detail + langkah + log */
   penyusunWorkbench: (detailSopId: string) => ['sop', 'penyusunWorkbench', detailSopId] as const,
-
-  /** Prefix invalidasi cache detail SOP (mis. setelah TTE / status). */
   detailSop: ['detailSop'] as const,
 
-  // Pelaksana
+  // Global FTI actor catalog
   pelaksana: ['pelaksana'] as const,
-  pelaksanaByOpd: (opdId: string) => ['pelaksana', 'byOpd', opdId] as const,
 
-  // OPD
+  // Explicit legacy compatibility surfaces
   opd: ['opd'] as const,
-  /** v2: invalidasi cache setelah respons API memakai bungkus { data } konsisten */
-  /** GET `/opd` — termasuk query `search` (PJ_EVALUATOR) */
-  opdList: (search?: string) => ['opd', 'list', 'v2', search ?? ''] as const,
-  /** Manajemen penyusun Biro (GET /api/v1/penyusun — grup per OPD) */
+  opdList: (search?: string) => ['opd', 'list', 'compatibility', search ?? ''] as const,
   penyusun: ['penyusun'] as const,
-  penyusunGrup: (search?: string) => ['penyusun', 'grup', 'v1', search ?? ''] as const,
+  penyusunGrup: (search?: string) => ['penyusun', 'grup', 'compatibility', search ?? ''] as const,
   penyusunRiwayatOpd: (penggunaId: string) =>
     ['penyusun', 'riwayatOpd', penggunaId] as const,
 
   // TTE
   tte: ['tte'] as const,
   tteProfil: ['tte', 'profil'] as const,
-  /** GET `/tte/public/pengesahan/:dokumenTteId/:userId` — verifikasi publik (tanpa sesi). */
   ttePengesahanPublic: (dokumenTteId: string, userId: string) =>
     ['tte', 'pengesahan-public', dokumenTteId, userId] as const,
-  /** GET `/tte/public/pdf-signing/status` */
   ttePdfSigningStatus: ['tte', 'pdf-signing-status'] as const,
 
   /** Arsip SOP publik — compatibility document endpoint */
