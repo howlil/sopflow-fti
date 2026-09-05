@@ -1,6 +1,5 @@
 export interface PeraturanResponse {
   id: string;
-  opdId: string;
   namaPeraturan: string;
   nomor: string;
   tahun: number;
@@ -8,11 +7,7 @@ export interface PeraturanResponse {
   createdAt: string;
   updatedAt: string;
   lastEditedById?: string | null;
-  lastEditedBy?: { id: string; nama: string; opd: { id: string; nama: string } } | null;
-  opd?: {
-    id: string;
-    nama: string;
-  };
+  lastEditedBy?: { id: string; nama: string } | null;
   digunakan?: number;
 }
 
@@ -30,11 +25,6 @@ export interface RiwayatVersiEntry {
   sopYangMengait: SopMengait[];
 }
 
-export interface PeraturanListQueryParams {
-  opdId?: string;
-}
-
-/** Body POST /peraturan — opdId ditetapkan server dari sesi pengguna (JWT). */
 export interface CreatePeraturanDto {
   namaPeraturan: string;
   nomor: string;
