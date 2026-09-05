@@ -4,20 +4,15 @@ import { isPrismaUniqueConstraintError } from '../../../common/prisma/prisma-err
 import type { CreatePeraturanDto } from './dto/create-peraturan.dto';
 import type { PeraturanResponseDto } from './dto/peraturan-response.dto';
 import type { UpdatePeraturanDto } from './dto/update-peraturan.dto';
-import { UserOpdAccessService } from '../opd/user-opd-access.service';
 import { PeraturanRepository, type PeraturanRow } from './peraturan.repository';
 
 @Injectable()
 export class PeraturanService {
-  constructor(
-    private readonly peraturanRepository: PeraturanRepository,
-    private readonly userOpdAccessService: UserOpdAccessService,
-  ) {}
+  constructor(private readonly peraturanRepository: PeraturanRepository) {}
 
-  private mapRow(row: PeraturanRow, opdId: string): PeraturanResponseDto {
+  private mapRow(row: PeraturanRow): PeraturanResponseDto {
     return {
       id: row.peraturanId,
-      opdId,
       namaPeraturan: row.nama,
       nomor: row.nomor,
       tahun: row.tahun,
@@ -28,53 +23,32 @@ export class PeraturanService {
       lastEditedBy:
         row.lastEditedBy === null
           ? null
-          : {
-              id: row.lastEditedBy.penggunaId,
-              nama: row.lastEditedBy.nama,
-              opd:
-                row.lastEditedBy.opd === null
-                  ? { id: opdId, nama: 'Tidak tersedia' }
-                  : { id: row.lastEditedBy.opd.opdId, nama: row.lastEditedBy.opd.nama },
-            },
+          : { id: row.lastEditedBy.penggunaId, nama: row.lastEditedBy.nama },
       digunakan: row.dasarHukumCount,
     };
   }
 
-  private async resolveOpdIdOrThrow(user: JwtAccessPayload, queryOpdId?: string): Promise<string> {
-    return this.userOpdAccessService.resolveOwnOpdAllowingOptionalQuery(user.sub, queryOpdId);
+  async list(): Promise<PeraturanResponseDto[]> {
+    return (await this.peraturanRepository.findMany()).map((row) => this.mapRow(row));
   }
 
-  async list(user: JwtAccessPayload, queryOpdId?: string): Promise<PeraturanResponseDto[]> {
-    const opdId = await this.resolveOpdIdOrThrow(user, queryOpdId);
-    const rows = await this.peraturanRepository.findManyByOpdId(opdId);
-    return rows.map((row) => this.mapRow(row, opdId));
-  }
-
-  async getById(
-    user: JwtAccessPayload,
-    id: string,
-    queryOpdId?: string,
-  ): Promise<PeraturanResponseDto> {
-    const opdId = await this.resolveOpdIdOrThrow(user, queryOpdId);
-    const row = await this.peraturanRepository.findByIdForOpd(id, opdId);
-    if (row === null) {
-      throw new NotFoundException('Peraturan tidak ditemukan');
-    }
-    return this.mapRow(row, opdId);
+  async getById(id: string): Promise<PeraturanResponseDto> {
+    const row = await this.peraturanRepository.findById(id);
+    if (row === null) throw new NotFoundException('Peraturan tidak ditemukan');
+    return this.mapRow(row);
   }
 
   async create(user: JwtAccessPayload, dto: CreatePeraturanDto): Promise<PeraturanResponseDto> {
-    const opdId = await this.resolveOpdIdOrThrow(user, undefined);
     try {
-      const row = await this.peraturanRepository.createWithOpdLink({
-        nama: dto.namaPeraturan,
-        nomor: dto.nomor,
-        tahun: dto.tahun,
-        tentang: dto.tentang,
-        opdId,
-        lastEditedById: user.sub,
-      });
-      return this.mapRow(row, opdId);
+      return this.mapRow(
+        await this.peraturanRepository.create({
+          nama: dto.namaPeraturan,
+          nomor: dto.nomor,
+          tahun: dto.tahun,
+          tentang: dto.tentang,
+          lastEditedById: user.sub,
+        }),
+      );
     } catch (error) {
       if (isPrismaUniqueConstraintError(error)) {
         throw new ConflictException('Nomor dan tahun peraturan sudah terdaftar');
@@ -88,34 +62,18 @@ export class PeraturanService {
     id: string,
     dto: UpdatePeraturanDto,
   ): Promise<PeraturanResponseDto> {
-    const opdId = await this.resolveOpdIdOrThrow(user, undefined);
-    const linked = await this.peraturanRepository.hasOpdLink(id, opdId);
-    if (!linked) {
+    if ((await this.peraturanRepository.findById(id)) === null) {
       throw new NotFoundException('Peraturan tidak ditemukan');
     }
     const patch: { nama?: string; nomor?: string; tahun?: number; tentang?: string } = {};
-    if (dto.namaPeraturan !== undefined) {
-      patch.nama = dto.namaPeraturan;
-    }
-    if (dto.nomor !== undefined) {
-      patch.nomor = dto.nomor;
-    }
-    if (dto.tahun !== undefined) {
-      patch.tahun = dto.tahun;
-    }
-    if (dto.tentang !== undefined) {
-      patch.tentang = dto.tentang;
-    }
-    if (Object.keys(patch).length === 0) {
-      const row = await this.peraturanRepository.findByIdForOpd(id, opdId);
-      if (row === null) {
-        throw new NotFoundException('Peraturan tidak ditemukan');
-      }
-      return this.mapRow(row, opdId);
-    }
+    if (dto.namaPeraturan !== undefined) patch.nama = dto.namaPeraturan;
+    if (dto.nomor !== undefined) patch.nomor = dto.nomor;
+    if (dto.tahun !== undefined) patch.tahun = dto.tahun;
+    if (dto.tentang !== undefined) patch.tentang = dto.tentang;
+    if (Object.keys(patch).length === 0) return this.getById(id);
+
     try {
-      const row = await this.peraturanRepository.updateMasterWithLastEditor(id, patch, user.sub);
-      return this.mapRow(row, opdId);
+      return this.mapRow(await this.peraturanRepository.update(id, patch, user.sub));
     } catch (error) {
       if (isPrismaUniqueConstraintError(error)) {
         throw new ConflictException('Nomor dan tahun peraturan sudah terdaftar');
@@ -124,20 +82,14 @@ export class PeraturanService {
     }
   }
 
-  async remove(user: JwtAccessPayload, id: string): Promise<void> {
-    const opdId = await this.resolveOpdIdOrThrow(user, undefined);
-    const linked = await this.peraturanRepository.hasOpdLink(id, opdId);
-    if (!linked) {
+  async remove(id: string): Promise<void> {
+    if ((await this.peraturanRepository.findById(id)) === null) {
       throw new NotFoundException('Peraturan tidak ditemukan');
     }
     const used = await this.peraturanRepository.countDasarHukum(id);
     if (used > 0) {
       throw new ConflictException(`Peraturan masih digunakan sebagai dasar hukum pada ${used} SOP`);
     }
-    await this.peraturanRepository.deleteOpdLink(opdId, id);
-    const remainingLinks = await this.peraturanRepository.countOpdLinks(id);
-    if (remainingLinks === 0) {
-      await this.peraturanRepository.deletePeraturan(id);
-    }
+    await this.peraturanRepository.delete(id);
   }
 }
