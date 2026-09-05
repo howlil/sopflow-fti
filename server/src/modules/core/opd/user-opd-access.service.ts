@@ -11,11 +11,11 @@ export class UserOpdAccessService {
     private readonly prisma: PrismaService,
   ) {}
 
-  isEvaluatorRole(role: PeranPengguna): boolean {
+  isEvaluatorRole(role: PeranPengguna | undefined): boolean {
     return role === PeranPengguna.EVALUATOR || role === PeranPengguna.PJ_EVALUATOR;
   }
 
-  isOpdScopedRole(role: PeranPengguna): boolean {
+  isOpdScopedRole(role: PeranPengguna | undefined): boolean {
     return (
       role === PeranPengguna.PJ_PENYUSUN ||
       role === PeranPengguna.KEPALA_OPD ||
