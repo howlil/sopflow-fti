@@ -51,7 +51,11 @@ export function WorkHomePage() {
   useDocumentTitle("Beranda Kerja");
   const user = useAuthStore((state) => state.user);
   const { data: processes = [], isLoading: isLoadingProcesses } = useMyProcesses();
-  const { scopes: ownerScopes, isLoading: isLoadingOwnerContext } = useProcessOwnerSelfService();
+  const {
+    scopes: ownerScopes,
+    processes: ownedProcesses,
+    isLoading: isLoadingOwnerContext,
+  } = useProcessOwnerSelfService();
   const { data: authorities = [], isLoading: isLoadingAuthorities } =
     useMyOrganizationalAuthorities();
 
@@ -60,6 +64,7 @@ export function WorkHomePage() {
   const isLoading = isLoadingProcesses || isLoadingAuthorities || isLoadingOwnerContext;
   const hasContextualCapability =
     processes.length > 0 ||
+    ownedProcesses.length > 0 ||
     ownerScopes.length > 0 ||
     authorities.length > 0 ||
     user?.platformRole === "SUPER_ADMIN";
@@ -121,7 +126,9 @@ export function WorkHomePage() {
             ) : null}
           </div>
 
-          {(ownerScopes.length > 0 || ownerCount > 0) ? <ProcessOwnerSelfServicePanel /> : null}
+          {ownerScopes.length > 0 || ownedProcesses.length > 0 ? (
+            <ProcessOwnerSelfServicePanel />
+          ) : null}
         </>
       )}
     </ListPageLayout>
