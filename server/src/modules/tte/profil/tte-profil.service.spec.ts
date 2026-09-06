@@ -31,7 +31,6 @@ describe('Pengujian TteProfilService', () => {
   const user: JwtAccessPayload = {
     sub: 'user-1',
     email: 'kepala@test.id',
-    peran: PeranPengguna.KEPALA_OPD,
   };
   const updatedAt = new Date('2026-05-20T03:04:05.000Z');
   const kredensial = { hashPin: 'hash-lama', updatedAt };
