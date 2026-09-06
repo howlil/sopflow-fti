@@ -4,10 +4,7 @@ import type { PublicSopDokumenDto } from '../public/dto/public-sop-dokumen.dto';
 import { mapWorkbenchPayload } from './sop-catalog.mapper';
 import { SopCatalogRepository } from './sop-catalog.repository';
 
-/**
- * Read-only projection retained for official public document preview.
- * Target authoring/version/review mutations live behind Process-native services.
- */
+/** Read-only projection retained for official Process-bound public document preview. */
 @Injectable()
 export class SopCatalogService {
   constructor(private readonly sopCatalogRepository: SopCatalogRepository) {}
@@ -20,7 +17,6 @@ export class SopCatalogService {
 
     const workbench = mapWorkbenchPayload(row);
     return {
-      opd: null,
       detail: workbench.detail,
       langkah: workbench.langkah,
       diagramKonfigurasi: workbench.diagramKonfigurasi,
