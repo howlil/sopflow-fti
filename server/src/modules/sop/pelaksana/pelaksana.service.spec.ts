@@ -1,5 +1,5 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { PeranPengguna, Prisma } from '../../../generated/prisma';
+import { Prisma } from '../../../generated/prisma';
 import type { JwtAccessPayload } from '../../../common';
 import { PelaksanaRepository } from './pelaksana.repository';
 import { PelaksanaService } from './pelaksana.service';
@@ -22,7 +22,6 @@ describe('PelaksanaService global catalog', () => {
   const user: JwtAccessPayload = {
     sub: 'u-1',
     email: 'member@fti.test',
-    peran: PeranPengguna.EVALUATOR,
   };
   const row = {
     pelaksanaId: 'pl-1',
