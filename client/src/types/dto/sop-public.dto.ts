@@ -21,15 +21,13 @@ export interface PublicProcessItem {
 export interface PublicSopItem {
   detailSopId: string
   sopId: string
-  opdId: string
   judul: string
   nomorSOP: string
   versi: number
   tanggalEfektif: string | null
-  opdNama: string
-  processId: string | null
-  processName: string | null
-  scope: PublicOrganizationalScope | null
+  processId: string
+  processName: string
+  scope: PublicOrganizationalScope
   departmentId: string | null
   departmentName: string | null
   pdfUrl: string
@@ -50,13 +48,9 @@ export interface PublicSopByProcessPage extends PublicSopPage {
 }
 
 export interface PublicSopDokumen {
-  opd: { id: string; nama: string }
   detail: SopDetail
   langkah: LangkahSOP[]
   diagramKonfigurasi?: PenyusunWorkbenchData['diagramKonfigurasi']
 }
 
-/** Alias agar mapper pratinjau dapat memakai PenyusunWorkbenchData. */
-export type PublicSopDokumenWorkbench = PenyusunWorkbenchData & {
-  opd: { id: string; nama: string }
-}
+export type PublicSopDokumenWorkbench = PenyusunWorkbenchData
