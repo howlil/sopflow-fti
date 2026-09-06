@@ -1,10 +1,10 @@
-import { PeranPengguna } from '../../../generated/prisma';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import { PenggunaRepository } from './pengguna.repository';
 
-describe('Pengujian PenggunaRepository.createPengguna', () => {
+describe('PenggunaRepository native platform accounts', () => {
   const prismaMock = {
     pengguna: {
+      findMany: jest.fn(),
       create: jest.fn(),
     },
   };
@@ -16,38 +16,29 @@ describe('Pengujian PenggunaRepository.createPengguna', () => {
     repo = new PenggunaRepository(prismaMock as unknown as PrismaService);
   });
 
-  it('seharusnya menyimpan membuat input', async () => {
-    prismaMock.pengguna.create.mockResolvedValueOnce({ penggunaId: 'u-1' });
-    await repo.createPengguna({
-      email: 'e@t.com',
-      nama: 'N',
-      nip: '1',
-      jabatan: 'J',
-      pangkat: 'P',
-      nohp: '0',
-      kataSandi: 'hash',
-      peran: PeranPengguna.EVALUATOR,
-      opd: { connect: { opdId: 'opd-biro' } },
-    });
-    expect(prismaMock.pengguna.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        peran: PeranPengguna.EVALUATOR,
-        opd: { connect: { opdId: 'opd-biro' } },
+  it('lists only public platform-account fields', async () => {
+    prismaMock.pengguna.findMany.mockResolvedValueOnce([]);
+
+    await repo.listPlatformAccounts();
+
+    expect(prismaMock.pengguna.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { deletedAt: null },
+        select: expect.not.objectContaining({
+          peran: expect.anything(),
+          opdId: expect.anything(),
+        }),
       }),
-    });
+    );
   });
 
-  it('seharusnya dapat membuat akun platform tanpa fabricated OPD shadow', async () => {
-    const created = { penggunaId: 'native-user-1', platformRole: 'USER' };
-    const tx = {
-      pengguna: { create: jest.fn().mockResolvedValue(created) },
-    };
-    const nativePrisma = {
-      $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) => callback(tx)),
-    };
-    const nativeRepo = new PenggunaRepository(nativePrisma as unknown as PrismaService);
+  it('creates a native USER without fabricated role or OPD shadow', async () => {
+    prismaMock.pengguna.create.mockResolvedValueOnce({
+      penggunaId: 'native-user-1',
+      platformRole: 'USER',
+    });
 
-    await nativeRepo.createPlatformAccountWithHistory({
+    await repo.createPlatformAccount({
       email: 'native@example.test',
       nama: 'Native User',
       nip: '199001010000000001',
@@ -57,9 +48,15 @@ describe('Pengujian PenggunaRepository.createPengguna', () => {
       kataSandi: 'hash',
     });
 
-    expect(tx.pengguna.create).toHaveBeenCalledWith({
-      data: expect.not.objectContaining({ opdId: expect.anything() }),
-      select: expect.anything(),
+    expect(prismaMock.pengguna.create).toHaveBeenCalledWith({
+      data: expect.not.objectContaining({
+        peran: expect.anything(),
+        opdId: expect.anything(),
+      }),
+      select: expect.not.objectContaining({
+        peran: expect.anything(),
+        opdId: expect.anything(),
+      }),
     });
   });
 });
