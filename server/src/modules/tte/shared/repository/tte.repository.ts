@@ -9,9 +9,6 @@ export type TtePenggunaRingkas = {
   readonly nip: string;
   readonly jabatan: string;
   readonly pangkat: string;
-  readonly peran: PeranPengguna;
-  readonly opdId: string;
-  readonly opdNama: string;
 };
 
 export type TteKredensialRow = {
@@ -55,7 +52,7 @@ export class TteRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findPenggunaAktif(userId: string): Promise<TtePenggunaRingkas | null> {
-    const row = await this.prisma.pengguna.findFirst({
+    return this.prisma.pengguna.findFirst({
       where: { penggunaId: userId, deletedAt: null },
       select: {
         penggunaId: true,
@@ -64,23 +61,8 @@ export class TteRepository {
         nip: true,
         jabatan: true,
         pangkat: true,
-        peran: true,
-        opdId: true,
-        opd: { select: { nama: true } },
       },
     });
-    if (row === null) return null;
-    return {
-      penggunaId: row.penggunaId,
-      email: row.email,
-      nama: row.nama,
-      nip: row.nip,
-      jabatan: row.jabatan,
-      pangkat: row.pangkat,
-      peran: row.peran,
-      opdId: row.opdId!,
-      opdNama: row.opd?.nama ?? 'Biro Organisasi',
-    };
   }
 
   async findKredensial(userId: string): Promise<TteKredensialRow | null> {
@@ -110,9 +92,7 @@ export class TteRepository {
   }): Promise<TteKredensialRow> {
     const row = await this.prisma.pengguna.update({
       where: { penggunaId: params.userId },
-      data: {
-        ttePinHash: params.hashPin,
-      },
+      data: { ttePinHash: params.hashPin },
       select: {
         ttePinHash: true,
         tteP12Base64: true,
@@ -128,7 +108,6 @@ export class TteRepository {
     };
   }
 
-  /** Setup awal: simpan PIN hash + P12 sekaligus dalam satu operasi. */
   async createKredensialPinDanP12(params: {
     userId: string;
     hashPin: string;
@@ -211,9 +190,6 @@ export class TteRepository {
     };
   }
 
-  /**
-   * Data ringkas untuk halaman verifikasi publik (scan QR). Tanpa `signatureValue` atau field sensitif lain.
-   */
   async findRiwayatPengesahanByUserAndDokumen(userId: string, dokumenTteId: string) {
     return this.prisma.riwayatTandaTangan.findUnique({
       where: { userId_dokumenTteId: { userId, dokumenTteId } },
@@ -233,9 +209,7 @@ export class TteRepository {
             processId: true,
           },
         },
-        user: {
-          select: { penggunaId: true, nama: true, nip: true, jabatan: true },
-        },
+        user: { select: { penggunaId: true, nama: true, nip: true, jabatan: true } },
       },
     });
   }
@@ -256,14 +230,7 @@ export class TteRepository {
             jenisDokumen: true,
           },
         },
-        user: {
-          select: {
-            penggunaId: true,
-            nama: true,
-            nip: true,
-            jabatan: true,
-          },
-        },
+        user: { select: { penggunaId: true, nama: true, nip: true, jabatan: true } },
       },
     });
   }
