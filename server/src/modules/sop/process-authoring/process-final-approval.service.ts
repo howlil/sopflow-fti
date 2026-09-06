@@ -85,18 +85,19 @@ export class ProcessFinalApprovalService {
     for (const detail of details) {
       if (!latestBySopId.has(detail.sopId)) latestBySopId.set(detail.sopId, detail);
     }
-    const readyLatest = [...latestBySopId.values()].filter(
-      (detail) => detail.status === StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
+    const approvalLatest = [...latestBySopId.values()].filter(
+      (detail) =>
+        detail.status === StatusSOP.FINAL_APPROVAL || detail.status === StatusSOP.TTE_PENDING,
     );
     const approvals =
-      readyLatest.length === 0
+      approvalLatest.length === 0
         ? []
         : await this.prisma.processFinalApproval.findMany({
-            where: { detailSopId: { in: readyLatest.map((detail) => detail.detailSopId) } },
+            where: { detailSopId: { in: approvalLatest.map((detail) => detail.detailSopId) } },
           });
     const approvalByDetail = new Map(approvals.map((approval) => [approval.detailSopId, approval]));
 
-    return readyLatest.map((detail) => {
+    return approvalLatest.map((detail) => {
       const processId = processBySopId.get(detail.sopId);
       if (!processId)
         throw new Error('Process SOP ownership disappeared while listing approval queue');
@@ -150,7 +151,7 @@ export class ProcessFinalApprovalService {
     if (row === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
-    if (row.status !== StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR) {
+    if (row.status !== StatusSOP.FINAL_APPROVAL && row.status !== StatusSOP.TTE_PENDING) {
       throw new ConflictException(
         `SOP tidak berada pada tahap final approval/TTE (status saat ini: ${String(row.status)})`,
       );
@@ -171,39 +172,56 @@ export class ProcessFinalApprovalService {
   async approve(user: JwtAccessPayload, detailOrSopId: string) {
     const context = await this.resolveTargetContext(detailOrSopId);
     const authority = await this.authorityService.assertCanApprove(user.sub, context.processId);
-    const statusContext = await this.sopCatalogRepository.findLatestDetailStatusContext(
-      context.detailSopId,
-    );
-    if (statusContext === null) {
-      throw new NotFoundException('DetailSOP tidak ditemukan');
-    }
-    if (statusContext.status !== StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR) {
-      throw new ConflictException(
-        `SOP belum siap untuk final approval (status saat ini: ${String(statusContext.status)})`,
-      );
-    }
-
-    const acceptedReview = await this.prisma.processReview.findFirst({
-      where: {
-        detailSopId: context.detailSopId,
-        processId: context.processId,
-        decision: ProcessReviewDecision.ACCEPT,
-        nextStatus: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
-      },
-      orderBy: { createdAt: 'desc' },
-      select: { processReviewId: true },
-    });
 
     try {
-      return await this.prisma.processFinalApproval.create({
-        data: {
-          detailSopId: context.detailSopId,
-          processId: context.processId,
-          approvedById: user.sub,
-          processReviewId: acceptedReview?.processReviewId ?? null,
-          authority: authority.authority,
-          authorityKey: authority.authorityKey,
-        },
+      return await this.prisma.$transaction(async (tx) => {
+        const statusContext = await tx.detailSOP.findUnique({
+          where: { detailSopId: context.detailSopId },
+          select: { status: true },
+        });
+        if (statusContext === null) {
+          throw new NotFoundException('DetailSOP tidak ditemukan');
+        }
+        if (statusContext.status !== StatusSOP.FINAL_APPROVAL) {
+          throw new ConflictException(
+            `SOP belum siap untuk final approval (status saat ini: ${String(statusContext.status)})`,
+          );
+        }
+
+        const acceptedReview = await tx.processReview.findFirst({
+          where: {
+            detailSopId: context.detailSopId,
+            processId: context.processId,
+            decision: ProcessReviewDecision.ACCEPT,
+            nextStatus: StatusSOP.FINAL_APPROVAL,
+          },
+          orderBy: { createdAt: 'desc' },
+          select: { processReviewId: true },
+        });
+        if (acceptedReview === null) {
+          throw new ConflictException('Final approval membutuhkan Process Owner review yang diterima');
+        }
+
+        const updated = await tx.detailSOP.updateMany({
+          where: { detailSopId: context.detailSopId, status: StatusSOP.FINAL_APPROVAL },
+          data: { status: StatusSOP.TTE_PENDING, terakhirDieditOlehId: user.sub },
+        });
+        if (updated.count !== 1) {
+          throw new ConflictException(
+            'Status SOP berubah saat final approval diproses. Muat ulang lalu coba lagi.',
+          );
+        }
+
+        return tx.processFinalApproval.create({
+          data: {
+            detailSopId: context.detailSopId,
+            processId: context.processId,
+            approvedById: user.sub,
+            processReviewId: acceptedReview.processReviewId,
+            authority: authority.authority,
+            authorityKey: authority.authorityKey,
+          },
+        });
       });
     } catch (error) {
       if (isPrismaUniqueConstraintError(error)) {
@@ -237,9 +255,7 @@ export class ProcessFinalApprovalService {
       select: { processId: true },
     });
     if (sop?.processId === null || sop === null) {
-      throw new ConflictException(
-        'SOP legacy belum terikat Process dan tetap memakai workflow kompatibilitas',
-      );
+      throw new ConflictException('SOP arsip tanpa Process tidak dapat masuk approval FTI');
     }
     return { detailSopId: resolved.detailSopId, processId: sop.processId };
   }
