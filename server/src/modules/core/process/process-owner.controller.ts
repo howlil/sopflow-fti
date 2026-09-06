@@ -45,8 +45,15 @@ export class ProcessOwnerController {
   }
 
   @Get('users')
-  async users(@Query('search') search?: string): Promise<ApiSuccessResponse<unknown>> {
-    return { message: 'Akun FTI aktif berhasil diambil', success: true, data: await this.service.listAssignableUsers(search) };
+  async users(
+    @Req() req: Request & { user: JwtAccessPayload },
+    @Query('search') search?: string,
+  ): Promise<ApiSuccessResponse<unknown>> {
+    return {
+      message: 'Akun FTI aktif berhasil diambil',
+      success: true,
+      data: await this.service.listAssignableUsers(req.user.sub, search),
+    };
   }
 
   @Post('processes')
