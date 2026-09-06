@@ -1,4 +1,4 @@
-import type { OrganizationalAuthority, PeranPengguna } from '../../../../generated/prisma';
+import type { OrganizationalAuthority } from '../../../../generated/prisma';
 
 export type {
   PdfSigningStatusResponse,
@@ -27,10 +27,8 @@ export type TtePengesahanPublicResponse = {
   readonly userId: string;
   readonly dokumenTteId: string;
   readonly ditandatanganiPada: string;
-  /** Historical compatibility evidence only; never authorization for Process TTE. */
-  readonly peran: PeranPengguna;
-  readonly authority?: OrganizationalAuthority;
-  readonly authorityLabel?: 'Dekan' | 'Kepala Departemen';
+  readonly authority: OrganizationalAuthority;
+  readonly authorityLabel: 'Dekan' | 'Kepala Departemen';
   readonly penandatangan: {
     readonly nama: string;
     readonly nip: string;
@@ -42,7 +40,7 @@ export type TtePengesahanPublicResponse = {
     readonly judulDokumen: string;
     readonly jenisDokumen: string;
     readonly hashDokumen: string;
-    readonly sopDetailId?: string;
+    readonly sopDetailId: string;
   };
   readonly qrVerificationUrl: string | null;
   readonly qrPayload: string;
