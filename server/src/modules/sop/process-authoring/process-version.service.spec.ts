@@ -1,20 +1,18 @@
-import { ForbiddenException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import type { ProcessContextService } from '../../core/process/process-context.service';
 import type { SopCatalogRepository } from '../catalog/sop-catalog.repository';
-import type { SopLegacyVersionCompatibilityService } from '../catalog/sop-legacy-version-compatibility.service';
 import type { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
 import { ProcessVersionService } from './process-version.service';
 
 const user = {
   sub: 'member-a',
   email: 'member@example.test',
-  peran: 'USER',
   sesiTokenVersion: 1,
-} as never;
+} as const;
 
 describe('ProcessVersionService', () => {
-  function setup(binding: { processId: string } | null = { processId: 'process-a' }) {
+  function setup(binding: { processId: string | null } | null = { processId: 'process-a' }) {
     const prisma = {
       sOP: { findUnique: jest.fn().mockResolvedValue(binding) },
     } as unknown as PrismaService;
@@ -46,26 +44,15 @@ describe('ProcessVersionService', () => {
         },
       ]),
     } as unknown as SopCatalogRepository;
-    const legacyVersionCompatibility = {
-      createVersion: jest.fn().mockResolvedValue({ detail: { id: 'legacy-v2' } }),
-      getVersionHistory: jest.fn(),
-    } as unknown as SopLegacyVersionCompatibilityService;
     const workbenchReader = {
       getForDetail: jest.fn().mockResolvedValue({
         detail: { id: 'detail-v2', sop: { id: 'sop-a' } },
       }),
     } as unknown as SopWorkbenchReader;
     return {
-      service: new ProcessVersionService(
-        prisma,
-        processContext,
-        repository,
-        legacyVersionCompatibility,
-        workbenchReader,
-      ),
+      service: new ProcessVersionService(prisma, processContext, repository, workbenchReader),
       processContext: processContext as any,
       repository: repository as any,
-      legacyVersionCompatibility: legacyVersionCompatibility as any,
       workbenchReader: workbenchReader as any,
     };
   }
@@ -79,21 +66,18 @@ describe('ProcessVersionService', () => {
       sourceDetailSopId: 'detail-v1',
       penggunaId: 'member-a',
     });
-    expect(ctx.legacyVersionCompatibility.createVersion).not.toHaveBeenCalled();
     expect(ctx.workbenchReader.getForDetail).toHaveBeenCalledWith('detail-v2', undefined);
     expect(result.detail.sop).toMatchObject({ processId: 'process-a', processNama: 'Process A' });
   });
 
-  it('keeps unbound SOP on the legacy compatibility path', async () => {
-    const ctx = setup(null);
-    await ctx.service.createVersion(user, 'detail-v1');
+  it('rejects an SOP without native Process ownership', async () => {
+    const ctx = setup({ processId: null });
 
-    expect(ctx.legacyVersionCompatibility.createVersion).toHaveBeenCalledWith(
-      user,
-      'detail-v1',
-      undefined,
+    await expect(ctx.service.createVersion(user, 'detail-v1')).rejects.toBeInstanceOf(
+      ConflictException,
     );
     expect(ctx.processContext.assertCanAuthor).not.toHaveBeenCalled();
+    expect(ctx.repository.cloneDetailSopFromSource).not.toHaveBeenCalled();
   });
 
   it('denies an unrelated Process actor before cloning', async () => {
@@ -116,6 +100,14 @@ describe('ProcessVersionService', () => {
     ]);
     expect(ctx.processContext.assertCanAuthor).toHaveBeenCalledWith('member-a', 'process-a');
     expect(ctx.repository.findRiwayatVersiBySopId).toHaveBeenCalledWith('sop-a');
-    expect(ctx.legacyVersionCompatibility.getVersionHistory).not.toHaveBeenCalled();
+  });
+
+  it('rejects version history for an SOP without Process ownership', async () => {
+    const ctx = setup({ processId: null });
+
+    await expect(ctx.service.getVersionHistory(user, 'sop-a')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(ctx.processContext.assertCanAuthor).not.toHaveBeenCalled();
   });
 });
