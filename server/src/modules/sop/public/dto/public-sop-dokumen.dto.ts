@@ -3,19 +3,8 @@ import { PenyusunWorkbenchDiagramKonfigurasiDto } from '../../diagram/dto/penyus
 import { PenyusunWorkbenchDetailDto } from '../../catalog/dto/penyusun-workbench-detail.dto';
 import { PenyusunWorkbenchLangkahDto } from '../../catalog/dto/penyusun-workbench-langkah.dto';
 
-export class PublicOpdRingkasDto {
-  @ApiProperty({ format: 'uuid' })
-  readonly id!: string;
-
-  @ApiProperty()
-  readonly nama!: string;
-}
-
-/** Dokumen SOP berlaku untuk pratinjau publik (tanpa log audit / umpan balik evaluasi). */
+/** Dokumen SOP FTI berlaku untuk pratinjau publik (tanpa log audit / workflow compatibility). */
 export class PublicSopDokumenDto {
-  @ApiPropertyOptional({ type: () => PublicOpdRingkasDto, nullable: true })
-  readonly opd!: PublicOpdRingkasDto | null;
-
   @ApiProperty({ type: () => PenyusunWorkbenchDetailDto })
   readonly detail!: PenyusunWorkbenchDetailDto;
 
