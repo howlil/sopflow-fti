@@ -1,16 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { OrganizationalScope } from '../../../../generated/prisma';
 
-/** Satu SOP resmi pada arsip publik; Process context tersedia untuk target-native records. */
+/** Satu SOP resmi pada arsip publik target-native. */
 export class PublicSopItemDto {
   @ApiProperty({ format: 'uuid' })
   readonly detailSopId!: string;
 
   @ApiProperty({ format: 'uuid' })
   readonly sopId!: string;
-
-  @ApiPropertyOptional({ format: 'uuid', nullable: true, description: 'Legacy compatibility shadow' })
-  readonly opdId!: string | null;
 
   @ApiProperty()
   readonly judul!: string;
@@ -24,17 +21,14 @@ export class PublicSopItemDto {
   @ApiPropertyOptional({ nullable: true, description: 'Tanggal efektif pengesahan (ISO 8601)' })
   readonly tanggalEfektif!: string | null;
 
-  @ApiPropertyOptional({ nullable: true, description: 'Nama OPD compatibility shadow / legacy classification' })
-  readonly opdNama!: string | null;
+  @ApiProperty({ format: 'uuid' })
+  readonly processId!: string;
 
-  @ApiPropertyOptional({ format: 'uuid', nullable: true })
-  readonly processId!: string | null;
+  @ApiProperty()
+  readonly processName!: string;
 
-  @ApiPropertyOptional({ nullable: true })
-  readonly processName!: string | null;
-
-  @ApiPropertyOptional({ enum: OrganizationalScope, nullable: true })
-  readonly scope!: OrganizationalScope | null;
+  @ApiProperty({ enum: OrganizationalScope })
+  readonly scope!: OrganizationalScope;
 
   @ApiPropertyOptional({ format: 'uuid', nullable: true })
   readonly departmentId!: string | null;
