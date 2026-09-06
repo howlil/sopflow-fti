@@ -5,7 +5,6 @@ import { CommonModule } from './common/common.module';
 import { WinstonLoggerConfig } from './common/logger/winston.config';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { validateEnv } from './config/env.validation';
-import { LegacyOpdCompatibilityModule } from './modules/compatibility/legacy-opd/legacy-opd-compatibility.module';
 import { AuthModule } from './modules/core/auth/auth.module';
 import { PenggunaModule } from './modules/core/pengguna/pengguna.module';
 import { PeraturanModule } from './modules/core/peraturan/peraturan.module';
@@ -55,7 +54,6 @@ import { ProcessNotificationModule } from './modules/notifications/process/proce
     TteVerifikasiModule,
     TteCoreModule,
     ProcessNotificationModule,
-    LegacyOpdCompatibilityModule,
   ],
 })
 export class AppModule {}
