@@ -11,7 +11,7 @@ import type { ProcessNotificationService } from '../../notifications/process/pro
 import type { SopCatalogRepository } from '../catalog/sop-catalog.repository';
 import { ProcessSopRevocationService } from './process-sop-revocation.service';
 
-const user = { sub: 'dean-1', peran: 'PENYUSUN' } as never;
+const user = { sub: 'dean-1', email: 'dean@example.test' } as const;
 
 function makeService(options?: { transitionCount?: number }) {
   const tx = {
@@ -161,12 +161,12 @@ describe('ProcessSopRevocationService', () => {
     expect(processNotifications.createManyInTransaction).not.toHaveBeenCalled();
   });
 
-  it('keeps legacy unbound SOP on the compatibility revocation path', async () => {
+  it('rejects an unbound SOP because it is historical-only', async () => {
     const { service, prisma, authority, processNotifications } = makeService();
-    (prisma.sOP.findUnique as jest.Mock).mockResolvedValue(null);
+    (prisma.sOP.findUnique as jest.Mock).mockResolvedValue({ processId: null });
 
     await expect(service.revoke(user, 'detail-a')).rejects.toThrow(
-      'SOP legacy belum terikat Process dan tetap memakai workflow kompatibilitas',
+      'SOP tanpa Process hanya tersedia sebagai riwayat compatibility dan tidak dapat dicabut dari runtime FTI',
     );
     expect(authority.assertCanApprove).not.toHaveBeenCalled();
     expect(processNotifications.createManyInTransaction).not.toHaveBeenCalled();
