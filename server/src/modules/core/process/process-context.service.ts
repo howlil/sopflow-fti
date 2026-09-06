@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { ProcessLifecycleStatus } from '../../../generated/prisma';
 
 const userSelect = {
   penggunaId: true,
@@ -22,9 +23,11 @@ const processInclude = {
 export class ProcessContextService {
   constructor(private readonly prisma: PrismaService) {}
 
-  listForUser(penggunaId: string) {
+  async listForUser(penggunaId: string) {
+    const archivedIds = await this.archivedProcessIds();
     return this.prisma.process.findMany({
       where: {
+        ...(archivedIds.length > 0 ? { processId: { notIn: archivedIds } } : {}),
         OR: [{ ownerId: penggunaId }, { members: { some: { penggunaId } } }],
       },
       include: processInclude,
@@ -33,6 +36,9 @@ export class ProcessContextService {
   }
 
   async assertCanAuthor(penggunaId: string, processId: string) {
+    if (await this.isArchived(processId)) {
+      throw new ForbiddenException('Process sudah diarsipkan dan bersifat read-only');
+    }
     const process = await this.prisma.process.findFirst({
       where: {
         processId,
@@ -47,6 +53,9 @@ export class ProcessContextService {
   }
 
   async assertCanReview(penggunaId: string, processId: string) {
+    if (await this.isArchived(processId)) {
+      throw new ForbiddenException('Process sudah diarsipkan dan tidak menerima tindakan workflow baru');
+    }
     const process = await this.prisma.process.findFirst({
       where: { processId, ownerId: penggunaId },
       include: processInclude,
@@ -55,5 +64,21 @@ export class ProcessContextService {
       throw new ForbiddenException('Akses ditolak: hanya Process Owner yang dapat melakukan review');
     }
     return process;
+  }
+
+  private async archivedProcessIds(): Promise<string[]> {
+    const rows = await this.prisma.processLifecycle.findMany({
+      where: { status: ProcessLifecycleStatus.ARCHIVED },
+      select: { processId: true },
+    });
+    return rows.map((row) => row.processId);
+  }
+
+  private async isArchived(processId: string): Promise<boolean> {
+    const lifecycle = await this.prisma.processLifecycle.findUnique({
+      where: { processId },
+      select: { status: true },
+    });
+    return lifecycle?.status === ProcessLifecycleStatus.ARCHIVED;
   }
 }

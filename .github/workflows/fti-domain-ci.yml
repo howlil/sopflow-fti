@@ -66,6 +66,8 @@ jobs:
           platform-admin.guard.spec.ts
           process.service.spec.ts
           process-context.service.spec.ts
+          process-owner-authority.service.spec.ts
+          process-owner.service.spec.ts
           process-sop-authoring.service.spec.ts
           process-owner-review.service.spec.ts
           organizational-authority.service.spec.ts

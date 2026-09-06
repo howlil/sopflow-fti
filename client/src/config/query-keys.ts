@@ -24,6 +24,14 @@ export const queryKeys = {
   processAdminDepartments: ['processAdmin', 'departments'] as const,
   processAdminUsers: ['processAdmin', 'users'] as const,
   processAdminProcesses: ['processAdmin', 'processes'] as const,
+  processOwnerAuthorities: ['processAdmin', 'ownerAuthorities'] as const,
+
+  // Process Owner self-service
+  processOwner: ['processOwner'] as const,
+  processOwnerScopes: ['processOwner', 'scopes'] as const,
+  processOwnerProcesses: ['processOwner', 'processes'] as const,
+  processOwnerUsers: ['processOwner', 'users'] as const,
+  processOwnerAudit: (processId: string) => ['processOwner', 'audit', processId] as const,
 
   // Global FTI regulation catalog
   peraturan: ['peraturan'] as const,

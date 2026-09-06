@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { FileText, ShieldCheck, Workflow, ArrowRight } from "lucide-react";
 import { useMyProcesses } from "@/api/process-context";
+import { useProcessOwnerSelfService } from "@/api/process-owner";
 import { useMyOrganizationalAuthorities } from "@/api/organizational-authority";
 import { ListPageLayout } from "@/components/layout/ListPageLayout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useAuthStore } from "@/stores/authStore";
 import { ROUTES } from "@/utils/constants";
+import { ProcessOwnerSelfServicePanel } from "./ProcessOwnerSelfServicePanel";
 
 function CapabilityCard({
   title,
@@ -49,14 +51,23 @@ export function WorkHomePage() {
   useDocumentTitle("Beranda Kerja");
   const user = useAuthStore((state) => state.user);
   const { data: processes = [], isLoading: isLoadingProcesses } = useMyProcesses();
+  const {
+    scopes: ownerScopes,
+    processes: ownedProcesses,
+    isLoading: isLoadingOwnerContext,
+  } = useProcessOwnerSelfService();
   const { data: authorities = [], isLoading: isLoadingAuthorities } =
     useMyOrganizationalAuthorities();
 
   const ownerCount = user ? processes.filter((process) => process.ownerId === user.id).length : 0;
   const memberCount = Math.max(processes.length - ownerCount, 0);
-  const isLoading = isLoadingProcesses || isLoadingAuthorities;
+  const isLoading = isLoadingProcesses || isLoadingAuthorities || isLoadingOwnerContext;
   const hasContextualCapability =
-    processes.length > 0 || authorities.length > 0 || user?.platformRole === "SUPER_ADMIN";
+    processes.length > 0 ||
+    ownedProcesses.length > 0 ||
+    ownerScopes.length > 0 ||
+    authorities.length > 0 ||
+    user?.platformRole === "SUPER_ADMIN";
 
   return (
     <ListPageLayout title="Beranda Kerja" breadcrumb={null}>
@@ -75,44 +86,50 @@ export function WorkHomePage() {
           Memuat konteks kerja…
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {processes.length > 0 ? (
-            <CapabilityCard
-              title="Pekerjaan SOP"
-              description={`${ownerCount} Process sebagai Owner · ${memberCount} sebagai Member. Draft, revisi, dan review yang memerlukan tindakan Anda tersedia dalam satu daftar kerja.`}
-              to={ROUTES.WORK_QUEUE}
-              action="Buka Pekerjaan SOP"
-              icon={FileText}
-            />
-          ) : null}
+        <>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {processes.length > 0 ? (
+              <CapabilityCard
+                title="Pekerjaan SOP"
+                description={`${ownerCount} Process sebagai Owner · ${memberCount} sebagai Member. Draft, revisi, dan review yang memerlukan tindakan Anda tersedia dalam satu daftar kerja.`}
+                to={ROUTES.WORK_QUEUE}
+                action="Buka Pekerjaan SOP"
+                icon={FileText}
+              />
+            ) : null}
 
-          {authorities.length > 0 ? (
-            <CapabilityCard
-              title="Persetujuan & TTE"
-              description={`${authorities.length} kewenangan organisasi aktif. Tinjau persetujuan akhir dan tanda tangani SOP sesuai kewenangan.`}
-              to={ROUTES.APPROVAL.INBOX}
-              action="Buka Persetujuan"
-              icon={ShieldCheck}
-            />
-          ) : null}
+            {authorities.length > 0 ? (
+              <CapabilityCard
+                title="Persetujuan & TTE"
+                description={`${authorities.length} kewenangan organisasi aktif. Tinjau persetujuan akhir dan tanda tangani SOP sesuai kewenangan.`}
+                to={ROUTES.APPROVAL.INBOX}
+                action="Buka Persetujuan"
+                icon={ShieldCheck}
+              />
+            ) : null}
 
-          {user?.platformRole === "SUPER_ADMIN" ? (
-            <CapabilityCard
-              title="Administrasi FTI"
-              description="Kelola Process, tim Process, dan penugasan kewenangan organisasi."
-              to={ROUTES.ADMIN.PROCESSES}
-              action="Buka Administrasi"
-              icon={Workflow}
-            />
-          ) : null}
+            {user?.platformRole === "SUPER_ADMIN" ? (
+              <CapabilityCard
+                title="Administrasi FTI"
+                description="Kelola struktur organisasi, eligibility Process Owner, dan penugasan kewenangan organisasi."
+                to={ROUTES.ADMIN.PROCESSES}
+                action="Buka Administrasi"
+                icon={Workflow}
+              />
+            ) : null}
 
-          {!hasContextualCapability ? (
-            <div className="rounded-surface border border-dashed border-border bg-surface p-5 text-sm text-secondary-foreground">
-              Akun ini belum memiliki penugasan Process, kewenangan organisasi, atau administrasi
-              platform yang dapat digunakan.
-            </div>
+            {!hasContextualCapability ? (
+              <div className="rounded-surface border border-dashed border-border bg-surface p-5 text-sm text-secondary-foreground">
+                Akun ini belum memiliki penugasan Process, kewenangan organisasi, atau administrasi
+                platform yang dapat digunakan.
+              </div>
+            ) : null}
+          </div>
+
+          {ownerScopes.length > 0 || ownedProcesses.length > 0 ? (
+            <ProcessOwnerSelfServicePanel />
           ) : null}
-        </div>
+        </>
       )}
     </ListPageLayout>
   );
