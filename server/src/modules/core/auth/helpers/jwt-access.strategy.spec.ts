@@ -45,20 +45,19 @@ describe('Pengujian JwtAccessStrategy', () => {
     );
   });
 
-  it('seharusnya mengembalikan payload dari database ketika versi sesi cocok', async () => {
+  it('mengembalikan identity/session payload tanpa legacy role ketika versi sesi cocok', async () => {
     authRepository.findActivePenggunaById.mockResolvedValue(row);
     const actual = await strategy.validate({
       sub: row.penggunaId,
       email: row.email,
-      peran: row.peran,
       sesiTokenVersion: row.sesiTokenVersion,
     });
     expect(actual).toEqual({
       sub: row.penggunaId,
       email: row.email,
-      peran: row.peran,
       sesiTokenVersion: row.sesiTokenVersion,
     });
+    expect(actual).not.toHaveProperty('peran');
   });
 
   it('seharusnya menolak payload tanpa versi sesi', async () => {
@@ -66,7 +65,6 @@ describe('Pengujian JwtAccessStrategy', () => {
       strategy.validate({
         sub: row.penggunaId,
         email: row.email,
-        peran: row.peran,
       }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
     expect(authRepository.findActivePenggunaById).not.toHaveBeenCalled();
@@ -78,7 +76,6 @@ describe('Pengujian JwtAccessStrategy', () => {
       strategy.validate({
         sub: row.penggunaId,
         email: row.email,
-        peran: row.peran,
         sesiTokenVersion: row.sesiTokenVersion,
       }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
@@ -90,7 +87,6 @@ describe('Pengujian JwtAccessStrategy', () => {
       strategy.validate({
         sub: row.penggunaId,
         email: row.email,
-        peran: row.peran,
         sesiTokenVersion: row.sesiTokenVersion - 1,
       }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
