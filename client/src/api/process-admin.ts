@@ -1,14 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api/api-client'
-import { unwrapApiData } from '@/lib/api/response'
+import { unwrapApiData, unwrapApiVoid } from '@/lib/api/response'
 import { queryKeys } from '@/config/query-keys'
 import { useMutationWithToast } from '@/hooks/useMutationWithToast'
 import { STALE_TIME } from '@/utils/constants'
 import type { ApiSuccessResponse } from '@/types/dto/auth.dto'
 import type {
   DepartmentDto,
+  GrantProcessOwnerAuthorityPayload,
   ProcessAssignableUserDto,
   ProcessDto,
+  ProcessOwnerAuthorityDto,
   ProcessPayload,
 } from '@/types/dto/process.dto'
 
@@ -30,6 +32,7 @@ export const processAdminApi = {
   listProcesses: (): Promise<ProcessDto[]> =>
     unwrapApiData(apiClient.get<ApiSuccessResponse<ProcessDto[]>>('/process-admin/processes')),
 
+  /** Reserved for administrative repair/bootstrap; normal creation belongs to the authorized owner. */
   createProcess: (payload: ProcessPayload): Promise<ProcessDto> =>
     unwrapApiData(apiClient.post<ApiSuccessResponse<ProcessDto>>('/process-admin/processes', payload)),
 
@@ -37,6 +40,19 @@ export const processAdminApi = {
     unwrapApiData(
       apiClient.patch<ApiSuccessResponse<ProcessDto>>(`/process-admin/processes/${processId}`, payload),
     ),
+
+  listOwnerAuthorities: (): Promise<ProcessOwnerAuthorityDto[]> =>
+    unwrapApiData(
+      apiClient.get<ApiSuccessResponse<ProcessOwnerAuthorityDto[]>>('/process-admin/owner-authorities'),
+    ),
+
+  grantOwnerAuthority: (payload: GrantProcessOwnerAuthorityPayload): Promise<ProcessOwnerAuthorityDto> =>
+    unwrapApiData(
+      apiClient.post<ApiSuccessResponse<ProcessOwnerAuthorityDto>>('/process-admin/owner-authorities', payload),
+    ),
+
+  revokeOwnerAuthority: (id: string): Promise<void> =>
+    unwrapApiVoid(apiClient.delete(`/process-admin/owner-authorities/${id}`)),
 }
 
 export function useProcessAdministration() {
@@ -53,6 +69,11 @@ export function useProcessAdministration() {
   const processesQuery = useQuery({
     queryKey: queryKeys.processAdminProcesses,
     queryFn: processAdminApi.listProcesses,
+    staleTime: STALE_TIME.MEDIUM,
+  })
+  const ownerAuthoritiesQuery = useQuery({
+    queryKey: queryKeys.processOwnerAuthorities,
+    queryFn: processAdminApi.listOwnerAuthorities,
     staleTime: STALE_TIME.MEDIUM,
   })
 
@@ -78,16 +99,40 @@ export function useProcessAdministration() {
     errorMessagePrefix: 'Gagal memperbarui Process',
   })
 
+  const grantOwnerAuthority = useMutationWithToast({
+    mutationFn: processAdminApi.grantOwnerAuthority,
+    invalidateKeys: [queryKeys.processOwnerAuthorities],
+    successMessage: 'Kewenangan Process Owner berhasil diberikan',
+    errorMessagePrefix: 'Gagal memberikan kewenangan Process Owner',
+  })
+
+  const revokeOwnerAuthority = useMutationWithToast({
+    mutationFn: processAdminApi.revokeOwnerAuthority,
+    invalidateKeys: [queryKeys.processOwnerAuthorities],
+    successMessage: 'Kewenangan Process Owner berhasil dicabut',
+    errorMessagePrefix: 'Gagal mencabut kewenangan Process Owner',
+  })
+
   return {
     departments: departmentsQuery.data ?? [],
     users: usersQuery.data ?? [],
     processes: processesQuery.data ?? [],
+    ownerAuthorities: ownerAuthoritiesQuery.data ?? [],
     isLoading:
-      departmentsQuery.isLoading || usersQuery.isLoading || processesQuery.isLoading,
+      departmentsQuery.isLoading ||
+      usersQuery.isLoading ||
+      processesQuery.isLoading ||
+      ownerAuthoritiesQuery.isLoading,
     createDepartment: createDepartment.mutateAsync,
     createProcess: createProcess.mutateAsync,
     updateProcess: updateProcess.mutateAsync,
+    grantOwnerAuthority: grantOwnerAuthority.mutateAsync,
+    revokeOwnerAuthority: revokeOwnerAuthority.mutateAsync,
     isSaving:
-      createDepartment.isPending || createProcess.isPending || updateProcess.isPending,
+      createDepartment.isPending ||
+      createProcess.isPending ||
+      updateProcess.isPending ||
+      grantOwnerAuthority.isPending ||
+      revokeOwnerAuthority.isPending,
   }
 }
