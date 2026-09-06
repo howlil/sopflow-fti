@@ -19,18 +19,20 @@
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
-     "test:core-unit": "jest auth.service.spec.ts auth.shared.spec.ts auth.controller.spec.ts auth.repository.spec.ts jwt-access.strategy.spec.ts auth.dto.spec.ts roles.guard.spec.ts penyusun.service.spec.ts kepala-opd.service.spec.ts kepala-opd.controller.spec.ts kepala-opd.repository.spec.ts kepala-opd.dto.spec.ts evaluator.service.spec.ts pelaksana.service.spec.ts pelaksana.controller.spec.ts pelaksana.repository.spec.ts pelaksana.dto.spec.ts peraturan.service.spec.ts sop-catalog.service.spec.ts sop-prosedur.service.spec.ts sop-diagram.service.spec.ts sop-completeness.validator.spec.ts sop-status-policy.spec.ts tte-profil.service.spec.ts tte.controller.spec.ts tte-profil.dto.spec.ts sop-public.service.spec.ts indonesian-mobile-number.util.spec.ts notification-module-boundaries.spec.ts env.validation.spec.ts --runInBand",
+    "test:core-unit": "jest auth.service.spec.ts auth.shared.spec.ts auth.controller.spec.ts auth.repository.spec.ts jwt-access.strategy.spec.ts auth.dto.spec.ts pelaksana.service.spec.ts pelaksana.controller.spec.ts pelaksana.repository.spec.ts pelaksana.dto.spec.ts peraturan.service.spec.ts sop-catalog.service.spec.ts process-version.service.spec.ts native-fti-boundary.spec.ts sop-prosedur.service.spec.ts sop-diagram.service.spec.ts sop-completeness.validator.spec.ts sop-status-policy.spec.ts tte-profil.service.spec.ts tte.controller.spec.ts tte-profil.dto.spec.ts sop-public.service.spec.ts indonesian-mobile-number.util.spec.ts notification-module-boundaries.spec.ts env.validation.spec.ts --runInBand",
+    "test:fti-exit": "jest process-version.service.spec.ts native-fti-boundary.spec.ts sop-catalog.service.spec.ts sop-public.service.spec.ts --runInBand",
     "test:integration": "node -e \"console.error('Integration test wajib Docker. Jalankan: pnpm test:integration:docker'); process.exit(1)\"",
     "test:integration:run": "jest --config ./test/jest-integration.json --runInBand",
     "test:integration:docker": "docker compose -f ../docker-compose.test.yml --profile test run --rm sop-integration-test",
     "test:integration:docker:pdf": "docker compose -f ../docker-compose.test.yml --profile test run --rm -e INTEGRATION_TEST_PATTERN=tte-pdf-qr-verifikasi sop-integration-test",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "pdf-signing:generate-cert": "node scripts/generate-pdf-signing-cert.cjs",
     "db:seed": "prisma migrate deploy && prisma db seed",
     "db:seed:e2e": "ts-node --transpile-only prisma/cleanup-migration-smoke-probes.ts && ts-node --transpile-only prisma/seed-e2e.ts",
+    "db:backfill:legacy-retention": "ts-node --transpile-only prisma/fti-legacy-retention-backfill.ts",
     "db:audit:fti": "ts-node --transpile-only prisma/fti-baseline-audit.ts",
     "db:fresh": "prisma migrate reset --force"
   },
@@ -82,7 +84,7 @@
     "@types/node-forge": "^1.3.14",
     "@types/nodemailer": "^8.0.1",
     "@types/passport-jwt": "^4.0.1",
-    "@types/qrcode": "^1.5.6",
+    "@types/qrcode": "^1.5.4",
     "@types/supertest": "^6.0.2",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
@@ -101,16 +103,10 @@
     "seed": "ts-node --transpile-only --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   },
   "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
+    "moduleFileExtensions": ["js", "json", "ts"],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.ts$": "ts-jest"
-    },
+    "transform": {"^.+\\.ts$": "ts-jest"},
     "collectCoverageFrom": [
       "**/*.(t|j)s",
       "!**/*.spec.ts",
@@ -130,19 +126,8 @@
       "!modules/tte/penandatanganan/tte-pdf-signing.service.ts"
     ],
     "coverageDirectory": "../coverage",
-    "coverageReporters": [
-      "text",
-      "lcov",
-      "html"
-    ],
-    "coverageThreshold": {
-      "global": {
-        "branches": 80,
-        "functions": 80,
-        "lines": 80,
-        "statements": 80
-      }
-    },
+    "coverageReporters": ["text", "lcov", "html"],
+    "coverageThreshold": {"global": {"branches": 80, "functions": 80, "lines": 80, "statements": 80}},
     "testEnvironment": "node",
     "verbose": true,
     "testTimeout": 30000
