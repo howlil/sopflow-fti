@@ -1,5 +1,5 @@
 import { ConflictException } from '@nestjs/common';
-import { OrganizationalScope, PeranPengguna, StatusSOP } from '../../../generated/prisma';
+import { OrganizationalScope, StatusSOP } from '../../../generated/prisma';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import type { ProcessContextService } from '../../core/process/process-context.service';
 import type { SopCatalogRepository, SopDaftarDbRow } from '../catalog/sop-catalog.repository';
@@ -60,20 +60,19 @@ describe('ProcessSopAuthoringService', () => {
     const repository = {
       findDaftarAll: jest.fn().mockResolvedValue([accessibleTarget]),
     } as unknown as SopCatalogRepository;
-    const catalogService = {};
+    const workbenchReader = {} as unknown as SopWorkbenchReader;
 
     const service = new ProcessSopAuthoringService(
       prisma,
       processContext,
       repository,
-      catalogService as unknown as SopWorkbenchReader,
+      workbenchReader,
     );
 
     const rows = await service.listForCurrentUser(
       {
         sub: 'user-1',
         email: 'u@example.test',
-        peran: PeranPengguna.PENYUSUN,
         sesiTokenVersion: 1,
       },
       undefined,
@@ -92,7 +91,7 @@ describe('ProcessSopAuthoringService', () => {
     });
   });
 
-  it('does not expose legacy unbound SOPs to a non-authoring global role', async () => {
+  it('does not expose SOPs when the user has no Process relationship', async () => {
     const prisma = {
       sOP: { findMany: jest.fn().mockResolvedValue([]) },
     } as unknown as PrismaService;
@@ -102,28 +101,24 @@ describe('ProcessSopAuthoringService', () => {
     const repository = {
       findDaftarAll: jest.fn().mockResolvedValue([]),
     } as unknown as SopCatalogRepository;
-    const catalogService = {
-      listForCurrentUser: jest.fn(),
-    };
+    const workbenchReader = {} as unknown as SopWorkbenchReader;
     const service = new ProcessSopAuthoringService(
       prisma,
       processContext,
       repository,
-      catalogService as unknown as SopWorkbenchReader,
+      workbenchReader,
     );
 
     const rows = await service.listForCurrentUser(
       {
-        sub: 'evaluator-1',
-        email: 'evaluator@example.test',
-        peran: PeranPengguna.EVALUATOR,
+        sub: 'user-without-process',
+        email: 'user@example.test',
         sesiTokenVersion: 1,
       },
       undefined,
     );
 
     expect(rows).toEqual([]);
-    expect(catalogService.listForCurrentUser.mock.calls).toHaveLength(0);
   });
 
   it('rejects an unbound SOP on the native workbench endpoint', async () => {
@@ -139,15 +134,14 @@ describe('ProcessSopAuthoringService', () => {
         detailSopId: 'legacy-detail',
       }),
     } as unknown as SopCatalogRepository;
-    const catalogService = {
-      getPenyusunWorkbench: jest.fn(),
+    const workbenchReader = {
       getForDetail: jest.fn(),
-    };
+    } as unknown as SopWorkbenchReader;
     const service = new ProcessSopAuthoringService(
       prisma,
       processContext,
       repository,
-      catalogService as unknown as SopWorkbenchReader,
+      workbenchReader,
     );
 
     await expect(
@@ -155,12 +149,11 @@ describe('ProcessSopAuthoringService', () => {
         {
           sub: 'legacy-user',
           email: 'legacy@example.test',
-          peran: PeranPengguna.PENYUSUN,
           sesiTokenVersion: 1,
         },
         'legacy-detail',
       ),
     ).rejects.toBeInstanceOf(ConflictException);
-    expect(catalogService.getPenyusunWorkbench.mock.calls).toHaveLength(0);
+    expect((workbenchReader.getForDetail as jest.Mock).mock.calls).toHaveLength(0);
   });
 });
