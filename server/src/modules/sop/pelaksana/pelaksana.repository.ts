@@ -3,7 +3,7 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 
 export type PelaksanaRow = {
   pelaksanaId: string;
-  opdId: string;
+  opdId: string | null;
   nama: string;
   createdAt: Date;
   updatedAt: Date;
@@ -18,19 +18,6 @@ export type PelaksanaAttributionRow = {
 @Injectable()
 export class PelaksanaRepository {
   constructor(private readonly prisma: PrismaService) {}
-
-  /**
-   * Persistence-only shadow required by the pre-FTI schema. It is deliberately
-   * independent from the current user/Process and must never be treated as catalog ownership.
-   */
-  async findLegacyStorageShadow(): Promise<string | null> {
-    const fallback = await this.prisma.oPD.findFirst({
-      where: { deletedAt: null },
-      orderBy: { createdAt: 'asc' },
-      select: { opdId: true },
-    });
-    return fallback?.opdId ?? null;
-  }
 
   async findAll(): Promise<PelaksanaRow[]> {
     return this.prisma.pelaksana.findMany({
@@ -59,7 +46,7 @@ export class PelaksanaRepository {
   }
 
   async findByNama(nama: string): Promise<Pick<PelaksanaRow, 'pelaksanaId' | 'nama'> | null> {
-    return this.prisma.pelaksana.findFirst({
+    return this.prisma.pelaksana.findUnique({
       where: { nama },
       select: { pelaksanaId: true, nama: true },
     });
@@ -83,10 +70,10 @@ export class PelaksanaRepository {
     return new Map(rows.map((row) => [row.penggunaId, row.nama]));
   }
 
-  async createGlobal(opdShadowId: string, nama: string, userId: string): Promise<PelaksanaRow> {
+  async createGlobal(nama: string, userId: string): Promise<PelaksanaRow> {
     return this.prisma.$transaction(async (tx) => {
       const row = await tx.pelaksana.create({
-        data: { opdId: opdShadowId, nama },
+        data: { nama },
         select: {
           pelaksanaId: true,
           opdId: true,
