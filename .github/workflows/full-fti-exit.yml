@@ -109,8 +109,7 @@ jobs:
         run: |
           docker exec sop-full-fti-exit-db mariadb -uroot -proot_test_password sop_full_fti_exit -e "
             INSERT INTO SOP (sopId, opdId, processId, judul, createdAt, updatedAt)
-            SELECT '00000000-0000-0000-0000-00000000f701', opdId, NULL, 'Legacy retention probe', NOW(3), NOW(3)
-            FROM OPD WHERE nama = 'Dinas Kesehatan' LIMIT 1;
+            VALUES ('00000000-0000-0000-0000-00000000f701', NULL, NULL, 'Legacy retention probe', NOW(3), NOW(3));
           "
 
       - name: Backfill explicit legacy retention classification
