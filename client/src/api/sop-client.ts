@@ -13,55 +13,13 @@ import type {
   UpdateSopProsedurDto,
   UpdateSopDiagramDto,
 } from '@/types/dto/sop.dto'
-import type { TTESignaturePayload } from '@/types/dto/tte.dto'
 
 export type CreateProcessSopRequestDto = CreateSopRequestDto & { processId: string }
 
-type NativeSigningAuthority = {
-  authority: 'DEAN' | 'HEAD_OF_DEPARTMENT'
-  nama: string | null
-  nip: string | null
-  jabatan: string | null
-}
-
-type NativeWorkbenchData = Omit<
-  PenyusunWorkbenchData,
-  'detail' | 'tteSignaturePayloadKepalaOpd'
-> & {
-  detail: Omit<PenyusunWorkbenchData['detail'], 'kepalaOpd'> & {
-    signingAuthority?: NativeSigningAuthority | null
-  }
-  tteSignaturePayload?: TTESignaturePayload
-}
-
-/**
- * Transitional adapter for the protected SOP workspace UI.
- * The wire contract is FTI-native; only this boundary aliases contextual
- * authority/signature data to old local property names until the protected
- * document component contract is migrated separately.
- */
-function adaptNativeWorkbench(data: NativeWorkbenchData): PenyusunWorkbenchData {
-  const authority = data.detail.signingAuthority
-  return {
-    ...data,
-    detail: {
-      ...data.detail,
-      kepalaOpd:
-        authority == null
-          ? null
-          : {
-              nama: authority.nama,
-              nip: authority.nip,
-            },
-    },
-    tteSignaturePayloadKepalaOpd: data.tteSignaturePayload,
-  }
-}
-
 async function unwrapWorkbench(
-  request: Promise<ApiSuccessResponse<NativeWorkbenchData>>,
+  request: Promise<ApiSuccessResponse<PenyusunWorkbenchData>>,
 ): Promise<PenyusunWorkbenchData> {
-  return adaptNativeWorkbench(await unwrapApiData(request))
+  return unwrapApiData(request)
 }
 
 export const sopApi = {
@@ -75,14 +33,14 @@ export const sopApi = {
 
   getPenyusunWorkbench: (detailSopId: string, params?: PenyusunWorkbenchQueryParams) =>
     unwrapWorkbench(
-      apiClient.get<ApiSuccessResponse<NativeWorkbenchData>>(
+      apiClient.get<ApiSuccessResponse<PenyusunWorkbenchData>>(
         `/process-sop/workbench/${detailSopId}${buildQueryString(params)}`,
       ),
     ),
 
   updateSopHeader: (detailSopId: string, payload: UpdateSopHeaderDto) =>
     unwrapWorkbench(
-      apiClient.patch<ApiSuccessResponse<NativeWorkbenchData>>(
+      apiClient.patch<ApiSuccessResponse<PenyusunWorkbenchData>>(
         `/process-sop/header/${detailSopId}`,
         payload,
       ),
@@ -90,7 +48,7 @@ export const sopApi = {
 
   updateSopProsedur: (detailSopId: string, payload: UpdateSopProsedurDto) =>
     unwrapWorkbench(
-      apiClient.patch<ApiSuccessResponse<NativeWorkbenchData>>(
+      apiClient.patch<ApiSuccessResponse<PenyusunWorkbenchData>>(
         `/process-sop/langkah/${detailSopId}`,
         payload,
       ),
@@ -98,7 +56,7 @@ export const sopApi = {
 
   updateSopDiagram: (detailSopId: string, payload: UpdateSopDiagramDto) =>
     unwrapWorkbench(
-      apiClient.patch<ApiSuccessResponse<NativeWorkbenchData>>(
+      apiClient.patch<ApiSuccessResponse<PenyusunWorkbenchData>>(
         `/process-sop/diagram/${detailSopId}`,
         payload,
       ),
@@ -106,7 +64,7 @@ export const sopApi = {
 
   buatVersiBaru: (detailSopId: string, params?: PenyusunWorkbenchQueryParams) =>
     unwrapWorkbench(
-      apiClient.post<ApiSuccessResponse<NativeWorkbenchData>>(
+      apiClient.post<ApiSuccessResponse<PenyusunWorkbenchData>>(
         `/process-sop/${detailSopId}/version${buildQueryString(params)}`,
       ),
     ),
