@@ -61,10 +61,13 @@ export function useProcessOwnerSelfService() {
     queryFn: processOwnerApi.processes,
     staleTime: STALE_TIME.SHORT,
   })
+  const hasOwnerCapability =
+    (scopesQuery.data?.length ?? 0) > 0 || (processesQuery.data?.length ?? 0) > 0
   const usersQuery = useQuery({
     queryKey: queryKeys.processOwnerUsers,
     queryFn: processOwnerApi.users,
     staleTime: STALE_TIME.MEDIUM,
+    enabled: hasOwnerCapability,
   })
 
   const commonInvalidation = [queryKeys.processOwnerProcesses, processQueryKeys.mine]
@@ -114,7 +117,10 @@ export function useProcessOwnerSelfService() {
     scopes: scopesQuery.data ?? [],
     processes: processesQuery.data ?? [],
     users: usersQuery.data ?? [],
-    isLoading: scopesQuery.isLoading || processesQuery.isLoading || usersQuery.isLoading,
+    isLoading:
+      scopesQuery.isLoading ||
+      processesQuery.isLoading ||
+      (hasOwnerCapability && usersQuery.isLoading),
     createProcess: createProcess.mutateAsync,
     renameProcess: renameProcess.mutateAsync,
     addMember: addMember.mutateAsync,
