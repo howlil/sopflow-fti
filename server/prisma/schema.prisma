@@ -577,15 +577,6 @@ enum CabangDiagram {
   TIDAK
 }
 
-enum SatuanWaktu {
-  m
-  h
-  d
-  w
-  mo
-  y
-}
-
 enum SisiPanahDiagram {
   top
   bottom
