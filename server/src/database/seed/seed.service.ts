@@ -524,7 +524,7 @@ export class SeedService {
           nohp: true,
         },
       });
-      result[user.email] = { ...persisted, opdId: persisted.opdId! };
+      result[user.email] = { ...persisted, peran: user.peran, opdId: persisted.opdId! };
     }
     return result;
   }
