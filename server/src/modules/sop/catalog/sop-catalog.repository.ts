@@ -1,13 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { TERMINAL_DETAIL_STATUSES } from '../../../common/status/sop-editable.util';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import {
-  BagianSOP,
-  JenisDokumenTte,
-  PeranPengguna,
-  Prisma,
-  StatusSOP,
-} from '../../../generated/prisma';
+import { TERMINAL_DETAIL_STATUSES } from '../../../common/status/sop-editable.util';
+import { BagianSOP, Prisma, StatusSOP } from '../../../generated/prisma';
 import { appendOrCreateLogSession } from '../collaboration/log-edit-session.helper';
 import {
   sopCatalogRepoFail,
@@ -29,86 +23,83 @@ export interface UpdateSopHeaderRepoInput {
   };
 }
 
-/** Muatan data mentah area kerja penyusun (DetailSOP + langkah + log) untuk dipetakan di service. */
-export type SopWorkbenchDbPayload = Prisma.DetailSOPGetPayload<{
-  include: {
+const buildWorkbenchInclude = (logsLimit: number) =>
+  ({
     sop: {
-      include: {
-        opd: {
-          select: {
-            opdId: true;
-            nama: true;
-            pengguna: {
-              where: { peran: 'KEPALA_OPD'; deletedAt: null };
-              take: 1;
-              select: { nama: true; nip: true };
-            };
-          };
-        };
-      };
-    };
-    dibuatOleh: { select: { penggunaId: true; nama: true } };
-    terakhirDieditOleh: { select: { penggunaId: true; nama: true } };
-    revisiDari: { select: { detailSopId: true; versi: true } };
-    lampiranPeringatan: true;
-    lampiranKualifikasiPelaksanaan: true;
-    lampiranPeralatanPerlengkapan: true;
-    lampiranPencatatanPendataan: true;
-    dasarHukum: { include: { peraturan: true } };
+      select: {
+        sopId: true,
+        processId: true,
+        judul: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    },
+    dibuatOleh: { select: { penggunaId: true, nama: true } },
+    terakhirDieditOleh: { select: { penggunaId: true, nama: true } },
+    revisiDari: { select: { detailSopId: true, versi: true } },
+    lampiranPeringatan: true,
+    lampiranKualifikasiPelaksanaan: true,
+    lampiranPeralatanPerlengkapan: true,
+    lampiranPencatatanPendataan: true,
+    dasarHukum: { include: { peraturan: true } },
     relasiSopKeluar: {
       include: {
-        sopTerkait: { include: { sop: { select: { judul: true; sopId: true } } } };
-      };
-    };
+        sopTerkait: { include: { sop: { select: { judul: true, sopId: true } } } },
+      },
+    },
     relasiSopMasuk: {
       include: {
-        sop: { include: { sop: { select: { judul: true; sopId: true } } } };
-      };
-    };
+        sop: { include: { sop: { select: { judul: true, sopId: true } } } },
+      },
+    },
     dokumenTte: {
-      where: { jenisDokumen: 'SOP_BERLAKU' };
+      where: { jenisDokumen: 'SOP_BERLAKU' },
+      orderBy: { createdAt: 'desc' },
+      take: 1,
       select: {
-        dokumenTteId: true;
+        dokumenTteId: true,
         riwayatTandaTangan: {
+          orderBy: { ditandatanganiPada: 'desc' },
+          take: 1,
           select: {
-            peran: true;
-            userId: true;
-            dokumenTteId: true;
-            ditandatanganiPada: true;
-            user: { select: { nama: true; nip: true; jabatan: true } };
-          };
-        };
-      };
-    };
-    swimlanes: { include: { pelaksana: true } };
-    langkahSOP: { orderBy: { urutan: 'asc' }; include: { pelaksana: true } };
+            userId: true,
+            dokumenTteId: true,
+            ditandatanganiPada: true,
+            user: { select: { nama: true, nip: true, jabatan: true } },
+          },
+        },
+      },
+    },
+    swimlanes: { include: { pelaksana: true } },
+    langkahSOP: { orderBy: { urutan: 'asc' }, include: { pelaksana: true } },
     logEditSop: {
-      orderBy: { createdAt: 'desc' };
-      take: number;
+      orderBy: { createdAt: 'desc' },
+      take: logsLimit,
       include: {
-        domainFields: true;
-        pengguna: { select: { penggunaId: true; nama: true; email: true; peran: true } };
-      };
-    };
+        domainFields: true,
+        pengguna: { select: { penggunaId: true, nama: true, email: true } },
+      },
+    },
     konfigurasiDiagram: {
       include: {
         overridePanah: {
           include: {
-            titikTekuk: {
-              orderBy: { urutan: 'asc' };
-            };
-          };
-        };
-        overrideLabel: true;
-      };
-    };
-  };
+            titikTekuk: { orderBy: { urutan: 'asc' } },
+          },
+        },
+        overrideLabel: true,
+      },
+    },
+  }) satisfies Prisma.DetailSOPInclude;
+
+export type SopWorkbenchDbPayload = Prisma.DetailSOPGetPayload<{
+  include: ReturnType<typeof buildWorkbenchInclude>;
 }>;
 
 export type SopDaftarDetailSlice = {
   detailSopId: string;
   nomorSOP: string;
-  status: string;
+  status: StatusSOP;
   versi: number;
   updatedAt: Date;
   pembuatNama: string | null;
@@ -118,13 +109,9 @@ export type SopDaftarDetailSlice = {
 
 export type SopDaftarDbRow = {
   sopId: string;
-  opdId: string | null;
   judul: string;
-  /** Versi terbaru (urutan versi desc). */
   detail: SopDaftarDetailSlice | undefined;
-  /** Versi yang sedang BERLAKU, bila ada. */
   versiBerlaku: SopDaftarDetailSlice | null;
-  /** Semua status DetailSOP pada header (untuk deteksi revisi yang sedang berjalan). */
   allStatuses: StatusSOP[];
 };
 
@@ -139,7 +126,6 @@ export type SopRiwayatVersiDbRow = {
   canHapusDraft: boolean;
 };
 
-/** Filter daftar SOP (DetailSOP terbaru): status dan/atau rentang tanggal `updatedAt` (YYYY-MM-DD, UTC). */
 export interface SopDaftarListFilters {
   readonly status?: string;
   readonly tanggalDari?: string;
@@ -161,107 +147,20 @@ export class SopCatalogRepository {
     const hasStatus = filters.status !== undefined && filters.status.length > 0;
     const hasDari = filters.tanggalDari !== undefined && filters.tanggalDari.length > 0;
     const hasSampai = filters.tanggalSampai !== undefined && filters.tanggalSampai.length > 0;
-    if (!hasStatus && !hasDari && !hasSampai) {
-      return rows;
-    }
-    return rows.filter((r) => {
-      const d = r.detail;
-      if (d === undefined) {
-        return false;
-      }
-      if (hasStatus && d.status !== filters.status) {
-        return false;
-      }
-      const day = SopCatalogRepository.isoDateUtc(d.updatedAt);
-      if (hasDari && day < filters.tanggalDari) {
-        return false;
-      }
-      if (hasSampai && day > filters.tanggalSampai) {
-        return false;
-      }
+    if (!hasStatus && !hasDari && !hasSampai) return rows;
+
+    return rows.filter((row) => {
+      const detail = row.detail;
+      if (detail === undefined) return false;
+      if (hasStatus && detail.status !== filters.status) return false;
+      const day = SopCatalogRepository.isoDateUtc(detail.updatedAt);
+      if (hasDari && day < filters.tanggalDari) return false;
+      if (hasSampai && day > filters.tanggalSampai) return false;
       return true;
     });
   }
 
-  async findOpdIdByPenggunaId(penggunaId: string): Promise<string | null> {
-    const row = await this.prisma.pengguna.findFirst({
-      where: { penggunaId, deletedAt: null },
-      select: { opdId: true },
-    });
-    return row?.opdId ?? null;
-  }
-
-  async findOpdNama(opdId: string): Promise<string | null> {
-    const row = await this.prisma.oPD.findFirst({
-      where: { opdId, deletedAt: null },
-      select: { nama: true },
-    });
-    return row?.nama ?? null;
-  }
-
-  async findPenggunaNama(penggunaId: string): Promise<string | null> {
-    const row = await this.prisma.pengguna.findFirst({
-      where: { penggunaId, deletedAt: null },
-      select: { nama: true },
-    });
-    return row?.nama ?? null;
-  }
-
-  /**
-   * Transaksi: header SOP + DetailSOP versi 1 (status DRAFT, dibuatOlehId = pembuat).
-   */
-  async createSopWithInitialDetail(params: {
-    judul: string;
-    nomorSOP: string;
-    opdId: string;
-    penggunaId: string;
-    namaLembaga: string;
-  }): Promise<SopDaftarDbRow> {
-    const created = await this.prisma.$transaction(async (tx) => {
-      const sop = await tx.sOP.create({
-        data: {
-          judul: params.judul,
-          opdId: params.opdId,
-        },
-      });
-      const detail = await tx.detailSOP.create({
-        data: {
-          sopId: sop.sopId,
-          nomorSOP: params.nomorSOP,
-          versi: 1,
-          status: StatusSOP.DRAFT,
-          dibuatOlehId: params.penggunaId,
-          namaLembaga: params.namaLembaga,
-        },
-        include: {
-          dibuatOleh: { select: { nama: true } },
-          terakhirDieditOleh: { select: { nama: true } },
-        },
-      });
-      return { sop, detail };
-    });
-    const d = created.detail;
-    const slice: SopDaftarDetailSlice = {
-      detailSopId: d.detailSopId,
-      nomorSOP: d.nomorSOP,
-      status: d.status,
-      versi: d.versi,
-      updatedAt: d.updatedAt,
-      pembuatNama: d.dibuatOleh?.nama ?? null,
-      editorNama: d.terakhirDieditOleh?.nama ?? null,
-      peraturanId: null,
-    };
-    return {
-      sopId: created.sop.sopId,
-      opdId: created.sop.opdId,
-      judul: created.sop.judul,
-      detail: slice,
-      versiBerlaku: null,
-      allStatuses: [d.status],
-    };
-  }
-
-  private mapDetailSlice(d: {
+  private mapDetailSlice(detail: {
     detailSopId: string;
     nomorSOP: string;
     status: StatusSOP;
@@ -272,22 +171,21 @@ export class SopCatalogRepository {
     dasarHukum: { peraturanId: string }[];
   }): SopDaftarDetailSlice {
     return {
-      detailSopId: d.detailSopId,
-      nomorSOP: d.nomorSOP,
-      status: d.status,
-      versi: d.versi,
-      updatedAt: d.updatedAt,
-      pembuatNama: d.dibuatOleh?.nama ?? null,
-      editorNama: d.terakhirDieditOleh?.nama ?? null,
-      peraturanId: d.dasarHukum[0]?.peraturanId ?? null,
+      detailSopId: detail.detailSopId,
+      nomorSOP: detail.nomorSOP,
+      status: detail.status,
+      versi: detail.versi,
+      updatedAt: detail.updatedAt,
+      pembuatNama: detail.dibuatOleh?.nama ?? null,
+      editorNama: detail.terakhirDieditOleh?.nama ?? null,
+      peraturanId: detail.dasarHukum[0]?.peraturanId ?? null,
     };
   }
 
-  private mapSopDaftarRow(r: {
+  private mapSopDaftarRow(row: {
     sopId: string;
-    opdId: string | null;
     judul: string;
-    detailSops: {
+    detailSops: Array<{
       detailSopId: string;
       nomorSOP: string;
       status: StatusSOP;
@@ -296,18 +194,17 @@ export class SopCatalogRepository {
       dibuatOleh: { nama: string } | null;
       terakhirDieditOleh: { nama: string } | null;
       dasarHukum: { peraturanId: string }[];
-    }[];
+    }>;
   }): SopDaftarDbRow {
-    const sorted = [...r.detailSops].sort((a, b) => b.versi - a.versi);
+    const sorted = [...row.detailSops].sort((a, b) => b.versi - a.versi);
     const latest = sorted[0];
-    const berlaku = sorted.find((d) => d.status === StatusSOP.BERLAKU);
+    const effective = sorted.find((detail) => detail.status === StatusSOP.BERLAKU);
     return {
-      sopId: r.sopId,
-      opdId: r.opdId,
-      judul: r.judul,
+      sopId: row.sopId,
+      judul: row.judul,
       detail: latest === undefined ? undefined : this.mapDetailSlice(latest),
-      versiBerlaku: berlaku === undefined ? null : this.mapDetailSlice(berlaku),
-      allStatuses: sorted.map((d) => d.status),
+      versiBerlaku: effective === undefined ? null : this.mapDetailSlice(effective),
+      allStatuses: sorted.map((detail) => detail.status),
     };
   }
 
@@ -317,138 +214,23 @@ export class SopCatalogRepository {
     return `${base}-V${versiBaru}`;
   }
 
-  async findDaftarByOpdId(
-    opdId: string,
-    filters: SopDaftarListFilters = {},
-  ): Promise<SopDaftarDbRow[]> {
-    const rows = await this.prisma.sOP.findMany({
-      where: { opdId },
-      orderBy: { updatedAt: 'desc' },
-      select: {
-        sopId: true,
-        opdId: true,
-        judul: true,
-        detailSops: {
-          orderBy: { versi: 'desc' },
-          select: {
-            detailSopId: true,
-            nomorSOP: true,
-            status: true,
-            versi: true,
-            updatedAt: true,
-            dibuatOleh: { select: { nama: true } },
-            terakhirDieditOleh: { select: { nama: true } },
-            dasarHukum: {
-              orderBy: { createdAt: 'asc' },
-              take: 1,
-              select: { peraturanId: true },
-            },
-          },
-        },
-      },
-    });
-    const mappedByOpd = rows.map((r) => this.mapSopDaftarRow(r));
-    return this.applyDaftarFilters(mappedByOpd, filters);
-  }
-
-  /** Daftar semua SOP (untuk peran evaluasi yang membutuhkan agregasi lintas OPD). */
-  /**
-   * Satu query DetailSOP lengkap untuk halaman area kerja penyusun (tanpa duplikasi fetch).
-   */
   async findWorkbenchPayload(
     detailSopId: string,
     logsLimit: number,
   ): Promise<SopWorkbenchDbPayload | null> {
-    const row = await this.prisma.detailSOP.findUnique({
+    return this.prisma.detailSOP.findUnique({
       where: { detailSopId },
-      include: {
-        sop: {
-          include: {
-            opd: {
-              select: {
-                opdId: true,
-                nama: true,
-                pengguna: {
-                  where: { peran: PeranPengguna.KEPALA_OPD, deletedAt: null },
-                  take: 1,
-                  select: { nama: true, nip: true },
-                },
-              },
-            },
-          },
-        },
-        dibuatOleh: { select: { penggunaId: true, nama: true } },
-        terakhirDieditOleh: { select: { penggunaId: true, nama: true } },
-        revisiDari: { select: { detailSopId: true, versi: true } },
-        lampiranPeringatan: true,
-        lampiranKualifikasiPelaksanaan: true,
-        lampiranPeralatanPerlengkapan: true,
-        lampiranPencatatanPendataan: true,
-        dasarHukum: { include: { peraturan: true } },
-        relasiSopKeluar: {
-          include: {
-            sopTerkait: { include: { sop: { select: { judul: true, sopId: true } } } },
-          },
-        },
-        relasiSopMasuk: {
-          include: {
-            sop: { include: { sop: { select: { judul: true, sopId: true } } } },
-          },
-        },
-        dokumenTte: {
-          where: { jenisDokumen: 'SOP_BERLAKU' },
-          select: {
-            dokumenTteId: true,
-            riwayatTandaTangan: {
-              select: {
-                peran: true,
-                userId: true,
-                dokumenTteId: true,
-                ditandatanganiPada: true,
-                user: { select: { nama: true, nip: true, jabatan: true } },
-              },
-            },
-          },
-        },
-        swimlanes: { include: { pelaksana: true } },
-        langkahSOP: { orderBy: { urutan: 'asc' }, include: { pelaksana: true } },
-        logEditSop: {
-          orderBy: { createdAt: 'desc' },
-          take: logsLimit,
-          include: {
-            domainFields: true,
-            pengguna: { select: { penggunaId: true, nama: true, email: true, peran: true } },
-          },
-        },
-        konfigurasiDiagram: {
-          include: {
-            overridePanah: {
-              include: {
-                titikTekuk: {
-                  orderBy: { urutan: 'asc' },
-                },
-              },
-            },
-            overrideLabel: true,
-          },
-        },
-      },
+      include: buildWorkbenchInclude(logsLimit),
     });
-    return row;
   }
 
-  /**
-   * Workbench: `id` boleh berupa `detailSopId` atau `sopId` (header).
-   * UI daftar memakai `sop.id` pada rute edit; cadangan ke DetailSOP versi terbaru per header.
-   */
   async findWorkbenchPayloadByDetailOrSopId(
     detailOrSopId: string,
     logsLimit: number,
   ): Promise<SopWorkbenchDbPayload | null> {
     const direct = await this.findWorkbenchPayload(detailOrSopId, logsLimit);
-    if (direct !== null) {
-      return direct;
-    }
+    if (direct !== null) return direct;
+
     const header = await this.prisma.sOP.findUnique({
       where: { sopId: detailOrSopId },
       select: {
@@ -460,46 +242,34 @@ export class SopCatalogRepository {
       },
     });
     const latestDetailId = header?.detailSops[0]?.detailSopId;
-    if (latestDetailId === undefined) {
-      return null;
-    }
-    return this.findWorkbenchPayload(latestDetailId, logsLimit);
+    return latestDetailId === undefined
+      ? null
+      : this.findWorkbenchPayload(latestDetailId, logsLimit);
   }
 
-  /**
-   * Resolve `id` (boleh detailSopId atau sopId header) menjadi pasangan detail/header
-   * sekaligus context ownership native/legacy.
-   * Bila berupa sopId header, dipakai DetailSOP versi terbaru.
-   */
   async findDetailIdByDetailOrSopId(
     detailOrSopId: string,
-  ): Promise<{
-    detailSopId: string;
-    sopId: string;
-    sopOpdId: string | null;
-    processId: string | null;
-  } | null> {
+  ): Promise<{ detailSopId: string; sopId: string; processId: string | null } | null> {
     const direct = await this.prisma.detailSOP.findUnique({
       where: { detailSopId: detailOrSopId },
       select: {
         detailSopId: true,
         sopId: true,
-        sop: { select: { opdId: true, processId: true } },
+        sop: { select: { processId: true } },
       },
     });
     if (direct !== null) {
       return {
         detailSopId: direct.detailSopId,
         sopId: direct.sopId,
-        sopOpdId: direct.sop.opdId,
         processId: direct.sop.processId,
       };
     }
+
     const header = await this.prisma.sOP.findUnique({
       where: { sopId: detailOrSopId },
       select: {
         sopId: true,
-        opdId: true,
         processId: true,
         detailSops: {
           orderBy: { versi: 'desc' },
@@ -509,139 +279,42 @@ export class SopCatalogRepository {
       },
     });
     const latest = header?.detailSops[0]?.detailSopId;
-    if (header === null || latest === undefined) {
-      return null;
-    }
-    return {
-      detailSopId: latest,
-      sopId: header.sopId,
-      sopOpdId: header.opdId,
-      processId: header.processId,
-    };
+    if (header === null || latest === undefined) return null;
+    return { detailSopId: latest, sopId: header.sopId, processId: header.processId };
   }
 
-  /**
-   * Status + ownership context untuk DetailSOP terbaru; `detailOrSopId` boleh ID DetailSOP atau ID header SOP.
-   */
   async findLatestDetailStatusContext(detailOrSopId: string): Promise<{
     detailSopId: string;
     sopId: string;
     status: StatusSOP;
-    sopOpdId: string | null;
     processId: string | null;
   } | null> {
     const resolved = await this.findDetailIdByDetailOrSopId(detailOrSopId);
-    if (resolved === null) {
-      return null;
-    }
+    if (resolved === null) return null;
+
     const row = await this.prisma.detailSOP.findUnique({
       where: { detailSopId: resolved.detailSopId },
       select: {
         detailSopId: true,
         sopId: true,
         status: true,
-        sop: { select: { opdId: true, processId: true } },
+        sop: { select: { processId: true } },
       },
     });
-    if (row === null) {
-      return null;
-    }
+    if (row === null) return null;
     return {
       detailSopId: row.detailSopId,
       sopId: row.sopId,
       status: row.status,
-      sopOpdId: row.sop.opdId,
       processId: row.sop.processId,
     };
   }
 
-  async updateDetailSopStatus(params: {
-    detailSopId: string;
-    status: StatusSOP;
-    userId: string;
-  }): Promise<void> {
-    const { detailSopId, status, userId } = params;
-    await this.prisma.$transaction(async (tx) => {
-      await tx.detailSOP.update({
-        where: { detailSopId },
-        data: {
-          status,
-          terakhirDieditOlehId: userId,
-        },
-      });
-      await appendOrCreateLogSession({
-        tx,
-        detailSopId,
-        penggunaId: userId,
-        bagian: BagianSOP.STATUS,
-        fields: ['status'],
-        discrete: true,
-      });
-      if (status === StatusSOP.DICABUT) {
-        await tx.$executeRaw`
-          UPDATE DokumenTte
-          SET pdfStatus = ${'REVOKED'},
-              pdfRevokedAt = ${new Date()}
-          WHERE detailSopId = ${detailSopId}
-            AND jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
-        `;
-      }
-    });
-  }
-
-  /**
-   * Transaksi: tutup tindak lanjut evaluasi lalu set REVISI_DARI_EVALUATOR -> SEDANG_DIEVALUASI.
-   */
-  async transitionDetailSopRevisiToSedangDievaluasi(params: {
-    detailSopId: string;
-    userId: string;
-  }): Promise<void> {
-    const { detailSopId, userId } = params;
-    await this.prisma.$transaction(async (tx) => {
-      await tx.detailSOP.update({
-        where: { detailSopId },
-        data: {
-          status: StatusSOP.MENUNGGU_PENGAJUAN_EVALUASI,
-          terakhirDieditOlehId: userId,
-        },
-      });
-      await appendOrCreateLogSession({
-        tx,
-        detailSopId,
-        penggunaId: userId,
-        bagian: BagianSOP.STATUS,
-        fields: ['status'],
-        discrete: true,
-      });
-      await tx.detailSOP.update({
-        where: { detailSopId },
-        data: {
-          status: StatusSOP.SEDANG_DIEVALUASI,
-          terakhirDieditOlehId: userId,
-        },
-      });
-      await appendOrCreateLogSession({
-        tx,
-        detailSopId,
-        penggunaId: userId,
-        bagian: BagianSOP.STATUS,
-        fields: ['status'],
-        discrete: true,
-      });
-    });
-  }
-
-  /**
-   * Partial update header SOP dalam satu transaksi (judul header, kolom DetailSOP,
-   * relasi DasarHukum, SopTerkait, dan kelompok LampiranTeks per jenis).
-   * Replace-all untuk array; field skalar hanya ditulis bila dikirim.
-   */
   async updateSopHeaderTransaction(params: {
     detailSopId: string;
     sopId: string;
     userId: string;
     input: UpdateSopHeaderRepoInput;
-    /** Daftar nama field domain yang diminta klien — dipakai untuk session log. */
     changedFields: string[];
   }): Promise<SopCatalogRepoResult<void>> {
     const { detailSopId, sopId, userId, input, changedFields } = params;
@@ -656,16 +329,9 @@ export class SopCatalogRepository {
       const detailData: Prisma.DetailSOPUncheckedUpdateInput = {
         terakhirDieditOlehId: userId,
       };
-      if (input.nomorSOP !== undefined) {
-        detailData.nomorSOP = input.nomorSOP.trim();
-      }
-      if (input.namaLembaga !== undefined) {
-        detailData.namaLembaga = input.namaLembaga;
-      }
-      await tx.detailSOP.update({
-        where: { detailSopId },
-        data: detailData,
-      });
+      if (input.nomorSOP !== undefined) detailData.nomorSOP = input.nomorSOP.trim();
+      if (input.namaLembaga !== undefined) detailData.namaLembaga = input.namaLembaga;
+      await tx.detailSOP.update({ where: { detailSopId }, data: detailData });
 
       if (input.dasarHukumPeraturanIds !== undefined) {
         await tx.dasarHukum.deleteMany({ where: { detailSopId } });
@@ -685,10 +351,7 @@ export class SopCatalogRepository {
         );
         if (uniqueIds.length > 0) {
           await tx.sopTerkait.createMany({
-            data: uniqueIds.map((detailSopTerkaitId) => ({
-              detailSopId,
-              detailSopTerkaitId,
-            })),
+            data: uniqueIds.map((detailSopTerkaitId) => ({ detailSopId, detailSopTerkaitId })),
             skipDuplicates: true,
           });
         }
@@ -696,9 +359,7 @@ export class SopCatalogRepository {
 
       if (input.lampiran?.peringatan !== undefined) {
         await tx.lampiranPeringatan.deleteMany({ where: { detailSopId } });
-        const cleaned = input.lampiran.peringatan
-          .map((it) => it.trim())
-          .filter((it) => it.length > 0);
+        const cleaned = input.lampiran.peringatan.map((item) => item.trim()).filter(Boolean);
         if (cleaned.length > 0) {
           await tx.lampiranPeringatan.createMany({
             data: cleaned.map((teks) => ({ detailSopId, teks })),
@@ -709,8 +370,8 @@ export class SopCatalogRepository {
       if (input.lampiran?.kualifikasiPelaksanaan !== undefined) {
         await tx.lampiranKualifikasiPelaksanaan.deleteMany({ where: { detailSopId } });
         const cleaned = input.lampiran.kualifikasiPelaksanaan
-          .map((it) => it.trim())
-          .filter((it) => it.length > 0);
+          .map((item) => item.trim())
+          .filter(Boolean);
         if (cleaned.length > 0) {
           await tx.lampiranKualifikasiPelaksanaan.createMany({
             data: cleaned.map((teks) => ({ detailSopId, teks })),
@@ -721,8 +382,8 @@ export class SopCatalogRepository {
       if (input.lampiran?.peralatanPerlengkapan !== undefined) {
         await tx.lampiranPeralatanPerlengkapan.deleteMany({ where: { detailSopId } });
         const cleaned = input.lampiran.peralatanPerlengkapan
-          .map((it) => it.trim())
-          .filter((it) => it.length > 0);
+          .map((item) => item.trim())
+          .filter(Boolean);
         if (cleaned.length > 0) {
           await tx.lampiranPeralatanPerlengkapan.createMany({
             data: cleaned.map((teks) => ({ detailSopId, teks })),
@@ -733,8 +394,8 @@ export class SopCatalogRepository {
       if (input.lampiran?.pencatatanPendataan !== undefined) {
         await tx.lampiranPencatatanPendataan.deleteMany({ where: { detailSopId } });
         const cleaned = input.lampiran.pencatatanPendataan
-          .map((it) => it.trim())
-          .filter((it) => it.length > 0);
+          .map((item) => item.trim())
+          .filter(Boolean);
         if (cleaned.length > 0) {
           await tx.lampiranPencatatanPendataan.createMany({
             data: cleaned.map((teks) => ({ detailSopId, teks })),
@@ -758,7 +419,6 @@ export class SopCatalogRepository {
       orderBy: { updatedAt: 'desc' },
       select: {
         sopId: true,
-        opdId: true,
         judul: true,
         detailSops: {
           orderBy: { versi: 'desc' },
@@ -779,8 +439,7 @@ export class SopCatalogRepository {
         },
       },
     });
-    const mapped = rows.map((r) => this.mapSopDaftarRow(r));
-    return this.applyDaftarFilters(mapped, filters);
+    return this.applyDaftarFilters(rows.map((row) => this.mapSopDaftarRow(row)), filters);
   }
 
   async findRiwayatVersiBySopId(sopId: string): Promise<SopRiwayatVersiDbRow[]> {
@@ -797,19 +456,18 @@ export class SopCatalogRepository {
         revisiDari: { select: { versi: true } },
       },
     });
-    return rows.map((r) => ({
-      detailSopId: r.detailSopId,
-      versi: r.versi,
-      nomorSOP: r.nomorSOP,
-      status: r.status,
-      revisiDariDetailSopId: r.revisiDariDetailSopId,
-      revisiDariVersi: r.revisiDari?.versi ?? null,
-      updatedAt: r.updatedAt,
-      canHapusDraft: r.status === StatusSOP.DRAFT && r.revisiDariDetailSopId !== null,
+    return rows.map((row) => ({
+      detailSopId: row.detailSopId,
+      versi: row.versi,
+      nomorSOP: row.nomorSOP,
+      status: row.status,
+      revisiDariDetailSopId: row.revisiDariDetailSopId,
+      revisiDariVersi: row.revisiDari?.versi ?? null,
+      updatedAt: row.updatedAt,
+      canHapusDraft: row.status === StatusSOP.DRAFT && row.revisiDariDetailSopId !== null,
     }));
   }
 
-  /** Clone snapshot versi terminal yang dipilih menjadi versi baru berstatus DRAFT. */
   async cloneDetailSopFromSource(params: {
     sourceDetailSopId: string;
     penggunaId: string;
@@ -834,24 +492,25 @@ export class SopCatalogRepository {
     if (!TERMINAL_DETAIL_STATUSES.has(source.status)) {
       return sopCatalogRepoFail(
         'CONFLICT',
-        'Hanya versi terminal (DITOLAK_EVALUATOR, BERLAKU, DIGANTIKAN, atau DICABUT) yang dapat dijadikan sumber versi baru',
+        'Hanya versi terminal yang dapat dijadikan sumber versi baru',
       );
     }
+
     const siblings = await this.prisma.detailSOP.findMany({
       where: { sopId: source.sopId },
       select: { status: true, versi: true },
     });
-    const hasInFlight = siblings.some((s) => !TERMINAL_DETAIL_STATUSES.has(s.status));
-    if (hasInFlight) {
+    if (siblings.some((sibling) => !TERMINAL_DETAIL_STATUSES.has(sibling.status))) {
       return sopCatalogRepoFail(
         'CONFLICT',
         'Masih ada versi revisi yang belum selesai. Selesaikan atau batalkan revisi tersebut terlebih dahulu.',
       );
     }
-    const maxVersi = siblings.reduce((max, s) => Math.max(max, s.versi), 0);
-    const versiBaru = maxVersi + 1;
+
+    const versiBaru = siblings.reduce((max, sibling) => Math.max(max, sibling.versi), 0) + 1;
     const nomorSOP = SopCatalogRepository.deriveNomorSopVersiBaru(source.nomorSOP, versiBaru);
     const now = new Date();
+
     const cloned = await this.prisma.$transaction(async (tx) => {
       const created = await tx.detailSOP.create({
         data: {
@@ -869,71 +528,64 @@ export class SopCatalogRepository {
         },
       });
       const newDetailId = created.detailSopId;
+
       if (source.lampiranPeringatan.length > 0) {
         await tx.lampiranPeringatan.createMany({
-          data: source.lampiranPeringatan.map((l) => ({
-            detailSopId: newDetailId,
-            teks: l.teks,
-          })),
+          data: source.lampiranPeringatan.map((item) => ({ detailSopId: newDetailId, teks: item.teks })),
         });
       }
       if (source.lampiranKualifikasiPelaksanaan.length > 0) {
         await tx.lampiranKualifikasiPelaksanaan.createMany({
-          data: source.lampiranKualifikasiPelaksanaan.map((l) => ({
+          data: source.lampiranKualifikasiPelaksanaan.map((item) => ({
             detailSopId: newDetailId,
-            teks: l.teks,
+            teks: item.teks,
           })),
         });
       }
       if (source.lampiranPeralatanPerlengkapan.length > 0) {
         await tx.lampiranPeralatanPerlengkapan.createMany({
-          data: source.lampiranPeralatanPerlengkapan.map((l) => ({
+          data: source.lampiranPeralatanPerlengkapan.map((item) => ({
             detailSopId: newDetailId,
-            teks: l.teks,
+            teks: item.teks,
           })),
         });
       }
       if (source.lampiranPencatatanPendataan.length > 0) {
         await tx.lampiranPencatatanPendataan.createMany({
-          data: source.lampiranPencatatanPendataan.map((l) => ({
+          data: source.lampiranPencatatanPendataan.map((item) => ({
             detailSopId: newDetailId,
-            teks: l.teks,
+            teks: item.teks,
           })),
         });
       }
       if (source.dasarHukum.length > 0) {
         await tx.dasarHukum.createMany({
-          data: source.dasarHukum.map((d) => ({
+          data: source.dasarHukum.map((item) => ({
             detailSopId: newDetailId,
-            peraturanId: d.peraturanId,
+            peraturanId: item.peraturanId,
           })),
         });
       }
       if (source.swimlanes.length > 0) {
         await tx.detailSOPPelaksana.createMany({
-          data: source.swimlanes.map((s) => ({
+          data: source.swimlanes.map((item) => ({
             detailSopId: newDetailId,
-            pelaksanaId: s.pelaksanaId,
-            urutan: s.urutan,
+            pelaksanaId: item.pelaksanaId,
+            urutan: item.urutan,
           })),
         });
       }
       for (const rel of source.relasiSopKeluar) {
         await tx.sopTerkait.create({
-          data: {
-            detailSopId: newDetailId,
-            detailSopTerkaitId: rel.detailSopTerkaitId,
-          },
+          data: { detailSopId: newDetailId, detailSopTerkaitId: rel.detailSopTerkaitId },
         });
       }
       for (const rel of source.relasiSopMasuk) {
         await tx.sopTerkait.create({
-          data: {
-            detailSopId: rel.detailSopId,
-            detailSopTerkaitId: newDetailId,
-          },
+          data: { detailSopId: rel.detailSopId, detailSopTerkaitId: newDetailId },
         });
       }
+
       const langkahIdMap = new Map<string, string>();
       for (const step of source.langkahSOP) {
         const createdStep = await tx.langkahSOP.create({
@@ -954,9 +606,7 @@ export class SopCatalogRepository {
       }
       for (const step of source.langkahSOP) {
         const newId = langkahIdMap.get(step.langkahSopId);
-        if (newId === undefined) {
-          continue;
-        }
+        if (newId === undefined) continue;
         const yaId =
           step.langkahSelanjutnyaYaId === null
             ? null
@@ -968,84 +618,73 @@ export class SopCatalogRepository {
         if (step.langkahSelanjutnyaYaId !== null || step.langkahSelanjutnyaTidakId !== null) {
           await tx.langkahSOP.update({
             where: { langkahSopId: newId },
-            data: {
-              langkahSelanjutnyaYaId: yaId,
-              langkahSelanjutnyaTidakId: tidakId,
-            },
+            data: { langkahSelanjutnyaYaId: yaId, langkahSelanjutnyaTidakId: tidakId },
           });
         }
       }
+
       const sourceDiagramConfigs = await tx.konfigurasiDiagramSOP.findMany({
         where: { detailSopId: params.sourceDetailSopId },
         include: {
-          overridePanah: {
-            include: {
-              titikTekuk: {
-                orderBy: { urutan: 'asc' },
-              },
-            },
-          },
+          overridePanah: { include: { titikTekuk: { orderBy: { urutan: 'asc' } } } },
           overrideLabel: true,
         },
       });
-      if (sourceDiagramConfigs.length > 0) {
-        for (const cfg of sourceDiagramConfigs) {
-          await tx.konfigurasiDiagramSOP.create({
+      for (const config of sourceDiagramConfigs) {
+        await tx.konfigurasiDiagramSOP.create({
+          data: {
+            detailSopId: newDetailId,
+            jenis: config.jenis,
+            layoutSeed: config.layoutSeed,
+          },
+        });
+        for (const edge of config.overridePanah) {
+          const newFrom = langkahIdMap.get(edge.dariLangkahSopId);
+          const newTo = langkahIdMap.get(edge.keLangkahSopId);
+          if (newFrom === undefined || newTo === undefined) continue;
+          await tx.overridePanahDiagramSOP.create({
             data: {
               detailSopId: newDetailId,
-              jenis: cfg.jenis,
-              layoutSeed: cfg.layoutSeed,
+              jenis: config.jenis,
+              dariLangkahSopId: newFrom,
+              keLangkahSopId: newTo,
+              cabang: edge.cabang,
+              sSide: edge.sSide,
+              eSide: edge.eSide,
+              startX: edge.startX,
+              startY: edge.startY,
+              endX: edge.endX,
+              endY: edge.endY,
             },
           });
-          for (const edge of cfg.overridePanah) {
-            const newFrom = langkahIdMap.get(edge.dariLangkahSopId);
-            const newTo = langkahIdMap.get(edge.keLangkahSopId);
-            if (newFrom === undefined || newTo === undefined) {
-              continue;
-            }
-            await tx.overridePanahDiagramSOP.create({
-              data: {
+          if (edge.titikTekuk.length > 0) {
+            await tx.titikTekukPanahDiagramSOP.createMany({
+              data: edge.titikTekuk.map((point) => ({
                 detailSopId: newDetailId,
-                jenis: cfg.jenis,
+                jenis: config.jenis,
                 dariLangkahSopId: newFrom,
                 keLangkahSopId: newTo,
                 cabang: edge.cabang,
-                sSide: edge.sSide,
-                eSide: edge.eSide,
-                startX: edge.startX,
-                startY: edge.startY,
-                endX: edge.endX,
-                endY: edge.endY,
-              },
-            });
-            if (edge.titikTekuk.length > 0) {
-              await tx.titikTekukPanahDiagramSOP.createMany({
-                data: edge.titikTekuk.map((point) => ({
-                  detailSopId: newDetailId,
-                  jenis: cfg.jenis,
-                  dariLangkahSopId: newFrom,
-                  keLangkahSopId: newTo,
-                  cabang: edge.cabang,
-                  urutan: point.urutan,
-                  x: point.x,
-                  y: point.y,
-                })),
-              });
-            }
-          }
-          if (cfg.overrideLabel.length > 0) {
-            await tx.overrideLabelDiagramSOP.createMany({
-              data: cfg.overrideLabel.map((label) => ({
-                detailSopId: newDetailId,
-                jenis: cfg.jenis,
-                kunciLabel: label.kunciLabel,
-                posisiX: label.posisiX,
-                posisiY: label.posisiY,
+                urutan: point.urutan,
+                x: point.x,
+                y: point.y,
               })),
             });
           }
         }
+        if (config.overrideLabel.length > 0) {
+          await tx.overrideLabelDiagramSOP.createMany({
+            data: config.overrideLabel.map((label) => ({
+              detailSopId: newDetailId,
+              jenis: config.jenis,
+              kunciLabel: label.kunciLabel,
+              posisiX: label.posisiX,
+              posisiY: label.posisiY,
+            })),
+          });
+        }
       }
+
       await tx.logEditSOP.create({
         data: {
           detailSopId: newDetailId,
@@ -1062,20 +701,16 @@ export class SopCatalogRepository {
       });
       return { detailSopId: newDetailId, versi: versiBaru };
     });
+
     return sopCatalogRepoOk(cloned);
   }
 
   async deleteVersiDraft(detailSopId: string): Promise<SopCatalogRepoResult<void>> {
     const row = await this.prisma.detailSOP.findUnique({
       where: { detailSopId },
-      select: {
-        status: true,
-        revisiDariDetailSopId: true,
-      },
+      select: { status: true, revisiDariDetailSopId: true },
     });
-    if (row === null) {
-      return sopCatalogRepoFail('NOT_FOUND', 'DetailSOP tidak ditemukan');
-    }
+    if (row === null) return sopCatalogRepoFail('NOT_FOUND', 'DetailSOP tidak ditemukan');
     if (row.status !== StatusSOP.DRAFT) {
       return sopCatalogRepoFail('CONFLICT', 'Hanya versi berstatus DRAFT yang dapat dihapus');
     }
@@ -1100,9 +735,7 @@ export class SopCatalogRepository {
         sop: { select: { _count: { select: { detailSops: true } } } },
       },
     });
-    if (row === null) {
-      return sopCatalogRepoFail('NOT_FOUND', 'DetailSOP tidak ditemukan');
-    }
+    if (row === null) return sopCatalogRepoFail('NOT_FOUND', 'DetailSOP tidak ditemukan');
     if (
       row.status !== StatusSOP.DRAFT ||
       row.versi !== 1 ||

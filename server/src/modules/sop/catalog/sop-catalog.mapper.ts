@@ -5,13 +5,11 @@ import {
 } from '../../../common/status/sop-editable.util';
 import { StatusSOP } from '../../../generated/prisma';
 import { encodeLogEditSopClientId } from '../collaboration/log-edit-session.helper';
+import { mapDiagramConfigsToWorkbenchDto } from '../diagram/diagram-workbench.mapper';
 import type { PenyusunWorkbenchDataDto } from './dto/penyusun-workbench-data.dto';
 import type { SopDaftarRowDto } from './dto/sop-daftar-row.dto';
 import type { SopDaftarVersiSliceDto } from './dto/sop-daftar-versi-slice.dto';
 import type { SopDaftarDbRow, SopWorkbenchDbPayload } from './sop-catalog.repository';
-import { mapDiagramConfigsToWorkbenchDto } from '../diagram/diagram-workbench.mapper';
-
-import { PeranPengguna } from '../../../generated/prisma';
 
 type TteSignaturePayloadDto = {
   id: string;
@@ -31,57 +29,59 @@ export function mapWorkbenchPayload(row: SopWorkbenchDbPayload): PenyusunWorkben
   const detailId = row.detailSopId;
   const sopHeader = {
     id: row.sop.sopId,
-    opdId: row.sop.opdId,
     processId: row.sop.processId,
     judul: row.sop.judul,
     createdAt: toIso(row.sop.createdAt),
     updatedAt: toIso(row.sop.updatedAt),
   };
+
   const peringatanSorted = [...row.lampiranPeringatan].sort(
     (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
   );
   const lampiran = {
-    peringatan: peringatanSorted.map((l) => ({
-      id: l.lampiranPeringatanId,
-      teks: l.teks,
-      createdAt: toIso(l.createdAt),
+    peringatan: peringatanSorted.map((item) => ({
+      id: item.lampiranPeringatanId,
+      teks: item.teks,
+      createdAt: toIso(item.createdAt),
     })),
     kualifikasiPelaksanaan: [...row.lampiranKualifikasiPelaksanaan]
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
-      .map((l) => ({
-        id: l.lampiranKualifikasiPelaksanaanId,
-        teks: l.teks,
-        createdAt: toIso(l.createdAt),
+      .map((item) => ({
+        id: item.lampiranKualifikasiPelaksanaanId,
+        teks: item.teks,
+        createdAt: toIso(item.createdAt),
       })),
     peralatanPerlengkapan: [...row.lampiranPeralatanPerlengkapan]
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
-      .map((l) => ({
-        id: l.lampiranPeralatanPerlengkapanId,
-        teks: l.teks,
-        createdAt: toIso(l.createdAt),
+      .map((item) => ({
+        id: item.lampiranPeralatanPerlengkapanId,
+        teks: item.teks,
+        createdAt: toIso(item.createdAt),
       })),
     pencatatanPendataan: [...row.lampiranPencatatanPendataan]
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
-      .map((l) => ({
-        id: l.lampiranPencatatanPendataanId,
-        teks: l.teks,
-        createdAt: toIso(l.createdAt),
+      .map((item) => ({
+        id: item.lampiranPencatatanPendataanId,
+        teks: item.teks,
+        createdAt: toIso(item.createdAt),
       })),
   };
+
   const dasarHukumSorted = [...row.dasarHukum].sort(
     (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
   );
-  const dasarHukum = dasarHukumSorted.map((dh) => ({
-    id: `${detailId}-${dh.peraturanId}`,
+  const dasarHukum = dasarHukumSorted.map((item) => ({
+    id: `${detailId}-${item.peraturanId}`,
     sopDetailId: detailId,
-    peraturanId: dh.peraturanId,
-    judul: dh.peraturan.tentang,
-    nomor: String(dh.peraturan.nomor),
-    tahun: String(dh.peraturan.tahun),
-    createdAt: toIso(dh.createdAt),
-    updatedAt: toIso(dh.updatedAt),
+    peraturanId: item.peraturanId,
+    judul: item.peraturan.tentang,
+    nomor: String(item.peraturan.nomor),
+    tahun: String(item.peraturan.tahun),
+    createdAt: toIso(item.createdAt),
+    updatedAt: toIso(item.updatedAt),
   }));
-  const dasarHukumPeraturanIds = dasarHukumSorted.map((dh) => dh.peraturanId);
+  const dasarHukumPeraturanIds = dasarHukumSorted.map((item) => item.peraturanId);
+
   const relasiSopKeluarSorted = [...row.relasiSopKeluar].sort(
     (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
   );
@@ -112,22 +112,20 @@ export function mapWorkbenchPayload(row: SopWorkbenchDbPayload): PenyusunWorkben
       sop: { judul: rel.sop.sop.judul },
     },
   }));
-  const swimlanes = row.swimlanes.map((sw) => ({
-    id: `${sw.detailSopId}-${sw.pelaksanaId}`,
-    sopDetailId: sw.detailSopId,
-    pelaksanaId: sw.pelaksanaId,
-    urutan: sw.urutan,
-    createdAt: toIso(sw.createdAt),
-    updatedAt: toIso(sw.updatedAt),
+
+  const swimlanes = row.swimlanes.map((swimlane) => ({
+    id: `${swimlane.detailSopId}-${swimlane.pelaksanaId}`,
+    sopDetailId: swimlane.detailSopId,
+    pelaksanaId: swimlane.pelaksanaId,
+    urutan: swimlane.urutan,
+    createdAt: toIso(swimlane.createdAt),
+    updatedAt: toIso(swimlane.updatedAt),
     pelaksana: {
-      id: sw.pelaksana.pelaksanaId,
-      opdId: sw.pelaksana.opdId,
-      namaPelaksana: sw.pelaksana.nama,
+      id: swimlane.pelaksana.pelaksanaId,
+      namaPelaksana: swimlane.pelaksana.nama,
     },
   }));
-  const kp = row.sop.opd?.pengguna[0];
-  const kepalaOpd: PenyusunWorkbenchDataDto['detail']['kepalaOpd'] =
-    kp === null || kp === undefined ? null : { nama: kp.nama ?? null, nip: kp.nip ?? null };
+
   const statusDisplay = displayStatusSop(row.status);
   const detail: PenyusunWorkbenchDataDto['detail'] = {
     id: detailId,
@@ -161,10 +159,11 @@ export function mapWorkbenchPayload(row: SopWorkbenchDbPayload): PenyusunWorkben
     relasiSopKeluar,
     relasiSopMasuk,
     swimlanes,
-    kepalaOpd,
+    signingAuthority: null,
     dasarHukumPeraturanIds,
     sopTerkaitDetailIds,
   };
+
   const langkah: PenyusunWorkbenchDataDto['langkah'] = row.langkahSOP.map((step) => ({
     id: step.langkahSopId,
     sopDetailId: step.detailSopId,
@@ -186,8 +185,9 @@ export function mapWorkbenchPayload(row: SopWorkbenchDbPayload): PenyusunWorkben
       namaPelaksana: step.pelaksana.nama,
     },
   }));
+
   const logEdit: PenyusunWorkbenchDataDto['logEdit'] = row.logEditSop.map((log) => {
-    const fields = log.domainFields.map((f) => f.domainField).sort();
+    const fields = log.domainFields.map((field) => field.domainField).sort();
     const count = log.sesiChangeCount;
     return {
       id: encodeLogEditSopClientId(log.detailSopId, log.penggunaId, log.createdAt),
@@ -196,7 +196,7 @@ export function mapWorkbenchPayload(row: SopWorkbenchDbPayload): PenyusunWorkben
       bagian: log.bagian,
       keterangan: log.keterangan ?? null,
       meta: fields.length === 0 && count === 0 ? null : { fields, count },
-      aktorRole: String(log.pengguna.peran),
+      aktorRole: '',
       createdAt: toIso(log.createdAt),
       closedAt: log.closedAt instanceof Date ? toIso(log.closedAt) : null,
       user: {
@@ -207,23 +207,18 @@ export function mapWorkbenchPayload(row: SopWorkbenchDbPayload): PenyusunWorkben
     };
   });
 
-  let tteSignaturePayloadKepalaOpd: TteSignaturePayloadDto | undefined;
-  if (row.dokumenTte && row.dokumenTte.length > 0) {
-    const dokTte = row.dokumenTte[0];
-    for (const rt of dokTte.riwayatTandaTangan) {
-      if (rt.peran === PeranPengguna.KEPALA_OPD && rt.user) {
-        tteSignaturePayloadKepalaOpd = {
-          id: `${rt.dokumenTteId}:${rt.userId}`,
-          dokumenTteId: rt.dokumenTteId,
-          userId: rt.userId,
-          nip: rt.user.nip,
-          namaLengkap: rt.user.nama,
-          jabatan: rt.user.jabatan,
-          signedAt: toIso(rt.ditandatanganiPada),
-        };
-        break;
-      }
-    }
+  let tteSignaturePayload: TteSignaturePayloadDto | undefined;
+  const latestSignature = row.dokumenTte[0]?.riwayatTandaTangan[0];
+  if (latestSignature?.user !== undefined) {
+    tteSignaturePayload = {
+      id: `${latestSignature.dokumenTteId}:${latestSignature.userId}`,
+      dokumenTteId: latestSignature.dokumenTteId,
+      userId: latestSignature.userId,
+      nip: latestSignature.user.nip,
+      namaLengkap: latestSignature.user.nama,
+      jabatan: latestSignature.user.jabatan,
+      signedAt: toIso(latestSignature.ditandatanganiPada),
+    };
   }
 
   return {
@@ -231,7 +226,7 @@ export function mapWorkbenchPayload(row: SopWorkbenchDbPayload): PenyusunWorkben
     langkah,
     logEdit,
     diagramKonfigurasi: mapDiagramConfigsToWorkbenchDto(row.konfigurasiDiagram),
-    tteSignaturePayloadKepalaOpd,
+    tteSignaturePayload,
   };
 }
 
@@ -252,22 +247,22 @@ export function mapVersiSlice(slice: {
 }
 
 export function mapDaftarRow(row: SopDaftarDbRow): SopDaftarRowDto {
-  const d = row.detail;
+  const detail = row.detail;
   const inFlight = hasRevisiInFlight(row.allStatuses);
   const hasTerminalSource = row.allStatuses.some((status) => TERMINAL_DETAIL_STATUSES.has(status));
   const canBuatVersiBaru = hasTerminalSource && !inFlight;
   const canCabutSop =
     row.versiBerlaku !== null && row.versiBerlaku.status === StatusSOP.BERLAKU && !inFlight;
   const canHapusSopDraft =
-    d !== undefined &&
-    d.status === StatusSOP.DRAFT &&
-    d.versi === 1 &&
+    detail !== undefined &&
+    detail.status === StatusSOP.DRAFT &&
+    detail.versi === 1 &&
     row.allStatuses.length === 1;
-  if (d === undefined) {
-    const statusDisplay = displayStatusSop('DRAFT');
+
+  if (detail === undefined) {
+    const statusDisplay = displayStatusSop(StatusSOP.DRAFT);
     return {
       id: row.sopId,
-      opdId: row.opdId,
       detailSopId: null,
       judul: row.judul,
       nomorSop: null,
@@ -284,23 +279,20 @@ export function mapDaftarRow(row: SopDaftarDbRow): SopDaftarRowDto {
       canHapusSopDraft: false,
     };
   }
-  const waktuIso = d.updatedAt.toISOString();
-  const statusDisplay = displayStatusSop(d.status);
+
+  const waktuIso = detail.updatedAt.toISOString();
+  const statusDisplay = displayStatusSop(detail.status);
   return {
     id: row.sopId,
-    opdId: row.opdId,
-    detailSopId: d.detailSopId,
+    detailSopId: detail.detailSopId,
     judul: row.judul,
-    nomorSop: d.nomorSOP,
-    versi: d.versi,
-    pembuat: d.pembuatNama,
-    terakhirDiedit: {
-      nama: d.editorNama,
-      waktu: waktuIso,
-    },
+    nomorSop: detail.nomorSOP,
+    versi: detail.versi,
+    pembuat: detail.pembuatNama,
+    terakhirDiedit: { nama: detail.editorNama, waktu: waktuIso },
     status: statusDisplay.value,
     statusLabel: statusDisplay.label,
-    peraturanId: d.peraturanId,
+    peraturanId: detail.peraturanId,
     terakhirDiperbarui: waktuIso,
     versiBerlaku: row.versiBerlaku === null ? null : mapVersiSlice(row.versiBerlaku),
     canBuatVersiBaru,
