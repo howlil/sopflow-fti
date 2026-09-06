@@ -69,7 +69,8 @@ export class ProcessOwnerService {
     return this.withLifecycle(rows);
   }
 
-  listAssignableUsers(search?: string) {
+  async listAssignableUsers(penggunaId: string, search?: string) {
+    await this.assertHasOwnerCapability(penggunaId);
     const term = search?.trim();
     return this.prisma.pengguna.findMany({
       where: {
@@ -390,6 +391,16 @@ export class ProcessOwnerService {
       orderBy: { createdAt: 'desc' },
       take: 100,
     });
+  }
+
+  private async assertHasOwnerCapability(penggunaId: string): Promise<void> {
+    const [scopeCount, processCount] = await Promise.all([
+      this.prisma.processOwnerAuthority.count({ where: { penggunaId, revokedAt: null } }),
+      this.prisma.process.count({ where: { ownerId: penggunaId } }),
+    ]);
+    if (scopeCount === 0 && processCount === 0) {
+      throw new ForbiddenException('Daftar akun hanya tersedia untuk Process Owner');
+    }
   }
 
   private async requireOwnedProcess(penggunaId: string, processId: string, requireActive: boolean) {
