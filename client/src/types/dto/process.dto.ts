@@ -1,4 +1,4 @@
-import type { PeranPengguna, PlatformRole } from '@/types/dto/access.dto'
+import type { PlatformRole } from '@/types/dto/access.dto'
 
 export type OrganizationalScope = 'FACULTY' | 'DEPARTMENT'
 export type ProcessLifecycleStatus = 'ACTIVE' | 'ARCHIVED'
@@ -15,7 +15,6 @@ export interface ProcessAssignableUserDto {
   nama: string
   email: string
   nip?: string
-  peran?: PeranPengguna
   platformRole: PlatformRole
 }
 
@@ -42,7 +41,7 @@ export interface ProcessDto {
   archivedReason?: string | null
 }
 
-/** Compatibility/admin maintenance payload. Normal Process creation is owner self-service. */
+/** Administrative repair/bootstrap payload. Normal Process creation is owner self-service. */
 export interface ProcessPayload {
   nama: string
   scope: OrganizationalScope
