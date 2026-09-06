@@ -36,19 +36,22 @@ export class SopProsedurRepository {
 
   async findDetailIdByDetailOrSopId(
     detailOrSopId: string,
-  ): Promise<{ detailSopId: string; sopId: string; sopOpdId: string | null; processId: string | null } | null> {
+  ): Promise<{ detailSopId: string; sopId: string; processId: string | null } | null> {
     const direct = await this.prisma.detailSOP.findUnique({
       where: { detailSopId: detailOrSopId },
-      select: { detailSopId: true, sopId: true, sop: { select: { opdId: true, processId: true } } },
+      select: { detailSopId: true, sopId: true, sop: { select: { processId: true } } },
     });
     if (direct !== null) {
-      return { detailSopId: direct.detailSopId, sopId: direct.sopId, sopOpdId: direct.sop.opdId, processId: direct.sop.processId };
+      return {
+        detailSopId: direct.detailSopId,
+        sopId: direct.sopId,
+        processId: direct.sop.processId,
+      };
     }
     const header = await this.prisma.sOP.findUnique({
       where: { sopId: detailOrSopId },
       select: {
         sopId: true,
-        opdId: true,
         processId: true,
         detailSops: {
           orderBy: { versi: 'desc' },
@@ -59,7 +62,7 @@ export class SopProsedurRepository {
     });
     const latest = header?.detailSops[0]?.detailSopId;
     if (header === null || latest === undefined) return null;
-    return { detailSopId: latest, sopId: header.sopId, sopOpdId: header.opdId, processId: header.processId };
+    return { detailSopId: latest, sopId: header.sopId, processId: header.processId };
   }
 
   async findProcessIdBySopId(sopId: string): Promise<string | null> {
@@ -116,8 +119,6 @@ export class SopProsedurRepository {
   }): Promise<void> {
     const { detailSopId, userId, input, changedFields } = params;
     await this.prisma.$transaction(async (tx) => {
-      // If both sections are replaced, remove steps first so existing references do not
-      // temporarily point at a swimlane that is being replaced.
       if (input.langkah !== undefined) {
         await this.clearLangkahInTx(tx, detailSopId);
       }
