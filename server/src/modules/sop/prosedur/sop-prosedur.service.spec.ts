@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { JwtAccessPayload } from '../../../common';
-import { JenisLangkahProsedur, PeranPengguna, StatusSOP } from '../../../generated/prisma';
+import { JenisLangkahProsedur, StatusSOP } from '../../../generated/prisma';
 import { ProcessContextService } from '../../core/process/process-context.service';
 import { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
@@ -30,7 +30,6 @@ describe('SopProsedurService Process-native actor policy', () => {
   const processMember: JwtAccessPayload = {
     sub: 'member-1',
     email: 'member@fti.test',
-    peran: PeranPengguna.EVALUATOR,
   };
   const workbench = {
     detail: { id: 'detail-1' },
@@ -68,7 +67,7 @@ describe('SopProsedurService Process-native actor policy', () => {
     );
   });
 
-  it('allows a Process member regardless of legacy global role or OPD', async () => {
+  it('allows a Process member based on Process relationship, independent from OPD shadow', async () => {
     await service.updateProsedur(processMember, 'detail-1', {
       pelaksana: [{ pelaksanaId: 'actor-1' }],
     });
