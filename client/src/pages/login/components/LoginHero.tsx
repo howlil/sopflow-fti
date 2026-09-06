@@ -1,7 +1,7 @@
-import { Archive, Asterisk, ClipboardCheck, FileText, Stamp } from 'lucide-react'
+import { Asterisk, ClipboardCheck, FileCheck2, FileText, Stamp } from 'lucide-react'
 
-const workflowSteps = ['Penyusunan', 'Evaluasi', 'Pengesahan', 'Arsip']
-const workflowIcons = [FileText, ClipboardCheck, Stamp, Archive]
+const workflowSteps = ['Penyusunan', 'Review Proses', 'Persetujuan', 'TTE']
+const workflowIcons = [FileText, ClipboardCheck, FileCheck2, Stamp]
 
 export function LoginHero() {
   return (
@@ -27,12 +27,12 @@ export function LoginHero() {
         </div>
 
         <div className="mt-auto pt-16 sm:pt-24 lg:pt-20">
-          <p className="text-xs font-medium text-white/80">Portal Internal SOP</p>
+          <p className="text-xs font-medium text-white/80">Portal Internal SOP FTI</p>
           <h1 className="mt-3 max-w-[470px] text-[30px] font-semibold leading-[1.12] tracking-[-0.035em] text-white sm:text-[36px] lg:text-[38px]">
-            Kelola SOP secara terstruktur dari penyusunan hingga arsip
+            Kelola SOP berdasarkan Proses Bisnis dan kewenangan organisasi
           </h1>
           <p className="mt-4 max-w-md text-xs leading-5 text-white/75 sm:text-sm">
-            Biro Organisasi · Pemerintah Provinsi Sumatera Barat
+            Fakultas Teknologi Informasi · SOPFlow
           </p>
 
           <div className="mt-8 grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-4 sm:gap-2 lg:mt-10">

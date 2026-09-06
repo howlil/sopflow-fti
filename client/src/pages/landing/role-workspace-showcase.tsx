@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { cn } from '@/utils/cn'
 
-export type LandingRoleId = 'penyusun' | 'pj-penyusun' | 'evaluator' | 'pj-evaluator' | 'kepala-opd'
+export type LandingRoleId = 'process-member' | 'process-owner' | 'organizational-authority'
 
 export interface LandingRoleProfile {
   id: LandingRoleId
@@ -22,16 +22,16 @@ export function RoleWorkspaceShowcase({ roles }: RoleWorkspaceShowcaseProps) {
     <section id="peran" className="scroll-mt-20 bg-surface py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Peran pengguna</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Kewenangan kontekstual</p>
           <h2 className="mt-4 text-[clamp(2.5rem,4.8vw,3.9rem)] font-semibold leading-[1] tracking-[-0.045em] text-slate-950">
-            Lima peran dalam pengelolaan SOP.
+            Tiga tanggung jawab dalam lifecycle SOP FTI.
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-sm leading-6 text-secondary-foreground sm:text-base sm:leading-7">
-            Setiap peran memiliki tugas dan kewenangan yang berbeda pada proses penyusunan, evaluasi, dan pengesahan SOP.
+            Akses berasal dari hubungan dengan Proses Bisnis atau kewenangan organisasi yang relevan, bukan satu role workflow global.
           </p>
         </div>
 
-        <div className="mt-10 overflow-x-auto pb-2" role="tablist" aria-label="Peran pengguna">
+        <div className="mt-10 overflow-x-auto pb-2" role="tablist" aria-label="Tanggung jawab pengguna">
           <div className="mx-auto flex min-w-max w-fit gap-1.5 rounded-[18px] border border-slate-200/80 bg-[#f8fbff] p-1.5 shadow-[0_18px_48px_-40px_rgba(15,23,42,0.3)]">
             {roles.map((role) => (
               <button

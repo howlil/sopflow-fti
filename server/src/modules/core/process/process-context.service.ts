@@ -6,7 +6,6 @@ const userSelect = {
   penggunaId: true,
   nama: true,
   email: true,
-  peran: true,
   platformRole: true,
 } as const;
 
