@@ -21,10 +21,25 @@ Model FTI ditambahkan secara additive; invariant legacy OPD tetap berlaku pada c
 - `Process.scope = FACULTY` wajib memiliki `departmentId = NULL`.
 - `Process.scope = DEPARTMENT` wajib memiliki satu `departmentId` valid. Kombinasi scope/context ini dikunci oleh trigger `trg_process_scope_department_insert` dan `trg_process_scope_department_update`, serta divalidasi service. Trigger digunakan karena MariaDB/MySQL menolak `departmentId` dipakai bersamaan dalam CHECK dan foreign-key referential action pada migration foundation.
 - Setiap `Process` memiliki tepat satu `ownerId` melalui FK wajib ke `Pengguna`.
-- Setiap `Process` harus memiliki minimal satu `ProcessMember`. Minimum ini divalidasi service pada create/update; composite primary key `(processId, penggunaId)` mencegah membership duplikat.
+- Target Process boleh memiliki nol atau lebih `ProcessMember`. Membership ditambahkan secara eksplisit oleh Process Owner; composite primary key `(processId, penggunaId)` mencegah membership duplikat.
 - Process Owner tidak diduplikasi sebagai `ProcessMember`; owner dan member adalah dua relationship contextual yang berbeda.
 - Owner dan seluruh member yang ditugaskan harus merupakan pengguna aktif pada saat mutasi Process.
 - Assignment pada Process A tidak memberikan relationship pada Process B.
+
+### Process Owner Self-Service
+
+`ProcessOwnerAuthority` adalah axis eligibility terpisah yang hanya menjawab apakah satu `USER` boleh membuat dan menjadi owner awal Process pada scope tertentu. Ia bukan `PlatformRole`, bukan `OrganizationalAuthority`, dan bukan kewenangan TTE.
+
+- Admin Platform boleh grant/revoke eligibility pada scope `FACULTY` atau satu `DEPARTMENT` tertentu.
+- `scopeKey` menormalisasi uniqueness nullable scope menjadi `FACULTY` atau `DEPARTMENT:<departmentId>`; satu user tidak memiliki dua authority aktif untuk scope yang sama.
+- Process target yang dibuat lewat self-service selalu memakai caller sebagai `ownerId`; client tidak memilih owner arbitrer.
+- Nama Process harus unik pada organizational scope yang sama sebelum aktivasi.
+- `ProcessLifecycle` memisahkan lifecycle operasional dari ownership schema yang sudah ada. Existing Process di-backfill `ACTIVE`; archive tidak menghapus `Process`, membership history, SOP, review, TTE, publication, atau audit evidence.
+- Process `ARCHIVED` tidak menerima authoring/review baru. Archive ditolak bila masih ada `DetailSOP` nonterminal agar workflow tidak ditinggalkan dalam keadaan ambigu.
+- `ProcessInvitation` menyimpan hanya SHA-256 token onboarding, bukan token plaintext. Token plaintext diberikan satu kali kepada Process Owner untuk diteruskan kepada invitee.
+- Invitee membuat kata sandinya sendiri saat aktivasi. Process Owner tidak menetapkan atau menyimpan password anggota.
+- Jika email sudah menunjuk akun aktif, account identity yang sama harus dipakai dan hanya membership Process yang ditambahkan; duplicate account tidak dibuat.
+- `ProcessAudit` adalah append-only evidence untuk grant/revoke owner eligibility, create/rename/archive Process, add/remove member, dan invitation lifecycle yang diimplementasikan.
 
 Native FTI SOP ownership is stored directly in nullable `SOP.processId`. A non-null value must reference an existing `Process`; target authoring, procedure mutation, versioning, review, approval, TTE, notification, revocation, and public discovery resolve from that relationship. `ProcessSopBinding` is retained only as historical/backfill evidence and an explicit compatibility boundary; it is not an active lookup.
 
