@@ -1,0 +1,94 @@
+enum ProcessLifecycleStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum ProcessInvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+enum ProcessAuditEvent {
+  OWNER_AUTHORITY_GRANTED
+  OWNER_AUTHORITY_REVOKED
+  PROCESS_CREATED
+  PROCESS_RENAMED
+  PROCESS_ARCHIVED
+  MEMBER_ADDED
+  MEMBER_REMOVED
+  INVITATION_CREATED
+  INVITATION_ACCEPTED
+}
+
+/// Eligibility to create and own Processes in one organizational scope.
+/// Deliberately separate from PlatformRole and OrganizationalAuthority/TTE.
+model ProcessOwnerAuthority {
+  processOwnerAuthorityId String              @id @default(uuid()) @db.Char(36)
+  penggunaId              String              @db.Char(36)
+  scope                    OrganizationalScope
+  departmentId             String?             @db.Char(36)
+  /// FACULTY or DEPARTMENT:<departmentId>; makes nullable-department uniqueness deterministic.
+  scopeKey                 String              @db.VarChar(64)
+  grantedById              String              @db.Char(36)
+  revokedAt                DateTime?           @db.DateTime(3)
+  createdAt                DateTime            @default(now()) @db.DateTime(3)
+  updatedAt                DateTime            @updatedAt @db.DateTime(3)
+
+  @@unique([penggunaId, scopeKey], map: "ProcessOwnerAuthority_user_scopeKey_key")
+  @@index([scope, departmentId, revokedAt], map: "ProcessOwnerAuthority_scope_active_idx")
+  @@index([grantedById, createdAt], map: "ProcessOwnerAuthority_granter_created_idx")
+}
+
+/// Lifecycle is additive so the existing Process/SOP ownership schema remains untouched.
+/// Existing Processes are backfilled ACTIVE by the migration.
+model ProcessLifecycle {
+  processId      String                 @id @db.Char(36)
+  status         ProcessLifecycleStatus @default(ACTIVE)
+  archivedAt     DateTime?              @db.DateTime(3)
+  archivedReason String?                @db.VarChar(255)
+  updatedAt      DateTime               @updatedAt @db.DateTime(3)
+
+  @@index([status, updatedAt], map: "ProcessLifecycle_status_updated_idx")
+}
+
+/// One-time onboarding invitation issued by a Process Owner.
+/// The token itself is never persisted; only SHA-256 is stored.
+model ProcessInvitation {
+  processInvitationId String                  @id @default(uuid()) @db.Char(36)
+  processId           String                  @db.Char(36)
+  email               String                  @db.VarChar(31)
+  nama                String                  @db.VarChar(31)
+  nip                 String                  @db.Char(18)
+  jabatan              String                  @db.VarChar(28)
+  pangkat              String                  @db.VarChar(25)
+  nohp                 String                  @db.VarChar(13)
+  tokenHash            String                  @unique @db.Char(64)
+  status               ProcessInvitationStatus @default(PENDING)
+  invitedById          String                  @db.Char(36)
+  acceptedById         String?                 @db.Char(36)
+  expiresAt            DateTime                @db.DateTime(3)
+  acceptedAt           DateTime?               @db.DateTime(3)
+  createdAt            DateTime                @default(now()) @db.DateTime(3)
+  updatedAt            DateTime                @updatedAt @db.DateTime(3)
+
+  @@index([processId, status], map: "ProcessInvitation_process_status_idx")
+  @@index([email, status], map: "ProcessInvitation_email_status_idx")
+  @@index([invitedById, createdAt], map: "ProcessInvitation_inviter_created_idx")
+}
+
+/// Append-only evidence for normal Process administration/self-service changes.
+model ProcessAudit {
+  processAuditId String            @id @default(uuid()) @db.Char(36)
+  processId      String?           @db.Char(36)
+  actorId        String            @db.Char(36)
+  event          ProcessAuditEvent
+  targetUserId   String?           @db.Char(36)
+  metadata       Json?
+  createdAt      DateTime          @default(now()) @db.DateTime(3)
+
+  @@index([processId, createdAt], map: "ProcessAudit_process_created_idx")
+  @@index([actorId, createdAt], map: "ProcessAudit_actor_created_idx")
+  @@index([targetUserId, createdAt], map: "ProcessAudit_target_created_idx")
+}
