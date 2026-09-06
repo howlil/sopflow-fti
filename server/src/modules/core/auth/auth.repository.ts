@@ -1,39 +1,46 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import type { Pengguna } from '../../../generated/prisma';
+import type { Prisma } from '../../../generated/prisma';
 
-/** Baris pengguna untuk autentikasi (tanpa relasi). */
-export type PenggunaAuthRecord = Pengguna;
+const authRecordSelect = {
+  penggunaId: true,
+  email: true,
+  nama: true,
+  kataSandi: true,
+  platformRole: true,
+  nip: true,
+  jabatan: true,
+  pangkat: true,
+  nohp: true,
+  sesiTokenVersion: true,
+  refreshTokenHash: true,
+  refreshTokenExpiresAt: true,
+  ttePinHash: true,
+  updatedAt: true,
+} as const;
+
+export type PenggunaAuthRecord = Prisma.PenggunaGetPayload<{
+  select: typeof authRecordSelect;
+}>;
 
 @Injectable()
 export class AuthRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Mencari pengguna aktif berdasarkan email.
-   */
   async findActivePenggunaByEmail(email: string): Promise<PenggunaAuthRecord | null> {
     return this.prisma.pengguna.findFirst({
-      where: {
-        email,
-        deletedAt: null,
-      },
+      where: { email, deletedAt: null },
+      select: authRecordSelect,
     });
   }
 
-  /**
-   * Mencari pengguna aktif berdasarkan ID.
-   */
   async findActivePenggunaById(penggunaId: string): Promise<PenggunaAuthRecord | null> {
     return this.prisma.pengguna.findFirst({
-      where: {
-        penggunaId,
-        deletedAt: null,
-      },
+      where: { penggunaId, deletedAt: null },
+      select: authRecordSelect,
     });
   }
 
-  /** Memperbarui hash kata sandi pengguna aktif. */
   async updateKataSandi(penggunaId: string, kataSandiHash: string): Promise<void> {
     await this.prisma.pengguna.update({
       where: { penggunaId },
@@ -47,11 +54,11 @@ export class AuthRepository {
     });
   }
 
-  /** Memperbarui nomor HP tanpa merotasi atau membatalkan sesi pengguna. */
   async updateNohp(penggunaId: string, nohp: string): Promise<PenggunaAuthRecord> {
     return this.prisma.pengguna.update({
       where: { penggunaId },
       data: { nohp },
+      select: authRecordSelect,
     });
   }
 
@@ -63,6 +70,7 @@ export class AuthRepository {
         refreshTokenHash: null,
         refreshTokenExpiresAt: null,
       },
+      select: authRecordSelect,
     });
   }
 
@@ -73,10 +81,8 @@ export class AuthRepository {
   ): Promise<PenggunaAuthRecord> {
     return this.prisma.pengguna.update({
       where: { penggunaId },
-      data: {
-        refreshTokenHash,
-        refreshTokenExpiresAt,
-      },
+      data: { refreshTokenHash, refreshTokenExpiresAt },
+      select: authRecordSelect,
     });
   }
 
