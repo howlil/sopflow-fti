@@ -1,9 +1,16 @@
 -- Global Pelaksana is target-domain catalog data. Existing opdId values remain
 -- as nullable historical shadows, but new rows no longer require an OPD.
--- Creating the global unique index fails safely if production data contains
--- duplicate names that must be resolved before cutover.
+-- The global name invariant already exists from 20260901111500 as
+-- `Pelaksana_nama_global_key`; this migration aligns physical index names with
+-- the active Prisma contract while removing the obsolete OPD+name access index.
+
+-- Install the replacement FK-supporting index before dropping the legacy
+-- composite operational index.
+CREATE INDEX `Pelaksana_opdId_idx` ON `Pelaksana`(`opdId`);
+
 ALTER TABLE `Pelaksana`
-  DROP INDEX `Pelaksana_opdId_nama_key`,
+  DROP INDEX `Pelaksana_opdId_nama_idx`,
   MODIFY `opdId` CHAR(36) NULL;
 
-CREATE UNIQUE INDEX `Pelaksana_nama_key` ON `Pelaksana`(`nama`);
+ALTER TABLE `Pelaksana`
+  RENAME INDEX `Pelaksana_nama_global_key` TO `Pelaksana_nama_key`;
