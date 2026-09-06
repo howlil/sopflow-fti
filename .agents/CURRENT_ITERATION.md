@@ -6,7 +6,7 @@ This file is the canonical resumable state for ongoing work. Product truth and t
 
 **Canonical target:** Full FTI.
 
-Normal first-party SOP behavior derives from native FTI semantics:
+Normal first-party SOP behavior derives only from native FTI semantics:
 
 ```text
 Platform Role
@@ -15,13 +15,13 @@ Platform Role
 + Process-owned SOP
 ```
 
-OPD identity, OPD ownership, and legacy global workflow roles may remain only at explicit historical/external compatibility boundaries.
+Legacy OPD identity, legacy global workflow roles, and evaluation-era records are not first-party authorization, ownership, routing, discovery, or workflow inputs. Historical evidence may remain only in explicitly retained persistence/read boundaries.
 
 ## Current Position
 
-**Current capability outcome:** Process Owner Self-Service.
+**Current capability outcome:** Full FTI first-party runtime with legacy runtime retired.
 
-The normal target setup/workflow is now:
+The normal setup/workflow is:
 
 ```text
 Admin Platform
@@ -31,68 +31,62 @@ Admin Platform
 Authorized Process Owner
   -> create Process in that scope
   -> becomes initial owner automatically
-  -> add an existing USER or create one-time onboarding invitation
+  -> add existing USER or issue one-time onboarding invitation
   -> manage explicit Process membership
-  -> archive an unused Process without deleting history
 
 Process Member / Penyusun SOP
-  -> activate their own account/password when invited
-  -> work only in explicitly assigned Process relationships
-  -> continue through the existing Process-native SOP workflow
+  -> work through Process-owned SOP authoring
+  -> submit to Process Owner review
+  -> contextual final approval by Dean / Head of Department
+  -> Process-native TTE
+  -> effective / version / revoke lifecycle
 ```
 
-Owner eligibility is a separate authorization axis from `PlatformRole` and `OrganizationalAuthority`; `SUPER_ADMIN` is not an operational Process Owner or workflow bypass merely because it administers the platform.
+The first-party runtime no longer mounts or exposes legacy OPD, Evaluator, Kepala OPD, Penyusun administration controllers/services, legacy SOP authorization/version fallback, or global-role guards. Access JWT runtime identity is role-free; target authorization comes from the native axes above.
 
-Process administration changes are append-only audited. Archived Processes are read-only for new authoring/review actions; existing SOP/version/TTE/public/history evidence remains owned by the existing native lifecycle.
+Public archive discovery is Process-first only. SOP rows without `processId` are historical compatibility records and cannot re-enter live authoring/version/revocation/public-discovery flows.
 
-The established native Process workflow remains active for:
+## Historical Retention Boundary
 
-- Process-bound SOP authoring;
-- Process Owner review and revision feedback;
-- contextual final approval;
-- Process-native TTE and publication/effective transition;
-- version replacement;
-- contextual revocation;
-- Process notifications and reminders;
-- Process-first public discovery and verification.
+Historical data is retained without keeping legacy workflow runtime alive:
 
-The Process Owner Self-Service change does **not** modify the protected SOP workspace/editor UI, procedure/diagram behavior, or the SOP authoring engine.
+- unbound SOPs are classified into explicit `LegacySopRetention` snapshots;
+- historical OPD/evaluation/TTE evidence may remain where needed for provenance and verification;
+- `SOP.opdId` and `Pengguna.opdId` remain nullable historical persistence shadows until a separate data-retention proof justifies physical removal;
+- active `ProcessSopBinding` is retired from the Prisma contract and renamed to `_retired_ProcessSopBinding_20260906` as reversible migration evidence rather than destructively dropped.
+
+Do not use retained legacy fields/tables to authorize target operations or reconstruct first-party ownership.
 
 ## Verification Evidence
 
-The capability package has repository-level evidence from:
+The Full FTI exit package is qualified by executable repository gates:
 
-- Client CI: build, generated route-tree consistency, typecheck, and unit tests;
-- Server CI: Prisma validate/generate, typecheck, and core unit tests;
-- FTI Domain CI: owner-scope/self-service tests plus existing Process authoring, review, approval, revocation, notification, and TTE regression tests;
-- Migration Smoke: full migration chain, Process database invariants, target E2E seed, and read-only FTI baseline audit;
-- Container Build: application images and backend runtime payload build successfully.
+- **Full FTI Runtime Audit** — fails if legacy controllers, role guards, client OPD contracts, JWT role hydration, or SOP legacy fallback return to first-party source;
+- **Server CI** — Prisma validate/generate, typecheck, and core unit regression suite;
+- **Client CI** — build, generated route consistency, typecheck, and unit tests;
+- **FTI Domain CI** — Process authoring/review/approval/revocation/TTE/notification domain regression;
+- **Migration Smoke** — complete migration chain, Process/TTE/reminder invariants, retention backfill, Full FTI DB audit, reversible `ProcessSopBinding` retirement rehearsal, and post-rollback audit;
+- **Container Build** — deployable application images build from the same release candidate.
 
-Production release/deployment is **not claimed** without separate environment evidence.
+The protected SOP workspace/editor UI and its procedure/diagram authoring behavior are not redesigned by this retirement milestone.
+
+Production release/deployment and production-database proof are **not claimed** without separate environment evidence.
 
 ## Remaining Material Delta to `PROJECT.md`
 
-Normal first-party Process setup no longer requires Admin to create every Process or membership. Remaining work is primarily compatibility retirement and environment proof rather than another rewrite of the SOP workflow.
+There is no remaining known first-party OPD/global-role workflow dependency by design. Remaining legacy structures are historical persistence/verification concerns, not reasons to restore compatibility runtime.
 
-Explicit compatibility debt still includes some legacy OPD/global-role DTOs, routes, controllers/services, seed/history structures, and persisted shadows such as `SOP.opdId`, `Pengguna.opdId`, and `ProcessSopBinding`. These may be removed only after their historical/external retention contracts and production data evidence prove they are no longer required.
-
-Do not mechanically delete compatibility schema or rename OPD concepts into Department concepts. Department scope, Process relationship, platform administration, TTE authority, and historical OPD compatibility remain separate dimensions.
-
-## Current Product-Bet State
-
-After Process Owner Self-Service is integrated, do not create another cleanup milestone merely because legacy names still exist. Select the next bet only from a material user or release bottleneck.
-
-Likely next decision boundary:
+The next work should be selected only from a material product or release bottleneck:
 
 ```text
-release / production baseline proof needed?
-  -> qualify migrated production-shaped data and deploy safely
+production baseline proof needed?
+  -> run the read-only Full FTI audit/backfill qualification against the target environment
 
 first-party capability gap discovered?
   -> fix that user journey
 
-only dead compatibility remains?
-  -> retire contracts with evidence, not by search-and-delete
+historical storage contract proven removable?
+  -> remove only the specifically proven dead persistence contract
 ```
 
-Do not turn this file into a milestone archive, sprint ledger, or percentage-progress report.
+Do not mechanically rename OPD history into Department history, fabricate Process ownership for historical rows, or delete retained evidence without an explicit retention/data proof.
