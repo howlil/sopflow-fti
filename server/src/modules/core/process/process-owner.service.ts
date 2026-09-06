@@ -207,10 +207,13 @@ export class ProcessOwnerService {
   async inviteMember(penggunaId: string, processId: string, dto: InviteProcessMemberDto) {
     await this.requireOwnedProcess(penggunaId, processId, true);
     const email = dto.email.trim().toLowerCase();
-    const existing = await this.prisma.pengguna.findUnique({ where: { email } });
+    const nip = dto.nip.trim();
+    const existing = await this.prisma.pengguna.findFirst({
+      where: { OR: [{ email }, { nip }] },
+    });
     if (existing !== null) {
       if (existing.deletedAt !== null) {
-        throw new ConflictException('Akun dengan email ini sedang nonaktif');
+        throw new ConflictException('Akun dengan identitas ini sedang nonaktif');
       }
       await this.addExistingMember(penggunaId, processId, existing.penggunaId);
       return {
@@ -243,7 +246,7 @@ export class ProcessOwnerService {
           processId,
           email,
           nama: dto.nama.trim(),
-          nip: dto.nip.trim(),
+          nip,
           jabatan: dto.jabatan.trim(),
           pangkat: dto.pangkat.trim(),
           nohp,
