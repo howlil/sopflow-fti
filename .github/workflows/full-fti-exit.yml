@@ -102,6 +102,9 @@ jobs:
       - name: Seed production-shaped identity and Process graph
         run: pnpm db:seed:e2e
 
+      - name: Prove legacy identity shadows are nullable and inactive
+        run: pnpm ts-node --transpile-only prisma/identity-shadow-audit.ts
+
       - name: Add legacy-unbound retention probe
         run: |
           docker exec sop-full-fti-exit-db mariadb -uroot -proot_test_password sop_full_fti_exit -e "
