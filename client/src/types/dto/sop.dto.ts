@@ -1,23 +1,19 @@
-import type { TTESignaturePayload } from "./tte.dto";
+import type { TTESignaturePayload, TteAuthority } from "./tte.dto";
 
 export type StatusSOP =
   | "DRAFT"
-  | "SEDANG_DISUSUN"
-  | "MENUNGGU_PENGAJUAN_EVALUASI"
-  | "DIAJUKAN_EVALUASI"
-  | "SEDANG_DIEVALUASI"
-  | "REVISI_DARI_EVALUATOR"
-  | "DITOLAK_EVALUATOR"
-  | "MENUNGGU_TTD_PJ_EVALUATOR"
-  | "DIVERIFIKASI_PJ_EVALUATOR_ORGANISASI"
-  | "BERLAKU"
-  | "DIGANTIKAN"
-  | "DICABUT";
+  | "PROCESS_REVIEW"
+  | "REVISION_REQUIRED"
+  | "FINAL_APPROVAL"
+  | "TTE_PENDING"
+  | "EFFECTIVE"
+  | "SUPERSEDED"
+  | "REVOKED";
 
 export type JenisLangkahProsedur = "AWAL_AKHIR" | "KEGIATAN" | "KEPUTUSAN";
 export type SatuanWaktu = "m" | "h" | "d" | "w" | "mo" | "y";
 /** Selaras dengan enum `BagianSOP` di server (sumber log aktivitas + komentar). */
-export type BagianSOP = "HEADER" | "LANGKAH" | "STATUS" | "UMPAN_BALIK" | "EVALUASI";
+export type BagianSOP = "HEADER" | "LANGKAH" | "STATUS" | "UMPAN_BALIK" | "REVIEW";
 
 /** Baris daftar dari GET /sop (versi DetailSOP terbaru per header). */
 export interface TerakhirDieditRingkas {
@@ -35,7 +31,8 @@ export interface SopDaftarVersiSlice {
 
 export interface SopDaftarRow {
   id: string;
-  opdId: string;
+  processId?: string | null;
+  processNama?: string | null;
   detailSopId: string | null;
   judul: string;
   nomorSop: string | null;
@@ -103,10 +100,8 @@ export interface SopRiwayatVersiRow {
   canBuatVersiBaru: boolean;
 }
 
-/** Header SOP + meta lama (POST/PATCH detail, mock); daftar penyusun memakai `SopDaftarRow`. */
 export interface Sop {
   id: string;
-  opdId: string | null;
   processId?: string | null;
   processNama?: string | null;
   judul: string;
@@ -114,7 +109,6 @@ export interface Sop {
   updatedAt: string;
   totalVersi?: number;
   statusAktif?: StatusSOP;
-  opd?: { nama: string };
   nomorSOP?: string;
   status?: StatusSOP | string;
   author?: string;
@@ -125,6 +119,13 @@ export interface Sop {
   peraturanId?: string;
   tanggal?: string;
   detailSopId?: string;
+}
+
+export interface SigningAuthorityRingkas {
+  authority: TteAuthority;
+  nama: string | null;
+  nip: string | null;
+  jabatan?: string | null;
 }
 
 export interface SopDetail {
@@ -159,8 +160,7 @@ export interface SopDetail {
   relasiSopMasuk?: SopTerkait[];
   langkahSOP?: LangkahSOP[];
   swimlanes?: DetailSOPPelaksana[];
-  /** Kepala OPD OPD pemilik SOP (mis. dari GET workbench); blok DISAHKAN OLEH. */
-  kepalaOpd?: { nama: string | null; nip: string | null } | null;
+  signingAuthority?: SigningAuthorityRingkas | null;
   /** ID peraturan dasar hukum (urut createdAt asc), dari GET workbench. */
   dasarHukumPeraturanIds?: string[];
   /** ID DetailSOP terkait (relasi keluar), dari GET workbench. */
@@ -195,7 +195,7 @@ export interface PenyusunWorkbenchData {
   langkah: LangkahSOP[];
   logEdit: PenyusunWorkbenchLogEdit[];
   diagramKonfigurasi?: PenyusunWorkbenchDiagramKonfigurasi;
-  tteSignaturePayloadKepalaOpd?: TTESignaturePayload;
+  tteSignaturePayload?: TTESignaturePayload;
 }
 
 export type JenisDiagram = 'FLOWCHART' | 'BPMN';
@@ -284,19 +284,18 @@ export interface DetailSOPPelaksana {
   urutan: number;
   createdAt: string;
   updatedAt: string;
-  pelaksana?: { id: string; opdId: string; namaPelaksana: string };
+  pelaksana?: { id: string; namaPelaksana: string };
 }
 
 export interface Pelaksana {
   id: string;
-  opdId: string;
   namaPelaksana: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface SopListQueryParams {
-  opdId?: string;
+  processId?: string;
   /** Status DetailSOP terbaru (bukan `all`). */
   status?: string;
   /** Batas bawah tanggal `updatedAt` (YYYY-MM-DD, UTC). */
@@ -305,7 +304,6 @@ export interface SopListQueryParams {
   tanggalSampai?: string;
 }
 
-/** Payload POST `/sop` — opdId & pembuat di-set server dari JWT. */
 export interface CreateSopRequest {
   judul: string;
   nomorSop: string;
@@ -411,7 +409,6 @@ export interface UpdateLangkahSOPDto {
 }
 
 export interface CreatePelaksanaDto {
-  opdId: string;
   namaPelaksana: string;
 }
 
@@ -454,7 +451,6 @@ export interface UpdateLampiranMutationDto {
 
 export interface CreatePelaksanaMutationDto {
   namaPelaksana: string;
-  opdId?: string;
 }
 
 export interface UpdatePelaksanaMutationDto {
