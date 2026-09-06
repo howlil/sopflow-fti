@@ -179,7 +179,7 @@ model DetailSOP {
   nomorSOP                       String                           @unique @db.VarChar(24)
   tanggalPembuatan               DateTime                         @default(now())
   tanggalRevisi                  DateTime?
-  /// Diisi otomatis saat status menjadi BERLAKU via TTE Kepala OPD (tanggal kalender pengesahan, WIB).
+  /// Diisi otomatis saat status menjadi BERLAKU melalui TTE otoritas organisasi kontekstual.
   tanggalEfektif                 DateTime?
   namaLembaga                    String                           @db.VarChar(28)
   dibuatOlehId                   String?                          @db.Char(36)
@@ -288,7 +288,7 @@ model SopTerkait {
   @@index([detailSopTerkaitId], map: "SopTerkait_detailSopTerkaitId_idx")
 }
 
-/// `pelaksanaId` harus dari OPD yang sama dengan SOP pemilik `detailSopId` (trigger DB + validasi prosedur).
+/// Prosedur memakai Pelaksana dari katalog global; actor identity tidak ditentukan oleh OPD.
 model LangkahSOP {
   langkahSopId               String                    @id @default(uuid()) @db.Char(36)
   detailSopId                String                    @db.Char(36)
@@ -322,18 +322,18 @@ model LangkahSOP {
 
 model Pelaksana {
   pelaksanaId String               @id @default(uuid()) @db.Char(36)
-  opdId       String               @db.Char(36)
-  nama        String               @db.VarChar(15)
+  opdId       String?              @db.Char(36)
+  nama        String               @unique(map: "Pelaksana_nama_key") @db.VarChar(15)
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
   sopDetails  DetailSOPPelaksana[]
   langkahSOP  LangkahSOP[]
-  opd         OPD                  @relation(fields: [opdId], references: [opdId])
+  opd         OPD?                 @relation(fields: [opdId], references: [opdId])
 
-  @@unique([opdId, nama], map: "Pelaksana_opdId_nama_key")
+  @@index([opdId], map: "Pelaksana_opdId_idx")
 }
 
-/// Swimlane: `pelaksanaId` harus master `Pelaksana` dengan `opdId` sama seperti `SOP` pemilik `DetailSOP` (trigger DB).
+/// Swimlane memakai Pelaksana global dan menyimpan snapshot nama per versi SOP.
 model DetailSOPPelaksana {
   detailSopId String    @db.Char(36)
   pelaksanaId String    @db.Char(36)
@@ -575,6 +575,15 @@ enum CabangDiagram {
   UTAMA
   YA
   TIDAK
+}
+
+enum SatuanWaktu {
+  m
+  h
+  d
+  w
+  mo
+  y
 }
 
 enum SisiPanahDiagram {
