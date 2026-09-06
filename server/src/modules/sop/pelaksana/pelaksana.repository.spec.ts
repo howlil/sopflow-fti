@@ -3,9 +3,6 @@ import { PelaksanaRepository } from './pelaksana.repository';
 
 describe('PelaksanaRepository global catalog', () => {
   const prismaMock = {
-    oPD: {
-      findFirst: jest.fn(),
-    },
     pengguna: {
       findMany: jest.fn(),
     },
@@ -27,21 +24,6 @@ describe('PelaksanaRepository global catalog', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     repo = new PelaksanaRepository(prismaMock as unknown as PrismaService);
-  });
-
-  it('reads a deterministic legacy OPD only as storage compatibility shadow', async () => {
-    prismaMock.oPD.findFirst.mockResolvedValueOnce({ opdId: 'legacy-opd' });
-    await expect(repo.findLegacyStorageShadow()).resolves.toBe('legacy-opd');
-    expect(prismaMock.oPD.findFirst).toHaveBeenCalledWith({
-      where: { deletedAt: null },
-      orderBy: { createdAt: 'asc' },
-      select: { opdId: true },
-    });
-  });
-
-  it('returns null when no compatibility storage shadow exists', async () => {
-    prismaMock.oPD.findFirst.mockResolvedValueOnce(null);
-    await expect(repo.findLegacyStorageShadow()).resolves.toBeNull();
   });
 
   it('lists Pelaksana globally without OPD filtering', async () => {
