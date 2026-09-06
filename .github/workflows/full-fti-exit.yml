@@ -1,0 +1,131 @@
+name: Full FTI Exit
+
+on:
+  pull_request:
+    paths:
+      - 'server/src/**'
+      - 'server/prisma/**'
+      - 'server/scripts/full-fti-runtime-audit.cjs'
+      - 'server/package.json'
+      - 'client/src/**'
+      - '.github/workflows/full-fti-exit.yml'
+  push:
+    paths:
+      - 'server/src/**'
+      - 'server/prisma/**'
+      - 'server/scripts/full-fti-runtime-audit.cjs'
+      - 'server/package.json'
+      - 'client/src/**'
+      - '.github/workflows/full-fti-exit.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: full-fti-exit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: server
+    env:
+      DATABASE_HOST: 127.0.0.1
+      DATABASE_PORT: 3308
+      DATABASE_USER: sop_test
+      DATABASE_PASSWORD: sop_test_password
+      DATABASE_NAME: sop_full_fti_exit
+      DATABASE_URL: mysql://sop_test:sop_test_password@127.0.0.1:3308/sop_full_fti_exit
+      E2E_SEED_PASSWORD: FullFtiExit-CI-Only-123!
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prove zero first-party legacy runtime dependency
+        run: node scripts/full-fti-runtime-audit.cjs
+
+      - name: Validate and generate Prisma
+        run: |
+          pnpm prisma validate
+          pnpm prisma generate
+
+      - name: Verify Process-only runtime contracts
+        run: pnpm test:fti-exit
+
+      - name: Start MariaDB
+        run: |
+          docker run --detach \
+            --name sop-full-fti-exit-db \
+            --publish 3308:3306 \
+            --env MARIADB_ROOT_PASSWORD=root_test_password \
+            --env MARIADB_DATABASE=sop_full_fti_exit \
+            --env MARIADB_USER=sop_test \
+            --env MARIADB_PASSWORD=sop_test_password \
+            --env TZ=Asia/Jakarta \
+            mariadb:11.4 \
+            --lower_case_table_names=1
+
+      - name: Wait for MariaDB
+        run: |
+          for attempt in $(seq 1 60); do
+            if docker exec sop-full-fti-exit-db healthcheck.sh --connect --innodb_initialized >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs sop-full-fti-exit-db
+          exit 1
+
+      - name: Apply full migration chain
+        run: pnpm prisma migrate deploy
+
+      - name: Seed production-shaped identity and Process graph
+        run: pnpm db:seed:e2e
+
+      - name: Add legacy-unbound retention probe
+        run: |
+          docker exec sop-full-fti-exit-db mariadb -uroot -proot_test_password sop_full_fti_exit -e "
+            INSERT INTO SOP (sopId, opdId, processId, judul, createdAt, updatedAt)
+            SELECT '00000000-0000-0000-0000-00000000f701', opdId, NULL, 'Legacy retention probe', NOW(3), NOW(3)
+            FROM OPD WHERE nama = 'Dinas Kesehatan' LIMIT 1;
+          "
+
+      - name: Backfill explicit legacy retention classification
+        run: pnpm db:backfill:legacy-retention
+
+      - name: Prove Full FTI data exit invariants
+        run: pnpm db:audit:fti
+
+      - name: Verify retention probe was classified
+        run: |
+          retained="$(docker exec sop-full-fti-exit-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM sop_full_fti_exit.LegacySopRetention WHERE sopId = '00000000-0000-0000-0000-00000000f701'")"
+          test "$retained" = "1" || {
+            echo "Expected legacy SOP retention classification, got $retained"
+            exit 1
+          }
+
+      - name: Rehearse retired binding rollback and re-retirement
+        run: pnpm ts-node --transpile-only prisma/rehearse-process-sop-binding-retirement.ts
+
+      - name: Prove exit invariants after rollback rehearsal
+        run: pnpm db:audit:fti

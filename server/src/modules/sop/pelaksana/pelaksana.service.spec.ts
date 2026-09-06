@@ -1,5 +1,5 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { PeranPengguna, Prisma } from '../../../generated/prisma';
+import { Prisma } from '../../../generated/prisma';
 import type { JwtAccessPayload } from '../../../common';
 import { PelaksanaRepository } from './pelaksana.repository';
 import { PelaksanaService } from './pelaksana.service';
@@ -9,7 +9,6 @@ describe('PelaksanaService global catalog', () => {
     findAll: jest.fn(),
     findById: jest.fn(),
     findByNama: jest.fn(),
-    findLegacyStorageShadow: jest.fn(),
     findAttributionByPelaksanaIds: jest.fn(),
     findPenggunaNames: jest.fn(),
     createGlobal: jest.fn(),
@@ -22,11 +21,10 @@ describe('PelaksanaService global catalog', () => {
   const user: JwtAccessPayload = {
     sub: 'u-1',
     email: 'member@fti.test',
-    peran: PeranPengguna.EVALUATOR,
   };
   const row = {
     pelaksanaId: 'pl-1',
-    opdId: 'legacy-opd-shadow',
+    opdId: null,
     nama: 'Dosen',
     createdAt: new Date('2026-09-01T00:00:00.000Z'),
     updatedAt: new Date('2026-09-01T01:00:00.000Z'),
@@ -40,7 +38,6 @@ describe('PelaksanaService global catalog', () => {
     repo.findAttributionByPelaksanaIds.mockResolvedValue([]);
     repo.findPenggunaNames.mockResolvedValue(new Map());
     repo.findByNama.mockResolvedValue(null);
-    repo.findLegacyStorageShadow.mockResolvedValue('legacy-opd-shadow');
   });
 
   it('lists the global catalog without OPD filtering', async () => {
@@ -59,7 +56,7 @@ describe('PelaksanaService global catalog', () => {
     expect(repo.findAll).toHaveBeenCalledTimes(1);
   });
 
-  it('creates from a persistence-only storage shadow and records attribution', async () => {
+  it('creates a global actor without any OPD storage dependency and records attribution', async () => {
     repo.createGlobal.mockResolvedValue(row);
     repo.findAttributionByPelaksanaIds.mockResolvedValue([
       { pelaksanaId: 'pl-1', createdById: 'u-1', updatedById: 'u-1' },
@@ -68,19 +65,9 @@ describe('PelaksanaService global catalog', () => {
 
     const result = await service.create(user, { namaPelaksana: '  Dosen  ' });
 
-    expect(repo.findLegacyStorageShadow).toHaveBeenCalledTimes(1);
-    expect(repo.createGlobal).toHaveBeenCalledWith('legacy-opd-shadow', 'Dosen', 'u-1');
+    expect(repo.createGlobal).toHaveBeenCalledWith('Dosen', 'u-1');
     expect(result.createdBy).toEqual({ id: 'u-1', nama: 'User FTI' });
     expect(result.updatedBy).toEqual({ id: 'u-1', nama: 'User FTI' });
-  });
-
-  it('rejects creation when the temporary storage shadow is unavailable', async () => {
-    repo.findLegacyStorageShadow.mockResolvedValue(null);
-
-    await expect(service.create(user, { namaPelaksana: 'Dosen' })).rejects.toBeInstanceOf(
-      ConflictException,
-    );
-    expect(repo.createGlobal).not.toHaveBeenCalled();
   });
 
   it('rejects a duplicate global name before creating another row', async () => {

@@ -177,10 +177,9 @@ describe('Pengujian AuthController', () => {
       user: {
         sub: pengguna.penggunaId,
         email: pengguna.email,
-        peran: pengguna.peran,
         sesiTokenVersion: 1,
       },
-    } as Request & { user: JwtAccessPayload });
+    } as unknown as Request & { user: JwtAccessPayload });
     expect(authService.getMe).toHaveBeenCalledWith(pengguna.penggunaId);
     expect(actual.data).toBe(pengguna);
   });
@@ -192,10 +191,9 @@ describe('Pengujian AuthController', () => {
       user: {
         sub: pengguna.penggunaId,
         email: pengguna.email,
-        peran: pengguna.peran,
         sesiTokenVersion: 1,
       },
-    } as Request & { user: JwtAccessPayload };
+    } as unknown as Request & { user: JwtAccessPayload };
 
     const actual = await controller.updateMyPhone(request, { nohp: updated.nohp });
 

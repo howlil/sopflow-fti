@@ -1,5 +1,4 @@
 import type { Request } from 'express';
-import { PeranPengguna } from '../../../generated/prisma';
 import type { JwtAccessPayload } from '../../core/auth/helpers/auth.shared';
 import { PelaksanaController } from './pelaksana.controller';
 import { PelaksanaService } from './pelaksana.service';
@@ -11,10 +10,9 @@ describe('PelaksanaController global catalog', () => {
   const user: JwtAccessPayload = {
     sub: 'user-1',
     email: 'member@example.test',
-    peran: PeranPengguna.EVALUATOR,
     sesiTokenVersion: 1,
   };
-  const req = { user } as Request & { user: JwtAccessPayload };
+  const req = { user } as unknown as Request & { user: JwtAccessPayload };
   const responseRow = {
     id: 'pl-1',
     namaPelaksana: 'Dosen',

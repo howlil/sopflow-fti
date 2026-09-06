@@ -137,9 +137,9 @@ export class ProcessSopRevocationService {
       where: { sopId: resolved.sopId },
       select: { processId: true },
     });
-    if (sop?.processId === null || sop === null) {
+    if (sop?.processId == null) {
       throw new ConflictException(
-        'SOP legacy belum terikat Process dan tetap memakai workflow kompatibilitas',
+        'SOP tanpa Process hanya tersedia sebagai riwayat compatibility dan tidak dapat dicabut dari runtime FTI',
       );
     }
     const processId = sop.processId;

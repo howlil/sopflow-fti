@@ -21,7 +21,6 @@ jest.mock('bcrypt', () => ({ compare: jest.fn() }));
 const user: JwtAccessPayload = {
   sub: '00000000-0000-4000-8000-000000000001',
   email: 'dean@example.test',
-  peran: PeranPengguna.PENYUSUN,
 };
 
 const context: ProcessTteSigningContext = {

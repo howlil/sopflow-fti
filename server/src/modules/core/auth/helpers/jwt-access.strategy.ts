@@ -37,7 +37,6 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
     return {
       sub: row.penggunaId,
       email: row.email,
-      peran: row.peran,
       sesiTokenVersion: row.sesiTokenVersion,
     };
   }

@@ -48,6 +48,10 @@ async function tableExists(tableName: string): Promise<boolean> {
 
 async function run(): Promise<void> {
   const hasProcessReminderTable = await tableExists('ProcessReminder');
+  const hasLegacyRetentionTable = await tableExists('LegacySopRetention');
+  const hasActiveBindingTable = await tableExists('ProcessSopBinding');
+  const hasRetiredBindingTable = await tableExists('_retired_ProcessSopBinding_20260906');
+
   const checks = {
     unresolvedFailedMigrations: await scalar(
       'SELECT COUNT(*) AS value FROM `_prisma_migrations` WHERE finished_at IS NULL AND rolled_back_at IS NULL',
@@ -64,12 +68,34 @@ async function run(): Promise<void> {
     sopProcessOrphans: await scalar(
       'SELECT COUNT(*) AS value FROM `SOP` s LEFT JOIN `Process` p ON p.`processId` = s.`processId` WHERE s.`processId` IS NOT NULL AND p.`processId` IS NULL',
     ),
-    bindingUnbackfilled: await scalar(
-      'SELECT COUNT(*) AS value FROM `ProcessSopBinding` b LEFT JOIN `SOP` s ON s.`sopId` = b.`sopId` WHERE s.`sopId` IS NULL OR s.`processId` IS NULL',
-    ),
-    bindingOwnershipMismatches: await scalar(
-      'SELECT COUNT(*) AS value FROM `ProcessSopBinding` b JOIN `SOP` s ON s.`sopId` = b.`sopId` WHERE s.`processId` <> b.`processId`',
-    ),
+    activeProcessSopBindingStillPresent: hasActiveBindingTable ? 1 : 0,
+    retiredProcessSopBindingMissing: hasRetiredBindingTable ? 0 : 1,
+    retiredBindingUnbackfilled: hasRetiredBindingTable
+      ? await scalar(
+          'SELECT COUNT(*) AS value FROM `_retired_ProcessSopBinding_20260906` b LEFT JOIN `SOP` s ON s.`sopId` = b.`sopId` WHERE s.`sopId` IS NULL OR s.`processId` IS NULL',
+        )
+      : 0,
+    retiredBindingOwnershipMismatches: hasRetiredBindingTable
+      ? await scalar(
+          'SELECT COUNT(*) AS value FROM `_retired_ProcessSopBinding_20260906` b JOIN `SOP` s ON s.`sopId` = b.`sopId` WHERE s.`processId` <> b.`processId`',
+        )
+      : 0,
+    legacyRetentionTableMissing: hasLegacyRetentionTable ? 0 : 1,
+    unclassifiedUnboundSop: hasLegacyRetentionTable
+      ? await scalar(
+          'SELECT COUNT(*) AS value FROM `SOP` s LEFT JOIN `LegacySopRetention` r ON r.`sopId` = s.`sopId` WHERE s.`processId` IS NULL AND r.`sopId` IS NULL',
+        )
+      : 0,
+    retentionForProcessBoundSop: hasLegacyRetentionTable
+      ? await scalar(
+          'SELECT COUNT(*) AS value FROM `LegacySopRetention` r JOIN `SOP` s ON s.`sopId` = r.`sopId` WHERE s.`processId` IS NOT NULL',
+        )
+      : 0,
+    retentionKindMismatches: hasLegacyRetentionTable
+      ? await scalar(
+          "SELECT COUNT(*) AS value FROM `LegacySopRetention` r WHERE (r.`kind` = 'HISTORICAL_OPD' AND r.`legacyOpdId` IS NULL) OR (r.`kind` = 'HISTORICAL_UNSCOPED' AND r.`legacyOpdId` IS NOT NULL) OR TRIM(r.`sopTitleSnapshot`) = ''",
+        )
+      : 0,
     missingPelaksanaSnapshots: await scalar(
       'SELECT COUNT(*) AS value FROM `DetailSOPPelaksana` d LEFT JOIN `DetailSOPPelaksanaSnapshot` s ON s.`detailSopId` = d.`detailSopId` AND s.`pelaksanaId` = d.`pelaksanaId` WHERE s.`detailSopId` IS NULL',
     ),
@@ -98,21 +124,24 @@ async function run(): Promise<void> {
     sopNativeProcessBound: await scalar(
       'SELECT COUNT(*) AS value FROM `SOP` WHERE `processId` IS NOT NULL',
     ),
-    sopLegacyOpdCompatible: await scalar(
-      'SELECT COUNT(*) AS value FROM `SOP` WHERE `processId` IS NULL AND `opdId` IS NOT NULL',
-    ),
-    sopUnboundRequiresReview: await scalar(
-      'SELECT COUNT(*) AS value FROM `SOP` WHERE `processId` IS NULL AND `opdId` IS NULL',
-    ),
+    sopHistoricalRetained: hasLegacyRetentionTable
+      ? await scalar('SELECT COUNT(*) AS value FROM `LegacySopRetention`')
+      : 0,
+    sopUnboundUnclassified: checks.unclassifiedUnboundSop,
     penggunaWithLegacyOpdShadow: await scalar(
       'SELECT COUNT(*) AS value FROM `Pengguna` WHERE `opdId` IS NOT NULL',
     ),
     penggunaWithoutOpdShadow: await scalar(
       'SELECT COUNT(*) AS value FROM `Pengguna` WHERE `opdId` IS NULL',
     ),
-    processSopBindingRows: await scalar('SELECT COUNT(*) AS value FROM `ProcessSopBinding`'),
-    opdRows: await scalar('SELECT COUNT(*) AS value FROM `OPD`'),
-    pengajuanEvaluasiRows: await scalar('SELECT COUNT(*) AS value FROM `PengajuanEvaluasi`'),
+    activeProcessSopBindingTablePresent: hasActiveBindingTable ? 1 : 0,
+    retiredProcessSopBindingRows: hasRetiredBindingTable
+      ? await scalar('SELECT COUNT(*) AS value FROM `_retired_ProcessSopBinding_20260906`')
+      : 0,
+    opdRowsRetainedForHistory: await scalar('SELECT COUNT(*) AS value FROM `OPD`'),
+    pengajuanEvaluasiRowsRetainedForHistory: await scalar(
+      'SELECT COUNT(*) AS value FROM `PengajuanEvaluasi`',
+    ),
     retiredNilaiEvaluasiTablePresent: (await tableExists('_retired_NilaiEvaluasi_20260906')) ? 1 : 0,
     retiredLogNilaiEvaluasiTablePresent: (await tableExists('_retired_LogNilaiEvaluasi_20260906')) ? 1 : 0,
     retiredPengingatWhatsAppTablePresent: (await tableExists('_retired_PengingatWhatsApp_20260906')) ? 1 : 0,
@@ -120,9 +149,6 @@ async function run(): Promise<void> {
     nativeReminderTablePresent: hasProcessReminderTable ? 1 : 0,
     processReminderRows: hasProcessReminderTable
       ? await scalar('SELECT COUNT(*) AS value FROM `ProcessReminder`')
-      : 0,
-    processReminderActiveRows: hasProcessReminderTable
-      ? await scalar('SELECT COUNT(*) AS value FROM `ProcessReminder` WHERE `lockedUntil` IS NULL')
       : 0,
   };
 

@@ -6,7 +6,7 @@ on:
       - 'server/prisma/migrations/**'
       - 'server/prisma/recovery/**'
       - 'server/prisma/*.prisma'
-      - 'server/prisma/seed-e2e.ts'
+      - 'server/prisma/*.ts'
       - 'server/prisma.config.ts'
       - '.github/workflows/migration-smoke.yml'
   pull_request:
@@ -14,7 +14,7 @@ on:
       - 'server/prisma/migrations/**'
       - 'server/prisma/recovery/**'
       - 'server/prisma/*.prisma'
-      - 'server/prisma/seed-e2e.ts'
+      - 'server/prisma/*.ts'
       - 'server/prisma.config.ts'
       - '.github/workflows/migration-smoke.yml'
 
@@ -157,7 +157,7 @@ jobs:
           expect_scope_rejection "SET FOREIGN_KEY_CHECKS=0; INSERT INTO \`Process\` (processId, nama, scope, departmentId, ownerId, createdAt, updatedAt) VALUES ('00000000-0000-0000-0000-000000000004', 'Invalid Department', 'DEPARTMENT', NULL, '00000000-0000-0000-0000-000000000099', NOW(3), NOW(3));"
           expect_scope_rejection "SET FOREIGN_KEY_CHECKS=0; UPDATE \`Process\` SET departmentId = '00000000-0000-0000-0000-000000000098' WHERE processId = '00000000-0000-0000-0000-000000000001';"
 
-      - name: Verify M11 native FTI SOP ownership cutover
+      - name: Verify native FTI SOP ownership cutover and retired binding evidence
         run: |
           native_fk_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'sop_biro_organisasi_test' AND CONSTRAINT_NAME = 'SOP_processId_fkey'")"
           test "$native_fk_count" = "1" || {
@@ -165,15 +165,20 @@ jobs:
             exit 1
           }
 
-          unbackfilled="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -Nse "SELECT COUNT(*) FROM ProcessSopBinding b LEFT JOIN SOP s ON s.sopId = b.sopId WHERE s.sopId IS NULL OR s.processId IS NULL")"
+          active_binding="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = 'ProcessSopBinding'")"
+          retired_binding="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = '_retired_ProcessSopBinding_20260906'")"
+          test "$active_binding" = "0" || { echo "ProcessSopBinding must not remain active"; exit 1; }
+          test "$retired_binding" = "1" || { echo "Expected retired ProcessSopBinding evidence table"; exit 1; }
+
+          unbackfilled="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -Nse "SELECT COUNT(*) FROM _retired_ProcessSopBinding_20260906 b LEFT JOIN SOP s ON s.sopId = b.sopId WHERE s.sopId IS NULL OR s.processId IS NULL")"
           test "$unbackfilled" = "0" || {
-            echo "Found $unbackfilled ProcessSopBinding row(s) without native SOP.processId backfill"
+            echo "Found $unbackfilled retired binding row(s) without native SOP.processId backfill"
             exit 1
           }
 
-          mismatched="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -Nse "SELECT COUNT(*) FROM ProcessSopBinding b JOIN SOP s ON s.sopId = b.sopId WHERE s.processId <> b.processId")"
+          mismatched="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -Nse "SELECT COUNT(*) FROM _retired_ProcessSopBinding_20260906 b JOIN SOP s ON s.sopId = b.sopId WHERE s.processId <> b.processId")"
           test "$mismatched" = "0" || {
-            echo "Found $mismatched SOP/process ownership mismatch(es)"
+            echo "Found $mismatched retired binding ownership mismatch(es)"
             exit 1
           }
 
@@ -185,13 +190,13 @@ jobs:
 
           pengguna_opd_nullable="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -Nse "SELECT IS_NULLABLE = 'YES' FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = 'Pengguna' AND COLUMN_NAME = 'opdId'")"
           test "$pengguna_opd_nullable" = "1" || {
-            echo "Expected Pengguna.opdId to be nullable for native accounts"
+            echo "Expected Pengguna.opdId to remain nullable historical shadow"
             exit 1
           }
 
           sop_opd_nullable="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -Nse "SELECT IS_NULLABLE = 'YES' FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = 'SOP' AND COLUMN_NAME = 'opdId'")"
           test "$sop_opd_nullable" = "1" || {
-            echo "Expected SOP.opdId to be nullable for native Process SOPs"
+            echo "Expected SOP.opdId to remain nullable historical shadow"
             exit 1
           }
 
@@ -289,7 +294,16 @@ jobs:
             exit 1
           }
 
-      - name: Run read-only FTI baseline and legacy classification audit
+      - name: Run idempotent legacy retention backfill
+        run: pnpm db:backfill:legacy-retention
+
+      - name: Run read-only Full FTI baseline and legacy classification audit
+        run: pnpm db:audit:fti
+
+      - name: Rehearse retired binding rollback without row loss
+        run: pnpm ts-node --transpile-only prisma/rehearse-process-sop-binding-retirement.ts
+
+      - name: Re-run Full FTI audit after rollback rehearsal
         run: pnpm db:audit:fti
 
       - name: Database logs on failure

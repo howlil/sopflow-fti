@@ -13,13 +13,6 @@ import type {
 } from '@/types/dto/sop-public.dto'
 
 export const sopPublicApi = {
-  listSopGlobal: (params?: PublicArsipQueryParams) =>
-    unwrapApiData<PublicSopPage>(
-      apiClient.get<ApiSuccessResponse<PublicSopPage>>(
-        `/sop/public/sop${buildQueryString(params as Record<string, unknown> | undefined)}`,
-      ),
-    ),
-
   listProcess: (params?: PublicArsipQueryParams) =>
     unwrapApiData<PublicProcessPage>(
       apiClient.get<ApiSuccessResponse<PublicProcessPage>>(
@@ -47,15 +40,6 @@ export const sopPublicApi = {
         `/sop/public/dokumen/${encodeURIComponent(detailSopId)}`,
       ),
     ),
-}
-
-export function usePublicSopGlobalList(params: PublicArsipQueryParams) {
-  return useQuery({
-    queryKey: queryKeys.sopPublicSopGlobal(params),
-    queryFn: () => sopPublicApi.listSopGlobal(params),
-    enabled: Boolean(params.search?.trim()),
-    ...SOP_WORKFLOW_REFRESH_OPTIONS,
-  })
 }
 
 export function usePublicProcessList(params: PublicArsipQueryParams) {

@@ -1,17 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import {
-  JenisDokumenTte,
-  OrganizationalScope,
-  Prisma,
-  StatusSOP,
-} from '../../../generated/prisma';
-
-export type PublicOpdDbRow = {
-  readonly opdId: string;
-  readonly nama: string;
-  readonly jumlahSopBerlaku: number;
-};
+import { JenisDokumenTte, OrganizationalScope, Prisma, StatusSOP } from '../../../generated/prisma';
 
 export type PublicProcessDbRow = {
   readonly processId: string;
@@ -22,22 +11,17 @@ export type PublicProcessDbRow = {
   readonly jumlahSopBerlaku: number;
 };
 
-export type PublicSopDbRow = {
+export type PublicFtiSopDbRow = {
   readonly detailSopId: string;
   readonly sopId: string;
-  readonly opdId: string | null;
   readonly judul: string;
   readonly nomorSOP: string;
   readonly versi: number;
   readonly tanggalEfektif: Date | null;
-  readonly opdNama: string | null;
   readonly pdfPath: string;
-};
-
-export type PublicFtiSopDbRow = PublicSopDbRow & {
-  readonly processId: string | null;
-  readonly processName: string | null;
-  readonly scope: OrganizationalScope | null;
+  readonly processId: string;
+  readonly processName: string;
+  readonly scope: OrganizationalScope;
   readonly departmentId: string | null;
   readonly departmentName: string | null;
 };
@@ -54,127 +38,6 @@ export type PublicSopPdfDbRow = {
 @Injectable()
 export class SopPublicRepository {
   constructor(private readonly prisma: PrismaService) {}
-
-  async findOpdAktifById(opdId: string): Promise<{ opdId: string; nama: string } | null> {
-    return this.prisma.oPD.findFirst({
-      where: { opdId, deletedAt: null },
-      select: { opdId: true, nama: true },
-    });
-  }
-
-  async countOpdWithBerlakuSop(search?: string): Promise<number> {
-    const rows = await this.prisma.$queryRaw<Array<{ total: bigint | number }>>`
-      SELECT COUNT(DISTINCT o.opdId) AS total
-      FROM OPD o
-      WHERE o.deletedAt IS NULL
-        ${search ? Prisma.sql`AND o.nama LIKE ${`%${search}%`}` : Prisma.empty}
-        AND EXISTS (
-          SELECT 1
-          FROM SOP s
-          JOIN DetailSOP d ON d.sopId = s.sopId
-          JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
-          WHERE s.opdId = o.opdId
-            AND d.status = ${StatusSOP.BERLAKU}
-            AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
-            AND dt.pdfStatus = ${'PUBLISHED'}
-            AND dt.pdfPath IS NOT NULL
-        )
-    `;
-    return this.toCount(rows);
-  }
-
-  async findOpdWithBerlakuSop(params: {
-    search?: string;
-    skip: number;
-    take: number;
-  }): Promise<PublicOpdDbRow[]> {
-    const rows = await this.prisma.$queryRaw<
-      Array<{ opdId: string; nama: string; jumlahSopBerlaku: bigint | number }>
-    >`
-      SELECT o.opdId, o.nama, COUNT(DISTINCT s.sopId) AS jumlahSopBerlaku
-      FROM OPD o
-      JOIN SOP s ON s.opdId = o.opdId
-      JOIN DetailSOP d ON d.sopId = s.sopId
-      JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
-      WHERE o.deletedAt IS NULL
-        AND d.status = ${StatusSOP.BERLAKU}
-        AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
-        AND dt.pdfStatus = ${'PUBLISHED'}
-        AND dt.pdfPath IS NOT NULL
-        ${params.search ? Prisma.sql`AND o.nama LIKE ${`%${params.search}%`}` : Prisma.empty}
-      GROUP BY o.opdId, o.nama
-      ORDER BY o.nama ASC
-      LIMIT ${params.take} OFFSET ${params.skip}
-    `;
-    return rows.map((row) => ({
-      opdId: row.opdId,
-      nama: row.nama,
-      jumlahSopBerlaku: Number(row.jumlahSopBerlaku),
-    }));
-  }
-
-  async countBerlakuSopByOpd(opdId: string, search?: string): Promise<number> {
-    const rows = await this.prisma.$queryRaw<Array<{ total: bigint | number }>>`
-      SELECT COUNT(*) AS total
-      FROM DetailSOP d
-      JOIN SOP s ON s.sopId = d.sopId
-      JOIN OPD o ON o.opdId = s.opdId
-      JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
-      WHERE s.opdId = ${opdId}
-        AND o.deletedAt IS NULL
-        AND d.status = ${StatusSOP.BERLAKU}
-        AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
-        AND dt.pdfStatus = ${'PUBLISHED'}
-        AND dt.pdfPath IS NOT NULL
-        ${this.searchSql(search)}
-    `;
-    return this.toCount(rows);
-  }
-
-  async findBerlakuSopByOpd(params: {
-    opdId: string;
-    search?: string;
-    skip: number;
-    take: number;
-  }): Promise<PublicSopDbRow[]> {
-    return this.findPublishedSopRows(
-      Prisma.sql`s.opdId = ${params.opdId}`,
-      params.search,
-      params.skip,
-      params.take,
-    );
-  }
-
-  async countBerlakuSopGlobal(search?: string): Promise<number> {
-    const rows = await this.prisma.$queryRaw<Array<{ total: bigint | number }>>`
-      SELECT COUNT(*) AS total
-      FROM DetailSOP d
-      JOIN SOP s ON s.sopId = d.sopId
-      JOIN OPD o ON o.opdId = s.opdId
-      JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
-      WHERE o.deletedAt IS NULL
-        AND d.status = ${StatusSOP.BERLAKU}
-        AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
-        AND dt.pdfStatus = ${'PUBLISHED'}
-        AND dt.pdfPath IS NOT NULL
-        ${this.searchSql(search, true)}
-    `;
-    return this.toCount(rows);
-  }
-
-  async findBerlakuSopGlobal(params: {
-    search?: string;
-    skip: number;
-    take: number;
-  }): Promise<PublicSopDbRow[]> {
-    return this.findPublishedSopRows(
-      Prisma.sql`1 = 1`,
-      params.search,
-      params.skip,
-      params.take,
-      true,
-    );
-  }
 
   async countProcessWithBerlakuSop(search?: string): Promise<number> {
     const rows = await this.prisma.$queryRaw<Array<{ total: bigint | number }>>`
@@ -225,10 +88,7 @@ export class SopPublicRepository {
         p.nama ASC
       LIMIT ${params.take} OFFSET ${params.skip}
     `;
-    return rows.map((row) => ({
-      ...row,
-      jumlahSopBerlaku: Number(row.jumlahSopBerlaku),
-    }));
+    return rows.map((row) => ({ ...row, jumlahSopBerlaku: Number(row.jumlahSopBerlaku) }));
   }
 
   async findProcessById(processId: string): Promise<PublicProcessDbRow | null> {
@@ -245,9 +105,7 @@ export class SopPublicRepository {
       FROM Process p
       LEFT JOIN Department dep ON dep.departmentId = p.departmentId
       LEFT JOIN SOP s ON s.processId = p.processId
-      LEFT JOIN DetailSOP d
-        ON d.sopId = s.sopId
-        AND d.status = ${StatusSOP.BERLAKU}
+      LEFT JOIN DetailSOP d ON d.sopId = s.sopId AND d.status = ${StatusSOP.BERLAKU}
       LEFT JOIN DokumenTte dt
         ON dt.detailSopId = d.detailSopId
         AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
@@ -258,23 +116,22 @@ export class SopPublicRepository {
       LIMIT 1
     `;
     const row = rows[0];
-    return row === undefined
-      ? null
-      : { ...row, jumlahSopBerlaku: Number(row.jumlahSopBerlaku) };
+    return row === undefined ? null : { ...row, jumlahSopBerlaku: Number(row.jumlahSopBerlaku) };
   }
 
   async countBerlakuSopByProcess(processId: string, search?: string): Promise<number> {
     const rows = await this.prisma.$queryRaw<Array<{ total: bigint | number }>>`
       SELECT COUNT(DISTINCT d.detailSopId) AS total
       FROM SOP s
+      JOIN Process p ON p.processId = s.processId
       JOIN DetailSOP d ON d.sopId = s.sopId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
-      WHERE s.processId = ${processId}
+      WHERE p.processId = ${processId}
         AND d.status = ${StatusSOP.BERLAKU}
         AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
         AND dt.pdfStatus = ${'PUBLISHED'}
         AND dt.pdfPath IS NOT NULL
-        ${this.searchSql(search)}
+        ${this.sopSearchSql(search)}
     `;
     return this.toCount(rows);
   }
@@ -286,7 +143,7 @@ export class SopPublicRepository {
     take: number;
   }): Promise<PublicFtiSopDbRow[]> {
     return this.findPublishedProcessSopRows(
-      Prisma.sql`s.processId = ${params.processId}`,
+      Prisma.sql`p.processId = ${params.processId}`,
       params.search,
       params.skip,
       params.take,
@@ -295,37 +152,17 @@ export class SopPublicRepository {
 
   async countFtiSopGlobal(search?: string): Promise<number> {
     const rows = await this.prisma.$queryRaw<Array<{ total: bigint | number }>>`
-      SELECT COUNT(*) AS total
-      FROM (
-        SELECT DISTINCT d.detailSopId
-        FROM SOP s
-        JOIN Process p ON p.processId = s.processId
-        LEFT JOIN Department dep ON dep.departmentId = p.departmentId
-        JOIN DetailSOP d ON d.sopId = s.sopId
-        JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
-        WHERE d.status = ${StatusSOP.BERLAKU}
-          AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
-          AND dt.pdfStatus = ${'PUBLISHED'}
-          AND dt.pdfPath IS NOT NULL
-          ${this.ftiSearchSql(search)}
-
-        UNION ALL
-
-        SELECT DISTINCT d.detailSopId
-        FROM DetailSOP d
-        JOIN SOP s ON s.sopId = d.sopId
-        JOIN OPD o ON o.opdId = s.opdId
-        JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
-        WHERE o.deletedAt IS NULL
-          AND d.status = ${StatusSOP.BERLAKU}
-          AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
-          AND dt.pdfStatus = ${'PUBLISHED'}
-          AND dt.pdfPath IS NOT NULL
-          AND NOT EXISTS (
-            SELECT 1 FROM SOP nativeSop WHERE nativeSop.sopId = s.sopId AND nativeSop.processId IS NOT NULL
-          )
-          ${this.searchSql(search, true)}
-      ) catalog
+      SELECT COUNT(DISTINCT d.detailSopId) AS total
+      FROM SOP s
+      JOIN Process p ON p.processId = s.processId
+      LEFT JOIN Department dep ON dep.departmentId = p.departmentId
+      JOIN DetailSOP d ON d.sopId = s.sopId
+      JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
+      WHERE d.status = ${StatusSOP.BERLAKU}
+        AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
+        AND dt.pdfStatus = ${'PUBLISHED'}
+        AND dt.pdfPath IS NOT NULL
+        ${this.ftiSearchSql(search)}
     `;
     return this.toCount(rows);
   }
@@ -335,68 +172,12 @@ export class SopPublicRepository {
     skip: number;
     take: number;
   }): Promise<PublicFtiSopDbRow[]> {
-    return this.prisma.$queryRaw<PublicFtiSopDbRow[]>`
-      SELECT *
-      FROM (
-        SELECT DISTINCT
-          d.detailSopId,
-          d.sopId,
-          s.opdId,
-          s.judul,
-          d.nomorSOP,
-          d.versi,
-          d.tanggalEfektif,
-          o.nama AS opdNama,
-          dt.pdfPath,
-          p.processId,
-          p.nama AS processName,
-          p.scope,
-          p.departmentId,
-          dep.nama AS departmentName
-        FROM SOP s
-        JOIN Process p ON p.processId = s.processId
-        LEFT JOIN Department dep ON dep.departmentId = p.departmentId
-        LEFT JOIN OPD o ON o.opdId = s.opdId
-        JOIN DetailSOP d ON d.sopId = s.sopId
-        JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
-        WHERE d.status = ${StatusSOP.BERLAKU}
-          AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
-          AND dt.pdfStatus = ${'PUBLISHED'}
-          AND dt.pdfPath IS NOT NULL
-          ${this.ftiSearchSql(params.search)}
-
-        UNION ALL
-
-        SELECT DISTINCT
-          d.detailSopId,
-          d.sopId,
-          s.opdId,
-          s.judul,
-          d.nomorSOP,
-          d.versi,
-          d.tanggalEfektif,
-          o.nama AS opdNama,
-          dt.pdfPath,
-          NULL AS processId,
-          NULL AS processName,
-          NULL AS scope,
-          NULL AS departmentId,
-          NULL AS departmentName
-        FROM DetailSOP d
-        JOIN SOP s ON s.sopId = d.sopId
-        JOIN OPD o ON o.opdId = s.opdId
-        JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
-        WHERE o.deletedAt IS NULL
-          AND d.status = ${StatusSOP.BERLAKU}
-          AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
-          AND dt.pdfStatus = ${'PUBLISHED'}
-          AND dt.pdfPath IS NOT NULL
-          AND s.processId IS NULL
-          ${this.searchSql(params.search, true)}
-      ) catalog
-      ORDER BY judul ASC, nomorSOP ASC
-      LIMIT ${params.take} OFFSET ${params.skip}
-    `;
+    return this.findPublishedProcessSopRows(
+      Prisma.sql`1 = 1`,
+      params.search,
+      params.skip,
+      params.take,
+    );
   }
 
   async findPublishedPdfByDetailSopId(detailSopId: string): Promise<PublicSopPdfDbRow | null> {
@@ -404,10 +185,9 @@ export class SopPublicRepository {
       SELECT d.detailSopId, s.judul, d.nomorSOP, d.versi, dt.pdfPath, dt.pdfSha256
       FROM DetailSOP d
       JOIN SOP s ON s.sopId = d.sopId
-      LEFT JOIN OPD o ON o.opdId = s.opdId
+      JOIN Process p ON p.processId = s.processId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
       WHERE d.detailSopId = ${detailSopId}
-        AND (s.processId IS NOT NULL OR (o.opdId IS NOT NULL AND o.deletedAt IS NULL))
         AND d.status = ${StatusSOP.BERLAKU}
         AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
         AND dt.pdfStatus = ${'PUBLISHED'}
@@ -415,40 +195,6 @@ export class SopPublicRepository {
       LIMIT 1
     `;
     return rows[0] ?? null;
-  }
-
-  private async findPublishedSopRows(
-    extraWhere: Prisma.Sql,
-    search: string | undefined,
-    skip: number,
-    take: number,
-    includeOpdInSearch = false,
-  ): Promise<PublicSopDbRow[]> {
-    return this.prisma.$queryRaw<PublicSopDbRow[]>`
-      SELECT
-        d.detailSopId,
-        d.sopId,
-        s.opdId,
-        s.judul,
-        d.nomorSOP,
-        d.versi,
-        d.tanggalEfektif,
-        o.nama AS opdNama,
-        dt.pdfPath
-      FROM DetailSOP d
-      JOIN SOP s ON s.sopId = d.sopId
-      JOIN OPD o ON o.opdId = s.opdId
-      JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
-      WHERE ${extraWhere}
-        AND o.deletedAt IS NULL
-        AND d.status = ${StatusSOP.BERLAKU}
-        AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
-        AND dt.pdfStatus = ${'PUBLISHED'}
-        AND dt.pdfPath IS NOT NULL
-        ${this.searchSql(search, includeOpdInSearch)}
-      ORDER BY s.judul ASC
-      LIMIT ${take} OFFSET ${skip}
-    `;
   }
 
   private async findPublishedProcessSopRows(
@@ -461,12 +207,10 @@ export class SopPublicRepository {
       SELECT DISTINCT
         d.detailSopId,
         d.sopId,
-        s.opdId,
         s.judul,
         d.nomorSOP,
         d.versi,
         d.tanggalEfektif,
-        o.nama AS opdNama,
         dt.pdfPath,
         p.processId,
         p.nama AS processName,
@@ -476,7 +220,6 @@ export class SopPublicRepository {
       FROM SOP s
       JOIN Process p ON p.processId = s.processId
       LEFT JOIN Department dep ON dep.departmentId = p.departmentId
-      LEFT JOIN OPD o ON o.opdId = s.opdId
       JOIN DetailSOP d ON d.sopId = s.sopId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
       WHERE ${extraWhere}
@@ -484,34 +227,26 @@ export class SopPublicRepository {
         AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
         AND dt.pdfStatus = ${'PUBLISHED'}
         AND dt.pdfPath IS NOT NULL
-        ${this.searchSql(search)}
-      ORDER BY s.judul ASC
+        ${this.ftiSearchSql(search)}
+      ORDER BY s.judul ASC, d.nomorSOP ASC
       LIMIT ${take} OFFSET ${skip}
     `;
   }
 
-  private searchSql(search?: string, includeOpd = false): Prisma.Sql {
-    if (search === undefined) {
-      return Prisma.empty;
-    }
+  private sopSearchSql(search?: string): Prisma.Sql {
+    if (search === undefined) return Prisma.empty;
     const like = `%${search}%`;
-    return includeOpd
-      ? Prisma.sql`AND (d.nomorSOP LIKE ${like} OR s.judul LIKE ${like} OR o.nama LIKE ${like})`
-      : Prisma.sql`AND (d.nomorSOP LIKE ${like} OR s.judul LIKE ${like})`;
+    return Prisma.sql`AND (d.nomorSOP LIKE ${like} OR s.judul LIKE ${like})`;
   }
 
   private processCatalogSearchSql(search?: string): Prisma.Sql {
-    if (search === undefined) {
-      return Prisma.empty;
-    }
+    if (search === undefined) return Prisma.empty;
     const like = `%${search}%`;
     return Prisma.sql`AND (p.nama LIKE ${like} OR dep.nama LIKE ${like})`;
   }
 
   private ftiSearchSql(search?: string): Prisma.Sql {
-    if (search === undefined) {
-      return Prisma.empty;
-    }
+    if (search === undefined) return Prisma.empty;
     const like = `%${search}%`;
     return Prisma.sql`AND (
       d.nomorSOP LIKE ${like}
