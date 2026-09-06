@@ -1,8 +1,7 @@
 import { expect } from '@playwright/test'
 
 import type { RoleApiFactory } from '../fixtures/business-test'
-import type { E2eUser } from '../fixtures/users'
-import { users } from '../fixtures/users'
+import { targetUsers, type E2eUser } from '../fixtures/users'
 import { toApiUrl, unwrapApiData } from './api'
 
 const initialPassword = process.env.E2E_SEED_PASSWORD ?? '@Password123:)'
@@ -40,7 +39,7 @@ export function platformAccountFixture(key: string): PlatformAccountFixture {
   const keyCode = stableNumber(key, 5)
   const short = `${key.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5)}${keyCode}`
   return {
-    nama: `M7 ${key}`.slice(0, 31),
+    nama: `FTI ${key}`.slice(0, 31),
     nip: `9${timestamp}${keyCode}`,
     email: `${short}@fti.test`.slice(0, 31),
     jabatan: 'Staf FTI',
@@ -55,7 +54,7 @@ export function toDynamicE2eUser(
   roleLabel: string,
 ): E2eUser {
   return {
-    role: 'PENYUSUN',
+    role: 'USER',
     roleLabel,
     email: account.email,
     password: account.password,
@@ -71,7 +70,7 @@ export async function createPlatformAccountViaApi(
   apiFor: RoleApiFactory,
   fixture: PlatformAccountFixture,
 ): Promise<PlatformAccountRow> {
-  const adminApi = await apiFor(users.pjEvaluator)
+  const adminApi = await apiFor(targetUsers.admin)
   const response = await adminApi.post(toApiUrl('/platform-accounts'), {
     data: {
       nama: fixture.nama,

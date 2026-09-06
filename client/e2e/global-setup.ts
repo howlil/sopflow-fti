@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { request, type FullConfig } from '@playwright/test'
 
-import { users } from './fixtures/users'
+import { targetUsers } from './fixtures/users'
 import { apiBaseURL, apiHealthURL } from './support/api'
 
 const clientDir = fileURLToPath(new URL('..', import.meta.url))
@@ -35,19 +35,17 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
 
   if (process.env.E2E_SKIP_LOGIN_PREFLIGHT === 'true') return
 
+  const actor = targetUsers.processOwner
   const loginApi = await request.newContext({ baseURL: apiBaseURL })
   try {
     const response = await loginApi.post(`${apiBaseURL}/auth/login`, {
-      data: {
-        email: users.pjEvaluator.email,
-        password: users.pjEvaluator.password,
-      },
+      data: { email: actor.email, password: actor.password },
     })
 
     if (!response.ok()) {
       const body = await response.text().catch(() => '')
       throw new Error(
-        `Backend E2E tersedia, tetapi login preflight gagal (${response.status()}) untuk ${users.pjEvaluator.email}. ` +
+        `Backend E2E tersedia, tetapi login preflight FTI gagal (${response.status()}) untuk ${actor.email}. ` +
           `Pastikan database test sudah siap/seed benar. Response: ${body}`,
       )
     }

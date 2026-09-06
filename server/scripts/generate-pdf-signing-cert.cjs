@@ -1,13 +1,12 @@
 const forge = require('node-forge');
 const crypto = require('crypto');
 
-// Menggunakan passphrase acak aman secara default (16 byte hex = 32 karakter) agar tidak terlihat seperti dummy 'change-me'
-const passphrase = process.argv[2] ?? process.env.PDF_SIGNING_P12_PASSPHRASE ?? crypto.randomBytes(16).toString('hex');
+const passphrase =
+  process.argv[2] ??
+  process.env.PDF_SIGNING_P12_PASSPHRASE ??
+  crypto.randomBytes(16).toString('hex');
 
 const now = new Date();
-// X.509 validity menggunakan presisi waktu yang lebih kasar daripada Date JavaScript dan
-// sertifikat dapat dipakai lintas host dengan clock drift kecil. Backdate 5 menit mencegah
-// sertifikat yang baru dibuat dianggap "belum berlaku" tanpa memperpanjang notAfter.
 const validFrom = new Date(now.getTime() - 5 * 60 * 1000);
 const expiresAt = new Date(now);
 expiresAt.setFullYear(now.getFullYear() + 5);
@@ -19,19 +18,19 @@ function serial(suffix) {
 const caKeys = forge.pki.rsa.generateKeyPair({ bits: 2048, workers: 2 });
 const signingKeys = forge.pki.rsa.generateKeyPair({ bits: 2048, workers: 2 });
 
-// Menggunakan data organisasi riil (Pemerintah Provinsi Sumatera Barat - Biro Organisasi)
-const orgName = process.argv[4] ?? process.env.CERT_ORG_NAME ?? 'Pemerintah Provinsi Sumatera Barat';
-const ouName = process.argv[5] ?? process.env.CERT_OU_NAME ?? 'Biro Organisasi Sekretariat Daerah';
+const orgName = process.argv[4] ?? process.env.CERT_ORG_NAME ?? 'Fakultas Teknologi Informasi';
+const ouName = process.argv[5] ?? process.env.CERT_OU_NAME ?? 'SOPFlow FTI';
+const commonName = process.argv[3] ?? 'SOPFlow FTI Penandatangan PDF';
 
 const caAttrs = [
-  { name: 'commonName', value: process.argv[3] ? `Root CA Otoritas Sertifikasi ${process.argv[3]}` : 'Root CA Otoritas Sertifikasi Pemprov Sumbar' },
+  { name: 'commonName', value: `Root CA ${commonName}` },
   { name: 'organizationName', value: orgName },
   { name: 'organizationalUnitName', value: ouName },
   { name: 'countryName', value: 'ID' },
 ];
 
 const signingAttrs = [
-  { name: 'commonName', value: process.argv[3] ?? 'SOPFlow Penandatangan PDF' },
+  { name: 'commonName', value: commonName },
   { name: 'organizationName', value: orgName },
   { name: 'organizationalUnitName', value: ouName },
   { name: 'countryName', value: 'ID' },
@@ -70,15 +69,10 @@ signingCert.setExtensions([
 ]);
 signingCert.sign(caKeys.privateKey, forge.md.sha256.create());
 
-const p12Asn1 = forge.pkcs12.toPkcs12Asn1(
-  signingKeys.privateKey,
-  [signingCert, caCert],
-  passphrase,
-  {
-    algorithm: '3des',
-    friendlyName: 'SOP PDF Signing Certificate',
-  },
-);
+const p12Asn1 = forge.pkcs12.toPkcs12Asn1(signingKeys.privateKey, [signingCert, caCert], passphrase, {
+  algorithm: '3des',
+  friendlyName: 'SOPFlow FTI PDF Signing Certificate',
+});
 const p12Der = forge.asn1.toDer(p12Asn1).getBytes();
 const p12Base64 = Buffer.from(p12Der, 'binary').toString('base64');
 

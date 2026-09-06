@@ -44,17 +44,17 @@ const ROLE_PROFILES: LandingRoleProfile[] = [
 export function LandingPage() {
   return (
     <div className="min-h-screen bg-surface text-foreground">
-      <PublicHeader governmentName={INSTITUTION_NAME} officeName={PRODUCT_NAME} />
+      <PublicHeader institutionName={INSTITUTION_NAME} productName={PRODUCT_NAME} />
 
       <main>
         <IdentityHero stages={WORKFLOW_STAGES} />
         <PublicServiceGateway />
         <WorkflowStory stages={WORKFLOW_STAGES} />
         <RoleWorkspaceShowcase roles={ROLE_PROFILES} />
-        <InstitutionalClosing governmentName={INSTITUTION_NAME} officeName={PRODUCT_NAME} />
+        <InstitutionalClosing institutionName={INSTITUTION_NAME} productName={PRODUCT_NAME} />
       </main>
 
-      <PublicFooter governmentName={INSTITUTION_NAME} officeName={PRODUCT_NAME} />
+      <PublicFooter institutionName={INSTITUTION_NAME} productName={PRODUCT_NAME} />
     </div>
   )
 }

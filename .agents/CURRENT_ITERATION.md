@@ -6,7 +6,7 @@ This file is the canonical resumable state for ongoing work. Product truth and t
 
 **Canonical target:** Full FTI.
 
-Normal first-party identity and SOP behavior derives from native FTI semantics:
+Normal first-party behavior derives from:
 
 ```text
 Platform Role
@@ -15,76 +15,96 @@ Platform Role
 + Process-owned SOP
 ```
 
-Legacy OPD identity and global workflow-role values may survive only as historical persistence evidence. They are not valid first-party authorization inputs.
+Legacy OPD identity and global workflow-role values may survive only as historical persistence evidence. They are not valid first-party authorization, routing, discovery, or current-account inputs.
 
-## Current Position
+## Current Milestone — Full FTI Semantic Cleanup
 
-**Current capability outcome:** Full FTI first-party runtime with legacy runtime retired.
+This iteration closes the remaining active wrong-model and compatibility-contract residue after legacy runtime retirement.
 
-The normal setup/workflow is Process-native from platform administration through authoring, Process Owner review, contextual Dean/Head of Department approval, TTE, publication, versioning, and revocation.
+### Active first-party semantics
 
-The current identity-retirement iteration removes the remaining active account semantics from legacy identity shadows:
+- public landing and login identify the product as SOPFlow FTI / Fakultas Teknologi Informasi;
+- the visible lifecycle is Penyusunan → Review Proses → Persetujuan Akhir → TTE → Berlaku;
+- first-party responsibility is expressed as Penyusun SOP, Pemilik Proses, and contextual organizational authority rather than a global workflow-role matrix;
+- workbench reads no longer join OPD or discover a `KEPALA_OPD` user;
+- workbench signing metadata is projected as contextual `signingAuthority` from Process scope and Organizational Authority;
+- current workbench activity-log projection does not read `Pengguna.peran`;
+- `ProcessContext` does not read or project `peran`;
+- Process SOP list contracts do not expose `opdId`;
+- current TTE payload naming is authority-neutral; historical `RiwayatTandaTangan.peran` remains immutable point-in-time evidence;
+- user-facing status labels use FTI lifecycle terminology while the persisted `StatusSOP` enum remains compatibility-safe.
 
-- native platform-account creation does not fabricate `Pengguna.opdId` or `Pengguna.peran`;
-- Process invitation onboarding creates the same identity-native `USER` shape;
-- authentication reads only identity/session/platform-role fields and never hydrates OPD/global workflow role;
-- current-user TTE profile/credential setup reads identity fields only;
-- `Pengguna.peran` and `Pengguna.opdId` are nullable historical shadows for pre-FTI rows, not active account semantics;
-- legacy PJ Evaluator singleton triggers are retired because no first-party account flow assigns that role;
-- `RiwayatTandaTangan.peran` remains required immutable signing evidence and is intentionally not converted into current account authority.
+### Native setup and test world
 
-Existing historical rows are not rewritten or deleted merely to make the schema look cleaner.
+The canonical seed is FTI-native:
+
+- current seed identities have `Pengguna.opdId = null` and `Pengguna.peran = null`;
+- setup creates Department, Process Owner eligibility, Process, Process membership, Dean/Head-of-Department assignments, global Peraturan, and global Pelaksana;
+- the seed does not create an “OPD FTI”, active `RiwayatOpdPengguna`, or `OPDPeraturan` ownership world;
+- signing-certificate development defaults identify FTI/SOPFlow rather than the retired Sumbar/Biro deployment context;
+- executable browser business journeys are the `fti-*` journeys; the old OPD/global-role Playwright matrix and old J01–J38 coverage ceremony are retired;
+- obsolete OPD/evaluation/RBAC integration suites are retired rather than kept as false target-product evidence.
+
+### Dead active contracts retired
+
+This iteration removes or guards against reintroduction of active legacy surfaces including:
+
+- client organisasi/OPD compatibility components and public OPD DTOs;
+- `TTERole` compatibility type;
+- `cabut-sop.util` legacy authorization wording;
+- old Create SOP / manual status DTOs;
+- compatibility `sop-status-policy`;
+- orphan OPD catalog repository methods;
+- legacy public/login branding and role vocabulary;
+- test fixtures that model PJ Evaluator / Evaluator / Kepala OPD / PJ Penyusun / Penyusun as the current product authority model.
+
+The Full FTI runtime source audit now treats these as regression boundaries.
+
+## Protected Surface Boundary
+
+The existing SOP workspace/editor, procedure engine, and diagram engine remain protected. This semantic cleanup changes their upstream read contract/adapter only where required to remove legacy ownership/authority semantics; it does not redesign or rewrite protected authoring behavior.
 
 ## Historical Retention Boundary
 
-Historical data is retained without keeping legacy workflow runtime alive:
-
-- unbound SOPs are classified into explicit `LegacySopRetention` snapshots;
-- historical OPD/evaluation/TTE evidence may remain where needed for provenance and verification;
-- `SOP.opdId`, `Pengguna.opdId`, and non-null legacy values in `Pengguna.peran` may remain on historical rows until separate retention proof justifies physical removal;
-- active `ProcessSopBinding` is retired from the Prisma contract and retained as `_retired_ProcessSopBinding_20260906` for reversible migration evidence.
-
-Do not use retained legacy fields/tables to authorize target operations or reconstruct first-party ownership.
-
-## Verification Boundary
-
-Before this iteration may merge, exact-head CI must prove:
-
-- Prisma schema validates/generates with nullable current-account legacy role;
-- Server typecheck/core unit tests pass, including auth, platform-account, and current TTE identity boundaries;
-- FTI Domain CI preserves Process-native workflow behavior;
-- Migration Smoke applies the complete migration chain without data loss;
-- Full FTI Exit verifies source-level zero dependency plus nullable identity-shadow database invariants;
-- Client CI and container builds remain green;
-- protected SOP workspace/editor/procedure/diagram production surfaces remain untouched.
-
-Production release/deployment and production-database cleanup are **not** claimed without separate environment evidence.
-
-## Remaining Material Delta to `PROJECT.md`
-
-After identity-shadow retirement, surviving legacy structures are expected to be historical data contracts rather than active identity/workflow dependencies. Important examples include:
+Historical data remains intentionally retained:
 
 - historical `OPD`, `RiwayatOpdPengguna`, and `OPDPeraturan` rows;
-- historical/unbound SOP provenance captured through `LegacySopRetention` and nullable `SOP.opdId`;
-- historical `PengajuanEvaluasi` and retired evaluation/notification tables;
-- signing role snapshots in `RiwayatTandaTangan.peran`;
-- `_retired_ProcessSopBinding_20260906` migration evidence.
+- nullable historical shadows `Pengguna.opdId`, `Pengguna.peran`, and `SOP.opdId`;
+- `LegacySopRetention` provenance for SOPs outside target Process ownership;
+- historical `PengajuanEvaluasi` / evaluation evidence;
+- `RiwayatTandaTangan.peran` as signing evidence;
+- retired Process/SOP binding migration evidence.
 
-Do not physically drop these merely because first-party runtime no longer consumes them. Future contraction requires production-shaped data evidence plus explicit retention/rollback proof.
+Do not physically contract these merely because first-party runtime no longer consumes them. Persistence contraction is a later operation and requires production-shaped retention, migration, and rollback proof.
 
-## Current Product-Bet State
+## Verification Gate
 
-After this identity iteration is integrated, do not create another cleanup milestone merely to eliminate legacy words from migration/history files. Select the next action from a material release or product bottleneck:
+This milestone may merge only when one exact branch head passes all repository gates that apply to the change:
+
+- Client CI;
+- Server CI;
+- FTI Domain CI;
+- Migration Smoke;
+- Full FTI Exit;
+- Container Build.
+
+The gate must prove Prisma validate/generate, native source-boundary audits, current unit/build contracts, complete migration-chain safety, and production container builds. Any concrete failure is fixed on the same milestone branch and the entire exact-head result is re-evaluated before merge.
+
+## After Merge
+
+Do not start another lexical cleanup milestone merely because historical tables, migrations, enums, or evidence contain legacy vocabulary.
+
+Next action must come from a material product/release constraint:
 
 ```text
-production migration/deploy proof needed?
-  -> qualify the real environment and retained historical rows
+production retention / migration proof missing?
+  -> audit the real retained data and rehearse contraction safely
 
-first-party capability gap discovered?
-  -> fix that user journey
+first-party journey gap discovered?
+  -> fix the user outcome
 
-only historical persistence remains?
-  -> contract only structures proven unnecessary for retention
+only proven-unused historical persistence remains?
+  -> contract it with explicit retention and rollback evidence
 ```
 
-The protected SOP workspace/editor UI and procedure/diagram engine remain outside this cleanup.
+Production deployment and physical legacy-data deletion are not claimed by this milestone.

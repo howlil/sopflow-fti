@@ -23,19 +23,18 @@ describe('public auth design contract', () => {
     expect(loginPageSource).toContain('LoginForm isSubmitting={isLoggingIn} onSubmitLogin={login}')
   })
 
-  it('uses the approved abstract SOP visual panel edge to edge', () => {
-    expect(loginHeroSource).toContain('Portal Internal SOP')
-    expect(loginHeroSource).toContain('Kelola SOP secara terstruktur dari penyusunan hingga arsip')
-    expect(loginHeroSource).toContain('Biro Organisasi · Pemerintah Provinsi Sumatera Barat')
-    expect(loginHeroSource).toContain("['Penyusunan', 'Evaluasi', 'Pengesahan', 'Arsip']")
+  it('uses FTI identity and the native lifecycle in the visual panel', () => {
+    expect(loginHeroSource).toContain('Portal Internal SOP FTI')
+    expect(loginHeroSource).toContain('Kelola SOP berdasarkan Proses Bisnis dan kewenangan organisasi')
+    expect(loginHeroSource).toContain('Fakultas Teknologi Informasi · SOPFlow')
+    expect(loginHeroSource).toContain("['Penyusunan', 'Review Proses', 'Persetujuan', 'TTE']")
     expect(loginHeroSource).toContain('linear-gradient')
     expect(loginHeroSource).toContain('radial-gradient')
     expect(loginHeroSource).toContain('lg:min-h-screen')
-    expect(loginHeroSource).not.toContain('m-1.5')
-    expect(loginHeroSource).not.toContain('sm:m-2')
-    expect(loginHeroSource).not.toContain('rounded-[18px]')
-    expect(loginHeroSource).not.toContain('Kantor_Gubernur_Sumbar_belakang.jpg')
-    expect(loginHeroSource).not.toContain('Berita Acara')
+    expect(loginHeroSource).not.toContain('Pemerintah Provinsi Sumatera Barat')
+    expect(loginHeroSource).not.toContain('Biro Organisasi')
+    expect(loginHeroSource).not.toContain('Kepala OPD')
+    expect(loginHeroSource).not.toContain('PJ Evaluator')
   })
 
   it('keeps the form clean and preserves login behavior', () => {
