@@ -58,6 +58,7 @@ export function transformSopDetailToMetadata(detail: SopDetail): SOPDetailMetada
         return nested?.sop?.judul ?? "";
       })
       .filter((j) => j.length > 0) ?? [];
+  const authority = detail.signingAuthority;
   return {
     id: detail.id,
     sopId: detail.sopId,
@@ -73,8 +74,14 @@ export function transformSopDetailToMetadata(detail: SopDetail): SOPDetailMetada
     version: detail.versi,
     revisiDariDetailSopId: detail.revisiDariDetailSopId ?? null,
     revisiDariVersi: detail.revisiDariVersi ?? null,
-    picName: detail.kepalaOpd?.nama?.trim() ?? "",
-    picNumber: detail.kepalaOpd?.nip?.trim() ?? "",
+    picName: authority?.nama?.trim() ?? "",
+    picNumber: authority?.nip?.trim() ?? "",
+    picRole:
+      authority?.authority === 'DEAN'
+        ? 'Dekan'
+        : authority?.authority === 'HEAD_OF_DEPARTMENT'
+          ? 'Kepala Departemen'
+          : undefined,
     lawBasis: lawBasisLabels,
     lawBasisIds,
     relatedSop: relatedSopLabels,
