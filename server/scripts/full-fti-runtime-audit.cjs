@@ -27,6 +27,8 @@ const forbiddenInNativeFiles = new Map([
   ['server/src/common/index.ts', [/UseJwtAndRolesGuards/, /RolesGuard/, /\bRoles\b/]],
   ['server/src/common/types/jwt-access-payload.type.ts', [/PeranPengguna/, /\bperan\??:/]],
   ['server/src/modules/core/auth/helpers/jwt-access.strategy.ts', [/PeranPengguna/, /\bperan\s*:/, /row\.peran/]],
+  ['server/src/modules/sop/pelaksana/pelaksana.service.ts', [/findLegacyStorageShadow/, /storageShadow/, /\bopdId\b/]],
+  ['server/src/modules/sop/pelaksana/pelaksana.repository.ts', [/findLegacyStorageShadow/, /prisma\.oPD/, /opdShadowId/]],
   ['server/src/modules/sop/process-authoring/process-version.service.ts', [/SopLegacy/, /UserOpdAccess/, /\.opdId\b/]],
   ['server/src/modules/sop/process-authoring/process-sop-authoring.module.ts', [/SopLegacy/, /OpdModule/]],
   ['server/src/modules/sop/public/sop-public.controller.ts', [/listOpd/, /ByOpd/, /opdId/]],
