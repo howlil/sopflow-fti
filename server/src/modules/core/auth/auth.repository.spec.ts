@@ -15,25 +15,27 @@ describe('Pengujian AuthRepository', () => {
     repo = new AuthRepository(prismaMock as unknown as PrismaService);
   });
 
-  it('seharusnya mencari pengguna aktif berdasarkan email', async () => {
+  it('mencari pengguna aktif berdasarkan email tanpa membaca role/OPD legacy', async () => {
     prismaMock.pengguna.findFirst.mockResolvedValueOnce({ penggunaId: 'p-1' });
     await repo.findActivePenggunaByEmail('user@example.test');
     expect(prismaMock.pengguna.findFirst).toHaveBeenCalledWith({
-      where: {
-        email: 'user@example.test',
-        deletedAt: null,
-      },
+      where: { email: 'user@example.test', deletedAt: null },
+      select: expect.not.objectContaining({
+        peran: expect.anything(),
+        opdId: expect.anything(),
+      }),
     });
   });
 
-  it('seharusnya mencari pengguna aktif berdasarkan id', async () => {
+  it('mencari pengguna aktif berdasarkan id tanpa membaca role/OPD legacy', async () => {
     prismaMock.pengguna.findFirst.mockResolvedValueOnce({ penggunaId: 'p-1' });
     await repo.findActivePenggunaById('p-1');
     expect(prismaMock.pengguna.findFirst).toHaveBeenCalledWith({
-      where: {
-        penggunaId: 'p-1',
-        deletedAt: null,
-      },
+      where: { penggunaId: 'p-1', deletedAt: null },
+      select: expect.not.objectContaining({
+        peran: expect.anything(),
+        opdId: expect.anything(),
+      }),
     });
   });
 
@@ -63,6 +65,10 @@ describe('Pengujian AuthRepository', () => {
     expect(prismaMock.pengguna.update).toHaveBeenCalledWith({
       where: { penggunaId: 'p-1' },
       data: { nohp: '6281234567890' },
+      select: expect.not.objectContaining({
+        peran: expect.anything(),
+        opdId: expect.anything(),
+      }),
     });
     expect(actual.nohp).toBe('6281234567890');
   });
@@ -77,6 +83,7 @@ describe('Pengujian AuthRepository', () => {
         refreshTokenHash: null,
         refreshTokenExpiresAt: null,
       },
+      select: expect.any(Object),
     });
   });
 
@@ -90,6 +97,7 @@ describe('Pengujian AuthRepository', () => {
         refreshTokenHash: 'refresh-hash',
         refreshTokenExpiresAt: expiresAt,
       },
+      select: expect.any(Object),
     });
   });
 

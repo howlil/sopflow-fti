@@ -19,7 +19,7 @@ model Pengguna {
   opdId                           String?              @db.Char(36)
   nama                            String               @db.VarChar(31)
   kataSandi                       String               @db.Char(60)
-  peran                           PeranPengguna
+  peran                           PeranPengguna?
   platformRole                    PlatformRole         @default(USER)
   nip                             String               @unique @db.Char(18)
   jabatan                         String               @db.VarChar(28)
@@ -242,10 +242,10 @@ model LampiranKualifikasiPelaksanaan {
 model LampiranPeralatanPerlengkapan {
   lampiranPeralatanPerlengkapanId String    @id @default(uuid()) @db.Char(36)
   detailSopId                     String    @db.Char(36)
-  teks                            String    @db.Text
-  createdAt                       DateTime  @default(now())
-  updatedAt                       DateTime  @updatedAt
-  detailSop                       DetailSOP @relation(fields: [detailSopId], references: [detailSopId], onDelete: Cascade)
+  teks                             String    @db.Text
+  createdAt                        DateTime  @default(now())
+  updatedAt                        DateTime  @updatedAt
+  detailSop                        DetailSOP @relation(fields: [detailSopId], references: [detailSopId], onDelete: Cascade)
 
   @@index([detailSopId])
 }
@@ -254,7 +254,7 @@ model LampiranPeralatanPerlengkapan {
 model LampiranPencatatanPendataan {
   lampiranPencatatanPendataanId String    @id @default(uuid()) @db.Char(36)
   detailSopId                   String    @db.Char(36)
-  teks                          String    @db.Text
+  teks                           String    @db.Text
   createdAt                     DateTime  @default(now())
   updatedAt                     DateTime  @updatedAt
   detailSop                     DetailSOP @relation(fields: [detailSopId], references: [detailSopId], onDelete: Cascade)
@@ -468,11 +468,8 @@ model RiwayatTandaTangan {
   peran              PeranPengguna
   signatureValue     String?       @db.LongText
   signatureAlgorithm String?       @db.VarChar(13)
-  /// Implementasi signing menulis PKCS7_DETACHED (14 karakter).
   signatureFormat    String?       @db.VarChar(14)
-  /// Serial X.509 node-forge direpresentasikan sebagai hex; 20 octet = 40 karakter.
   certSerialNumber   String?       @db.VarChar(40)
-  /// Distinguished name sertifikat tidak aman dibatasi oleh panjang data sampel.
   certIssuer         String?       @db.Text
   certSubject        String?       @db.Text
   certFingerprint    String?       @db.Char(64)

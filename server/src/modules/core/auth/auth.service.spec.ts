@@ -30,10 +30,8 @@ describe('Pengujian AuthService', () => {
   const sampleRow: PenggunaAuthRecord = {
     penggunaId: 'p-1',
     email: 'a@b.c',
-    opdId: 'opd-1',
     nama: 'Tester',
     kataSandi: 'hashed',
-    peran: 'PENYUSUN',
     platformRole: 'USER',
     nip: '198001012009011001',
     jabatan: 'Staf',
@@ -42,12 +40,7 @@ describe('Pengujian AuthService', () => {
     sesiTokenVersion: 0,
     refreshTokenHash: null,
     refreshTokenExpiresAt: null,
-    passwordChangedAt: null,
     ttePinHash: null,
-    tteP12Base64: null,
-    tteP12PassphraseEncrypted: null,
-    deletedAt: null,
-    createdAt: new Date(),
     updatedAt: new Date(),
   };
 

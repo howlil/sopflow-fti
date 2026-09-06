@@ -18,7 +18,7 @@ export class PlatformAccountService {
   async create(dto: CreatePlatformAccountDto): Promise<PlatformAccountRow> {
     const hashedPassword = await hashDefaultPassword();
     try {
-      return await this.penggunaRepository.createPlatformAccountWithHistory({
+      return await this.penggunaRepository.createPlatformAccount({
         email: dto.email.trim().toLowerCase(),
         nama: dto.nama.trim(),
         nip: dto.nip.trim(),

@@ -84,8 +84,10 @@ function createService(overrides?: {
     findPenggunaAktif: jest.fn().mockResolvedValue({
       penggunaId: user.sub,
       nama: 'Dekan FTI',
-      peran: PeranPengguna.PENYUSUN,
-      processId: signingContext.processId,
+      email: user.email,
+      nip: '198501012009011103',
+      jabatan: 'Dekan FTI',
+      pangkat: 'Pembina Utama',
     }),
     findKredensial: jest.fn().mockResolvedValue({ hashPin: 'hash', updatedAt: new Date() }),
   } as unknown as jest.Mocked<TteRepository>;
@@ -168,7 +170,7 @@ describe('ProcessTteService', () => {
     await expect(service.sign(user, context.detailSopId, dto)).rejects.toThrow(ConflictException);
   });
 
-  it('menandatangani Faculty Process SOP, membuat effective feedback atomically, dan meneruskan Dean authority snapshot', async () => {
+  it('menandatangani Faculty Process SOP, membuat effective feedback atomically, dan menyimpan historical signature role tanpa membaca Pengguna.peran', async () => {
     const { service, processRepo, signer, processNotifications, tx } = createService();
     const result = await service.sign(user, context.detailSopId, dto);
 
@@ -176,7 +178,7 @@ describe('ProcessTteService', () => {
       expect.objectContaining({ userId: user.sub, dokumenTteId: 'doc-1', pin: '1234' }),
     );
     expect(processRepo.finalizeWithArtifact).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: user.sub, peran: PeranPengguna.PENYUSUN }),
+      expect.objectContaining({ userId: user.sub, peran: PeranPengguna.KEPALA_OPD }),
       expect.any(Function),
     );
     expect(processNotifications.createManyInTransaction).toHaveBeenCalledWith(
@@ -230,6 +232,10 @@ describe('ProcessTteService', () => {
         detailOrSopId: departmentContext.detailSopId,
         userId: user.sub,
       }),
+    );
+    expect(processRepo.finalizeWithArtifact).toHaveBeenCalledWith(
+      expect.objectContaining({ peran: PeranPengguna.KEPALA_OPD }),
+      expect.any(Function),
     );
     expect(result).toEqual(expect.objectContaining({
       authority: OrganizationalAuthority.HEAD_OF_DEPARTMENT,

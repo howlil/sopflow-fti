@@ -11,6 +11,7 @@ import type { JwtAccessPayload } from '../../../common';
 import { toWibDateOnly } from '../../../common/date/wib-date.util';
 import {
   JenisDokumenTte,
+  PeranPengguna,
   ProcessNotificationKind,
   StatusSOP,
 } from '../../../generated/prisma';
@@ -24,6 +25,8 @@ import { TtePublicUrlResolver } from '../shared/utils/tte-public-url.resolver';
 import { hashDokumenKanonik, runTteRepositoryMutation } from '../shared/utils/tte-support';
 import { ProcessTteRepository } from './process-tte.repository';
 import { TtePdfSigningService } from './tte-pdf-signing.service';
+
+const HISTORICAL_SOP_SIGNATURE_ROLE = PeranPengguna.KEPALA_OPD;
 
 @Injectable()
 export class ProcessTteService {
@@ -112,7 +115,9 @@ export class ProcessTteService {
           {
             detailOrSopId: prepared.item.detailSopId,
             userId: user.sub,
-            peran: pengguna.peran,
+            // `RiwayatTandaTangan.peran` is retained historical evidence only.
+            // Live authorization is already proven by contextual final approval above.
+            peran: HISTORICAL_SOP_SIGNATURE_ROLE,
             signedAt,
             tanggalEfektif,
             dokumenTteId: prepared.item.dokumenTteId,

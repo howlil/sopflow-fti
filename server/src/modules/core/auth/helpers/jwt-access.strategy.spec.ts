@@ -1,6 +1,6 @@
 import { UnauthorizedException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
-import { PeranPengguna, PlatformRole } from '../../../../generated/prisma';
+import { PlatformRole } from '../../../../generated/prisma';
 import { AuthRepository, type PenggunaAuthRecord } from '../auth.repository';
 import { JwtAccessStrategy } from './jwt-access.strategy';
 
@@ -11,10 +11,8 @@ describe('Pengujian JwtAccessStrategy', () => {
   const row: PenggunaAuthRecord = {
     penggunaId: 'p-1',
     email: 'tester@example.test',
-    opdId: 'opd-1',
     nama: 'Tester',
     kataSandi: 'hashed',
-    peran: PeranPengguna.PENYUSUN,
     platformRole: PlatformRole.USER,
     nip: '198001012009011001',
     jabatan: 'Staf',
@@ -23,12 +21,7 @@ describe('Pengujian JwtAccessStrategy', () => {
     sesiTokenVersion: 3,
     refreshTokenHash: null,
     refreshTokenExpiresAt: null,
-    passwordChangedAt: null,
     ttePinHash: null,
-    tteP12Base64: null,
-    tteP12PassphraseEncrypted: null,
-    deletedAt: null,
-    createdAt: new Date(),
     updatedAt: new Date(),
   };
 

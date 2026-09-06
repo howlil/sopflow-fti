@@ -10,7 +10,6 @@ import { BCRYPT_SALT_ROUNDS } from '../../../common/auth/password.constants';
 import { requireIndonesianMobileNumber } from '../../../common/pengguna/pengguna-admin.util';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import {
-  PeranPengguna,
   PlatformRole,
   ProcessAuditEvent,
   ProcessInvitationStatus,
@@ -319,7 +318,6 @@ export class ProcessOwnerService {
           nohp: invitation.nohp,
           kataSandi: passwordHash,
           passwordChangedAt: now,
-          peran: PeranPengguna.PENYUSUN,
           platformRole: PlatformRole.USER,
         },
         select: userSelect,
