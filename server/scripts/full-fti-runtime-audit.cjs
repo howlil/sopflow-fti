@@ -27,6 +27,10 @@ const forbiddenInNativeFiles = new Map([
   ['server/src/common/index.ts', [/UseJwtAndRolesGuards/, /RolesGuard/, /\bRoles\b/]],
   ['server/src/common/types/jwt-access-payload.type.ts', [/PeranPengguna/, /\bperan\??:/]],
   ['server/src/modules/core/auth/helpers/jwt-access.strategy.ts', [/PeranPengguna/, /\bperan\s*:/, /row\.peran/]],
+  ['server/src/modules/core/auth/auth.repository.ts', [/\bperan\b/, /\bopdId\b/, /\bopd\s*:/]],
+  ['server/src/modules/core/pengguna/pengguna.repository.ts', [/PeranPengguna/, /\bopdId\b/, /syncActiveRiwayatOpd/, /findPjEvaluator/, /findEvaluator/]],
+  ['server/src/modules/core/pengguna/platform-account.service.ts', [/PeranPengguna/, /\bopdId\b/, /\bperan\b/]],
+  ['server/src/modules/core/process/process-owner.service.ts', [/PeranPengguna/, /\bperan\s*:/, /\bopdId\s*:/]],
   ['server/src/modules/sop/pelaksana/pelaksana.service.ts', [/findLegacyStorageShadow/, /storageShadow/, /\bopdId\b/]],
   ['server/src/modules/sop/pelaksana/pelaksana.repository.ts', [/findLegacyStorageShadow/, /prisma\.oPD/, /opdShadowId/]],
   ['server/src/modules/sop/process-authoring/process-version.service.ts', [/SopLegacy/, /UserOpdAccess/, /\.opdId\b/]],
@@ -34,6 +38,9 @@ const forbiddenInNativeFiles = new Map([
   ['server/src/modules/sop/public/sop-public.controller.ts', [/listOpd/, /ByOpd/, /opdId/]],
   ['server/src/modules/sop/public/sop-public.service.ts', [/listOpd/, /ByOpd/, /opdId/, /opdNama/]],
   ['server/src/modules/sop/public/sop-public.repository.ts', [/countOpdWithBerlakuSop/, /findOpdWithBerlakuSop/, /findBerlakuSopByOpd/, /UNION ALL/]],
+  // PeranPengguna is still valid in this file for immutable RiwayatTandaTangan evidence.
+  // Current-user TTE profile lookup, however, must never require OPD identity.
+  ['server/src/modules/tte/shared/repository/tte.repository.ts', [/\bopdId\b/, /\bopdNama\b/, /prisma\.oPD/]],
   ['server/src/modules/tte/core/tte.controller.ts', [/UseJwtAndRolesGuards/, /\bRoles\(/, /PeranPengguna/]],
   ['client/src/pages/public/arsip/components/arsip-sop-table.tsx', [/opdId/, /opdNama/, /Legacy\s*·\s*OPD/]],
 ]);
@@ -53,6 +60,20 @@ for (const [relative, patterns] of forbiddenInNativeFiles) {
   for (const pattern of patterns) {
     if (pattern.test(source)) violations.push(`${relative} matches ${pattern}`);
   }
+}
+
+const schemaPath = join(root, 'server/prisma/schema.prisma');
+const schema = readFileSync(schemaPath, 'utf8');
+const penggunaBlock = schema.match(/model Pengguna \{[\s\S]*?\n\}/)?.[0] ?? '';
+if (!/\bperan\s+PeranPengguna\?/.test(penggunaBlock)) {
+  violations.push('Pengguna.peran must remain a nullable historical shadow');
+}
+if (!/\bopdId\s+String\?/.test(penggunaBlock)) {
+  violations.push('Pengguna.opdId must remain a nullable historical shadow');
+}
+const signatureBlock = schema.match(/model RiwayatTandaTangan \{[\s\S]*?\n\}/)?.[0] ?? '';
+if (!/\bperan\s+PeranPengguna(?:\s|$)/.test(signatureBlock) || /\bperan\s+PeranPengguna\?/.test(signatureBlock)) {
+  violations.push('RiwayatTandaTangan.peran must remain required historical signing evidence');
 }
 
 if (violations.length > 0) {
