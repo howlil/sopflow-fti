@@ -6,26 +6,46 @@ This file is the canonical resumable state for ongoing work. Product truth and t
 
 **Canonical target:** Full FTI.
 
-Normal first-party SOP behavior must derive from native FTI semantics:
+Normal first-party SOP behavior derives from native FTI semantics:
 
 ```text
 Platform Role
-+ Process Relationship
++ Process Owner eligibility / Process Relationship
 + Organizational Authority
 + Process-owned SOP
 ```
 
-OPD identity, OPD ownership, and legacy global workflow roles may remain only at explicit historical/external compatibility boundaries once Full FTI exit criteria are satisfied.
+OPD identity, OPD ownership, and legacy global workflow roles may remain only at explicit historical/external compatibility boundaries.
 
 ## Current Position
 
-**Repository HEAD audited:** `9d42db993cf1cdf590e1dd52b1411fe28081c54f`
+**Current capability outcome:** Process Owner Self-Service.
 
-**Delivery state of the latest completed capability:** `INTEGRATED / RELEASE_READY`.
+The normal target setup/workflow is now:
 
-The latest integrated outcome retired unused legacy evaluation-value/history and WhatsApp/legacy notification-reminder runtime while preserving historical rows through the reversible archive migration `20260906120000_retire_legacy_evaluation_and_whatsapp`.
+```text
+Admin Platform
+  -> setup Faculty / Department
+  -> grant Process Owner eligibility in one scope
 
-Native Process workflow is already the active path for:
+Authorized Process Owner
+  -> create Process in that scope
+  -> becomes initial owner automatically
+  -> add an existing USER or create one-time onboarding invitation
+  -> manage explicit Process membership
+  -> archive an unused Process without deleting history
+
+Process Member / Penyusun SOP
+  -> activate their own account/password when invited
+  -> work only in explicitly assigned Process relationships
+  -> continue through the existing Process-native SOP workflow
+```
+
+Owner eligibility is a separate authorization axis from `PlatformRole` and `OrganizationalAuthority`; `SUPER_ADMIN` is not an operational Process Owner or workflow bypass merely because it administers the platform.
+
+Process administration changes are append-only audited. Archived Processes are read-only for new authoring/review actions; existing SOP/version/TTE/public/history evidence remains owned by the existing native lifecycle.
+
+The established native Process workflow remains active for:
 
 - Process-bound SOP authoring;
 - Process Owner review and revision feedback;
@@ -36,37 +56,43 @@ Native Process workflow is already the active path for:
 - Process notifications and reminders;
 - Process-first public discovery and verification.
 
-Production release/deployment is **not claimed** by this state document without separate environment evidence.
+The Process Owner Self-Service change does **not** modify the protected SOP workspace/editor UI, procedure/diagram behavior, or the SOP authoring engine.
 
-## Material Delta to `PROJECT.md`
+## Verification Evidence
 
-The repository must **not** yet claim `FULL_FTI / LEGACY_RETIRED`.
+The capability package has repository-level evidence from:
 
-Repository-wide evidence still shows first-party compatibility dependencies that are explicit Full FTI retirement targets, including:
+- Client CI: build, generated route-tree consistency, typecheck, and unit tests;
+- Server CI: Prisma validate/generate, typecheck, and core unit tests;
+- FTI Domain CI: owner-scope/self-service tests plus existing Process authoring, review, approval, revocation, notification, and TTE regression tests;
+- Migration Smoke: full migration chain, Process database invariants, target E2E seed, and read-only FTI baseline audit;
+- Container Build: application images and backend runtime payload build successfully.
 
-- client auth/user DTO and store shapes still carrying `opdId` and legacy `PeranPengguna`;
-- client SOP/Pelaksana/query surfaces that still accept or derive OPD context;
-- server `RolesGuard` / legacy role decorators still available for active legacy surfaces;
-- active OPD controller/service/repository code;
-- compatibility persistence such as `SOP.opdId`, `Pengguna.opdId`, and `ProcessSopBinding` while their retention contracts remain unresolved;
-- legacy/unbound route/API/public compatibility that may still be required by existing consumers.
+Production release/deployment is **not claimed** without separate environment evidence.
 
-These are migration gaps against the committed Full FTI end state. Their existence is **not** authorization to remove them indiscriminately: `PROJECT.md` requires semantic cutover and proof of zero target dependency before contract cleanup.
+## Remaining Material Delta to `PROJECT.md`
+
+Normal first-party Process setup no longer requires Admin to create every Process or membership. Remaining work is primarily compatibility retirement and environment proof rather than another rewrite of the SOP workflow.
+
+Explicit compatibility debt still includes some legacy OPD/global-role DTOs, routes, controllers/services, seed/history structures, and persisted shadows such as `SOP.opdId`, `Pengguna.opdId`, and `ProcessSopBinding`. These may be removed only after their historical/external retention contracts and production data evidence prove they are no longer required.
+
+Do not mechanically delete compatibility schema or rename OPD concepts into Department concepts. Department scope, Process relationship, platform administration, TTE authority, and historical OPD compatibility remain separate dimensions.
 
 ## Current Product-Bet State
 
-**No next product bet is implicitly authorized merely because the previous M14 work is integrated.**
+After Process Owner Self-Service is integrated, do not create another cleanup milestone merely because legacy names still exist. Select the next bet only from a material user or release bottleneck.
 
-Before implementation resumes, select the highest-value remaining bottleneck against the core FTI journey and `PROJECT.md` exit criteria. Candidate gap areas above are evidence for that decision, not an automatic roadmap.
-
-When a product bet is authorized, record only:
+Likely next decision boundary:
 
 ```text
-Outcome
-Current bottleneck
-Authorized delta
-Evidence
-Next meaningful action
+release / production baseline proof needed?
+  -> qualify migrated production-shaped data and deploy safely
+
+first-party capability gap discovered?
+  -> fix that user journey
+
+only dead compatibility remains?
+  -> retire contracts with evidence, not by search-and-delete
 ```
 
 Do not turn this file into a milestone archive, sprint ledger, or percentage-progress report.
