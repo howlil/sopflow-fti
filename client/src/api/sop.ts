@@ -31,7 +31,4 @@ export {
   canEditSop,
   canHapusVersiDraft,
   canHapusSopDraftAwal,
-  canKepalaOpdSignSop,
-  canPjPenyusunRunCoordinatorActions,
-  isSopEligibleForSigning,
 } from "@/lib/sop/sop-permissions";
