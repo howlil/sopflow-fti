@@ -6,14 +6,15 @@ import {
   Post,
   Req,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type ApiSuccessResponse, Roles, UseJwtAndRolesGuards } from '../../../common';
+import type { ApiSuccessResponse } from '../../../common';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import type { JwtAccessPayload } from '../../../common/types/jwt-access-payload.type';
-import { PeranPengguna } from '../../../generated/prisma';
 import { ACCESS_TOKEN_COOKIE_NAME } from '../../core/auth/helpers/auth.shared';
 import { RegisterTteDto } from '../shared/dto/register-tte.dto';
 import { SignPdfDto } from '../shared/dto/sign-pdf.dto';
@@ -22,15 +23,11 @@ import { GenerateP12Dto } from '../shared/dto/generate-p12.dto';
 import { UploadP12Dto } from '../shared/dto/upload-p12.dto';
 import { SetupTteGenerateDto } from '../shared/dto/setup-tte-generate.dto';
 import { SetupTteUploadDto } from '../shared/dto/setup-tte-upload.dto';
-import {
-  TteService,
-  type SignPdfResponse,
-  type TteProfilResponse,
-} from './tte.service';
+import { TteService, type SignPdfResponse, type TteProfilResponse } from './tte.service';
 
 @ApiTags('TTE')
 @Controller('tte')
-@UseJwtAndRolesGuards()
+@UseGuards(JwtAuthGuard)
 export class TteController {
   constructor(private readonly tteService: TteService) {}
 
@@ -93,11 +90,21 @@ export class TteController {
   }
 
   @Post('pdf/sign')
-  @Roles(PeranPengguna.PJ_EVALUATOR, PeranPengguna.PJ_PENYUSUN, PeranPengguna.KEPALA_OPD)
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
-  @ApiOperation({ summary: 'Sisipkan tanda tangan digital PKCS#7 ke PDF' })
+  @ApiOperation({
+    summary: 'Sisipkan tanda tangan digital PKCS#7 ke PDF berdasarkan evidence TTE pengguna',
+    description: 'Authorization tidak memakai global workflow role. Service hanya menerima riwayat TTE milik current user untuk dokumen yang sudah diotorisasi workflow.',
+  })
   async signPdf(@Req() req: Request & { user: JwtAccessPayload }, @Body() dto: SignPdfDto): Promise<ApiSuccessResponse<SignPdfResponse>> {
     const data = await this.tteService.signPdf(req.user, dto);
-    return { message: data.signatureFormat === 'UNSIGNED_NOT_REQUIRED' ? 'PDF tidak memerlukan injeksi CA' : data.signed ? 'PDF berhasil ditandatangani' : 'Penandatanganan PDF server dinonaktifkan', success: true, data };
+    return {
+      message: data.signatureFormat === 'UNSIGNED_NOT_REQUIRED'
+        ? 'PDF tidak memerlukan injeksi CA'
+        : data.signed
+          ? 'PDF berhasil ditandatangani'
+          : 'Penandatanganan PDF server dinonaktifkan',
+      success: true,
+      data,
+    };
   }
 }
