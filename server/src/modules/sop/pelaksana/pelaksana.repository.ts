@@ -3,7 +3,6 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 
 export type PelaksanaRow = {
   pelaksanaId: string;
-  opdId: string | null;
   nama: string;
   createdAt: Date;
   updatedAt: Date;
@@ -15,34 +14,23 @@ export type PelaksanaAttributionRow = {
   updatedById: string | null;
 };
 
+const pelaksanaSelect = {
+  pelaksanaId: true,
+  nama: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
 @Injectable()
 export class PelaksanaRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(): Promise<PelaksanaRow[]> {
-    return this.prisma.pelaksana.findMany({
-      select: {
-        pelaksanaId: true,
-        opdId: true,
-        nama: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-      orderBy: { nama: 'asc' },
-    });
+    return this.prisma.pelaksana.findMany({ select: pelaksanaSelect, orderBy: { nama: 'asc' } });
   }
 
   async findById(pelaksanaId: string): Promise<PelaksanaRow | null> {
-    return this.prisma.pelaksana.findUnique({
-      where: { pelaksanaId },
-      select: {
-        pelaksanaId: true,
-        opdId: true,
-        nama: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    return this.prisma.pelaksana.findUnique({ where: { pelaksanaId }, select: pelaksanaSelect });
   }
 
   async findByNama(nama: string): Promise<Pick<PelaksanaRow, 'pelaksanaId' | 'nama'> | null> {
@@ -72,16 +60,7 @@ export class PelaksanaRepository {
 
   async createGlobal(nama: string, userId: string): Promise<PelaksanaRow> {
     return this.prisma.$transaction(async (tx) => {
-      const row = await tx.pelaksana.create({
-        data: { nama },
-        select: {
-          pelaksanaId: true,
-          opdId: true,
-          nama: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
+      const row = await tx.pelaksana.create({ data: { nama }, select: pelaksanaSelect });
       await tx.pelaksanaAuditAttribution.create({
         data: {
           pelaksanaId: row.pelaksanaId,
@@ -98,13 +77,7 @@ export class PelaksanaRepository {
       const row = await tx.pelaksana.update({
         where: { pelaksanaId },
         data: { nama },
-        select: {
-          pelaksanaId: true,
-          opdId: true,
-          nama: true,
-          createdAt: true,
-          updatedAt: true,
-        },
+        select: pelaksanaSelect,
       });
       await tx.pelaksanaAuditAttribution.upsert({
         where: { pelaksanaId },
