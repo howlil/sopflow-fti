@@ -58,12 +58,10 @@ export class ProcessOwnerReviewService {
     }
     assertSopWorkbenchCompleteForSiapDievaluasi(draftPayload);
 
-    // Transitional persisted status. For Process-bound SOPs this means
-    // "submitted / under Process Owner review", not centralized evaluator ownership.
     await this.transitionStatus({
       detailSopId: context.detailSopId,
       expectedStatus: statusContext.status,
-      targetStatus: StatusSOP.SEDANG_DIEVALUASI,
+      targetStatus: StatusSOP.PROCESS_REVIEW,
       userId: user.sub,
       notification: {
         detailSopId: context.detailSopId,
@@ -95,7 +93,7 @@ export class ProcessOwnerReviewService {
     if (statusContext === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
-    if (statusContext.status !== StatusSOP.SEDANG_DIEVALUASI) {
+    if (statusContext.status !== StatusSOP.PROCESS_REVIEW) {
       throw new ConflictException(
         `SOP belum berada pada Process Owner review (status saat ini: ${String(statusContext.status)})`,
       );
@@ -103,8 +101,8 @@ export class ProcessOwnerReviewService {
 
     const targetStatus =
       decision === ProcessReviewDecision.REVISION
-        ? StatusSOP.REVISI_DARI_EVALUATOR
-        : StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR;
+        ? StatusSOP.REVISION_REQUIRED
+        : StatusSOP.FINAL_APPROVAL;
 
     let notification: ProcessNotificationCreateInput | undefined;
     if (decision === ProcessReviewDecision.REVISION) {
@@ -128,9 +126,7 @@ export class ProcessOwnerReviewService {
         catatan: catatan ?? undefined,
       };
     } else {
-      const authority = await this.organizationalAuthorityService.resolveForProcess(
-        context.processId,
-      );
+      const authority = await this.organizationalAuthorityService.resolveForProcess(context.processId);
       notification = {
         detailSopId: context.detailSopId,
         sopId: context.sopId,
@@ -139,13 +135,13 @@ export class ProcessOwnerReviewService {
         kind: ProcessNotificationKind.FINAL_APPROVAL_REQUESTED,
         processName: process.nama,
         authorityLabel:
-          authority.authority === OrganizationalAuthority.DEAN ? 'Dean' : 'Kepala Departemen',
+          authority.authority === OrganizationalAuthority.DEAN ? 'Dekan' : 'Kepala Departemen',
       };
     }
 
     await this.transitionStatus({
       detailSopId: context.detailSopId,
-      expectedStatus: StatusSOP.SEDANG_DIEVALUASI,
+      expectedStatus: StatusSOP.PROCESS_REVIEW,
       targetStatus,
       userId: user.sub,
       notification,
@@ -235,9 +231,7 @@ export class ProcessOwnerReviewService {
       select: { processId: true },
     });
     if (sop?.processId === null || sop === null) {
-      throw new ConflictException(
-        'SOP legacy belum terikat Process dan tetap memakai workflow kompatibilitas',
-      );
+      throw new ConflictException('SOP arsip tanpa Process tidak dapat masuk workflow FTI');
     }
     return {
       detailSopId: resolved.detailSopId,
