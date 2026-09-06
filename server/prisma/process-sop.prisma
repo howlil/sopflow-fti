@@ -1,18 +1,3 @@
-/// Transitional binding used during the OPD -> Process migration.
-///
-/// `SOP.opdId` remains the legacy compatibility shadow for existing Pelaksana,
-/// evaluation, and TTE invariants. For bound SOPs, authoring ownership and
-/// authorization come from `processId`, not from OPD equality.
-model ProcessSopBinding {
-  sopId       String   @id @db.Char(36)
-  processId   String   @db.Char(36)
-  createdById String   @db.Char(36)
-  createdAt   DateTime @default(now())
-
-  @@index([processId], map: "ProcessSopBinding_processId_idx")
-  @@index([createdById], map: "ProcessSopBinding_createdById_idx")
-}
-
 /// Append-only evidence of a Process Owner decision on a Process-bound SOP version.
 /// The status transition, review evidence, and native notification are committed together.
 enum ProcessReviewDecision {
