@@ -9,12 +9,7 @@ import * as bcrypt from 'bcrypt';
 import type { Request } from 'express';
 import type { JwtAccessPayload } from '../../../common';
 import { toWibDateOnly } from '../../../common/date/wib-date.util';
-import {
-  JenisDokumenTte,
-  PeranPengguna,
-  ProcessNotificationKind,
-  StatusSOP,
-} from '../../../generated/prisma';
+import { JenisDokumenTte, ProcessNotificationKind, StatusSOP } from '../../../generated/prisma';
 import { ProcessNotificationService } from '../../notifications/process/process-notification.service';
 import { SopOfficialPdfService } from '../../sop/pdf/sop-official-pdf.service';
 import { SopPdfStorageService } from '../../sop/pdf/sop-pdf-storage.service';
@@ -25,8 +20,6 @@ import { TtePublicUrlResolver } from '../shared/utils/tte-public-url.resolver';
 import { hashDokumenKanonik, runTteRepositoryMutation } from '../shared/utils/tte-support';
 import { ProcessTteRepository } from './process-tte.repository';
 import { TtePdfSigningService } from './tte-pdf-signing.service';
-
-const HISTORICAL_SOP_SIGNATURE_ROLE = PeranPengguna.KEPALA_OPD;
 
 @Injectable()
 export class ProcessTteService {
@@ -51,7 +44,7 @@ export class ProcessTteService {
     const context = contextResult.context;
     if (context.approval.approvedById !== user.sub) {
       throw new ForbiddenException(
-        'TTE hanya dapat dilakukan oleh Dean/Kepala Departemen yang memberi final approval',
+        'TTE hanya dapat dilakukan oleh Dekan/Kepala Departemen yang memberi final approval',
       );
     }
 
@@ -115,9 +108,6 @@ export class ProcessTteService {
           {
             detailOrSopId: prepared.item.detailSopId,
             userId: user.sub,
-            // `RiwayatTandaTangan.peran` is retained historical evidence only.
-            // Live authorization is already proven by contextual final approval above.
-            peran: HISTORICAL_SOP_SIGNATURE_ROLE,
             signedAt,
             tanggalEfektif,
             dokumenTteId: prepared.item.dokumenTteId,
@@ -173,7 +163,7 @@ export class ProcessTteService {
         dokumenTteId: finalized.dokumenTteId,
         authority: finalized.authority,
         authorityKey: finalized.authorityKey,
-        status: StatusSOP.BERLAKU,
+        status: StatusSOP.EFFECTIVE,
         ditandatanganiPada: signedAt.toISOString(),
         tanggalEfektif: tanggalEfektif.toISOString(),
       };
@@ -198,11 +188,11 @@ export class ProcessTteService {
     if (result.error === 'NOT_LATEST') {
       throw new ConflictException('TTE hanya dapat dilakukan pada versi SOP terbaru');
     }
-    if (result.error === 'LEGACY_UNBOUND') {
-      throw new ConflictException('SOP legacy belum terikat Process dan tetap memakai TTE kompatibilitas');
+    if (result.error === 'UNASSIGNED_ARCHIVE') {
+      throw new ConflictException('SOP arsip tanpa Process tidak dapat masuk TTE FTI');
     }
     if (result.error === 'NOT_APPROVED') {
-      throw new ConflictException('SOP belum mendapat contextual final approval');
+      throw new ConflictException('SOP belum mendapat final approval');
     }
     if (result.error === 'APPROVAL_CONTEXT_DRIFT') {
       throw new ConflictException('Context final approval tidak cocok dengan Process SOP');

@@ -3,16 +3,14 @@ import { StatusSOP } from '../../generated/prisma';
 
 const EDITABLE_STATUSES: ReadonlySet<StatusSOP> = new Set([
   StatusSOP.DRAFT,
-  StatusSOP.SEDANG_DISUSUN,
-  StatusSOP.REVISI_DARI_EVALUATOR,
+  StatusSOP.REVISION_REQUIRED,
 ]);
 
 /** Status terminal — versi tidak boleh diedit isi dokumen. */
 export const TERMINAL_DETAIL_STATUSES: ReadonlySet<StatusSOP> = new Set([
-  StatusSOP.DITOLAK_EVALUATOR,
-  StatusSOP.BERLAKU,
-  StatusSOP.DIGANTIKAN,
-  StatusSOP.DICABUT,
+  StatusSOP.EFFECTIVE,
+  StatusSOP.SUPERSEDED,
+  StatusSOP.REVOKED,
 ]);
 
 export function isDetailSopEditable(status: StatusSOP): boolean {
@@ -22,7 +20,7 @@ export function isDetailSopEditable(status: StatusSOP): boolean {
 export function assertDetailSopEditable(status: StatusSOP): void {
   if (!isDetailSopEditable(status)) {
     throw new ConflictException(
-      `DetailSOP berstatus ${String(status)} tidak dapat diubah. Hanya DRAFT, SEDANG_DISUSUN, atau REVISI_DARI_EVALUATOR yang dapat diedit.`,
+      `DetailSOP berstatus ${String(status)} tidak dapat diubah. Hanya DRAFT atau REVISION_REQUIRED yang dapat diedit.`,
     );
   }
 }

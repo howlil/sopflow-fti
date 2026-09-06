@@ -1,7 +1,7 @@
 import type { StatusSOP } from '@/types/dto/sop.dto'
 
 export function canEditSop(status: StatusSOP): boolean {
-  return status === 'DRAFT' || status === 'SEDANG_DISUSUN' || status === 'REVISI_DARI_EVALUATOR'
+  return status === 'DRAFT' || status === 'REVISION_REQUIRED'
 }
 
 export function canBuatVersiBaru(row: { canBuatVersiBaru?: boolean }): boolean {

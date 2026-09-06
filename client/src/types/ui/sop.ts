@@ -1,13 +1,13 @@
 export interface SOPDetailMetadata {
   id?: string;
   sopId?: string;
+  processId?: string;
   judul?: string;
   nomor?: string;
   nomorSOP?: string;
   nama?: string;
   tahun?: number;
   tentang?: string;
-  opdId?: string;
   lembaga?: string;
   logoUrl?: string;
   tanggalEfektif?: string;
@@ -88,7 +88,7 @@ export interface SopEditorRelatedSopOption {
 export interface SopItem {
   id: string;
   judul: string;
-  opdId: string;
+  processId?: string | null;
   status: string;
   nomorSOP?: string;
   author?: string;
@@ -105,16 +105,15 @@ export interface SopItem {
 export interface PelaksanaRow {
   id: string;
   nama: string;
-  opdId?: string;
   urutan?: number;
 }
 
 export interface SOPTemplate {
   id?: string;
   judul: string;
-  opdId: string;
+  processId?: string;
+  processNama?: string;
   kode?: string;
-  opd?: string;
   kategori?: string;
   versi?: number;
   logoInstansi?: string;

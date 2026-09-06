@@ -11,78 +11,39 @@ datasource db {
 /// Invariant database (trigger, unique): lihat `prisma/DB-INVARIANTS.md`.
 
 /// =========================
-/// MODUL 1 — MASTER & AKSES
+/// MODUL 1 — IDENTITY & ORGANIZATION
 /// =========================
 model Pengguna {
-  penggunaId                      String               @id @default(uuid()) @db.Char(36)
-  email                           String               @unique @db.VarChar(31)
-  opdId                           String?              @db.Char(36)
-  nama                            String               @db.VarChar(31)
-  kataSandi                       String               @db.Char(60)
-  peran                           PeranPengguna?
-  platformRole                    PlatformRole         @default(USER)
-  nip                             String               @unique @db.Char(18)
-  jabatan                         String               @db.VarChar(28)
-  pangkat                         String               @db.VarChar(25)
-  nohp                            String               @db.VarChar(13)
-  sesiTokenVersion                Int                  @default(0)
-  refreshTokenHash                String?              @db.Char(60)
-  refreshTokenExpiresAt           DateTime?
-  passwordChangedAt               DateTime?
-  ttePinHash                      String?              @db.Char(60)
-  tteP12Base64                    String?              @db.Text
-  tteP12PassphraseEncrypted       String?              @db.VarChar(255)
-  deletedAt                       DateTime?
-  createdAt                       DateTime             @default(now())
-  updatedAt                       DateTime             @updatedAt
-  detailSopDibuat                 DetailSOP[]          @relation("SOPDibuatOleh")
-  detailSopDiedit                 DetailSOP[]          @relation("SOPDieditOleh")
-  logEditSop                      LogEditSOP[]
-  pengajuanEvaluasiDiselesaikan   PengajuanEvaluasi[]  @relation("PengajuanDiselesaikanOleh")
-  pengajuanEvaluasiDitolak        PengajuanEvaluasi[]  @relation("PengajuanDitolakOleh")
-  pengajuanEvaluasiDitandatangani PengajuanEvaluasi[]  @relation("PengajuanDitandatanganiOlehPjPenyusun")
-  pengajuanEvaluasiDiverifikasi   PengajuanEvaluasi[]  @relation("PengajuanDiverifikasiOleh")
-  peraturanTerakhirDiedit         Peraturan[]          @relation("PeraturanTerakhirDiedit")
-  opd                             OPD?                 @relation(fields: [opdId], references: [opdId], onDelete: Restrict)
-  riwayatOpd                      RiwayatOpdPengguna[]
-  tandaTangan                     RiwayatTandaTangan[]
-  processOwned                    Process[]            @relation("ProcessOwner")
-  processMemberships              ProcessMember[]
+  penggunaId                String           @id @default(uuid()) @db.Char(36)
+  email                     String           @unique @db.VarChar(31)
+  nama                      String           @db.VarChar(31)
+  kataSandi                 String           @db.Char(60)
+  platformRole              PlatformRole     @default(USER)
+  nip                       String           @unique @db.Char(18)
+  jabatan                   String           @db.VarChar(28)
+  pangkat                   String           @db.VarChar(25)
+  nohp                      String           @db.VarChar(13)
+  sesiTokenVersion          Int              @default(0)
+  refreshTokenHash          String?          @db.Char(60)
+  refreshTokenExpiresAt     DateTime?
+  passwordChangedAt         DateTime?
+  ttePinHash                String?          @db.Char(60)
+  tteP12Base64              String?          @db.Text
+  tteP12PassphraseEncrypted String?          @db.VarChar(255)
+  deletedAt                 DateTime?
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
+  detailSopDibuat           DetailSOP[]      @relation("SOPDibuatOleh")
+  detailSopDiedit           DetailSOP[]      @relation("SOPDieditOleh")
+  logEditSop                LogEditSOP[]
+  peraturanTerakhirDiedit   Peraturan[]      @relation("PeraturanTerakhirDiedit")
+  tandaTangan               RiwayatTandaTangan[]
+  processOwned              Process[]        @relation("ProcessOwner")
+  processMemberships        ProcessMember[]
 
-  @@index([opdId, peran, deletedAt], map: "Pengguna_opdId_peran_deletedAt_idx")
   @@index([platformRole, deletedAt], map: "Pengguna_platformRole_deletedAt_idx")
 }
 
-model OPD {
-  opdId              String               @id @default(uuid()) @db.Char(36)
-  nama               String               @db.VarChar(28)
-  deletedAt          DateTime?
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
-  pelaksana          Pelaksana[]
-  pengajuanEvaluasi  PengajuanEvaluasi[]
-  pengguna           Pengguna[]
-  riwayatOpdPengguna RiwayatOpdPengguna[]
-  opdPeraturan       OPDPeraturan[]
-  sop                SOP[]
-
-  @@index([deletedAt, nama], map: "OPD_deletedAt_nama_idx")
-}
-
-model RiwayatOpdPengguna {
-  penggunaId String   @db.Char(36)
-  opdId      String   @db.Char(36)
-  isAktif    Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  opd        OPD      @relation(fields: [opdId], references: [opdId], onDelete: Restrict)
-  pengguna   Pengguna @relation(fields: [penggunaId], references: [penggunaId], onDelete: Cascade)
-
-  @@id([penggunaId, opdId])
-  @@index([opdId, isAktif], map: "RiwayatOpdPengguna_opdId_isAktif_idx")
-}
-
-/// Additive FTI organizational context. Legacy OPD remains during migration.
 model Department {
   departmentId String    @id @default(uuid()) @db.Char(36)
   nama         String    @unique @db.VarChar(100)
@@ -91,7 +52,7 @@ model Department {
   processes    Process[]
 }
 
-/// Canonical FTI process ownership. Native SOPs attach directly to this Process.
+/// Canonical FTI Process ownership. Active SOPs are owned directly by a Process.
 model Process {
   processId    String              @id @default(uuid()) @db.Char(36)
   nama         String              @db.VarChar(120)
@@ -121,52 +82,37 @@ model ProcessMember {
 }
 
 /// =========================
-/// MODUL 1 — MASTER & AKSES (REGULASI)
+/// MODUL 1 — REGULATION CATALOG
 /// =========================
 model Peraturan {
-  peraturanId    String         @id @default(uuid()) @db.Char(36)
-  nama           String         @db.VarChar(31)
-  nomor          String         @db.VarChar(28)
+  peraturanId    String    @id @default(uuid()) @db.Char(36)
+  nama           String    @db.VarChar(31)
+  nomor          String    @db.VarChar(28)
   tahun          Int
-  tentang        String         @db.VarChar(73)
-  lastEditedById String?        @db.Char(36)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  tentang        String    @db.VarChar(73)
+  lastEditedById String?   @db.Char(36)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   dasarHukum     DasarHukum[]
-  opdPemakai     OPDPeraturan[]
-  lastEditedBy   Pengguna?      @relation("PeraturanTerakhirDiedit", fields: [lastEditedById], references: [penggunaId], onDelete: SetNull)
+  lastEditedBy   Pengguna? @relation("PeraturanTerakhirDiedit", fields: [lastEditedById], references: [penggunaId], onDelete: SetNull)
 
   @@unique([nomor, tahun])
   @@index([lastEditedById])
 }
 
-model OPDPeraturan {
-  opdId       String    @db.Char(36)
-  peraturanId String    @db.Char(36)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  opd         OPD       @relation(fields: [opdId], references: [opdId], onDelete: Cascade)
-  peraturan   Peraturan @relation(fields: [peraturanId], references: [peraturanId], onDelete: Cascade)
-
-  @@id([opdId, peraturanId])
-}
-
 /// =========================
-/// MODUL 2 — AUTHORING SOP (INTI)
+/// MODUL 2 — SOP AUTHORING
 /// =========================
 model SOP {
   sopId      String      @id @default(uuid()) @db.Char(36)
-  opdId      String?     @db.Char(36)
   processId  String?     @db.Char(36)
   judul      String      @db.VarChar(42)
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
   detailSops DetailSOP[]
-  opd        OPD?        @relation(fields: [opdId], references: [opdId])
-  /// Native FTI ownership. Null is reserved for explicit legacy compatibility rows.
+  /// Null is reserved only for imported archive rows that are not part of the active FTI workflow.
   process    Process?    @relation(fields: [processId], references: [processId], onDelete: Restrict)
 
-  @@index([opdId])
   @@index([processId])
 }
 
@@ -179,12 +125,10 @@ model DetailSOP {
   nomorSOP                       String                           @unique @db.VarChar(24)
   tanggalPembuatan               DateTime                         @default(now())
   tanggalRevisi                  DateTime?
-  /// Diisi otomatis saat status menjadi BERLAKU melalui TTE otoritas organisasi kontekstual.
   tanggalEfektif                 DateTime?
   namaLembaga                    String                           @db.VarChar(28)
   dibuatOlehId                   String?                          @db.Char(36)
   terakhirDieditOlehId           String?                          @db.Char(36)
-  /// Versi sumber snapshot saat membuat revisi baru (BERLAKU, DIGANTIKAN, atau DICABUT).
   revisiDariDetailSopId          String?                          @db.Char(36)
   createdAt                      DateTime                         @default(now())
   updatedAt                      DateTime                         @updatedAt
@@ -214,7 +158,6 @@ model DetailSOP {
   @@index([revisiDariDetailSopId])
 }
 
-/// Daftar teks lampiran peringatan per versi DetailSOP (replace-all saat simpan; bukan riwayat append-only).
 model LampiranPeringatan {
   lampiranPeringatanId String    @id @default(uuid()) @db.Char(36)
   detailSopId          String    @db.Char(36)
@@ -226,7 +169,6 @@ model LampiranPeringatan {
   @@index([detailSopId])
 }
 
-/// Daftar teks kualifikasi pelaksanaan per versi DetailSOP (replace-all saat simpan).
 model LampiranKualifikasiPelaksanaan {
   lampiranKualifikasiPelaksanaanId String    @id @default(uuid()) @db.Char(36)
   detailSopId                      String    @db.Char(36)
@@ -238,23 +180,21 @@ model LampiranKualifikasiPelaksanaan {
   @@index([detailSopId])
 }
 
-/// Daftar teks peralatan/perlengkapan per versi DetailSOP (replace-all saat simpan).
 model LampiranPeralatanPerlengkapan {
   lampiranPeralatanPerlengkapanId String    @id @default(uuid()) @db.Char(36)
   detailSopId                     String    @db.Char(36)
-  teks                             String    @db.Text
-  createdAt                        DateTime  @default(now())
-  updatedAt                        DateTime  @updatedAt
-  detailSop                        DetailSOP @relation(fields: [detailSopId], references: [detailSopId], onDelete: Cascade)
+  teks                            String    @db.Text
+  createdAt                       DateTime  @default(now())
+  updatedAt                       DateTime  @updatedAt
+  detailSop                       DetailSOP @relation(fields: [detailSopId], references: [detailSopId], onDelete: Cascade)
 
   @@index([detailSopId])
 }
 
-/// Daftar teks pencatatan/pendataan per versi DetailSOP (replace-all saat simpan).
 model LampiranPencatatanPendataan {
   lampiranPencatatanPendataanId String    @id @default(uuid()) @db.Char(36)
   detailSopId                   String    @db.Char(36)
-  teks                           String    @db.Text
+  teks                          String    @db.Text
   createdAt                     DateTime  @default(now())
   updatedAt                     DateTime  @updatedAt
   detailSop                     DetailSOP @relation(fields: [detailSopId], references: [detailSopId], onDelete: Cascade)
@@ -274,8 +214,6 @@ model DasarHukum {
   @@index([peraturanId], map: "DasarHukum_peraturanId_idx")
 }
 
-/// Relasi keluar: `detailSopId` (pemilik) → `detailSopTerkaitId` (target). Invariant DB + app:
-/// tidak boleh self-loop. Pasangan terbalik `(B,A)` boleh karena keterkaitan SOP bersifat simetris di UI.
 model SopTerkait {
   detailSopId        String    @db.Char(36)
   detailSopTerkaitId String    @db.Char(36)
@@ -288,7 +226,6 @@ model SopTerkait {
   @@index([detailSopTerkaitId], map: "SopTerkait_detailSopTerkaitId_idx")
 }
 
-/// Prosedur memakai Pelaksana dari katalog global; actor identity tidak ditentukan oleh OPD.
 model LangkahSOP {
   langkahSopId               String                    @id @default(uuid()) @db.Char(36)
   detailSopId                String                    @db.Char(36)
@@ -322,18 +259,13 @@ model LangkahSOP {
 
 model Pelaksana {
   pelaksanaId String               @id @default(uuid()) @db.Char(36)
-  opdId       String?              @db.Char(36)
   nama        String               @unique(map: "Pelaksana_nama_key") @db.VarChar(15)
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
   sopDetails  DetailSOPPelaksana[]
   langkahSOP  LangkahSOP[]
-  opd         OPD?                 @relation(fields: [opdId], references: [opdId])
-
-  @@index([opdId], map: "Pelaksana_opdId_idx")
 }
 
-/// Swimlane memakai Pelaksana global dan menyimpan snapshot nama per versi SOP.
 model DetailSOPPelaksana {
   detailSopId String    @db.Char(36)
   pelaksanaId String    @db.Char(36)
@@ -348,20 +280,15 @@ model DetailSOPPelaksana {
 }
 
 /// =========================
-/// MODUL 3 — KOLABORASI SOP (log aktivitas; tabel Komentar terpisah sudah dihapus)
+/// MODUL 3 — SOP ACTIVITY
 /// =========================
-
-/// Log aktivitas edit per DetailSOP (kunci alami sesi: detail + pengguna + waktu mulai).
 model LogEditSOP {
   detailSopId     String                  @db.Char(36)
   penggunaId      String                  @db.Char(36)
   createdAt       DateTime                @default(now()) @db.DateTime(3)
   bagian          BagianSOP               @default(HEADER)
-  /// Ringkasan human-readable yang sudah memuat label bagian + field yang berubah.
   keterangan      String?                 @db.Text
-  /// Jumlah event yang digabung dalam sesi (bekas `meta.count`).
   sesiChangeCount Int                     @default(1)
-  /// Sesi dianggap selesai bila tidak null. Sesi terbuka (null) bisa di-merge dengan edit lanjutan dalam idle window.
   closedAt        DateTime?               @db.DateTime(3)
   updatedAt       DateTime                @updatedAt @db.DateTime(3)
   detailSop       DetailSOP               @relation(fields: [detailSopId], references: [detailSopId], onDelete: Cascade)
@@ -373,12 +300,10 @@ model LogEditSOP {
   @@index([detailSopId, createdAt])
 }
 
-/// Field domain yang berubah dalam satu sesi log (normalisasi bekas `meta.fields`).
 model LogEditSopDomainField {
   detailSopId  String     @db.Char(36)
   penggunaId   String     @db.Char(36)
   logCreatedAt DateTime   @db.DateTime(3)
-  /// Key internal terpanjang saat ini: `dasarHukumPeraturanIds` / `kualifikasiPelaksanaan` (22 karakter).
   domainField  String     @db.VarChar(22)
   logEditSop   LogEditSOP @relation(fields: [detailSopId, penggunaId, logCreatedAt], references: [detailSopId, penggunaId, createdAt], onDelete: Cascade)
 
@@ -386,101 +311,53 @@ model LogEditSopDomainField {
 }
 
 /// =========================
-/// MODUL 5 — PENGAJUAN & EVALUASI SOP
-/// ======================= ==
-model PengajuanEvaluasi {
-  pengajuanEvaluasiId                String                  @id @default(uuid()) @db.Char(36)
-  opdId                              String                  @db.Char(36)
-  jenis                              JenisPengajuanEvaluasi
-  status                             StatusPengajuanEvaluasi @default(SEDANG_DIEVALUASI)
-  nomorBA                            String?                 @unique @db.VarChar(23)
-  tanggalPermintaan                  DateTime?
-  tanggalEvaluasi                    DateTime?
-  nilaiOPD                           Int?
-  diverifikasiOlehUserId             String?                 @db.Char(36)
-  ditandatanganiOlehPjPenyusunUserId String?                 @db.Char(36)
-  tanggalTTDBaPjPenyusun             DateTime?
-  /// Historical compatibility parent; active review state is owned by ProcessReview.
-  diselesaikanOlehId                 String?                 @db.Char(36)
-  tanggalDiselesaikan                DateTime?
-  /// Alasan resmi evaluator saat menolak pengajuan. Wajib ketika status DITOLAK.
-  alasanPenolakan                    String?                 @db.Text
-  ditolakOlehId                      String?                 @db.Char(36)
-  tanggalDitolak                     DateTime?
-  /// Versi untuk optimistic locking — increment di setiap update status.
-  /// Service: UPDATE ... SET status = ?, version = version + 1 WHERE id = ? AND version = ?
-  version                            Int                     @default(0)
-  createdAt                          DateTime                @default(now())
-  updatedAt                          DateTime                @updatedAt
-  diselesaikanOleh                   Pengguna?               @relation("PengajuanDiselesaikanOleh", fields: [diselesaikanOlehId], references: [penggunaId])
-  ditolakOleh                        Pengguna?               @relation("PengajuanDitolakOleh", fields: [ditolakOlehId], references: [penggunaId], onDelete: Restrict)
-  ditandatanganiOlehPjPenyusunUser   Pengguna?               @relation("PengajuanDitandatanganiOlehPjPenyusun", fields: [ditandatanganiOlehPjPenyusunUserId], references: [penggunaId], onDelete: Restrict)
-  diverifikasiOlehUser               Pengguna?               @relation("PengajuanDiverifikasiOleh", fields: [diverifikasiOlehUserId], references: [penggunaId], onDelete: Restrict)
-  dokumenTte                         DokumenTte[]
-  opd                                OPD                     @relation(fields: [opdId], references: [opdId])
-
-  @@index([opdId, status, createdAt])
-  @@index([opdId, status, updatedAt], map: "PengajuanEvaluasi_opdId_status_updatedAt_idx")
-  @@index([opdId, status, tanggalDiselesaikan, updatedAt], map: "PengajuanEvaluasi_opd_status_selesai_idx")
-  @@index([status, createdAt], map: "PengajuanEvaluasi_status_createdAt_idx")
-  @@index([ditolakOlehId], map: "PengajuanEvaluasi_ditolakOlehId_idx")
-}
-
+/// MODUL 4 — TTE
 /// =========================
-/// MODUL 6 — LEGALISASI & TTE
-/// =========================
-/// Wajib tepat satu parent: `detailSopId` XOR `pengajuanEvaluasiId` (CHECK MySQL, lihat migrasi invariant).
-
 model DokumenTte {
-  dokumenTteId        String               @id @default(uuid()) @db.Char(36)
-  /// SOP: nomorDokumen input (maks. 500) + '-' + nomorSOP (maks. 255).
-  nomorDokumen        String               @unique @db.VarChar(756)
-  jenisDokumen        JenisDokumenTte
-  /// SOP: judulDokumen input (maks. 2000) + ' - ' + judul SOP (maks. 500).
-  judulDokumen        String               @db.VarChar(2503)
-  hashDokumen         String               @db.Char(64)
-  versiDokumen        Int                  @default(1)
-  pdfPath             String?              @db.Text
-  pdfSha256           String?              @db.Char(64)
-  pdfSizeBytes        Int?
-  pdfGeneratedAt      DateTime?
-  pdfPublishedAt      DateTime?
-  pdfRevokedAt        DateTime?
-  pdfStatus           String?              @db.VarChar(32)
-  detailSopId         String?              @db.Char(36)
-  processId           String?              @db.Char(36)
-  pengajuanEvaluasiId String?              @db.Char(36)
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  detailSop           DetailSOP?           @relation(fields: [detailSopId], references: [detailSopId], onDelete: Restrict)
-  pengajuanEvaluasi   PengajuanEvaluasi?   @relation(fields: [pengajuanEvaluasiId], references: [pengajuanEvaluasiId], onDelete: Restrict)
-  riwayatTandaTangan  RiwayatTandaTangan[]
+  dokumenTteId       String               @id @default(uuid()) @db.Char(36)
+  nomorDokumen       String               @unique @db.VarChar(756)
+  jenisDokumen       JenisDokumenTte      @default(SOP_BERLAKU)
+  judulDokumen       String               @db.VarChar(2503)
+  hashDokumen        String               @db.Char(64)
+  versiDokumen       Int                  @default(1)
+  pdfPath            String?              @db.Text
+  pdfSha256          String?              @db.Char(64)
+  pdfSizeBytes       Int?
+  pdfGeneratedAt     DateTime?
+  pdfPublishedAt     DateTime?
+  pdfRevokedAt       DateTime?
+  pdfStatus          String?              @db.VarChar(32)
+  detailSopId        String               @unique @db.Char(36)
+  processId          String               @db.Char(36)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  detailSop          DetailSOP            @relation(fields: [detailSopId], references: [detailSopId], onDelete: Restrict)
+  riwayatTandaTangan RiwayatTandaTangan[]
 
-  @@unique([detailSopId])
-  @@unique([pengajuanEvaluasiId])
   @@index([jenisDokumen, createdAt], map: "DokumenTte_jenisDokumen_createdAt_idx")
   @@index([jenisDokumen, pdfStatus], map: "DokumenTte_jenisDokumen_pdfStatus_idx")
+  @@index([processId], map: "DokumenTte_processId_idx")
 }
 
 model RiwayatTandaTangan {
-  userId             String        @db.Char(36)
-  dokumenTteId       String        @db.Char(36)
-  peran              PeranPengguna
-  signatureValue     String?       @db.LongText
-  signatureAlgorithm String?       @db.VarChar(13)
-  signatureFormat    String?       @db.VarChar(14)
-  certSerialNumber   String?       @db.VarChar(40)
-  certIssuer         String?       @db.Text
-  certSubject        String?       @db.Text
-  certFingerprint    String?       @db.Char(64)
+  userId             String                  @db.Char(36)
+  dokumenTteId       String                  @db.Char(36)
+  authority          OrganizationalAuthority
+  signatureValue     String?                 @db.LongText
+  signatureAlgorithm String?                 @db.VarChar(13)
+  signatureFormat    String?                 @db.VarChar(14)
+  certSerialNumber   String?                 @db.VarChar(40)
+  certIssuer         String?                 @db.Text
+  certSubject        String?                 @db.Text
+  certFingerprint    String?                 @db.Char(64)
   certValidFrom      DateTime?
   certValidTo        DateTime?
-  ditandatanganiPada DateTime      @default(now())
-  dokumenTte         DokumenTte    @relation(fields: [dokumenTteId], references: [dokumenTteId], onDelete: Restrict)
-  user               Pengguna      @relation(fields: [userId], references: [penggunaId])
+  ditandatanganiPada DateTime                @default(now())
+  dokumenTte         DokumenTte              @relation(fields: [dokumenTteId], references: [dokumenTteId], onDelete: Restrict)
+  user               Pengguna                @relation(fields: [userId], references: [penggunaId])
 
   @@id([userId, dokumenTteId])
-  @@unique([dokumenTteId, peran])
+  @@unique([dokumenTteId, authority])
 }
 
 /// =========================
@@ -496,27 +373,15 @@ enum OrganizationalScope {
   DEPARTMENT
 }
 
-enum PeranPengguna {
-  PJ_EVALUATOR
-  EVALUATOR
-  KEPALA_OPD
-  PJ_PENYUSUN
-  PENYUSUN
-}
-
 enum StatusSOP {
   DRAFT
-  SEDANG_DISUSUN
-  MENUNGGU_PENGAJUAN_EVALUASI
-  DIAJUKAN_EVALUASI
-  SEDANG_DIEVALUASI
-  REVISI_DARI_EVALUATOR
-  DITOLAK_EVALUATOR
-  MENUNGGU_TTD_PJ_EVALUATOR
-  DIVERIFIKASI_PJ_EVALUATOR_ORGANISASI
-  BERLAKU
-  DIGANTIKAN
-  DICABUT
+  PROCESS_REVIEW
+  REVISION_REQUIRED
+  FINAL_APPROVAL
+  TTE_PENDING
+  EFFECTIVE
+  SUPERSEDED
+  REVOKED
 }
 
 enum JenisLangkahProsedur {
@@ -534,35 +399,18 @@ enum SatuanWaktu {
   y
 }
 
-enum JenisPengajuanEvaluasi {
-  EVALUASI_REQUEST_EVALUATOR
-  EVALUASI_REQUEST_OPD
-}
-
-enum StatusPengajuanEvaluasi {
-  SEDANG_DIEVALUASI
-  DITOLAK
-  SELESAI_DIEVALUASI
-  DITANDATANGANI_PJ_EVALUATOR
-  DITANDATANGANI_PJ_PENYUSUN
-  SELESAI
-}
-
 enum JenisDokumenTte {
-  BERITA_ACARA_EVALUASI
   SOP_BERLAKU
 }
 
-/// Kategori bagian SOP pada log aktivitas edit (`LogEditSOP.bagian`).
 enum BagianSOP {
   HEADER
   LANGKAH
   STATUS
   UMPAN_BALIK
-  EVALUASI
+  REVIEW
 }
 
-/// Jenis diagram SOP (flowchart cetak / BPMN pratinjau).
 enum JenisDiagram {
   FLOWCHART
   BPMN
@@ -581,7 +429,6 @@ enum SisiPanahDiagram {
   right
 }
 
-/// Agregat konfigurasi diagram per DetailSOP (bukan junction M:N). Layout node otomatis di klien.
 model KonfigurasiDiagramSOP {
   detailSopId   String                    @db.Char(36)
   jenis         JenisDiagram
@@ -596,7 +443,6 @@ model KonfigurasiDiagramSOP {
   @@index([detailSopId])
 }
 
-/// Override koordinat panah manual (anak `KonfigurasiDiagramSOP`).
 model OverridePanahDiagramSOP {
   detailSopId      String           @db.Char(36)
   jenis            JenisDiagram
@@ -622,7 +468,6 @@ model OverridePanahDiagramSOP {
   @@index([keLangkahSopId])
 }
 
-/// Titik tekuk panah berurutan (anak `OverridePanahDiagramSOP`).
 model TitikTekukPanahDiagramSOP {
   detailSopId      String        @db.Char(36)
   jenis            JenisDiagram
@@ -638,7 +483,6 @@ model TitikTekukPanahDiagramSOP {
   @@id([detailSopId, jenis, dariLangkahSopId, keLangkahSopId, cabang, urutan])
 }
 
-/// Posisi label diagram manual (anak `KonfigurasiDiagramSOP`).
 model OverrideLabelDiagramSOP {
   detailSopId String       @db.Char(36)
   jenis       JenisDiagram

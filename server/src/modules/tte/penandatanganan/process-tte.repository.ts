@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { JenisDokumenTte, PeranPengguna, Prisma, StatusSOP } from '../../../generated/prisma';
+import { JenisDokumenTte, Prisma, StatusSOP } from '../../../generated/prisma';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { PdfSignatureMetadataInput } from '../shared/repository/tte.repository';
 
@@ -23,7 +23,7 @@ type ProcessTteContextFailure = {
   readonly error:
     | 'NOT_FOUND'
     | 'NOT_LATEST'
-    | 'LEGACY_UNBOUND'
+    | 'UNASSIGNED_ARCHIVE'
     | 'NOT_APPROVED'
     | 'APPROVAL_CONTEXT_DRIFT'
     | 'BAD_STATUS';
@@ -108,10 +108,7 @@ export class ProcessTteRepository {
       } else {
         if (
           dokumen.detailSopId !== context.detailSopId ||
-          dokumen.pengajuanEvaluasiId !== null ||
-          (dokumen.processId !== null &&
-            dokumen.processId !== undefined &&
-            dokumen.processId !== context.processId) ||
+          dokumen.processId !== context.processId ||
           dokumen.jenisDokumen !== JenisDokumenTte.SOP_BERLAKU
         ) {
           return { error: 'INVALID_DOC_PARENT' as const };
@@ -149,7 +146,6 @@ export class ProcessTteRepository {
     params: {
       detailOrSopId: string;
       userId: string;
-      peran: PeranPengguna;
       signedAt: Date;
       tanggalEfektif: Date;
       dokumenTteId: string;
@@ -175,10 +171,8 @@ export class ProcessTteRepository {
         if (
           dokumen === null ||
           dokumen.dokumenTteId !== params.dokumenTteId ||
-          dokumen.pengajuanEvaluasiId !== null ||
-          (dokumen.processId !== null &&
-            dokumen.processId !== undefined &&
-            dokumen.processId !== context.processId) ||
+          dokumen.detailSopId !== context.detailSopId ||
+          dokumen.processId !== context.processId ||
           dokumen.jenisDokumen !== JenisDokumenTte.SOP_BERLAKU
         ) {
           return { error: 'INVALID_DOC_PARENT' as const };
@@ -191,14 +185,11 @@ export class ProcessTteRepository {
           return { error: 'ALREADY_SIGNED' as const };
         }
 
-        // The DB enforces at most one BERLAKU version with an immediate trigger,
-        // so the previous effective version must be superseded first. Any later
-        // compare-and-set failure MUST throw so the whole transaction rolls back.
         const replaced = await tx.detailSOP.findMany({
           where: {
             sopId: context.sopId,
             detailSopId: { not: context.detailSopId },
-            status: StatusSOP.BERLAKU,
+            status: StatusSOP.EFFECTIVE,
           },
           select: { detailSopId: true },
         });
@@ -206,9 +197,9 @@ export class ProcessTteRepository {
           where: {
             sopId: context.sopId,
             detailSopId: { not: context.detailSopId },
-            status: StatusSOP.BERLAKU,
+            status: StatusSOP.EFFECTIVE,
           },
-          data: { status: StatusSOP.DIGANTIKAN },
+          data: { status: StatusSOP.SUPERSEDED },
         });
         await this.updatePdfStatusForDetailIds(
           tx,
@@ -219,10 +210,10 @@ export class ProcessTteRepository {
         const promoted = await tx.detailSOP.updateMany({
           where: {
             detailSopId: context.detailSopId,
-            status: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
+            status: StatusSOP.TTE_PENDING,
           },
           data: {
-            status: StatusSOP.BERLAKU,
+            status: StatusSOP.EFFECTIVE,
             terakhirDieditOlehId: params.userId,
             tanggalEfektif: params.tanggalEfektif,
           },
@@ -235,7 +226,7 @@ export class ProcessTteRepository {
           data: {
             userId: params.userId,
             dokumenTteId: dokumen.dokumenTteId,
-            peran: params.peran,
+            authority: context.approval.authority,
             ditandatanganiPada: params.signedAt,
             signatureValue: params.signatureMetadata.signatureValue,
             signatureAlgorithm: params.signatureMetadata.signatureAlgorithm,
@@ -321,7 +312,7 @@ export class ProcessTteRepository {
     }
 
     const processId = detail.sop.processId;
-    if (processId === null) return { error: 'LEGACY_UNBOUND' as const };
+    if (processId === null) return { error: 'UNASSIGNED_ARCHIVE' as const };
 
     const approval = await tx.processFinalApproval.findUnique({
       where: { detailSopId: detail.detailSopId },
@@ -337,7 +328,7 @@ export class ProcessTteRepository {
     if (approval.processId !== processId) {
       return { error: 'APPROVAL_CONTEXT_DRIFT' as const };
     }
-    if (detail.status !== StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR) {
+    if (detail.status !== StatusSOP.TTE_PENDING) {
       return { error: 'BAD_STATUS' as const, status: detail.status };
     }
 

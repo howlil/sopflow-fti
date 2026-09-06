@@ -56,14 +56,6 @@ export interface ProcessSopLifecycleProjectionInput {
   } | null;
 }
 
-const AUTHORING_STATUSES = new Set<string>([
-  StatusSOP.DRAFT,
-  StatusSOP.SEDANG_DISUSUN,
-  StatusSOP.MENUNGGU_PENGAJUAN_EVALUASI,
-  StatusSOP.REVISI_DARI_EVALUATOR,
-  StatusSOP.DITOLAK_EVALUATOR,
-]);
-
 function currentUserOr(
   currentUserId: string,
   responsibleId: string | null,
@@ -95,10 +87,8 @@ export function projectProcessSopLifecycle(
     process.scope === OrganizationalScope.FACULTY ? 'DEAN' : 'HEAD_OF_DEPARTMENT';
   const resolvedAuthorityLabel = authorityLabel(process.scope, process.departmentName);
 
-  if (AUTHORING_STATUSES.has(input.status)) {
-    const isRevision =
-      input.status === StatusSOP.REVISI_DARI_EVALUATOR ||
-      input.status === StatusSOP.DITOLAK_EVALUATOR;
+  if (input.status === StatusSOP.DRAFT || input.status === StatusSOP.REVISION_REQUIRED) {
+    const isRevision = input.status === StatusSOP.REVISION_REQUIRED;
     return {
       stage: 'AUTHORING',
       stateLabel: isRevision ? 'Perlu revisi' : 'Draft',
@@ -112,7 +102,7 @@ export function projectProcessSopLifecycle(
     };
   }
 
-  if (input.status === StatusSOP.SEDANG_DIEVALUASI) {
+  if (input.status === StatusSOP.PROCESS_REVIEW) {
     const responsibility = currentUserOr(
       input.currentUserId,
       process.ownerId,
@@ -131,7 +121,7 @@ export function projectProcessSopLifecycle(
     };
   }
 
-  if (input.status === StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR) {
+  if (input.status === StatusSOP.FINAL_APPROVAL || input.status === StatusSOP.TTE_PENDING) {
     const hasAuthorityHolder = authority?.holderId !== null && authority?.holderId !== undefined;
     const responsibility = currentUserOr(
       input.currentUserId,
@@ -140,7 +130,8 @@ export function projectProcessSopLifecycle(
       authority?.holderName ?? resolvedAuthorityLabel,
     );
     const isCurrentUser = responsibility.type === 'CURRENT_USER';
-    if (!input.approvalExists) {
+
+    if (input.status === StatusSOP.FINAL_APPROVAL) {
       return {
         stage: 'FINAL_APPROVAL',
         stateLabel: 'Menunggu persetujuan akhir',
@@ -169,7 +160,7 @@ export function projectProcessSopLifecycle(
     };
   }
 
-  if (input.status === StatusSOP.BERLAKU) {
+  if (input.status === StatusSOP.EFFECTIVE) {
     return {
       stage: 'EFFECTIVE',
       stateLabel: 'Berlaku',
@@ -179,7 +170,7 @@ export function projectProcessSopLifecycle(
     };
   }
 
-  if (input.status === StatusSOP.DICABUT) {
+  if (input.status === StatusSOP.REVOKED) {
     return {
       stage: 'REVOKED',
       stateLabel: 'Dicabut',
@@ -191,7 +182,7 @@ export function projectProcessSopLifecycle(
 
   return {
     stage: 'EFFECTIVE',
-    stateLabel: input.status === StatusSOP.DIGANTIKAN ? 'Digantikan' : 'Perlu ditinjau',
+    stateLabel: input.status === StatusSOP.SUPERSEDED ? 'Digantikan' : 'Perlu ditinjau',
     responsibility: { type: 'NONE', name: null },
     action: lifecycleAction('OPEN', 'Buka SOP', 'SOP_DETAIL'),
     blockingReason: null,

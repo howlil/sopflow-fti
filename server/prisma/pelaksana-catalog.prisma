@@ -1,6 +1,5 @@
 /// Target-domain metadata for the global reusable Pelaksana catalog.
-/// Existing `Pelaksana.opdId` values are nullable historical shadows only;
-/// new catalog rows do not require or derive an OPD.
+/// Pelaksana is a global FTI catalog and has no organizational ownership field.
 model PelaksanaAuditAttribution {
   pelaksanaId String   @id @db.Char(36)
   createdById String?  @db.Char(36)

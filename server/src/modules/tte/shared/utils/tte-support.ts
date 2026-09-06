@@ -1,21 +1,6 @@
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { ConflictException } from '@nestjs/common';
 import { createHash } from 'crypto';
-import { JenisDokumenTte, PeranPengguna, Prisma } from '../../../../generated/prisma';
-
-export function mapTtePeranResponse(
-  peran: PeranPengguna,
-): 'KEPALA_OPD' | 'PJ_EVALUATOR' | 'PJ_PENYUSUN' {
-  if (peran === PeranPengguna.KEPALA_OPD) {
-    return 'KEPALA_OPD';
-  }
-  if (peran === PeranPengguna.PJ_EVALUATOR) {
-    return 'PJ_EVALUATOR';
-  }
-  if (peran === PeranPengguna.PJ_PENYUSUN) {
-    return 'PJ_PENYUSUN';
-  }
-  throw new ForbiddenException('Peran tidak mendukung TTE');
-}
+import { JenisDokumenTte, Prisma } from '../../../../generated/prisma';
 
 export function hashDokumenKanonik(params: {
   jenis: JenisDokumenTte;

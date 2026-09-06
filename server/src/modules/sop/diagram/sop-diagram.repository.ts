@@ -20,22 +20,17 @@ export class SopDiagramRepository {
 
   async findDetailIdByDetailOrSopId(
     detailOrSopId: string,
-  ): Promise<{ detailSopId: string; sopOpdId: string | null; processId: string | null } | null> {
+  ): Promise<{ detailSopId: string; processId: string | null } | null> {
     const direct = await this.prisma.detailSOP.findUnique({
       where: { detailSopId: detailOrSopId },
-      select: { detailSopId: true, sop: { select: { opdId: true, processId: true } } },
+      select: { detailSopId: true, sop: { select: { processId: true } } },
     });
     if (direct !== null) {
-      return {
-        detailSopId: direct.detailSopId,
-        sopOpdId: direct.sop.opdId,
-        processId: direct.sop.processId,
-      };
+      return { detailSopId: direct.detailSopId, processId: direct.sop.processId };
     }
     const header = await this.prisma.sOP.findUnique({
       where: { sopId: detailOrSopId },
       select: {
-        opdId: true,
         processId: true,
         detailSops: {
           orderBy: { versi: 'desc' },
@@ -45,12 +40,8 @@ export class SopDiagramRepository {
       },
     });
     const latestDetailId = header?.detailSops[0]?.detailSopId;
-    if (latestDetailId === undefined || header === undefined || header === null) return null;
-    return {
-      detailSopId: latestDetailId,
-      sopOpdId: header.opdId,
-      processId: header.processId,
-    };
+    if (latestDetailId === undefined || header === null) return null;
+    return { detailSopId: latestDetailId, processId: header.processId };
   }
 
   async findDetailStatus(detailSopId: string): Promise<string | null> {
@@ -80,9 +71,7 @@ export class SopDiagramRepository {
   async upsertConfig(input: UpsertDiagramConfigInput) {
     return this.prisma.$transaction(async (tx) => {
       const data: Prisma.KonfigurasiDiagramSOPUpdateInput = {};
-      if (input.layoutSeed !== undefined) {
-        data.layoutSeed = input.layoutSeed;
-      }
+      if (input.layoutSeed !== undefined) data.layoutSeed = input.layoutSeed;
       const config = await tx.konfigurasiDiagramSOP.upsert({
         where: {
           detailSopId_jenis: {
@@ -97,9 +86,7 @@ export class SopDiagramRepository {
         },
         update: data,
       });
-      if (input.pathOverrides === undefined) {
-        return config;
-      }
+      if (input.pathOverrides === undefined) return config;
       await tx.titikTekukPanahDiagramSOP.deleteMany({
         where: { detailSopId: input.detailSopId, jenis: input.jenis },
       });
@@ -109,9 +96,7 @@ export class SopDiagramRepository {
       await tx.overrideLabelDiagramSOP.deleteMany({
         where: { detailSopId: input.detailSopId, jenis: input.jenis },
       });
-      if (input.pathOverrides === null) {
-        return config;
-      }
+      if (input.pathOverrides === null) return config;
       const flattened = flattenDiagramPathOverridesToRows({
         detailSopId: input.detailSopId,
         jenis: input.jenis,
@@ -146,11 +131,7 @@ export class SopDiagramRepository {
       where: { detailSopId: sourceDetailSopId },
       include: {
         overridePanah: {
-          include: {
-            titikTekuk: {
-              orderBy: { urutan: 'asc' },
-            },
-          },
+          include: { titikTekuk: { orderBy: { urutan: 'asc' } } },
         },
         overrideLabel: true,
       },
@@ -167,9 +148,7 @@ export class SopDiagramRepository {
       for (const edge of cfg.overridePanah) {
         const newFrom = langkahIdMap.get(edge.dariLangkahSopId);
         const newTo = langkahIdMap.get(edge.keLangkahSopId);
-        if (newFrom === undefined || newTo === undefined) {
-          continue;
-        }
+        if (newFrom === undefined || newTo === undefined) continue;
         await tx.overridePanahDiagramSOP.create({
           data: {
             detailSopId: targetDetailSopId,

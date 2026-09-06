@@ -1,11 +1,4 @@
-export type PeranTTE =
-  | "KEPALA_OPD"
-  | "PJ_EVALUATOR"
-  | "PJ_PENYUSUN"
-  | "EVALUATOR"
-  | "PENYUSUN";
-
-/** Profil kredensial TTE. Authority tanda tangan tidak berasal dari profil ini. */
+/** Profil kredensial TTE. Authority tanda tangan berasal dari Process scope. */
 export interface TteProfil {
   id: string;
   userId: string;
@@ -32,7 +25,8 @@ export interface TTESignaturePayload {
   signedAt?: string;
 }
 
-export type JenisDokumenTte = "BERITA_ACARA_EVALUASI" | "SOP_BERLAKU";
+export type JenisDokumenTte = "SOP_BERLAKU";
+export type TteAuthority = "DEAN" | "HEAD_OF_DEPARTMENT";
 
 export interface SignPdfDto {
   pin: string;
@@ -99,7 +93,7 @@ export interface PdfSignatureVerificationEntry {
     reason: string;
     dokumenTteId?: string;
     userId?: string;
-    peran?: string;
+    authority?: TteAuthority;
     jenisDokumen?: string;
     nomorDokumen?: string;
     judulDokumen?: string;
@@ -116,22 +110,20 @@ export interface VerifyPdfResponse {
   disclaimer: string;
 }
 
-/** Public verification may expose legacy role only as immutable historical signing evidence. */
 export interface TtePengesahanPublic {
   userId: string;
   dokumenTteId: string;
   ditandatanganiPada: string;
-  peran: PeranTTE;
-  authority?: 'DEAN' | 'HEAD_OF_DEPARTMENT';
+  authority: TteAuthority;
   authorityLabel?: string;
   penandatangan: { nama: string; nip: string; jabatan: string };
   dokumen: {
     dokumenTteId: string;
     nomorDokumen: string;
     judulDokumen: string;
-    jenisDokumen: string;
+    jenisDokumen: JenisDokumenTte;
     hashDokumen: string;
-    sopDetailId?: string;
+    sopDetailId: string;
   };
   qrVerificationUrl: string | null;
   qrPayload: string;
@@ -155,9 +147,9 @@ export interface TandaTanganiProcessSopMutationDto {
 export interface TandaTanganiProcessSopResponse {
   detailSopId: string;
   dokumenTteId: string;
-  authority: 'DEAN' | 'HEAD_OF_DEPARTMENT';
+  authority: TteAuthority;
   authorityKey: string;
-  status: 'BERLAKU';
+  status: 'EFFECTIVE';
   ditandatanganiPada: string;
   tanggalEfektif: string;
 }
