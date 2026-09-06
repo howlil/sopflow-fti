@@ -9,66 +9,52 @@ import {
 } from '@/pages/landing/role-workspace-showcase'
 import { WorkflowStory } from '@/pages/landing/workflow-story'
 
-const GOVERNMENT_NAME = 'Pemerintah Provinsi Sumatera Barat'
-const OFFICE_NAME = 'Biro Organisasi'
+const INSTITUTION_NAME = 'Fakultas Teknologi Informasi'
+const PRODUCT_NAME = 'SOPFlow FTI'
 
 const WORKFLOW_STAGES = [
   { step: '01', title: 'Penyusunan' },
-  { step: '02', title: 'Pengajuan' },
-  { step: '03', title: 'Evaluasi' },
-  { step: '04', title: 'Perbaikan' },
-  { step: '05', title: 'Berita Acara' },
-  { step: '06', title: 'Pengesahan' },
-  { step: '07', title: 'Arsip' },
+  { step: '02', title: 'Review Proses' },
+  { step: '03', title: 'Persetujuan Akhir' },
+  { step: '04', title: 'TTE' },
+  { step: '05', title: 'Berlaku' },
 ] as const
 
 const ROLE_PROFILES: LandingRoleProfile[] = [
   {
-    id: 'penyusun',
-    label: 'Penyusun',
-    responsibility: 'Menyusun isi SOP dan menindaklanjuti catatan evaluasi.',
-    output: 'Draft dan revisi SOP.',
+    id: 'process-member',
+    label: 'Penyusun SOP',
+    responsibility: 'Menyusun dan memperbaiki SOP pada Proses Bisnis yang diberikan secara eksplisit.',
+    output: 'Draft dan revisi SOP yang siap direview.',
   },
   {
-    id: 'pj-penyusun',
-    label: 'PJ Penyusun',
-    responsibility: 'Mengoordinasikan SOP pada OPD dan mengajukan dokumen yang siap dievaluasi.',
-    output: 'Paket pengajuan evaluasi.',
+    id: 'process-owner',
+    label: 'Pemilik Proses',
+    responsibility: 'Mengelola anggota Proses Bisnis, mereview SOP, dan meneruskan hasil review yang diterima ke pejabat berwenang.',
+    output: 'Keputusan review Proses Bisnis yang dapat diaudit.',
   },
   {
-    id: 'evaluator',
-    label: 'Evaluator',
-    responsibility: 'Memeriksa substansi SOP, memberi penilaian, dan mencatat perbaikan.',
-    output: 'Hasil evaluasi dan catatan perbaikan.',
-  },
-  {
-    id: 'pj-evaluator',
-    label: 'PJ Evaluator Organisasi',
-    responsibility: 'Mengoordinasikan evaluasi lintas OPD, penugasan evaluator, dan berita acara.',
-    output: 'Berita acara hasil evaluasi.',
-  },
-  {
-    id: 'kepala-opd',
-    label: 'Kepala OPD',
-    responsibility: 'Meninjau dan mengesahkan SOP setelah evaluasi dan berita acara selesai.',
-    output: 'SOP yang disahkan dan siap diarsipkan.',
+    id: 'organizational-authority',
+    label: 'Pejabat TTE',
+    responsibility: 'Dekan atau Ketua Jurusan melakukan persetujuan akhir dan TTE sesuai lingkup organisasi Proses Bisnis.',
+    output: 'SOP bertanda tangan elektronik yang berlaku.',
   },
 ]
 
 export function LandingPage() {
   return (
     <div className="min-h-screen bg-surface text-foreground">
-      <PublicHeader governmentName={GOVERNMENT_NAME} officeName={OFFICE_NAME} />
+      <PublicHeader institutionName={INSTITUTION_NAME} productName={PRODUCT_NAME} />
 
       <main>
         <IdentityHero stages={WORKFLOW_STAGES} />
         <PublicServiceGateway />
         <WorkflowStory stages={WORKFLOW_STAGES} />
         <RoleWorkspaceShowcase roles={ROLE_PROFILES} />
-        <InstitutionalClosing governmentName={GOVERNMENT_NAME} officeName={OFFICE_NAME} />
+        <InstitutionalClosing institutionName={INSTITUTION_NAME} productName={PRODUCT_NAME} />
       </main>
 
-      <PublicFooter governmentName={GOVERNMENT_NAME} officeName={OFFICE_NAME} />
+      <PublicFooter institutionName={INSTITUTION_NAME} productName={PRODUCT_NAME} />
     </div>
   )
 }

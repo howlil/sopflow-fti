@@ -28,7 +28,7 @@ class TteSignaturePayloadDto {
   readonly signedAt!: string;
 }
 
-/** Muatan data GET area kerja penyusun: detail + semua langkah + log (satu respons). */
+/** Muatan data GET area kerja penyusun: detail + langkah + activity + signing evidence. */
 export class PenyusunWorkbenchDataDto {
   @ApiPropertyOptional({
     type: 'object',
@@ -40,10 +40,7 @@ export class PenyusunWorkbenchDataDto {
   @ApiProperty({ type: () => PenyusunWorkbenchDetailDto })
   readonly detail!: PenyusunWorkbenchDetailDto;
 
-  @ApiProperty({
-    type: () => [PenyusunWorkbenchLangkahDto],
-    description: 'Semua langkah prosedur berurutan; tidak dipaginasi.',
-  })
+  @ApiProperty({ type: () => [PenyusunWorkbenchLangkahDto] })
   readonly langkah!: PenyusunWorkbenchLangkahDto[];
 
   @ApiProperty({ type: () => [PenyusunWorkbenchLogEditDto] })
@@ -52,6 +49,10 @@ export class PenyusunWorkbenchDataDto {
   @ApiProperty({ type: () => PenyusunWorkbenchDiagramKonfigurasiDto, required: false })
   readonly diagramKonfigurasi?: PenyusunWorkbenchDiagramKonfigurasiDto;
 
-  @ApiProperty({ type: () => TteSignaturePayloadDto, required: false })
-  readonly tteSignaturePayloadKepalaOpd?: TteSignaturePayloadDto;
+  @ApiProperty({
+    type: () => TteSignaturePayloadDto,
+    required: false,
+    description: 'Bukti tanda tangan elektronik terbaru tanpa vocabulary role legacy.',
+  })
+  readonly tteSignaturePayload?: TteSignaturePayloadDto;
 }

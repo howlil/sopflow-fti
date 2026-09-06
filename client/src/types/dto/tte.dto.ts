@@ -116,7 +116,7 @@ export interface VerifyPdfResponse {
   disclaimer: string;
 }
 
-/** Public verification keeps legacy role only as historical signature evidence. */
+/** Public verification may expose legacy role only as immutable historical signing evidence. */
 export interface TtePengesahanPublic {
   userId: string;
   dokumenTteId: string;
@@ -136,9 +136,6 @@ export interface TtePengesahanPublic {
   qrVerificationUrl: string | null;
   qrPayload: string;
 }
-
-/** Legacy compatibility surface only. */
-export type TTERole = "kepala-opd" | "pj-evaluator" | "pj-penyusun";
 
 export interface RegisterTteDto { pin: string; }
 export interface UpdateTtePinDto { pinLama: string; pinBaru: string; }

@@ -2,7 +2,7 @@ import type { StatusSOP } from '@/types/dto/sop.dto'
 import type { StatusBadgeColors } from './status-badge.types'
 import { STATUS_BADGE_COLORS_DEFAULT } from './status-badge.types'
 
-/** Warna badge per nilai status dokumen (label dari server). */
+/** Warna badge per nilai status persistence; label yang ditampilkan memakai vocabulary FTI. */
 export const SOP_STATUS_BADGE_COLORS: Record<string, StatusBadgeColors> = {
   DRAFT: { color: 'text-secondary-foreground', bgColor: 'bg-surface-muted' },
   SEDANG_DISUSUN: { color: 'text-indigo-700', bgColor: 'bg-indigo-100' },
@@ -38,13 +38,13 @@ const SOP_STATUS_FILTER_VALUES = [
 const SOP_STATUS_FILTER_LABELS: Record<(typeof SOP_STATUS_FILTER_VALUES)[number], string> = {
   DRAFT: 'Draft',
   SEDANG_DISUSUN: 'Sedang disusun',
-  MENUNGGU_PENGAJUAN_EVALUASI: 'Menunggu pengajuan evaluasi',
-  DIAJUKAN_EVALUASI: 'Diajukan evaluasi',
-  SEDANG_DIEVALUASI: 'Dalam penilaian',
+  MENUNGGU_PENGAJUAN_EVALUASI: 'Siap diajukan untuk review',
+  DIAJUKAN_EVALUASI: 'Diajukan untuk review Proses',
+  SEDANG_DIEVALUASI: 'Dalam review Proses',
   REVISI_DARI_EVALUATOR: 'Perlu revisi',
-  DITOLAK_EVALUATOR: 'Ditolak evaluator',
-  MENUNGGU_TTD_PJ_EVALUATOR: 'Menunggu TTD PJ Evaluator',
-  DIVERIFIKASI_PJ_EVALUATOR_ORGANISASI: 'Menunggu pengesahan Kepala OPD',
+  DITOLAK_EVALUATOR: 'Review tidak diterima',
+  MENUNGGU_TTD_PJ_EVALUATOR: 'Menunggu persetujuan akhir',
+  DIVERIFIKASI_PJ_EVALUATOR_ORGANISASI: 'Menunggu TTE',
   BERLAKU: 'Berlaku',
   DICABUT: 'Dicabut',
 }
@@ -53,7 +53,6 @@ export function getSopStatusColors(status: string): StatusBadgeColors {
   return SOP_STATUS_BADGE_COLORS[status] ?? STATUS_BADGE_COLORS_DEFAULT
 }
 
-/** Opsi filter — label placeholder; halaman filter memakai label dari API bila tersedia. */
 export const SOP_STATUS_FILTER_OPTIONS = [
   { value: 'all' as const, label: 'Semua Status' },
   ...SOP_STATUS_FILTER_VALUES.map((value) => ({

@@ -19,8 +19,7 @@ function buildMinimalWorkbench(
     namaLembaga: 'Lembaga',
     sop: {
       sopId: 'sop-1',
-      opdId: 'opd-1',
-      processId: null,
+      processId: 'process-1',
       judul: 'Judul',
       createdAt: t,
       updatedAt: t,
@@ -64,7 +63,7 @@ function buildMinimalWorkbench(
         urutan: 1,
         createdAt: t,
         updatedAt: t,
-        pelaksana: { pelaksanaId: 'pel-1', opdId: 'opd-1', nama: 'Staf' },
+        pelaksana: { pelaksanaId: 'pel-1', opdId: null, nama: 'Staf' },
       },
     ],
     langkahSOP: [
@@ -100,12 +99,10 @@ describe('Pengujian validator kelengkapan SOP', () => {
       buildMinimalWorkbench({
         sop: {
           sopId: 'sop-1',
-          opdId: 'opd-1',
-          processId: null,
+          processId: 'process-1',
           judul: '  ',
           createdAt: new Date(),
           updatedAt: new Date(),
-          opd: { opdId: 'opd-1', nama: 'OPD', pengguna: [] },
         },
         nomorSOP: '',
         dasarHukum: [],

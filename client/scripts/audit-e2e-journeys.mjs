@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url'
 
 const clientDir = fileURLToPath(new URL('..', import.meta.url))
 const journeyDir = path.join(clientDir, 'e2e', 'journeys')
-const expectedIds = Array.from({ length: 38 }, (_, index) => `J${String(index + 1).padStart(2, '0')}`)
 const mutationTokens = [
   'apiPost(',
   'apiPatch(',
@@ -15,29 +14,29 @@ const mutationTokens = [
   'signBeritaAcara(',
   'signAllSop(',
 ]
+const forbiddenImports = [
+  '../support/business-preconditions',
+  '../support/business-actions',
+  '../support/business-audit',
+]
 
 const files = fs
   .readdirSync(journeyDir)
   .filter((name) => name.endsWith('.spec.ts'))
   .sort()
 
+const violations = []
 if (files.length === 0) {
-  throw new Error('Tidak ada business journey spec di client/e2e/journeys')
+  violations.push('Tidak ada FTI business journey spec di client/e2e/journeys')
 }
 
-const occurrences = new Map(expectedIds.map((id) => [id, []]))
-const violations = []
-
 for (const file of files) {
+  if (!file.startsWith('fti-')) {
+    violations.push(`${file}: journey executable harus FTI-native; retire milestone/legacy journey`) 
+  }
+
   const absolute = path.join(journeyDir, file)
   const content = fs.readFileSync(absolute, 'utf8')
-
-  const testIds = [...content.matchAll(/\btest\(\s*['"`](J(?:0[1-9]|[12][0-9]|3[0-8]))\b/g)].map(
-    (match) => match[1],
-  )
-  for (const id of testIds) {
-    occurrences.get(id)?.push(file)
-  }
 
   if (!content.includes('test.step(')) {
     violations.push(`${file}: business journey wajib memakai test.step() untuk audit trail`)
@@ -46,26 +45,23 @@ for (const file of files) {
   for (const token of mutationTokens) {
     if (content.includes(token)) {
       violations.push(
-        `${file}: mutation API langsung '${token}' dilarang; pindahkan setup ke business-preconditions.ts atau lakukan aksi lewat UI`,
+        `${file}: mutation helper langsung '${token}' dilarang; gunakan FTI precondition helper atau lakukan aksi lewat UI`,
       )
+    }
+  }
+
+  for (const forbiddenImport of forbiddenImports) {
+    if (content.includes(forbiddenImport)) {
+      violations.push(`${file}: legacy support import '${forbiddenImport}' harus retired`)
     }
   }
 }
 
-for (const id of expectedIds) {
-  const locations = occurrences.get(id) ?? []
-  if (locations.length !== 1) {
-    violations.push(`${id}: harus muncul tepat sekali sebagai executable test, ditemukan ${locations.length}`)
-  }
-}
-
 if (violations.length > 0) {
-  console.error('E2E business journey audit FAILED:')
+  console.error('FTI E2E journey audit FAILED:')
   for (const violation of violations) console.error(` - ${violation}`)
   process.exit(1)
 }
 
-console.log('E2E business journey audit passed.')
-for (const id of expectedIds) {
-  console.log(` - ${id}: ${occurrences.get(id)?.[0]}`)
-}
+console.log(`FTI E2E journey audit passed (${files.length} journeys).`)
+for (const file of files) console.log(` - ${file}`)

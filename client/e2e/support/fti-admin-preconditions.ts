@@ -1,8 +1,7 @@
 import { expect, type APIRequestContext } from '@playwright/test'
 
 import type { RoleApiFactory } from '../fixtures/business-test'
-import type { E2eUser } from '../fixtures/users'
-import { users } from '../fixtures/users'
+import { targetUsers, type E2eUser } from '../fixtures/users'
 import { apiGet, apiPost, toApiUrl, unwrapApiData } from './api'
 
 export interface AdminUserRow {
@@ -54,7 +53,7 @@ export function adminUserLabel(user: AdminUserRow): string {
 }
 
 export async function adminApi(apiFor: RoleApiFactory): Promise<APIRequestContext> {
-  return apiFor(users.pjEvaluator)
+  return apiFor(targetUsers.admin)
 }
 
 export async function listAdminUsers(apiFor: RoleApiFactory): Promise<AdminUserRow[]> {
@@ -122,10 +121,7 @@ export function requireAdminUser(usersList: AdminUserRow[], email: string): Admi
   return user
 }
 
-export function requireDepartment(
-  departments: DepartmentRow[],
-  name: string,
-): DepartmentRow {
+export function requireDepartment(departments: DepartmentRow[], name: string): DepartmentRow {
   const department = departments.find((candidate) => candidate.nama === name)
   if (!department) throw new Error(`Department E2E tidak ditemukan: ${name}`)
   return department

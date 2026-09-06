@@ -1,12 +1,7 @@
-export type RoleKey =
-  | 'PJ_EVALUATOR'
-  | 'EVALUATOR'
-  | 'KEPALA_OPD'
-  | 'PJ_PENYUSUN'
-  | 'PENYUSUN'
+export type PlatformRoleKey = 'SUPER_ADMIN' | 'USER'
 
 export interface E2eUser {
-  role: RoleKey
+  role: PlatformRoleKey
   roleLabel: string
   email: string
   password: string
@@ -15,149 +10,72 @@ export interface E2eUser {
 
 const defaultPassword = process.env.E2E_SEED_PASSWORD ?? '@Password123:)'
 
-/** Legacy-role identities used by the pre-existing compatibility E2E matrix. */
-export const users = {
-  pjEvaluator: {
-    role: 'PJ_EVALUATOR',
-    roleLabel: 'PJ Evaluator',
-    email: process.env.E2E_PJ_EVALUATOR_EMAIL ?? 'pjevaluator@gmail.com',
-    password: process.env.E2E_PJ_EVALUATOR_PASSWORD ?? defaultPassword,
-    landingPath: '/pj-evaluator/grafik-evaluasi',
-  },
-  evaluator: {
-    role: 'EVALUATOR',
-    roleLabel: 'Evaluator',
-    email: process.env.E2E_EVALUATOR_EMAIL ?? 'evaluator1@gmail.com',
-    password: process.env.E2E_EVALUATOR_PASSWORD ?? defaultPassword,
-    landingPath: '/evaluator/evaluasi',
-  },
-  kepalaOpd: {
-    role: 'KEPALA_OPD',
-    roleLabel: 'Kepala OPD',
-    email: process.env.E2E_KEPALA_OPD_EMAIL ?? 'kepalaopd.dinkes@gmail.com',
-    password: process.env.E2E_KEPALA_OPD_PASSWORD ?? defaultPassword,
-    landingPath: '/kepala-opd/sop',
-  },
-  pjPenyusun: {
-    role: 'PJ_PENYUSUN',
-    roleLabel: 'PJ Penyusun',
-    email: process.env.E2E_PJ_PENYUSUN_EMAIL ?? 'pjpenyusun.dinkes@gmail.com',
-    password: process.env.E2E_PJ_PENYUSUN_PASSWORD ?? defaultPassword,
-    landingPath: '/penyusun/sop',
-  },
-  penyusun: {
-    role: 'PENYUSUN',
-    roleLabel: 'Penyusun',
-    email: process.env.E2E_PENYUSUN_EMAIL ?? 'penyusun.dinkes@gmail.com',
-    password: process.env.E2E_PENYUSUN_PASSWORD ?? defaultPassword,
-    landingPath: '/penyusun/sop',
-  },
-} satisfies Record<string, E2eUser>
-
-/**
- * Target FTI identities intentionally share the transitional PENYUSUN account role.
- * Their actual capability comes from Process relationship or organizational authority.
- * Keep them outside `allUsers` so the legacy role matrix remains unchanged.
- */
+/** Native FTI identities. Workflow capability comes from Process relationship or Organizational Authority. */
 export const targetUsers = {
+  admin: {
+    role: 'SUPER_ADMIN',
+    roleLabel: 'Admin Platform',
+    email: process.env.E2E_ADMIN_EMAIL ?? 'admin.fti@gmail.com',
+    password: process.env.E2E_ADMIN_PASSWORD ?? defaultPassword,
+    landingPath: '/admin',
+  },
   processOwner: {
-    role: 'PENYUSUN',
-    roleLabel: 'Process Owner',
+    role: 'USER',
+    roleLabel: 'Pemilik Proses',
     email: process.env.E2E_PROCESS_OWNER_EMAIL ?? 'process.owner@gmail.com',
     password: process.env.E2E_PROCESS_OWNER_PASSWORD ?? defaultPassword,
     landingPath: '/work',
   },
   processMember: {
-    role: 'PENYUSUN',
-    roleLabel: 'Process Member',
+    role: 'USER',
+    roleLabel: 'Penyusun SOP',
     email: process.env.E2E_PROCESS_MEMBER_EMAIL ?? 'process.member@gmail.com',
     password: process.env.E2E_PROCESS_MEMBER_PASSWORD ?? defaultPassword,
     landingPath: '/work',
   },
   dean: {
-    role: 'PENYUSUN',
+    role: 'USER',
     roleLabel: 'Dekan',
     email: process.env.E2E_DEAN_EMAIL ?? 'dean.fti@gmail.com',
     password: process.env.E2E_DEAN_PASSWORD ?? defaultPassword,
     landingPath: '/work',
   },
   headOfDepartment: {
-    role: 'PENYUSUN',
-    roleLabel: 'Kepala Departemen Informatika',
+    role: 'USER',
+    roleLabel: 'Ketua Jurusan Informatika',
     email: process.env.E2E_HEAD_OF_DEPARTMENT_EMAIL ?? 'kadep.if@gmail.com',
     password: process.env.E2E_HEAD_OF_DEPARTMENT_PASSWORD ?? defaultPassword,
     landingPath: '/work',
   },
   departmentMember: {
-    role: 'PENYUSUN',
-    roleLabel: 'Process Member Informatika',
+    role: 'USER',
+    roleLabel: 'Penyusun SOP Informatika',
     email: process.env.E2E_DEPARTMENT_MEMBER_EMAIL ?? 'process.member.if@gmail.com',
     password: process.env.E2E_DEPARTMENT_MEMBER_PASSWORD ?? defaultPassword,
     landingPath: '/work',
   },
   otherDepartmentMember: {
-    role: 'PENYUSUN',
-    roleLabel: 'Process Member Sistem Informasi',
+    role: 'USER',
+    roleLabel: 'Penyusun SOP Sistem Informasi',
     email: process.env.E2E_OTHER_DEPARTMENT_MEMBER_EMAIL ?? 'process.member.si@gmail.com',
     password: process.env.E2E_OTHER_DEPARTMENT_MEMBER_PASSWORD ?? defaultPassword,
     landingPath: '/work',
   },
   otherHeadOfDepartment: {
-    role: 'PENYUSUN',
-    roleLabel: 'Kepala Departemen Sistem Informasi',
+    role: 'USER',
+    roleLabel: 'Ketua Jurusan Sistem Informasi',
     email: process.env.E2E_OTHER_HEAD_OF_DEPARTMENT_EMAIL ?? 'kadep.si@gmail.com',
     password: process.env.E2E_OTHER_HEAD_OF_DEPARTMENT_PASSWORD ?? defaultPassword,
     landingPath: '/work',
   },
 } satisfies Record<string, E2eUser>
 
-export const allUsers = Object.values(users)
+/**
+ * Transitional symbol kept only so existing FTI journey files can reference the platform admin
+ * while the legacy role matrix itself is deleted. The value is the native SUPER_ADMIN identity;
+ * it does not carry PJ Evaluator authorization or persistence semantics.
+ */
+export const users = { pjEvaluator: targetUsers.admin } as const
+
 export const allTargetUsers = Object.values(targetUsers)
-
-export const navByRole: Record<RoleKey, string[]> = {
-  PJ_EVALUATOR: [
-    'Grafik Evaluasi',
-    'OPD',
-    'Penyusun',
-    'Evaluator',
-    'Evaluasi SOP',
-  ],
-  EVALUATOR: ['Evaluasi SOP'],
-  KEPALA_OPD: ['Pantau SOP', 'Pengajuan SOP'],
-  PJ_PENYUSUN: [
-    'SOP',
-    'Pelaksana SOP',
-    'Peraturan',
-    'Berita Acara',
-  ],
-  PENYUSUN: [
-    'SOP',
-    'Pelaksana SOP',
-    'Peraturan',
-  ],
-}
-
-export const protectedRouteMatrix: Record<RoleKey, string[]> = {
-  PJ_EVALUATOR: [
-    '/pj-evaluator/grafik-evaluasi',
-    '/pj-evaluator/opd',
-    '/pj-evaluator/penyusun',
-    '/pj-evaluator/evaluator',
-    '/pj-evaluator/evaluasi',
-  ],
-  EVALUATOR: ['/evaluator/evaluasi'],
-  KEPALA_OPD: ['/kepala-opd/sop', '/kepala-opd/pengajuan'],
-  PJ_PENYUSUN: [
-    '/penyusun/sop',
-    '/penyusun/pelaksana',
-    '/penyusun/peraturan',
-    '/penyusun/pj-penyusun/berita-acara',
-  ],
-  PENYUSUN: ['/penyusun/sop', '/penyusun/pelaksana', '/penyusun/peraturan'],
-}
-
-export const allProtectedRoutes = Array.from(
-  new Set(Object.values(protectedRouteMatrix).flat()),
-)
-
 export const publicRoutes = ['/', '/login', '/arsip', '/validasi/pdf']

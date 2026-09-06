@@ -11,7 +11,6 @@ describe('ProcessSopAuthoringService', () => {
     const now = new Date('2026-09-01T00:00:00.000Z');
     const accessibleTarget: SopDaftarDbRow = {
       sopId: 'sop-target-accessible',
-      opdId: 'opd-other',
       judul: 'SOP Process TA',
       detail: {
         detailSopId: 'detail-target',

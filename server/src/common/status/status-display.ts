@@ -8,13 +8,13 @@ export interface StatusDisplay {
 const SOP_STATUS_LABELS: Record<StatusSOP, string> = {
   [StatusSOP.DRAFT]: 'Draft',
   [StatusSOP.SEDANG_DISUSUN]: 'Sedang disusun',
-  [StatusSOP.MENUNGGU_PENGAJUAN_EVALUASI]: 'Menunggu pengajuan evaluasi',
-  [StatusSOP.DIAJUKAN_EVALUASI]: 'Diajukan evaluasi',
-  [StatusSOP.SEDANG_DIEVALUASI]: 'Dalam penilaian',
+  [StatusSOP.MENUNGGU_PENGAJUAN_EVALUASI]: 'Siap diajukan untuk review',
+  [StatusSOP.DIAJUKAN_EVALUASI]: 'Diajukan untuk review Proses',
+  [StatusSOP.SEDANG_DIEVALUASI]: 'Dalam review Proses',
   [StatusSOP.REVISI_DARI_EVALUATOR]: 'Perlu revisi',
-  [StatusSOP.DITOLAK_EVALUATOR]: 'Ditolak evaluator',
-  [StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR]: 'Menunggu TTD PJ Evaluator',
-  [StatusSOP.DIVERIFIKASI_PJ_EVALUATOR_ORGANISASI]: 'Menunggu pengesahan Kepala OPD',
+  [StatusSOP.DITOLAK_EVALUATOR]: 'Review tidak diterima',
+  [StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR]: 'Menunggu persetujuan akhir',
+  [StatusSOP.DIVERIFIKASI_PJ_EVALUATOR_ORGANISASI]: 'Menunggu TTE',
   [StatusSOP.BERLAKU]: 'Berlaku',
   [StatusSOP.DIGANTIKAN]: 'Digantikan',
   [StatusSOP.DICABUT]: 'Dicabut',
@@ -33,7 +33,7 @@ function resolveEnumLabel<T extends string>(
   return { value: key, label: label ?? fallbackLabel };
 }
 
-/** Status dokumen SOP (enum StatusSOP). */
+/** Status dokumen SOP; enum persistence lama diproyeksikan ke vocabulary FTI. */
 export function displayStatusSop(status: StatusSOP | string): StatusDisplay {
   return resolveEnumLabel(status, SOP_STATUS_LABELS, 'Status tidak dikenal');
 }

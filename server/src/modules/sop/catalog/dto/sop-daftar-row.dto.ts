@@ -1,20 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import type { ProcessSopLifecycleProjection } from '../../process-authoring/process-sop-lifecycle.projection';
 import { SopDaftarVersiSliceDto } from './sop-daftar-versi-slice.dto';
 import { TerakhirDieditDto } from './terakhir-diedit.dto';
-import type { ProcessSopLifecycleProjection } from '../../process-authoring/process-sop-lifecycle.projection';
 
-/** Satu baris daftar SOP (header + versi DetailSOP terbaru) untuk UI Manajemen SOP penyusun. */
+/** Satu baris daftar SOP Process-native (header + versi DetailSOP terbaru). */
 export class SopDaftarRowDto {
   @ApiProperty({ description: 'ID header SOP (sopId)' })
   readonly id!: string;
 
-  @ApiPropertyOptional({ description: 'Legacy OPD compatibility shadow', nullable: true })
-  readonly opdId!: string | null;
-
-  @ApiPropertyOptional({
-    description: 'ID DetailSOP versi terakhir; null jika belum ada versi',
-    nullable: true,
-  })
+  @ApiPropertyOptional({ description: 'ID DetailSOP versi terakhir', nullable: true })
   readonly detailSopId!: string | null;
 
   @ApiProperty()
@@ -23,11 +17,7 @@ export class SopDaftarRowDto {
   @ApiPropertyOptional({ description: 'Nomor SOP pada versi terakhir', nullable: true })
   readonly nomorSop!: string | null;
 
-  @ApiPropertyOptional({
-    description: 'Nomor versi DetailSOP terbaru',
-    nullable: true,
-    example: 2,
-  })
+  @ApiPropertyOptional({ nullable: true, example: 2 })
   readonly versi!: number | null;
 
   @ApiPropertyOptional({ description: 'Nama pembuat versi terakhir', nullable: true })
@@ -36,44 +26,31 @@ export class SopDaftarRowDto {
   @ApiProperty({ type: () => TerakhirDieditDto })
   readonly terakhirDiedit!: TerakhirDieditDto;
 
-  @ApiProperty({ description: 'Status DetailSOP versi terakhir' })
+  @ApiProperty({ description: 'Status persistence DetailSOP versi terakhir' })
   readonly status!: string;
 
-  @ApiProperty({ description: 'Label UI status dokumen (Bahasa Indonesia)' })
+  @ApiProperty({ description: 'Label lifecycle FTI untuk UI' })
   readonly statusLabel!: string;
 
-  @ApiPropertyOptional({
-    description: 'ID peraturan pertama (dasar hukum) untuk filter UI',
-    nullable: true,
-  })
+  @ApiPropertyOptional({ nullable: true })
   readonly peraturanId!: string | null;
 
-  @ApiPropertyOptional({
-    description: 'updatedAt versi terakhir (ISO 8601); untuk filter tanggal di klien',
-    nullable: true,
-  })
+  @ApiPropertyOptional({ nullable: true })
   readonly terakhirDiperbarui!: string | null;
 
-  @ApiPropertyOptional({
-    type: () => SopDaftarVersiSliceDto,
-    nullable: true,
-    description: 'Versi yang sedang BERLAKU (resmi), bila berbeda dari versi terbaru',
-  })
+  @ApiPropertyOptional({ type: () => SopDaftarVersiSliceDto, nullable: true })
   readonly versiBerlaku!: SopDaftarVersiSliceDto | null;
 
-  @ApiProperty({
-    description: 'Tombol buat versi baru dari SOP BERLAKU dapat dipakai',
-  })
+  @ApiProperty({ description: 'Versi baru dapat dibuat dari source terminal yang valid' })
   readonly canBuatVersiBaru!: boolean;
 
   @ApiProperty({
-    description: 'Kepala OPD dapat mencabut versi BERLAKU (tanpa revisi yang sedang berjalan)',
+    description:
+      'Versi BERLAKU secara lifecycle dapat dicabut bila tidak ada revisi berjalan; kewenangan aktor diverifikasi endpoint revocation secara kontekstual.',
   })
   readonly canCabutSop!: boolean;
 
-  @ApiProperty({
-    description: 'Penyusun dapat menghapus SOP bila masih berupa draft awal satu-satunya',
-  })
+  @ApiProperty({ description: 'Draft awal satu-satunya dapat dihapus oleh author yang berwenang' })
   readonly canHapusSopDraft!: boolean;
 
   @ApiPropertyOptional({

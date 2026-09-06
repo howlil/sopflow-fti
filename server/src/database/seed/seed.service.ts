@@ -2,28 +2,29 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import type { Prisma } from '../../generated/prisma';
-import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   OrganizationalAuthority,
   OrganizationalScope,
-  PeranPengguna,
   PlatformRole,
+  ProcessLifecycleStatus,
 } from '../../generated/prisma';
+import { PrismaService } from '../../common/prisma/prisma.service';
 
 const BCRYPT_SALT_ROUNDS = 10;
 const DEFAULT_SEED_PASSWORD = '@Password123:)';
 
-export const SEED_OPD_FTI = 'Fakultas Teknologi Informasi';
-
 export interface SeedUserInput {
   readonly email: string;
   readonly nama: string;
-  readonly peran: PeranPengguna;
   readonly platformRole?: PlatformRole;
   readonly nip: string;
   readonly jabatan: string;
   readonly pangkat: string;
   readonly nohp: string;
+}
+
+export interface SeedUserRecord extends SeedUserInput {
+  readonly penggunaId: string;
 }
 
 export interface SeedPeraturanInput {
@@ -33,16 +34,10 @@ export interface SeedPeraturanInput {
   readonly tentang: string;
 }
 
-export interface SeedUserRecord extends SeedUserInput {
-  readonly penggunaId: string;
-  readonly opdId: string;
-}
-
 export const SEED_FTI_USERS: ReadonlyArray<SeedUserInput> = [
   {
     email: 'admin.fti@gmail.com',
     nama: 'Administrator FTI',
-    peran: PeranPengguna.PENYUSUN,
     platformRole: PlatformRole.SUPER_ADMIN,
     nip: '198501012009011100',
     jabatan: 'Administrator Sistem FTI',
@@ -50,20 +45,8 @@ export const SEED_FTI_USERS: ReadonlyArray<SeedUserInput> = [
     nohp: '6281234567890',
   },
   {
-    email: 'pjevaluator@gmail.com',
-    nama: 'PJ Evaluator E2E',
-    peran: PeranPengguna.PJ_EVALUATOR,
-    platformRole: PlatformRole.SUPER_ADMIN,
-    nip: '198501012009011000',
-    jabatan: 'Koordinator Evaluasi FTI',
-    pangkat: 'Pembina',
-    nohp: '6281234567899',
-  },
-  {
     email: 'dean.fti@gmail.com',
     nama: 'Prof. Dr. Ir. Ahmad Dahlan, M.Eng.',
-    peran: PeranPengguna.PENYUSUN,
-    platformRole: PlatformRole.USER,
     nip: '198501012009011103',
     jabatan: 'Dekan FTI',
     pangkat: 'Pembina Utama',
@@ -72,60 +55,48 @@ export const SEED_FTI_USERS: ReadonlyArray<SeedUserInput> = [
   {
     email: 'kadep.if@gmail.com',
     nama: 'Dr. Eng. Rudi Hermawan, M.T.',
-    peran: PeranPengguna.PENYUSUN,
-    platformRole: PlatformRole.USER,
     nip: '198501012009011104',
-    jabatan: 'Kepala Departemen Informatika',
+    jabatan: 'Ketua Jurusan Informatika',
     pangkat: 'Pembina',
     nohp: '6281234567804',
   },
   {
     email: 'kadep.si@gmail.com',
     nama: 'Dr. Nurul Hidayati, M.Kom.',
-    peran: PeranPengguna.PENYUSUN,
-    platformRole: PlatformRole.USER,
     nip: '198501012009011107',
-    jabatan: 'Kepala Departemen SI',
+    jabatan: 'Ketua Jurusan Sistem Informasi',
     pangkat: 'Pembina',
     nohp: '6281234567807',
   },
   {
     email: 'process.owner@gmail.com',
     nama: 'Ir. Hendri Gunawan, M.T.',
-    peran: PeranPengguna.PENYUSUN,
-    platformRole: PlatformRole.USER,
     nip: '198501012009011101',
-    jabatan: 'Process Owner FTI',
+    jabatan: 'Pemilik Proses',
     pangkat: 'Penata',
     nohp: '6281234567801',
   },
   {
     email: 'process.member@gmail.com',
     nama: 'Rian Pratama, S.Kom.',
-    peran: PeranPengguna.PENYUSUN,
-    platformRole: PlatformRole.USER,
     nip: '198501012009011102',
-    jabatan: 'Process Member Fakultas',
+    jabatan: 'Penyusun SOP Fakultas',
     pangkat: 'Penata',
     nohp: '6281234567802',
   },
   {
     email: 'process.member.if@gmail.com',
     nama: 'Dian Paramita, S.Kom.',
-    peran: PeranPengguna.PENYUSUN,
-    platformRole: PlatformRole.USER,
     nip: '198501012009011105',
-    jabatan: 'Process Member Informatika',
+    jabatan: 'Penyusun SOP Informatika',
     pangkat: 'Penata',
     nohp: '6281234567805',
   },
   {
     email: 'process.member.si@gmail.com',
     nama: 'Arief Wicaksono, S.Kom.',
-    peran: PeranPengguna.PENYUSUN,
-    platformRole: PlatformRole.USER,
     nip: '198501012009011106',
-    jabatan: 'Process Member SI',
+    jabatan: 'Penyusun SOP Sistem Informasi',
     pangkat: 'Penata',
     nohp: '6281234567806',
   },
@@ -142,7 +113,7 @@ export const SEED_FTI_PERATURAN: ReadonlyArray<SeedPeraturanInput> = [
     nomor: 'Peraturan Dekan 01/2024',
     tahun: 2024,
     nama: 'Tata Kelola SOP FTI',
-    tentang: 'Pedoman penyusunan, evaluasi, dan pengesahan SOP di lingkungan FTI.',
+    tentang: 'Pedoman penyusunan, review, TTE, dan lifecycle SOP di lingkungan FTI.',
   },
   {
     nomor: 'Peraturan Rektor 12/2023',
@@ -154,16 +125,14 @@ export const SEED_FTI_PERATURAN: ReadonlyArray<SeedPeraturanInput> = [
 
 export const SEED_FTI_PELAKSANA = [
   'Dekan',
-  'Wadek Akademik',
-  'Ketua Dep IF',
-  'Ketua Dep SI',
-  'Dosen PA',
-  'Subag Akademik',
+  'Wakil Dekan Akademik',
+  'Ketua Jurusan Informatika',
+  'Ketua Jurusan Sistem Informasi',
+  'Dosen Pembimbing Akademik',
+  'Administrasi Akademik',
   'Laboran',
   'Mahasiswa',
-  'Tendik',
-  'Process Owner',
-  'Process Member',
+  'Tenaga Kependidikan',
 ] as const;
 
 @Injectable()
@@ -180,22 +149,28 @@ export class SeedService {
     const hashedPassword = await bcrypt.hash(plainPassword, BCRYPT_SALT_ROUNDS);
 
     await this.prisma.$transaction(async (tx) => {
-      // 1. Bersihkan data legacy jika ada
-      await this.cleanupLegacyData(tx);
-
-      // 2. Pastikan OPD FTI aktif sebagai jangkar relasi
-      const ftiOpd = await this.ensureOpd(tx, SEED_OPD_FTI);
-
-      // 3. Seed akun FTI
-      const users = await this.seedUsers(tx, hashedPassword, ftiOpd.opdId);
-      await this.seedRiwayatOpd(tx, Object.values(users));
-
-      // 4. Seed Departemen FTI
-      const deptIf = await this.ensureDepartment(tx, 'Teknik Informatika');
+      const users = await this.seedUsers(tx, hashedPassword);
+      const deptIf = await this.ensureDepartment(tx, 'Informatika');
       const deptSi = await this.ensureDepartment(tx, 'Sistem Informasi');
-
-      // 5. Seed Process FTI
       const ownerId = users['process.owner@gmail.com'].penggunaId;
+      const adminId = users['admin.fti@gmail.com'].penggunaId;
+
+      await this.ensureProcessOwnerAuthority(tx, ownerId, adminId, OrganizationalScope.FACULTY, null);
+      await this.ensureProcessOwnerAuthority(
+        tx,
+        ownerId,
+        adminId,
+        OrganizationalScope.DEPARTMENT,
+        deptIf.departmentId,
+      );
+      await this.ensureProcessOwnerAuthority(
+        tx,
+        ownerId,
+        adminId,
+        OrganizationalScope.DEPARTMENT,
+        deptSi.departmentId,
+      );
+
       const processFaculty = await this.ensureProcess(
         tx,
         'Pengelolaan Akademik FTI',
@@ -218,7 +193,6 @@ export class SeedService {
         deptSi.departmentId,
       );
 
-      // 6. Seed Keanggotaan Process (ProcessMember)
       await this.ensureProcessMember(
         tx,
         processFaculty.processId,
@@ -235,7 +209,6 @@ export class SeedService {
         users['process.member.si@gmail.com'].penggunaId,
       );
 
-      // 7. Seed Penugasan Kewenangan Organisasi (Dekan & Kadep)
       await this.seedOrganizationalAuthority(tx, {
         deanId: users['dean.fti@gmail.com'].penggunaId,
         kadepIfId: users['kadep.if@gmail.com'].penggunaId,
@@ -244,130 +217,55 @@ export class SeedService {
         deptSiId: deptSi.departmentId,
       });
 
-      // 8. Seed Peraturan FTI & Relasi OPDPeraturan
-      const adminId = users['admin.fti@gmail.com'].penggunaId;
-      const peraturan = await this.seedPeraturan(tx, adminId);
-      await this.seedOpdPeraturan(
-        tx,
-        ftiOpd.opdId,
-        Object.values(peraturan).map((p) => p.peraturanId),
-      );
-
-      // 9. Seed Master Pelaksana FTI
-      await this.seedPelaksana(tx, ftiOpd.opdId);
+      await this.seedPeraturan(tx, adminId);
+      await this.seedPelaksana(tx);
     });
 
     this.logger.log(
-      [
-        'Seed FTI selesai.',
-        'Data legacy berhasil dibersihkan dan digantikan dengan data FTI:',
-        '1 OPD FTI, 2 Departemen, 3 Process, 9 Akun FTI (Dekan, Kadep, Owner, Member, Admin),',
-        'kewenangan organisasi DEAN/HEAD_OF_DEPARTMENT, 3 Peraturan FTI, dan master Pelaksana FTI.',
-      ].join(' '),
+      'Seed FTI native selesai: identity netral, Departemen, Process, owner eligibility, membership, Dean/HOD authority, Peraturan global, dan Pelaksana global.',
     );
     this.logger.warn(
       `Login seed menggunakan SEED_DEFAULT_PASSWORD (default ${DEFAULT_SEED_PASSWORD}).`,
     );
   }
 
-  private async cleanupLegacyData(tx: Prisma.TransactionClient): Promise<void> {
-    const legacyEmails = [
-      'evaluator1@gmail.com',
-      'kepalaopd.dinkes@gmail.com',
-      'pjpenyusun.dinkes@gmail.com',
-      'penyusun.dinkes@gmail.com',
-      'kepalaopd.disdik@gmail.com',
-      'pjpenyusun.disdik@gmail.com',
-      'penyusun.disdik@gmail.com',
-    ];
-
-    await tx.riwayatOpdPengguna.deleteMany({
-      where: { pengguna: { email: { in: legacyEmails } } },
-    });
-
-    await tx.pengguna.deleteMany({
-      where: {
-        email: { in: legacyEmails },
-        detailSopDibuat: { none: {} },
-        detailSopDiedit: { none: {} },
-        processOwned: { none: {} },
-        processMemberships: { none: {} },
-      },
-    });
-
-    const legacyOpdNames = [
-      'Biro Organisasi Sekretariat Daerah',
-      'Dinas Kesehatan Provinsi',
-      'Dinas Pendidikan Provinsi',
-      'Dinas Kesehatan',
-      'Dinas Pendidikan',
-      'Biro Organisasi',
-    ];
-
-    const legacyOpds = await tx.oPD.findMany({
-      where: { nama: { in: legacyOpdNames } },
-      select: { opdId: true },
-    });
-    const legacyOpdIds = legacyOpds.map((o) => o.opdId);
-
-    if (legacyOpdIds.length > 0) {
-      await tx.oPDPeraturan.deleteMany({
-        where: { opdId: { in: legacyOpdIds } },
-      });
-
-      await tx.pelaksana.deleteMany({
-        where: {
-          opdId: { in: legacyOpdIds },
-          sopDetails: { none: {} },
-          langkahSOP: { none: {} },
-        },
-      });
-
-      await tx.riwayatOpdPengguna.deleteMany({
-        where: { opdId: { in: legacyOpdIds } },
-      });
-
-      await tx.oPD.deleteMany({
-        where: {
-          opdId: { in: legacyOpdIds },
-          pengguna: { none: {} },
-          pelaksana: { none: {} },
-        },
-      });
-    }
-
-    const legacyPeraturanNomor = [
-      '12 Tahun 2024',
-      '7 Tahun 2023',
-      '35 Tahun 2012',
-      '15 Tahun 2022',
-    ];
-    await tx.oPDPeraturan.deleteMany({
-      where: { peraturan: { nomor: { in: legacyPeraturanNomor } } },
-    });
-    await tx.peraturan.deleteMany({
-      where: {
-        nomor: { in: legacyPeraturanNomor },
-        dasarHukum: { none: {} },
-      },
-    });
-  }
-
-  private async ensureOpd(
+  private async seedUsers(
     tx: Prisma.TransactionClient,
-    nama: string,
-  ): Promise<{ opdId: string }> {
-    const existing = await tx.oPD.findFirst({
-      where: { nama },
-      select: { opdId: true },
-    });
-    if (existing !== null) {
-      return existing;
+    hashedPassword: string,
+  ): Promise<Record<string, SeedUserRecord>> {
+    const result: Record<string, SeedUserRecord> = {};
+    for (const user of SEED_FTI_USERS) {
+      const persisted = await tx.pengguna.upsert({
+        where: { email: user.email },
+        create: {
+          email: user.email,
+          opdId: null,
+          nama: user.nama,
+          kataSandi: hashedPassword,
+          peran: null,
+          platformRole: user.platformRole ?? PlatformRole.USER,
+          nip: user.nip,
+          jabatan: user.jabatan,
+          pangkat: user.pangkat,
+          nohp: user.nohp,
+        },
+        update: {
+          opdId: null,
+          nama: user.nama,
+          kataSandi: hashedPassword,
+          peran: null,
+          platformRole: user.platformRole ?? PlatformRole.USER,
+          nip: user.nip,
+          jabatan: user.jabatan,
+          pangkat: user.pangkat,
+          nohp: user.nohp,
+          deletedAt: null,
+        },
+        select: { penggunaId: true },
+      });
+      result[user.email] = { ...user, penggunaId: persisted.penggunaId };
     }
-    return tx.oPD.create({
-      data: { nama },
-      select: { opdId: true },
-    });
+    return result;
   }
 
   private async ensureDepartment(
@@ -378,12 +276,27 @@ export class SeedService {
       where: { nama },
       select: { departmentId: true, nama: true },
     });
-    if (existing !== null) {
-      return existing;
-    }
-    return tx.department.create({
-      data: { nama },
-      select: { departmentId: true, nama: true },
+    return (
+      existing ??
+      tx.department.create({
+        data: { nama },
+        select: { departmentId: true, nama: true },
+      })
+    );
+  }
+
+  private async ensureProcessOwnerAuthority(
+    tx: Prisma.TransactionClient,
+    penggunaId: string,
+    grantedById: string,
+    scope: OrganizationalScope,
+    departmentId: string | null,
+  ): Promise<void> {
+    const scopeKey = scope === OrganizationalScope.FACULTY ? 'FACULTY' : `DEPARTMENT:${departmentId}`;
+    await tx.processOwnerAuthority.upsert({
+      where: { penggunaId_scopeKey: { penggunaId, scopeKey } },
+      create: { penggunaId, scope, departmentId, scopeKey, grantedById },
+      update: { scope, departmentId, grantedById, revokedAt: null },
     });
   }
 
@@ -398,22 +311,24 @@ export class SeedService {
       where: { nama },
       select: { processId: true, nama: true },
     });
-    if (existing !== null) {
-      await tx.process.update({
-        where: { processId: existing.processId },
-        data: { scope, ownerId, departmentId },
-      });
-      return existing;
-    }
-    return tx.process.create({
-      data: {
-        nama,
-        scope,
-        ownerId,
-        departmentId,
-      },
-      select: { processId: true, nama: true },
+    const process =
+      existing === null
+        ? await tx.process.create({
+            data: { nama, scope, ownerId, departmentId },
+            select: { processId: true, nama: true },
+          })
+        : await tx.process.update({
+            where: { processId: existing.processId },
+            data: { scope, ownerId, departmentId },
+            select: { processId: true, nama: true },
+          });
+
+    await tx.processLifecycle.upsert({
+      where: { processId: process.processId },
+      create: { processId: process.processId, status: ProcessLifecycleStatus.ACTIVE },
+      update: { status: ProcessLifecycleStatus.ACTIVE, archivedAt: null, archivedReason: null },
     });
+    return process;
   }
 
   private async ensureProcessMember(
@@ -421,17 +336,11 @@ export class SeedService {
     processId: string,
     penggunaId: string,
   ): Promise<void> {
-    const existing = await tx.processMember.findUnique({
-      where: {
-        processId_penggunaId: { processId, penggunaId },
-      },
-      select: { processId: true },
+    await tx.processMember.upsert({
+      where: { processId_penggunaId: { processId, penggunaId } },
+      create: { processId, penggunaId },
+      update: {},
     });
-    if (!existing) {
-      await tx.processMember.create({
-        data: { processId, penggunaId },
-      });
-    }
   }
 
   private async seedOrganizationalAuthority(
@@ -478,149 +387,30 @@ export class SeedService {
     }
   }
 
-  private async seedUsers(
-    tx: Prisma.TransactionClient,
-    hashedPassword: string,
-    opdId: string,
-  ): Promise<Record<string, SeedUserRecord>> {
-    const result: Record<string, SeedUserRecord> = {};
-    for (const user of SEED_FTI_USERS) {
-      const persisted = await tx.pengguna.upsert({
-        where: { email: user.email },
-        create: {
-          email: user.email,
-          opdId,
-          nama: user.nama,
-          kataSandi: hashedPassword,
-          peran: user.peran,
-          platformRole: user.platformRole ?? PlatformRole.USER,
-          nip: user.nip,
-          jabatan: user.jabatan,
-          pangkat: user.pangkat,
-          nohp: user.nohp,
-        },
-        update: {
-          opdId,
-          nama: user.nama,
-          kataSandi: hashedPassword,
-          peran: user.peran,
-          platformRole: user.platformRole ?? PlatformRole.USER,
-          nip: user.nip,
-          jabatan: user.jabatan,
-          pangkat: user.pangkat,
-          nohp: user.nohp,
-          deletedAt: null,
-        },
-        select: {
-          penggunaId: true,
-          opdId: true,
-          email: true,
-          nama: true,
-          peran: true,
-          platformRole: true,
-          nip: true,
-          jabatan: true,
-          pangkat: true,
-          nohp: true,
-        },
-      });
-      result[user.email] = { ...persisted, peran: user.peran, opdId: persisted.opdId! };
-    }
-    return result;
-  }
-
-  private async seedRiwayatOpd(
-    tx: Prisma.TransactionClient,
-    users: ReadonlyArray<SeedUserRecord>,
-  ): Promise<void> {
-    for (const user of users) {
-      await tx.riwayatOpdPengguna.upsert({
-        where: {
-          penggunaId_opdId: {
-            penggunaId: user.penggunaId,
-            opdId: user.opdId,
-          },
-        },
-        create: {
-          penggunaId: user.penggunaId,
-          opdId: user.opdId,
-          isAktif: true,
-        },
-        update: { isAktif: true },
-      });
-    }
-  }
-
   private async seedPeraturan(
     tx: Prisma.TransactionClient,
     lastEditedById: string,
-  ): Promise<Record<string, { peraturanId: string }>> {
-    const result: Record<string, { peraturanId: string }> = {};
+  ): Promise<void> {
     for (const peraturan of SEED_FTI_PERATURAN) {
-      const persisted = await tx.peraturan.upsert({
-        where: {
-          nomor_tahun: {
-            nomor: peraturan.nomor,
-            tahun: peraturan.tahun,
-          },
-        },
-        create: {
-          nama: peraturan.nama,
-          nomor: peraturan.nomor,
-          tahun: peraturan.tahun,
-          tentang: peraturan.tentang,
-          lastEditedById,
-        },
+      await tx.peraturan.upsert({
+        where: { nomor_tahun: { nomor: peraturan.nomor, tahun: peraturan.tahun } },
+        create: { ...peraturan, lastEditedById },
         update: {
           nama: peraturan.nama,
           tentang: peraturan.tentang,
           lastEditedById,
         },
-        select: { peraturanId: true },
       });
-      result[peraturan.nomor] = persisted;
     }
-    return result;
   }
 
-  private async seedOpdPeraturan(
-    tx: Prisma.TransactionClient,
-    opdId: string,
-    peraturanIds: string[],
-  ): Promise<void> {
-    for (const peraturanId of peraturanIds) {
-      await tx.oPDPeraturan.upsert({
-        where: { opdId_peraturanId: { opdId, peraturanId } },
-        create: { opdId, peraturanId },
+  private async seedPelaksana(tx: Prisma.TransactionClient): Promise<void> {
+    for (const nama of SEED_FTI_PELAKSANA) {
+      await tx.pelaksana.upsert({
+        where: { nama },
+        create: { nama },
         update: {},
       });
     }
-  }
-
-  private async seedPelaksana(
-    tx: Prisma.TransactionClient,
-    opdId: string,
-  ): Promise<void> {
-    for (const nama of SEED_FTI_PELAKSANA) {
-      await this.upsertPelaksanaByNama(tx, opdId, nama);
-    }
-  }
-
-  private async upsertPelaksanaByNama(
-    tx: Prisma.TransactionClient,
-    opdId: string,
-    nama: string,
-  ): Promise<void> {
-    const existing = await tx.pelaksana.findFirst({
-      where: { opdId, nama },
-      select: { pelaksanaId: true },
-    });
-    if (existing !== null) {
-      return;
-    }
-    await tx.pelaksana.create({
-      data: { opdId, nama },
-      select: { pelaksanaId: true },
-    });
   }
 }

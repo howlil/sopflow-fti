@@ -5,11 +5,11 @@ import { APP_DISPLAY_NAME } from '@/config/env'
 import { ROUTES } from '@/utils/constants'
 
 interface PublicHeaderProps {
-  governmentName: string
-  officeName: string
+  institutionName: string
+  productName: string
 }
 
-export function PublicHeader({ governmentName, officeName }: PublicHeaderProps) {
+export function PublicHeader({ institutionName, productName }: PublicHeaderProps) {
   return (
     <header className="sticky top-0 z-50 border-b border-border/80 bg-surface/90 text-foreground backdrop-blur-md">
       <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
@@ -20,7 +20,7 @@ export function PublicHeader({ governmentName, officeName }: PublicHeaderProps) 
           <img src={logoSvg} alt={APP_DISPLAY_NAME} className="h-9 w-9 shrink-0" />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold tracking-[-0.01em] text-foreground">{APP_DISPLAY_NAME}</p>
-            <p className="hidden truncate text-[11px] text-muted-foreground sm:block">{governmentName} · {officeName}</p>
+            <p className="hidden truncate text-[11px] text-muted-foreground sm:block">{institutionName} · {productName}</p>
           </div>
         </Link>
 

@@ -71,16 +71,18 @@ async function bootstrap() {
   const swaggerEnabled = configService.get<boolean>('SWAGGER_ENABLED', nodeEnv !== 'production');
   if (swaggerEnabled) {
     const config = new DocumentBuilder()
-      .setTitle('SOP Biro Organisasi API')
-      .setDescription('API untuk Sistem Manajemen SOP Biro Organisasi')
+      .setTitle('SOPFlow FTI API')
+      .setDescription('API lifecycle SOP Fakultas Teknologi Informasi berbasis Proses Bisnis')
       .setVersion('1.0')
       .addBearerAuth()
       .addCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
       .addCookieAuth(REFRESH_TOKEN_COOKIE_NAME)
       .addTag('Auth', 'Authentication endpoints')
-      .addTag('OPD', 'Master organisasi perangkat daerah')
-      .addTag('Tim Evaluasi', 'Anggota tim evaluasi (Evaluator Biro)')
-      .addTag('Users', 'User management')
+      .addTag('Process', 'Proses Bisnis dan membership kontekstual')
+      .addTag('Organizational Authority', 'Kewenangan Dekan dan Ketua Jurusan')
+      .addTag('SOP', 'Authoring dan lifecycle SOP berbasis Proses Bisnis')
+      .addTag('TTE', 'Tanda tangan elektronik kontekstual')
+      .addTag('Users', 'Platform account management')
       .addTag('Health', 'Health check')
       .build();
     const document = SwaggerModule.createDocument(app, config);
