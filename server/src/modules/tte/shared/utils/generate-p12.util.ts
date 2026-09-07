@@ -1,9 +1,11 @@
 import forge from 'node-forge';
 
+const FTI_CERTIFICATE_AUTHORITY_ORGANIZATION = 'Fakultas Teknologi Informasi';
+
 export function generatePersonalP12(params: {
   nama: string;
   nip: string;
-  opdNama: string;
+  organizationName: string;
   jabatan: string;
   passphrase: string;
 }): Buffer {
@@ -11,15 +13,15 @@ export function generatePersonalP12(params: {
   const signingKeys = forge.pki.rsa.generateKeyPair({ bits: 2048, workers: 2 });
 
   const caAttrs = [
-    { name: 'commonName', value: 'SOPFlow Root CA' },
-    { name: 'organizationName', value: 'Biro Organisasi' },
+    { name: 'commonName', value: 'SOPFlow FTI Root CA' },
+    { name: 'organizationName', value: FTI_CERTIFICATE_AUTHORITY_ORGANIZATION },
     { name: 'organizationalUnitName', value: 'Certificate Authority' },
     { name: 'countryName', value: 'ID' },
   ];
 
   const signingAttrs = [
     { name: 'commonName', value: params.nama },
-    { name: 'organizationName', value: params.opdNama },
+    { name: 'organizationName', value: params.organizationName },
     { name: 'organizationalUnitName', value: params.jabatan },
     { name: 'serialNumber', value: params.nip },
     { name: 'countryName', value: 'ID' },
