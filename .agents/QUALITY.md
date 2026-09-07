@@ -51,7 +51,7 @@ A higher gate does not replace a cheaper gate when both prove different risks. C
 | FTI ProsesBisnis / contextual authority / ProsesBisnis notification / ProsesBisnis TTE code | Server CI + FTI Domain CI | targeted repository-owned integration for affected cross-owner contracts |
 | Prisma schema/migration/recovery inputs | Server CI when schema/build input applies + Migration Smoke | targeted persistence/integration for affected product behavior |
 | Compose/environment contract | Compose Config | Container Build when production container inputs are affected |
-| Dockerfiles / production container runtime files | Container Build | automated deployment smoke only when release/deploy is explicitly in scope |
+| Dockerfiles / production container runtime files | Container Build | automated deployment smoke only when release/deploy is explicitly in lingkup |
 | cross-boundary user journey | package/domain gates for touched code + focused deterministic integration | broader deterministic regression only if blast radius cannot be bounded |
 
 The matrix is a default. A logical change may require less or more automated evidence if the actual risk boundary differs, but skipped relevant deterministic gates must be explained.
@@ -85,7 +85,7 @@ Do not use Server CI as a proxy for Dockerfile, migration SQL, or deployment cor
 
 ### FTI Domain CI
 
-FTI Domain CI is a focused G2 gate for the target FTI workflow boundary. It runs only when ProsesBisnis administration/context, organizational authority, ProsesBisnis-bound authoring/review/approval/revocation, ProsesBisnis notifications, ProsesBisnis TTE, or their persisted Prisma contract changes.
+FTI Domain CI is a focused G2 gate for the target FTI workflow boundary. It runs only when ProsesBisnis administration/context, pejabat berwenang, ProsesBisnis-bound authoring/review/persetujuan/revocation, ProsesBisnis notifications, ProsesBisnis TTE, or their persisted Prisma contract changes.
 
 It protects the target-domain policies that are intentionally outside the broad legacy/core unit baseline. It must not become a universal server gate.
 
@@ -125,7 +125,7 @@ Usually require focused behavior evidence when meaningful plus affected package 
 
 Use component/unit evidence for local interaction and focused repository-owned integration when router, server contract, authentication, persistence, or multi-step workflow integration materially matters. Do not require a browser journey to establish completion.
 
-### Authorization / ProsesBisnis relationship / organizational authority
+### Authorization / ProsesBisnis relationship / pejabat berwenang
 
 Verify both permitted and denied paths. For ProsesBisnis access, include unrelated ProsesBisnis/ProsesBisnis Team denial when relevant.
 

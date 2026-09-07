@@ -10,7 +10,7 @@ The E2E suite models only current FTI actors and journeys.
 - Head of Departemen
 
 ## Seed
-Run the server target seed before browser journeys. The seed creates Departemens, ProsesBisnises, owner eligibility, ProsesBisnis membership, organizational authority assignments, Peraturan, and Pelaksana.
+Run the server target seed before browser journeys. The seed creates Departemens, ProsesBisnises, kelayakan penanggung jawab Proses Bisnis, ProsesBisnis keanggotaan, pejabat berwenang assignments, Peraturan, and Pelaksana.
 
 ## Environment
 Use the target E2E identities supplied by `client/e2e/fixtures/target-users.ts` and the configured seed password. Do not add global workflow-role fixtures.
@@ -23,4 +23,4 @@ Use the target E2E identities supplied by `client/e2e/fixtures/target-users.ts` 
 - version integrity / supersede
 - revocation
 
-Tests should assert native lifecycle values directly.
+Tests should assert native siklus values directly.

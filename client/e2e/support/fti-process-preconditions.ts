@@ -8,7 +8,7 @@ import { sopFixture } from './test-data'
 interface ProsesBisnisContextRow {
   prosesBisnisId: string
   nama: string
-  ownerId: string
+  penanggungJawabId: string
 }
 
 interface SopRow {
@@ -54,8 +54,8 @@ async function resolveProsesBisnis(
   context: APIRequestContext,
   namaProsesBisnis: string,
 ): Promise<ProsesBisnisContextRow> {
-  const processes = await apiGet<ProsesBisnisContextRow[]>(context, '/konteks-proses-bisnis/mine')
-  const process = processes.find((row) => row.nama === namaProsesBisnis)
+  const prosesBisnis = await apiGet<ProsesBisnisContextRow[]>(context, '/konteks-proses-bisnis/mine')
+  const process = prosesBisnis.find((row) => row.nama === namaProsesBisnis)
   if (!process) {
     throw new Error(`Target E2E ProsesBisnis tidak tersedia untuk identity ini: ${namaProsesBisnis}`)
   }

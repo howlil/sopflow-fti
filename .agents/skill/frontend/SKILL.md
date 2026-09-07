@@ -36,7 +36,7 @@ client/src/api
   -> API client functions + TanStack Query hooks/mutations
 
 client/src/config/query-keys.ts
-client/src/config/process-query-keys.ts
+client/src/config/kunci-query-proses-bisnis.ts
   -> centralized query keys
 
 client/src/lib/api
@@ -169,7 +169,7 @@ When adding a query:
 3. use the same owner for invalidation and cache writes;
 4. invalidate the smallest affected ownership boundary.
 
-Avoid `invalidateQueries()` with no useful scope.
+Avoid `invalidateQueries()` with no useful lingkup.
 
 ## Mutation Pattern
 
@@ -242,7 +242,7 @@ Do not rebuild target UI around one legacy global `peran` check.
 Examples:
 
 - ProsesBisnis Owner/Member work comes from `useMyProsesBisnises()`;
-- approval/TTE entry comes from organizational authority hooks;
+- approval/TTE entry comes from pejabat berwenang hooks;
 - platform administration comes from `platformRole`;
 - legacy role routing is compatibility fallback only where still required.
 

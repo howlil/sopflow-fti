@@ -4,19 +4,19 @@ import { DataSurface } from '@/components/data/data-surface'
 import { ListPageLayout } from '@/components/layout/ListPageLayout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import type { GrantKewenanganPenanggungJawabProsesBisnisPayload, LingkupOrganisasi } from '@/types/dto/process.dto'
+import type { GrantKewenanganPenanggungJawabProsesBisnisPayload, LingkupOrganisasi } from '@/types/dto/proses-bisnis.dto'
 
 const EMPTY_AUTHORITY: GrantKewenanganPenanggungJawabProsesBisnisPayload = {
   penggunaId: '',
-  scope: 'FACULTY',
+  lingkup: 'FACULTY',
   departemenId: null,
 }
 
 export function HalamanPengelolaanProsesBisnis() {
   const {
-    departments,
+    departemen,
     users,
-    processes,
+    prosesBisnis,
     ownerAuthorities,
     isLoading,
     createDepartemen,
@@ -34,13 +34,13 @@ export function HalamanPengelolaanProsesBisnis() {
 
   const canGrant =
     authority.penggunaId !== '' &&
-    (authority.scope === 'FACULTY' || authority.departemenId !== null)
+    (authority.lingkup === 'FACULTY' || authority.departemenId !== null)
 
-  const changeScope = (scope: LingkupOrganisasi) => {
+  const changeScope = (lingkup: LingkupOrganisasi) => {
     setAuthority((current) => ({
       ...current,
-      scope,
-      departemenId: scope === 'FACULTY' ? null : current.departemenId,
+      lingkup,
+      departemenId: lingkup === 'FACULTY' ? null : current.departemenId,
     }))
   }
 
@@ -56,7 +56,7 @@ export function HalamanPengelolaanProsesBisnis() {
               <div className="space-y-0.5">
                 <h2 className="text-sm font-semibold text-foreground">Kewenangan ProsesBisnis Owner</h2>
                 <p className="text-sm text-secondary-foreground">
-                  Admin menetapkan scope sekali. Setelah itu ProsesBisnis Owner membuat ProsesBisnis dan mengelola Penyusun SOP sendiri.
+                  Admin menetapkan lingkup sekali. Setelah itu ProsesBisnis Owner membuat ProsesBisnis dan mengelola Penyusun SOP sendiri.
                 </p>
               </div>
             </DataSurface.Header>
@@ -80,10 +80,10 @@ export function HalamanPengelolaanProsesBisnis() {
               </label>
 
               <label className="block space-y-1.5 text-sm font-medium text-foreground">
-                Scope
+                Lingkup
                 <select
                   className="h-9 w-full rounded-control border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={authority.scope}
+                  value={authority.lingkup}
                   onChange={(event) => changeScope(event.target.value as LingkupOrganisasi)}
                 >
                   <option value="FACULTY">Fakultas</option>
@@ -91,7 +91,7 @@ export function HalamanPengelolaanProsesBisnis() {
                 </select>
               </label>
 
-              {authority.scope === 'DEPARTMENT' ? (
+              {authority.lingkup === 'DEPARTMENT' ? (
                 <label className="block space-y-1.5 text-sm font-medium text-foreground">
                   Jurusan
                   <select
@@ -102,7 +102,7 @@ export function HalamanPengelolaanProsesBisnis() {
                     }
                   >
                     <option value="">Pilih jurusan</option>
-                    {departments.map((department) => (
+                    {departemen.map((department) => (
                       <option key={department.departemenId} value={department.departemenId}>
                         {department.nama}
                       </option>
@@ -138,7 +138,7 @@ export function HalamanPengelolaanProsesBisnis() {
                         {row.user?.nama ?? 'Pengguna tidak tersedia'}
                       </p>
                       <p className="text-xs text-secondary-foreground">
-                        {row.scope === 'FACULTY' ? 'Fakultas' : row.department?.nama ?? 'Jurusan'}
+                        {row.lingkup === 'FACULTY' ? 'Fakultas' : row.departemen?.nama ?? 'Jurusan'}
                       </p>
                     </div>
                     <Button
@@ -167,19 +167,19 @@ export function HalamanPengelolaanProsesBisnis() {
             <div className="divide-y divide-border">
               {isLoading ? (
                 <p className="p-4 text-sm text-secondary-foreground">Memuat ProsesBisnis...</p>
-              ) : processes.length === 0 ? (
+              ) : prosesBisnis.length === 0 ? (
                 <p className="p-4 text-sm text-secondary-foreground">Belum ada ProsesBisnis.</p>
               ) : (
-                processes.map((process) => (
+                prosesBisnis.map((process) => (
                   <div key={process.prosesBisnisId} className="p-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-sm font-medium text-foreground">{process.nama}</h3>
                       <span className="rounded-full border border-border px-2 py-0.5 text-xs text-secondary-foreground">
-                        {process.scope === 'FACULTY' ? 'Fakultas' : process.department?.nama ?? 'Jurusan'}
+                        {process.lingkup === 'FACULTY' ? 'Fakultas' : process.departemen?.nama ?? 'Jurusan'}
                       </span>
                     </div>
                     <p className="mt-1 text-sm text-secondary-foreground">
-                      Owner: {process.owner.nama} · {process.members.length} Penyusun SOP
+                      Owner: {process.penanggungJawab.nama} · {process.anggota.length} Penyusun SOP
                     </p>
                   </div>
                 ))
@@ -193,7 +193,7 @@ export function HalamanPengelolaanProsesBisnis() {
             <div className="space-y-0.5">
               <h2 className="text-sm font-semibold text-foreground">Struktur Jurusan</h2>
               <p className="text-sm text-secondary-foreground">
-                Master data organisasi disiapkan Admin sebelum scope diberikan kepada ProsesBisnis Owner.
+                Master data organisasi disiapkan Admin sebelum lingkup diberikan kepada ProsesBisnis Owner.
               </p>
             </div>
           </DataSurface.Header>
@@ -220,7 +220,7 @@ export function HalamanPengelolaanProsesBisnis() {
               </Button>
             </div>
             <div className="flex flex-wrap gap-2">
-              {departments.map((department) => (
+              {departemen.map((department) => (
                 <span
                   key={department.departemenId}
                   className="rounded-full border border-border px-2.5 py-1 text-xs text-secondary-foreground"

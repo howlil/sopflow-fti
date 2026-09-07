@@ -92,10 +92,10 @@ export function NotificationBell() {
           ) : (
             items.map((item) => {
                 return (
-                  <DropdownMenuItem key={`process:${item.notifikasiProsesBisnisId}`} asChild>
+                  <DropdownMenuItem key={`prosesBisnis:${item.notifikasiProsesBisnisId}`} asChild>
                     <a
                       href={item.actionHref}
-                      data-process-notification-id={item.notifikasiProsesBisnisId}
+                      data-notifikasi-proses-bisnis-id={item.notifikasiProsesBisnisId}
                       className="flex w-full items-start gap-2 px-2 py-2"
                       onClick={(event) => {
                         if (item.readAt) return

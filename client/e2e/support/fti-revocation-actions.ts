@@ -35,7 +35,7 @@ export async function revokeProsesBisnisSopViaUi(
   title: string,
   authorityLabel: string,
 ): Promise<void> {
-  await page.goto('/approval')
+  await page.goto('/persetujuan')
   await waitForAppReady(page)
 
   const titleHeading = page.getByRole('heading', { name: title, exact: true })

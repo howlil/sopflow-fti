@@ -3,7 +3,7 @@ import { PenyusunWorkbenchDetailDto } from './penyusun-workbench-detail.dto';
 import { PenyusunWorkbenchLangkahDto } from './penyusun-workbench-langkah.dto';
 import { PenyusunWorkbenchLogEditDto } from './penyusun-workbench-log-edit.dto';
 import { PenyusunWorkbenchDiagramKonfigurasiDto } from '../../diagram/dto/penyusun-workbench-diagram.dto';
-import type { ProsesBisnisSopLifecycleProjection } from '../../process-authoring/sop-proses-bisnis-lifecycle.projection';
+import type { ProsesBisnisSopLifecycleProjection } from '../../penyusunan-proses-bisnis/sop-proses-bisnis-siklus.projection';
 
 class TteSignaturePayloadDto {
   @ApiProperty()
@@ -33,9 +33,9 @@ export class PenyusunWorkbenchDataDto {
   @ApiPropertyOptional({
     type: 'object',
     additionalProperties: true,
-    description: 'Projection lifecycle canonical untuk SOP yang terikat Proses Bisnis.',
+    description: 'Projection siklus canonical untuk SOP yang terikat Proses Bisnis.',
   })
-  readonly lifecycle?: ProsesBisnisSopLifecycleProjection;
+  readonly siklus?: ProsesBisnisSopLifecycleProjection;
 
   @ApiProperty({ type: () => PenyusunWorkbenchDetailDto })
   readonly detail!: PenyusunWorkbenchDetailDto;

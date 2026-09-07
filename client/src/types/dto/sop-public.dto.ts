@@ -12,7 +12,7 @@ export type PublicLingkupOrganisasi = 'FACULTY' | 'DEPARTMENT'
 export interface PublicProsesBisnisItem {
   prosesBisnisId: string
   nama: string
-  scope: PublicLingkupOrganisasi
+  lingkup: PublicLingkupOrganisasi
   departemenId: string | null
   namaDepartemen: string | null
   jumlahSopBerlaku: number
@@ -27,7 +27,7 @@ export interface PublicSopItem {
   tanggalEfektif: string | null
   prosesBisnisId: string
   namaProsesBisnis: string
-  scope: PublicLingkupOrganisasi
+  lingkup: PublicLingkupOrganisasi
   departemenId: string | null
   namaDepartemen: string | null
   pdfUrl: string
@@ -44,7 +44,7 @@ export interface PublicSopPage {
 }
 
 export interface PublicSopByProsesBisnisPage extends PublicSopPage {
-  process: PublicProsesBisnisItem
+  prosesBisnis: PublicProsesBisnisItem
 }
 
 export interface PublicSopDokumen {

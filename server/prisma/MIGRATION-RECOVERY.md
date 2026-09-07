@@ -51,9 +51,9 @@ The script:
 2. verifies exactly one unresolved failed row exists for this migration;
 3. validates any already-applied `Pengguna.platformRole`, `Departemen`, `ProsesBisnis`, and `AnggotaProsesBisnis` state;
 4. creates only missing ProsesBisnis-foundation objects required by the intended migration end-state;
-5. installs the trigger-based ProsesBisnis scope invariant;
-6. verifies all four ProsesBisnis/AnggotaProsesBisnis foreign keys and both scope triggers;
-7. proves an invalid ProsesBisnis scope INSERT is rejected;
+5. installs the trigger-based ProsesBisnis lingkup invariant;
+6. verifies all four ProsesBisnis/AnggotaProsesBisnis foreign keys and both lingkup triggers;
+7. proves an invalid ProsesBisnis lingkup INSERT is rejected;
 8. runs `prisma migrate resolve --applied 20260901163000_add_fti_process_foundation` only after end-state verification;
 9. runs `prisma migrate status` and resumes `prisma migrate deploy` for remaining migrations.
 

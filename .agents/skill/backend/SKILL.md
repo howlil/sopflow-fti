@@ -137,8 +137,8 @@ For ProsesBisnis-bound SOP work, use ProsesBisnis relationship rather than legac
 Existing pattern:
 
 ```ts
-await processContextService.assertCanAuthor(user.sub, prosesBisnisId)
-await processContextService.assertCanReview(user.sub, prosesBisnisId)
+await konteksProsesBisnisService.assertCanAuthor(user.sub, prosesBisnisId)
+await konteksProsesBisnisService.assertCanReview(user.sub, prosesBisnisId)
 ```
 
 Semantics:
@@ -151,7 +151,7 @@ review
   -> ProsesBisnis Owner for this ProsesBisnis
 
 final approval / TTE
-  -> resolved organizational authority for this ProsesBisnis scope
+  -> resolved pejabat berwenang for this ProsesBisnis lingkup
 
 platform administration
   -> platformRole capability
@@ -172,11 +172,11 @@ const process = await prisma.prosesBisnis.findFirst({
   where: {
     prosesBisnisId,
     OR: [
-      { ownerId: penggunaId },
-      { members: { some: { penggunaId } } },
+      { penanggungJawabId: penggunaId },
+      { anggota: { some: { penggunaId } } },
     ],
   },
-  include: processInclude,
+  include: prosesBisnisInclude,
 })
 
 if (process === null) {
@@ -302,9 +302,9 @@ resolve intended recipient from ProsesBisnis/authority context
 
 Do not force new ProsesBisnis events into archived legacy `retired evaluation persistence` / `JenisPengingatWhatsApp` persistence. The UI bell reads only the ProsesBisnis-native notification source.
 
-## Organizational Authority Pattern
+## Pejabat Berwenang Pattern
 
-Final approval resolves from ProsesBisnis organizational scope:
+Final approval resolves from ProsesBisnis organizational lingkup:
 
 ```text
 FACULTY
@@ -470,7 +470,7 @@ For a backend task:
 - move service policy into repositories for convenience;
 - emit durable side effects outside the state transaction when atomicity is required;
 - perform broad transactions without a business invariant;
-- introduce generic workflow/approval engines for the current two-level model;
+- introduce generic workflow/persetujuan engines for the current two-level model;
 - rewrite applied migration history casually;
 - use destructive reset for migration recovery;
 - expose TTE/secrets/stack details;

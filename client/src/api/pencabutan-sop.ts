@@ -6,7 +6,7 @@ import type { ApiSuccessResponse } from '@/types/dto/auth.dto'
 import type {
   ProsesBisnisRevocationQueueRowDto,
   ProsesBisnisRevocationResultDto,
-} from '@/types/dto/approval.dto'
+} from '@/types/dto/persetujuan.dto'
 
 export const revocationQueueKey = ['process-revocation'] as const
 

@@ -12,33 +12,33 @@ import type {
   ProsesBisnisDto,
   KewenanganPenanggungJawabProsesBisnisDto,
   ProsesBisnisPayload,
-} from '@/types/dto/process.dto'
+} from '@/types/dto/proses-bisnis.dto'
 
 export const processAdminApi = {
   listDepartemen: (): Promise<DepartemenDto[]> =>
-    unwrapApiData(apiClient.get<ApiSuccessResponse<DepartemenDto[]>>('/administrasi-proses-bisnis/departments')),
+    unwrapApiData(apiClient.get<ApiSuccessResponse<DepartemenDto[]>>('/administrasi-proses-bisnis/departemen')),
 
   createDepartemen: (nama: string): Promise<DepartemenDto> =>
-    unwrapApiData(apiClient.post<ApiSuccessResponse<DepartemenDto>>('/administrasi-proses-bisnis/departments', { nama })),
+    unwrapApiData(apiClient.post<ApiSuccessResponse<DepartemenDto>>('/administrasi-proses-bisnis/departemen', { nama })),
 
   updateDepartemen: (departemenId: string, nama: string): Promise<DepartemenDto> =>
     unwrapApiData(
-      apiClient.patch<ApiSuccessResponse<DepartemenDto>>(`/administrasi-proses-bisnis/departments/${departemenId}`, { nama }),
+      apiClient.patch<ApiSuccessResponse<DepartemenDto>>(`/administrasi-proses-bisnis/departemen/${departemenId}`, { nama }),
     ),
 
   listUsers: (): Promise<ProsesBisnisAssignableUserDto[]> =>
     unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisAssignableUserDto[]>>('/administrasi-proses-bisnis/users')),
 
   listProsesBisnis: (): Promise<ProsesBisnisDto[]> =>
-    unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisDto[]>>('/administrasi-proses-bisnis/processes')),
+    unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisDto[]>>('/administrasi-proses-bisnis/prosesBisnis')),
 
   /** Reserved for administrative repair/bootstrap; normal creation belongs to the authorized owner. */
   createProsesBisnis: (payload: ProsesBisnisPayload): Promise<ProsesBisnisDto> =>
-    unwrapApiData(apiClient.post<ApiSuccessResponse<ProsesBisnisDto>>('/administrasi-proses-bisnis/processes', payload)),
+    unwrapApiData(apiClient.post<ApiSuccessResponse<ProsesBisnisDto>>('/administrasi-proses-bisnis/prosesBisnis', payload)),
 
   updateProsesBisnis: (prosesBisnisId: string, payload: ProsesBisnisPayload): Promise<ProsesBisnisDto> =>
     unwrapApiData(
-      apiClient.patch<ApiSuccessResponse<ProsesBisnisDto>>(`/administrasi-proses-bisnis/processes/${prosesBisnisId}`, payload),
+      apiClient.patch<ApiSuccessResponse<ProsesBisnisDto>>(`/administrasi-proses-bisnis/prosesBisnis/${prosesBisnisId}`, payload),
     ),
 
   listOwnerAuthorities: (): Promise<KewenanganPenanggungJawabProsesBisnisDto[]> =>
@@ -114,9 +114,9 @@ export function useProsesBisnisAdministration() {
   })
 
   return {
-    departments: departmentsQuery.data ?? [],
+    departemen: departmentsQuery.data ?? [],
     users: usersQuery.data ?? [],
-    processes: processesQuery.data ?? [],
+    prosesBisnis: processesQuery.data ?? [],
     ownerAuthorities: ownerAuthoritiesQuery.data ?? [],
     isLoading:
       departmentsQuery.isLoading ||

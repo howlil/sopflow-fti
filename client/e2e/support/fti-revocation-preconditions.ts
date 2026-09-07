@@ -26,11 +26,11 @@ export async function seedEffectiveProsesBisnisSop(
 ): Promise<ReadyProsesBisnisSopFixture> {
   const sop = await seedProsesBisnisSopAwaitingOwnerReview(apiFor, prefix, options)
 
-  const owner = await sessionFor(targetUsers.processOwner)
+  const owner = await sessionFor(targetUsers.penanggungJawabProsesBisnis)
   await acceptProsesBisnisSopViaUi(owner.page, sop.detailSopId)
 
   const authority = await sessionFor(authorityUser)
-  await authority.page.goto('/approval')
+  await authority.page.goto('/persetujuan')
   await waitForAppReady(authority.page)
   await approveProsesBisnisSopViaUi(authority.page, sop.title, authorityLabel)
 

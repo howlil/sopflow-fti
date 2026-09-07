@@ -18,21 +18,21 @@ const LIFECYCLE_STAGES: Array<{
 ]
 
 interface StatusProsesBisnisContextProps {
-  lifecycle: ProsesBisnisSopLifecycleProjection
+  siklus: ProsesBisnisSopLifecycleProjection
   namaProsesBisnis?: string | null
 }
 
 export function StatusProsesBisnisContext({
-  lifecycle,
+  siklus,
   namaProsesBisnis,
 }: StatusProsesBisnisContextProps) {
-  const currentIndex = LIFECYCLE_STAGES.findIndex((stage) => stage.key === lifecycle.stage)
-  const actionDestination = lifecycle.action?.destination
-  const nextStep = lifecycle.action?.label ??
-    (lifecycle.blockingReason ? 'Menunggu pihak lain' : 'Tidak ada tindakan lanjutan')
+  const currentIndex = LIFECYCLE_STAGES.findIndex((stage) => stage.key === siklus.stage)
+  const actionDestination = siklus.action?.destination
+  const nextStep = siklus.action?.label ??
+    (siklus.blockingReason ? 'Menunggu pihak lain' : 'Tidak ada tindakan lanjutan')
 
   return (
-    <Card className="mb-4 border-border shadow-surface" data-testid="process-lifecycle-context">
+    <Card className="mb-4 border-border shadow-surface" data-testid="siklus-proses-bisnis-context">
       <CardHeader className="space-y-1 pb-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>
@@ -43,17 +43,17 @@ export function StatusProsesBisnisContext({
               {namaProsesBisnis ?? 'Proses Bisnis SOP'}
             </h3>
           </div>
-          <span className="text-sm font-medium text-foreground">{lifecycle.stateLabel}</span>
+          <span className="text-sm font-medium text-foreground">{siklus.stateLabel}</span>
         </div>
       </CardHeader>
       <CardContent className="space-y-4 pt-0">
         <ol
           className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-6"
-          aria-label="Tahap lifecycle SOP"
+          aria-label="Tahap siklus SOP"
         >
           {LIFECYCLE_STAGES.map((stage, index) => {
-            const isCurrent = stage.key === lifecycle.stage
-            const isComplete = currentIndex > index && lifecycle.stage !== 'REVOKED'
+            const isCurrent = stage.key === siklus.stage
+            const isComplete = currentIndex > index && siklus.stage !== 'REVOKED'
             return (
               <li
                 key={stage.key}
@@ -80,20 +80,20 @@ export function StatusProsesBisnisContext({
             <span className="font-semibold text-foreground">Berikutnya: </span>
             {nextStep}
           </p>
-          {lifecycle.responsibility.type !== 'NONE' ? (
+          {siklus.responsibility.type !== 'NONE' ? (
             <p className="text-secondary-foreground">
               <span className="font-semibold text-foreground">Penanggung jawab: </span>
-              {lifecycle.responsibility.name ?? 'Belum ditentukan'}
+              {siklus.responsibility.name ?? 'Belum ditentukan'}
             </p>
           ) : null}
-          {lifecycle.blockingReason ? (
-            <p className="text-secondary-foreground">{lifecycle.blockingReason}</p>
+          {siklus.blockingReason ? (
+            <p className="text-secondary-foreground">{siklus.blockingReason}</p>
           ) : null}
           {actionDestination === 'APPROVAL_INBOX' ? (
             <div>
               <Button asChild size="sm" variant="outline" className="h-8 gap-1.5 px-2.5 text-xs">
                 <Link to={ROUTES.APPROVAL.INBOX}>
-                  {lifecycle.action?.label ?? 'Buka persetujuan'}
+                  {siklus.action?.label ?? 'Buka persetujuan'}
                   <ExternalLink className="h-3.5 w-3.5" aria-hidden />
                 </Link>
               </Button>

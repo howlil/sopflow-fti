@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { cn } from '@/utils/cn'
 
-export type LandingRoleId = 'process-member' | 'process-owner' | 'organizational-authority'
+export type LandingRoleId = 'process-member' | 'penanggung-jawab-proses-bisnis' | 'pejabat-berwenang'
 
 export interface LandingRoleProfile {
   id: LandingRoleId
@@ -24,7 +24,7 @@ export function RoleWorkspaceShowcase({ roles }: RoleWorkspaceShowcaseProps) {
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Kewenangan kontekstual</p>
           <h2 className="mt-4 text-[clamp(2.5rem,4.8vw,3.9rem)] font-semibold leading-[1] tracking-[-0.045em] text-slate-950">
-            Tiga tanggung jawab dalam lifecycle SOP FTI.
+            Tiga tanggung jawab dalam siklus SOP FTI.
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-sm leading-6 text-secondary-foreground sm:text-base sm:leading-7">
             Akses berasal dari hubungan dengan Proses Bisnis atau kewenangan organisasi yang relevan, bukan satu role workflow global.

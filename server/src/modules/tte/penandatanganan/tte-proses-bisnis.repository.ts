@@ -13,7 +13,7 @@ export type ProsesBisnisTteSigningContext = {
   readonly approval: {
     readonly approvedById: string;
     readonly authority: 'DEAN' | 'HEAD_OF_DEPARTMENT';
-    readonly authorityKey: string;
+    readonly kunciPejabatBerwenang: string;
     readonly approvedAt: Date;
   };
 };
@@ -56,7 +56,7 @@ export type ProsesBisnisTteFinalizeResult =
       readonly detailSopId: string;
       readonly dokumenTteId: string;
       readonly authority: 'DEAN' | 'HEAD_OF_DEPARTMENT';
-      readonly authorityKey: string;
+      readonly kunciPejabatBerwenang: string;
     }
   | ProsesBisnisTtePrepareFailure
   | { readonly ok?: false; readonly error: 'SOP_STATUS_DRIFT' };
@@ -260,7 +260,7 @@ export class ProsesBisnisTteRepository {
           detailSopId: context.detailSopId,
           dokumenTteId: dokumen.dokumenTteId,
           authority: context.approval.authority,
-          authorityKey: context.approval.authorityKey,
+          kunciPejabatBerwenang: context.approval.kunciPejabatBerwenang,
         };
       });
     } catch (error) {
@@ -320,7 +320,7 @@ export class ProsesBisnisTteRepository {
         prosesBisnisId: true,
         approvedById: true,
         authority: true,
-        authorityKey: true,
+        kunciPejabatBerwenang: true,
         approvedAt: true,
       },
     });
@@ -344,7 +344,7 @@ export class ProsesBisnisTteRepository {
         approval: {
           approvedById: approval.approvedById,
           authority: approval.authority,
-          authorityKey: approval.authorityKey,
+          kunciPejabatBerwenang: approval.kunciPejabatBerwenang,
           approvedAt: approval.approvedAt,
         },
       },

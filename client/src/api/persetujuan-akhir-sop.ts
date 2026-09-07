@@ -7,9 +7,9 @@ import type {
   ProsesBisnisApprovalDocumentDto,
   ProsesBisnisApprovalQueueRowDto,
   PersetujuanAkhirSOPDto,
-} from '@/types/dto/approval.dto'
+} from '@/types/dto/persetujuan.dto'
 
-export const approvalQueueKey = ['process-approval'] as const
+export const approvalQueueKey = ['persetujuan-proses-bisnis'] as const
 
 export const processApprovalApi = {
   list: (): Promise<ProsesBisnisApprovalQueueRowDto[]> =>

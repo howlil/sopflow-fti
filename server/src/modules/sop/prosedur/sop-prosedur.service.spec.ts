@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import type { JwtAccessPayload } from '../../../common';
 import { JenisLangkahProsedur, StatusSOP } from '../../../generated/prisma';
-import { ProsesBisnisContextService } from '../../core/process/konteks-proses-bisnis.service';
+import { ProsesBisnisContextService } from '../../core/proses-bisnis/konteks-proses-bisnis.service';
 import { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
 import { SopProsedurRepository } from './sop-prosedur.repository';
@@ -28,8 +28,8 @@ describe('SopProsedurService Proses Bisnis-native actor policy', () => {
   const processContext = { assertCanAuthor: jest.fn() };
 
   const anggotaProsesBisnis: JwtAccessPayload = {
-    sub: 'member-1',
-    email: 'member@fti.test',
+    sub: 'anggota-1',
+    email: 'anggota@fti.test',
   };
   const workbench = {
     detail: { id: 'detail-1' },
@@ -66,12 +66,12 @@ describe('SopProsedurService Proses Bisnis-native actor policy', () => {
     );
   });
 
-  it('allows a Proses Bisnis member based on Proses Bisnis relationship, independent from OPD shadow', async () => {
+  it('allows a Proses Bisnis anggota based on Proses Bisnis relationship, independent from OPD shadow', async () => {
     await service.updateProsedur(anggotaProsesBisnis, 'detail-1', {
       pelaksana: [{ pelaksanaId: 'actor-1' }],
     });
 
-    expect(processContext.assertCanAuthor).toHaveBeenCalledWith('member-1', 'process-1');
+    expect(processContext.assertCanAuthor).toHaveBeenCalledWith('anggota-1', 'process-1');
     expect(repo.updateProsedurTransaction).toHaveBeenCalledWith(
       expect.objectContaining({
         detailSopId: 'detail-1',
@@ -82,7 +82,7 @@ describe('SopProsedurService Proses Bisnis-native actor policy', () => {
 
   it('propagates Proses Bisnis authorization denial for unrelated users', async () => {
     processContext.assertCanAuthor.mockRejectedValue(
-      new ForbiddenException('not a Proses Bisnis member'),
+      new ForbiddenException('not a Proses Bisnis anggota'),
     );
     await expect(service.updateProsedur(anggotaProsesBisnis, 'detail-1', {})).rejects.toBeInstanceOf(
       ForbiddenException,

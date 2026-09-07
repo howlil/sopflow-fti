@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let mockProsesBisnises: Array<{ prosesBisnisId: string }> = [];
-let mockAuthorities: Array<{ authorityKey: string }> = [];
+let mockAuthorities: Array<{ kunciPejabatBerwenang: string }> = [];
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ to, children, ...props }: { to: string; children: ReactNode }) => (
@@ -14,7 +14,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@/api/konteks-proses-bisnis", () => ({ useMyProsesBisnises: () => ({ data: mockProsesBisnises }) }));
-vi.mock("@/api/organizational-authority", () => ({
+vi.mock("@/api/pejabat-berwenang", () => ({
   useMyOrganizationalAuthorities: () => ({ data: mockAuthorities }),
 }));
 vi.mock("@/components/layout/HeaderBar", () => ({ HeaderBar: () => <div>Header</div> }));
@@ -67,7 +67,7 @@ describe("DashboardLayout desktop sidebar", () => {
   });
 
   it("menampilkan persetujuan hanya dari kewenangan organisasi", () => {
-    mockAuthorities = [{ authorityKey: "DEAN" }];
+    mockAuthorities = [{ kunciPejabatBerwenang: "DEAN" }];
     render(<DashboardLayout />);
     expect(screen.getAllByRole("link", { name: "Persetujuan & TTE" })).not.toHaveLength(0);
   });

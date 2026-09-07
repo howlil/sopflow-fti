@@ -16,7 +16,7 @@ export function PublicFooter({ institutionName, productName }: PublicFooterProps
             <p className="text-sm font-semibold">{APP_DISPLAY_NAME}</p>
             <p className="mt-1 text-xs leading-5 text-blue-100">{institutionName} · {productName}</p>
             <p className="mt-4 text-[11px] leading-5 text-slate-300">
-              Sistem lifecycle SOP berbasis Proses Bisnis, kewenangan organisasi, dan tanda tangan elektronik.
+              Sistem siklus SOP berbasis Proses Bisnis, kewenangan organisasi, dan tanda tangan elektronik.
             </p>
           </div>
         </div>

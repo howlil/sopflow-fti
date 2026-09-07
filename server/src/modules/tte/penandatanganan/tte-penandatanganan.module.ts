@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { NotifikasiProsesBisnisModule } from '../../notifications/process/process-notification.module';
+import { NotifikasiProsesBisnisModule } from '../../notifications/proses-bisnis/notifikasi-proses-bisnis.module';
 import { SopPdfModule } from '../../sop/pdf/sop-pdf.module';
 import { TteSharedModule } from '../shared/tte-shared.module';
 import { ProsesBisnisTteController } from './tte-proses-bisnis.controller';

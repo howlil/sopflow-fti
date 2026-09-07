@@ -7,13 +7,13 @@ export async function signProsesBisnisSopViaUi(
   page: Page,
   title: string,
 ): Promise<void> {
-  await page.goto('/approval')
+  await page.goto('/persetujuan')
   await waitForAppReady(page)
 
   const titleHeading = page.getByRole('heading', { name: title, exact: true })
   await expect(titleHeading).toBeVisible()
 
-  // Critical journeys intentionally share one runtime database in CI. Scope signing
+  // Critical journeys intentionally share one runtime database in CI. Lingkup signing
   // assertions to the row containing this unique SOP title.
   const row = titleHeading.locator(
     'xpath=ancestor::div[.//button[normalize-space(.)="Tanda tangani"]][1]',

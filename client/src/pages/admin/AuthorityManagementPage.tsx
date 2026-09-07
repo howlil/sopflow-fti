@@ -1,12 +1,12 @@
 import { useMemo } from 'react'
 import { ShieldCheck } from 'lucide-react'
-import { usePejabatBerwenangConfiguration } from '@/api/organizational-authority'
+import { usePejabatBerwenangConfiguration } from '@/api/pejabat-berwenang'
 import { useProsesBisnisAdministration } from '@/api/administrasi-proses-bisnis'
 import { DataSurface } from '@/components/data/data-surface'
 import { ListPageLayout } from '@/components/layout/ListPageLayout'
 
 export function AuthorityManagementPage() {
-  const { departments, users, isLoading: isProsesBisnisAdminLoading } = useProsesBisnisAdministration()
+  const { departemen, users, isLoading: isProsesBisnisAdminLoading } = useProsesBisnisAdministration()
   const {
     configuration,
     isLoading: isAuthorityLoading,
@@ -44,7 +44,7 @@ export function AuthorityManagementPage() {
                 Dean
               </h2>
               <p className="text-sm text-secondary-foreground">
-                Final approver tunggal untuk semua ProsesBisnis scope Faculty.
+                Final approver tunggal untuk semua ProsesBisnis lingkup Faculty.
               </p>
             </div>
           </DataSurface.Header>
@@ -79,17 +79,17 @@ export function AuthorityManagementPage() {
             <div className="space-y-0.5">
               <h2 className="text-sm font-semibold text-foreground">Kepala Departemen</h2>
               <p className="text-sm text-secondary-foreground">
-                Setiap Departemen memiliki final approver sendiri untuk ProsesBisnis scope Departemen.
+                Setiap Departemen memiliki final approver sendiri untuk ProsesBisnis lingkup Departemen.
               </p>
             </div>
           </DataSurface.Header>
           <div className="divide-y divide-border">
             {isLoading ? (
               <p className="p-4 text-sm text-secondary-foreground">Memuat departemen...</p>
-            ) : departments.length === 0 ? (
+            ) : departemen.length === 0 ? (
               <p className="p-4 text-sm text-secondary-foreground">Belum ada Departemen.</p>
             ) : (
-              departments.map((department) => {
+              departemen.map((department) => {
                 const assignment = headByDepartemenId.get(department.departemenId) ?? null
                 return (
                   <div key={department.departemenId} className="space-y-2 p-4">

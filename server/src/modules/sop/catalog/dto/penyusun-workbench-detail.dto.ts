@@ -23,7 +23,7 @@ export class PenyusunWorkbenchSopHeaderDto {
   readonly prosesBisnisId!: string | null;
 
   @ApiPropertyOptional({ nullable: true, description: 'Nama Proses Bisnis pada projection native' })
-  readonly processNama?: string | null;
+  readonly namaProsesBisnis?: string | null;
 
   @ApiProperty()
   readonly judul!: string;

@@ -15,8 +15,8 @@ import { ROUTES } from '@/utils/constants'
 
 type ProsesBisnisAwareSopRow = SopDaftarRow & {
   prosesBisnisId?: string | null
-  processNama?: string | null
-  lifecycle: ProsesBisnisSopLifecycleProjection
+  namaProsesBisnis?: string | null
+  siklus: ProsesBisnisSopLifecycleProjection
 }
 
 function WorkRow({
@@ -24,8 +24,8 @@ function WorkRow({
 }: {
   row: ProsesBisnisAwareSopRow
 }) {
-  const { lifecycle } = row
-  const action = lifecycle.action
+  const { siklus } = row
+  const action = siklus.action
   const targetId = row.detailSopId ?? row.id
   const isActionable = action !== null && action.type !== 'OPEN'
 
@@ -40,22 +40,22 @@ function WorkRow({
               {row.versi ? ` · v${row.versi}` : ''}
             </p>
           </div>
-          <Badge variant={isActionable ? 'warning' : 'secondary'}>{lifecycle.stateLabel}</Badge>
+          <Badge variant={isActionable ? 'warning' : 'secondary'}>{siklus.stateLabel}</Badge>
         </div>
         <p className="text-xs text-secondary-foreground">
-          ProsesBisnis: <span className="font-medium text-foreground">{row.processNama ?? '—'}</span>
+          ProsesBisnis: <span className="font-medium text-foreground">{row.namaProsesBisnis ?? '—'}</span>
         </p>
       </CardHeader>
       <CardContent className="flex items-center justify-between gap-3 border-t border-border pt-3">
         <div className="min-w-0 text-xs text-muted-foreground">
           <p>
-            {lifecycle.responsibility.type === 'CURRENT_USER'
+            {siklus.responsibility.type === 'CURRENT_USER'
               ? 'Tindakan Anda tersedia.'
-              : lifecycle.blockingReason ?? 'Tidak ada tindakan saat ini.'}
+              : siklus.blockingReason ?? 'Tidak ada tindakan saat ini.'}
           </p>
-          {lifecycle.responsibility.type !== 'NONE' ? (
+          {siklus.responsibility.type !== 'NONE' ? (
             <p className="mt-1 text-secondary-foreground">
-              Berikutnya: {lifecycle.responsibility.name ?? lifecycle.responsibility.type}
+              Berikutnya: {siklus.responsibility.name ?? siklus.responsibility.type}
             </p>
           ) : null}
         </div>
@@ -80,21 +80,21 @@ function WorkRow({
 
 export function HalamanAntrianKerjaProsesBisnis() {
   useDocumentTitle('Pekerjaan SOP')
-  const { data: processes = [] } = useMyProsesBisnises()
+  const { data: prosesBisnis = [] } = useMyProsesBisnises()
   const { list, create } = useSopSuspense()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   const processRows = useMemo(
     () =>
       (list as ProsesBisnisAwareSopRow[]).filter(
-        (row) => row.prosesBisnisId != null && row.lifecycle != null,
+        (row) => row.prosesBisnisId != null && row.siklus != null,
       ),
     [list],
   )
   const actionRows = useMemo(
     () =>
       processRows.filter(
-        (row) => row.lifecycle.action !== null && row.lifecycle.action.type !== 'OPEN',
+        (row) => row.siklus.action !== null && row.siklus.action.type !== 'OPEN',
       ),
     [processRows],
   )
@@ -102,14 +102,14 @@ export function HalamanAntrianKerjaProsesBisnis() {
     () =>
       processRows.filter(
         (row) =>
-          row.lifecycle.action === null &&
-          row.lifecycle.stage !== 'EFFECTIVE' &&
-          row.lifecycle.stage !== 'REVOKED',
+          row.siklus.action === null &&
+          row.siklus.stage !== 'EFFECTIVE' &&
+          row.siklus.stage !== 'REVOKED',
       ),
     [processRows],
   )
   const currentRows = useMemo(
-    () => processRows.filter((row) => row.lifecycle.stage === 'EFFECTIVE' || row.lifecycle.stage === 'REVOKED'),
+    () => processRows.filter((row) => row.siklus.stage === 'EFFECTIVE' || row.siklus.stage === 'REVOKED'),
     [processRows],
   )
 
@@ -122,7 +122,7 @@ export function HalamanAntrianKerjaProsesBisnis() {
             Tindakan ditentukan oleh tanggung jawab Anda sebagai ProsesBisnis Owner atau Member.
           </p>
         </div>
-        <Button className="gap-2" onClick={() => setIsCreateOpen(true)} disabled={processes.length === 0}>
+        <Button className="gap-2" onClick={() => setIsCreateOpen(true)} disabled={prosesBisnis.length === 0}>
           <Plus className="h-4 w-4" aria-hidden />
           Buat SOP
         </Button>

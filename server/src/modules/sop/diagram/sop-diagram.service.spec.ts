@@ -5,7 +5,7 @@ import { SopDiagramService } from './sop-diagram.service';
 describe('SopDiagramService Proses Bisnis authorization', () => {
   const user = {
     sub: 'user-1',
-    email: 'member@fti.example.test',
+    email: 'anggota@fti.example.test',
   } as never;
 
   function createService(overrides?: {
@@ -29,19 +29,19 @@ describe('SopDiagramService Proses Bisnis authorization', () => {
         .fn()
         .mockResolvedValue({ detail: { id: 'det-1' }, langkah: [], logEdit: [] }),
     };
-    const processContextService = {
+    const konteksProsesBisnisService = {
       assertCanAuthor: jest.fn().mockResolvedValue({ prosesBisnisId: 'process-1' }),
     };
     const service = new SopDiagramService(
       sopDiagramRepository as never,
       sopWorkbenchReader as never,
-      processContextService as never,
+      konteksProsesBisnisService as never,
     );
     return {
       service,
       sopDiagramRepository,
       sopWorkbenchReader,
-      processContextService,
+      konteksProsesBisnisService,
     };
   }
 
@@ -52,12 +52,12 @@ describe('SopDiagramService Proses Bisnis authorization', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('authorizes a Proses Bisnis member and returns the updated workbench', async () => {
-    const { service, processContextService, sopDiagramRepository, sopWorkbenchReader } =
+  it('authorizes a Proses Bisnis anggota and returns the updated workbench', async () => {
+    const { service, konteksProsesBisnisService, sopDiagramRepository, sopWorkbenchReader } =
       createService();
 
     const actual = await service.updateDiagram(
-      { sub: 'member-1', email: 'member@fti.example.test' } as never,
+      { sub: 'anggota-1', email: 'anggota@fti.example.test' } as never,
       'det-1',
       {
         jenis: JenisDiagram.FLOWCHART,
@@ -66,21 +66,21 @@ describe('SopDiagramService Proses Bisnis authorization', () => {
       },
     );
 
-    expect(processContextService.assertCanAuthor).toHaveBeenCalledWith('member-1', 'process-1');
+    expect(konteksProsesBisnisService.assertCanAuthor).toHaveBeenCalledWith('anggota-1', 'process-1');
     expect(sopDiagramRepository.upsertConfig).toHaveBeenCalled();
     expect(sopWorkbenchReader.getForDetail).toHaveBeenCalledWith('det-1', undefined);
     expect(actual.detail.id).toBe('det-1');
   });
 
-  it('rejects an SOP without Penanggung Jawab Proses Bisnisship', async () => {
-    const { service, processContextService } = createService({
+  it('rejects an SOP without Penanggung Jawab kepemilikan Proses Bisnis', async () => {
+    const { service, konteksProsesBisnisService } = createService({
       resolved: { detailSopId: 'det-1', prosesBisnisId: null },
     });
 
     await expect(
       service.updateDiagram(user, 'det-1', { jenis: JenisDiagram.FLOWCHART }),
     ).rejects.toBeInstanceOf(ConflictException);
-    expect(processContextService.assertCanAuthor).not.toHaveBeenCalled();
+    expect(konteksProsesBisnisService.assertCanAuthor).not.toHaveBeenCalled();
   });
 
   it('rejects a missing detail status', async () => {

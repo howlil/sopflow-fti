@@ -1,6 +1,6 @@
 import { FileCheck2, ShieldCheck } from 'lucide-react'
 
-const lifecycle = ['Draft', 'Review Proses', 'Persetujuan', 'TTE', 'Berlaku']
+const siklus = ['Draft', 'Review Proses', 'Persetujuan', 'TTE', 'Berlaku']
 
 export function LandingProductPreview() {
   return (
@@ -21,7 +21,7 @@ export function LandingProductPreview() {
             <div className="border-b border-border bg-[#f8fbff] p-5 lg:border-b-0 lg:border-r lg:p-6">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Lifecycle</p>
               <ol className="mt-5 space-y-4">
-                {lifecycle.map((item, index) => (
+                {siklus.map((item, index) => (
                   <li key={item} className="flex items-center gap-3">
                     <span className={index < 2 ? 'h-2 w-2 rounded-full bg-primary' : 'h-2 w-2 rounded-full border border-border-strong bg-surface'} />
                     <span className={index < 2 ? 'text-xs font-medium text-foreground' : 'text-xs text-muted-foreground'}>{item}</span>

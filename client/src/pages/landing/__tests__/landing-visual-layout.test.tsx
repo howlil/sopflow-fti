@@ -30,13 +30,13 @@ const roles: LandingRoleProfile[] = [
     output: 'Draft dan revisi SOP.',
   },
   {
-    id: 'process-owner',
+    id: 'penanggung-jawab-proses-bisnis',
     label: 'Pemilik Proses',
     responsibility: 'Mereview SOP dalam Proses Bisnis.',
     output: 'Keputusan review Proses Bisnis.',
   },
   {
-    id: 'organizational-authority',
+    id: 'pejabat-berwenang',
     label: 'Pejabat TTE',
     responsibility: 'Melakukan persetujuan akhir dan TTE.',
     output: 'SOP yang berlaku.',
@@ -79,7 +79,7 @@ describe('landing visual layout', () => {
 
   it('keeps responsibility information concise without a legacy role matrix', () => {
     render(<RoleWorkspaceShowcase roles={roles} />)
-    expect(screen.getByText('Tiga tanggung jawab dalam lifecycle SOP FTI.')).toBeInTheDocument()
+    expect(screen.getByText('Tiga tanggung jawab dalam siklus SOP FTI.')).toBeInTheDocument()
     expect(screen.queryByText('Kepala OPD')).not.toBeInTheDocument()
     expect(screen.queryByText('PJ Evaluator')).not.toBeInTheDocument()
   })

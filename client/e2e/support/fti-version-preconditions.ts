@@ -92,7 +92,7 @@ export async function seedReplacementReadyForTte(
   const v1 = await seedPublishedProsesBisnisSop(apiFor, prefix, { ...options, authorityUser })
   const v2Workbench = await createProsesBisnisVersion(apiFor, actor, v1.detailSopId)
   const actorApi = await apiFor(actor)
-  const ownerApi = await apiFor(targetUsers.processOwner)
+  const ownerApi = await apiFor(targetUsers.penanggungJawabProsesBisnis)
   const authorityApi = await apiFor(authorityUser)
 
   await apiPost(actorApi, `/sop-proses-bisnis/${v2Workbench.detail.id}/submit-review`)

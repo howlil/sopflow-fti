@@ -9,7 +9,7 @@ Current target runtime:
 - organization: `Departemen` and `ProsesBisnis`;
 - workflow relationship: ProsesBisnis Owner / ProsesBisnis Member;
 - legal signing authority: `DEAN` or `HEAD_OF_DEPARTMENT`;
-- SOP lifecycle: `DRAFT -> PROCESS_REVIEW -> REVISION_REQUIRED | FINAL_APPROVAL -> TTE_PENDING -> EFFECTIVE -> SUPERSEDED | REVOKED`;
+- SOP siklus: `DRAFT -> PROCESS_REVIEW -> REVISION_REQUIRED | FINAL_APPROVAL -> TTE_PENDING -> EFFECTIVE -> SUPERSEDED | REVOKED`;
 - active SOP ownership: `SOP.prosesBisnisId`;
 - public archive: ProsesBisnis-first;
 - notification, review, approval, TTE, versioning, and revocation are ProsesBisnis-native.

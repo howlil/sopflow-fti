@@ -11,7 +11,7 @@ interface PublicProsesBisnisPage {
   items: Array<{
     prosesBisnisId: string
     nama: string
-    scope: 'FACULTY' | 'DEPARTMENT'
+    lingkup: 'FACULTY' | 'DEPARTMENT'
     namaDepartemen: string | null
     jumlahSopBerlaku: number
   }>
@@ -25,7 +25,7 @@ interface PublicSopPage {
     nomorSOP: string
     prosesBisnisId: string | null
     namaProsesBisnis: string | null
-    scope: 'FACULTY' | 'DEPARTMENT' | null
+    lingkup: 'FACULTY' | 'DEPARTMENT' | null
     namaDepartemen: string | null
     pdfUrl: string
   }>
@@ -62,20 +62,20 @@ test.describe.serial('End-to-End Business Journey — FTI-native public archive'
     await test.step('Public Proses Bisnis catalog menemukan Proses Bisnis dan SOP melalui ProsesBisnisSopBinding', async () => {
       const processPage = await apiGet<PublicProsesBisnisPage>(
         request,
-        `/sop/public/fti/processes?search=${encodeURIComponent(sop.namaProsesBisnis)}`,
+        `/sop/public/fti/prosesBisnis?search=${encodeURIComponent(sop.namaProsesBisnis)}`,
       )
       const process = processPage.items.find((item) => item.prosesBisnisId === sop.prosesBisnisId)
       expect(process).toEqual(
         expect.objectContaining({
           prosesBisnisId: sop.prosesBisnisId,
           nama: sop.namaProsesBisnis,
-          scope: 'FACULTY',
+          lingkup: 'FACULTY',
         }),
       )
 
       const sopPage = await apiGet<PublicSopPage>(
         request,
-        `/sop/public/fti/processes/${encodeURIComponent(sop.prosesBisnisId)}/sop`,
+        `/sop/public/fti/prosesBisnis/${encodeURIComponent(sop.prosesBisnisId)}/sop`,
       )
       expect(sopPage.items).toContainEqual(
         expect.objectContaining({

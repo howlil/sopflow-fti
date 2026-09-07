@@ -10,31 +10,31 @@ import type {
 export const notificationApi = {
   processSummary: () =>
     unwrapApiData(
-      apiClient.get<ApiSuccessResponse<NotificationSummaryDto>>('/notifications/process/summary'),
+      apiClient.get<ApiSuccessResponse<NotificationSummaryDto>>('/notifications/proses-bisnis/summary'),
     ),
 
   processList: (limit = 10) =>
     unwrapApiData(
       apiClient.get<ApiSuccessResponse<ProsesBisnisInAppNotificationDto[]>>(
-        `/notifications/process${buildQueryString({ limit })}`,
+        `/notifications/proses-bisnis${buildQueryString({ limit })}`,
       ),
     ),
 
   markProsesBisnisRead: (notifikasiProsesBisnisId: string) =>
     unwrapApiData(
       apiClient.post<ApiSuccessResponse<NotificationSummaryDto>>(
-        `/notifications/process/items/${encodeURIComponent(notifikasiProsesBisnisId)}/read`,
+        `/notifications/proses-bisnis/items/${encodeURIComponent(notifikasiProsesBisnisId)}/read`,
       ),
     ),
 
   markAllProsesBisnisRead: () =>
     unwrapApiData(
       apiClient.post<ApiSuccessResponse<NotificationSummaryDto & { updated: number }>>(
-        '/notifications/process/read-all',
+        '/notifications/proses-bisnis/read-all',
       ),
     ),
 }
 
 export function resolveNotificationStreamUrl(): string {
-  return `${resolveApiBaseUrl()}/notifications/process/stream`
+  return `${resolveApiBaseUrl()}/notifications/proses-bisnis/stream`
 }

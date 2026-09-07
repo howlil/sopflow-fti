@@ -28,13 +28,13 @@ const ROLE_PROFILES: LandingRoleProfile[] = [
     output: 'Draft dan revisi SOP yang siap direview.',
   },
   {
-    id: 'process-owner',
+    id: 'penanggung-jawab-proses-bisnis',
     label: 'Pemilik Proses',
     responsibility: 'Mengelola anggota Proses Bisnis, mereview SOP, dan meneruskan hasil review yang diterima ke pejabat berwenang.',
     output: 'Keputusan review Proses Bisnis yang dapat diaudit.',
   },
   {
-    id: 'organizational-authority',
+    id: 'pejabat-berwenang',
     label: 'Pejabat TTE',
     responsibility: 'Dekan atau Ketua Jurusan melakukan persetujuan akhir dan TTE sesuai lingkup organisasi Proses Bisnis.',
     output: 'SOP bertanda tangan elektronik yang berlaku.',

@@ -41,7 +41,7 @@ describe('TteVerifikasiService', () => {
     mockProsesBisnisVerificationRepository = {
       findApprovalForSignedDetail: jest.fn().mockResolvedValue({
         authority: PejabatBerwenang.HEAD_OF_DEPARTMENT,
-        authorityKey: 'HEAD_OF_DEPARTMENT:department-a',
+        kunciPejabatBerwenang: 'HEAD_OF_DEPARTMENT:department-a',
         approvedById: 'user-123',
       }),
     };
@@ -95,7 +95,7 @@ describe('TteVerifikasiService', () => {
     );
     mockProsesBisnisVerificationRepository.findApprovalForSignedDetail.mockResolvedValue({
       authority: PejabatBerwenang.DEAN,
-      authorityKey: 'DEAN',
+      kunciPejabatBerwenang: 'DEAN',
       approvedById: 'user-123',
     });
 
@@ -113,7 +113,7 @@ describe('TteVerifikasiService', () => {
     (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue(row);
     mockProsesBisnisVerificationRepository.findApprovalForSignedDetail.mockResolvedValue({
       authority: PejabatBerwenang.DEAN,
-      authorityKey: 'DEAN',
+      kunciPejabatBerwenang: 'DEAN',
       approvedById: 'user-123',
     });
 

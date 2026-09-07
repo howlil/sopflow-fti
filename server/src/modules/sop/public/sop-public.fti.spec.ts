@@ -38,7 +38,7 @@ describe('SopPublicService — FTI-native archive', () => {
       {
         prosesBisnisId: 'process-faculty',
         nama: 'Pengelolaan Akademik FTI',
-        scope: LingkupOrganisasi.FACULTY,
+        lingkup: LingkupOrganisasi.FACULTY,
         departemenId: null,
         namaDepartemen: null,
         jumlahSopBerlaku: 2,
@@ -46,7 +46,7 @@ describe('SopPublicService — FTI-native archive', () => {
       {
         prosesBisnisId: 'process-dept',
         nama: 'Pengelolaan Tugas Akhir',
-        scope: LingkupOrganisasi.DEPARTMENT,
+        lingkup: LingkupOrganisasi.DEPARTMENT,
         departemenId: 'department-if',
         namaDepartemen: 'Informatika',
         jumlahSopBerlaku: 1,
@@ -57,10 +57,10 @@ describe('SopPublicService — FTI-native archive', () => {
 
     expect(actual.pagination.totalItems).toBe(2);
     expect(actual.items).toEqual([
-      expect.objectContaining({ prosesBisnisId: 'process-faculty', scope: LingkupOrganisasi.FACULTY }),
+      expect.objectContaining({ prosesBisnisId: 'process-faculty', lingkup: LingkupOrganisasi.FACULTY }),
       expect.objectContaining({
         prosesBisnisId: 'process-dept',
-        scope: LingkupOrganisasi.DEPARTMENT,
+        lingkup: LingkupOrganisasi.DEPARTMENT,
         namaDepartemen: 'Informatika',
       }),
     ]);
@@ -70,7 +70,7 @@ describe('SopPublicService — FTI-native archive', () => {
     repo.findProsesBisnisById.mockResolvedValue({
       prosesBisnisId: 'process-faculty',
       nama: 'Pengelolaan Akademik FTI',
-      scope: LingkupOrganisasi.FACULTY,
+      lingkup: LingkupOrganisasi.FACULTY,
       departemenId: null,
       namaDepartemen: null,
       jumlahSopBerlaku: 1,
@@ -88,7 +88,7 @@ describe('SopPublicService — FTI-native archive', () => {
         pdfPath: 'official.pdf',
         prosesBisnisId: 'process-faculty',
         namaProsesBisnis: 'Pengelolaan Akademik FTI',
-        scope: LingkupOrganisasi.FACULTY,
+        lingkup: LingkupOrganisasi.FACULTY,
         departemenId: null,
         namaDepartemen: null,
       },
@@ -130,7 +130,7 @@ describe('SopPublicService — FTI-native archive', () => {
         pdfPath: 'legacy.pdf',
         prosesBisnisId: null,
         namaProsesBisnis: null,
-        scope: null,
+        lingkup: null,
         departemenId: null,
         namaDepartemen: null,
       },

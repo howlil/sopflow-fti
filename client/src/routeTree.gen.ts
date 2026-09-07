@@ -11,21 +11,21 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WorkRouteRouteImport } from './routes/work/route'
 import { Route as PenyusunRouteRouteImport } from './routes/penyusun/route'
-import { Route as ApprovalRouteRouteImport } from './routes/approval/route'
+import { Route as ApprovalRouteRouteImport } from './routes/persetujuan/route'
 import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WorkIndexRouteImport } from './routes/work/index'
 import { Route as PenyusunIndexRouteImport } from './routes/penyusun/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as ArsipIndexRouteImport } from './routes/arsip/index'
-import { Route as ApprovalIndexRouteImport } from './routes/approval/index'
+import { Route as ApprovalIndexRouteImport } from './routes/persetujuan/index'
 import { Route as WorkQueueRouteImport } from './routes/work/queue'
 import { Route as ValidasiPdfIndexRouteImport } from './routes/validasi/pdf/index'
 import { Route as PenyusunSopIndexRouteImport } from './routes/penyusun/sop/index'
 import { Route as PenyusunPeraturanIndexRouteImport } from './routes/penyusun/peraturan/index'
 import { Route as PenyusunPelaksanaIndexRouteImport } from './routes/penyusun/pelaksana/index'
 import { Route as PenyusunMeIndexRouteImport } from './routes/penyusun/me/index'
-import { Route as AdminProsesBisnisesIndexRouteImport } from './routes/admin/processes/index'
+import { Route as AdminProsesBisnisesIndexRouteImport } from './routes/admin/proses-bisnis/index'
 import { Route as AdminAuthoritiesIndexRouteImport } from './routes/admin/authorities/index'
 import { Route as AdminAccountsIndexRouteImport } from './routes/admin/accounts/index'
 import { Route as PenyusunSopIdRouteImport } from './routes/penyusun/sop/$id'
@@ -42,8 +42,8 @@ const PenyusunRouteRoute = PenyusunRouteRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApprovalRouteRoute = ApprovalRouteRouteImport.update({
-  id: '/approval',
-  path: '/approval',
+  id: '/persetujuan',
+  path: '/persetujuan',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRouteRoute = AdminRouteRouteImport.update({
@@ -112,8 +112,8 @@ const PenyusunMeIndexRoute = PenyusunMeIndexRouteImport.update({
   getParentRoute: () => PenyusunRouteRoute,
 } as any)
 const AdminProsesBisnisesIndexRoute = AdminProsesBisnisesIndexRouteImport.update({
-  id: '/processes/',
-  path: '/processes/',
+  id: '/prosesBisnis/',
+  path: '/prosesBisnis/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminAuthoritiesIndexRoute = AdminAuthoritiesIndexRouteImport.update({
@@ -141,11 +141,11 @@ const ValidasiPengesahanDokumenTteIdUserIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteRouteWithChildren
-  '/approval': typeof ApprovalRouteRouteWithChildren
+  '/persetujuan': typeof ApprovalRouteRouteWithChildren
   '/penyusun': typeof PenyusunRouteRouteWithChildren
   '/work': typeof WorkRouteRouteWithChildren
   '/work/queue': typeof WorkQueueRoute
-  '/approval/': typeof ApprovalIndexRoute
+  '/persetujuan/': typeof ApprovalIndexRoute
   '/arsip/': typeof ArsipIndexRoute
   '/login/': typeof LoginIndexRoute
   '/penyusun/': typeof PenyusunIndexRoute
@@ -153,7 +153,7 @@ export interface FileRoutesByFullPath {
   '/penyusun/sop/$id': typeof PenyusunSopIdRoute
   '/admin/accounts/': typeof AdminAccountsIndexRoute
   '/admin/authorities/': typeof AdminAuthoritiesIndexRoute
-  '/admin/processes/': typeof AdminProsesBisnisesIndexRoute
+  '/admin/proses-bisnis/': typeof AdminProsesBisnisesIndexRoute
   '/penyusun/me/': typeof PenyusunMeIndexRoute
   '/penyusun/pelaksana/': typeof PenyusunPelaksanaIndexRoute
   '/penyusun/peraturan/': typeof PenyusunPeraturanIndexRoute
@@ -165,7 +165,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteRouteWithChildren
   '/work/queue': typeof WorkQueueRoute
-  '/approval': typeof ApprovalIndexRoute
+  '/persetujuan': typeof ApprovalIndexRoute
   '/arsip': typeof ArsipIndexRoute
   '/login': typeof LoginIndexRoute
   '/penyusun': typeof PenyusunIndexRoute
@@ -173,7 +173,7 @@ export interface FileRoutesByTo {
   '/penyusun/sop/$id': typeof PenyusunSopIdRoute
   '/admin/accounts': typeof AdminAccountsIndexRoute
   '/admin/authorities': typeof AdminAuthoritiesIndexRoute
-  '/admin/processes': typeof AdminProsesBisnisesIndexRoute
+  '/admin/proses-bisnis': typeof AdminProsesBisnisesIndexRoute
   '/penyusun/me': typeof PenyusunMeIndexRoute
   '/penyusun/pelaksana': typeof PenyusunPelaksanaIndexRoute
   '/penyusun/peraturan': typeof PenyusunPeraturanIndexRoute
@@ -185,11 +185,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteRouteWithChildren
-  '/approval': typeof ApprovalRouteRouteWithChildren
+  '/persetujuan': typeof ApprovalRouteRouteWithChildren
   '/penyusun': typeof PenyusunRouteRouteWithChildren
   '/work': typeof WorkRouteRouteWithChildren
   '/work/queue': typeof WorkQueueRoute
-  '/approval/': typeof ApprovalIndexRoute
+  '/persetujuan/': typeof ApprovalIndexRoute
   '/arsip/': typeof ArsipIndexRoute
   '/login/': typeof LoginIndexRoute
   '/penyusun/': typeof PenyusunIndexRoute
@@ -197,7 +197,7 @@ export interface FileRoutesById {
   '/penyusun/sop/$id': typeof PenyusunSopIdRoute
   '/admin/accounts/': typeof AdminAccountsIndexRoute
   '/admin/authorities/': typeof AdminAuthoritiesIndexRoute
-  '/admin/processes/': typeof AdminProsesBisnisesIndexRoute
+  '/admin/proses-bisnis/': typeof AdminProsesBisnisesIndexRoute
   '/penyusun/me/': typeof PenyusunMeIndexRoute
   '/penyusun/pelaksana/': typeof PenyusunPelaksanaIndexRoute
   '/penyusun/peraturan/': typeof PenyusunPeraturanIndexRoute
@@ -210,11 +210,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
-    | '/approval'
+    | '/persetujuan'
     | '/penyusun'
     | '/work'
     | '/work/queue'
-    | '/approval/'
+    | '/persetujuan/'
     | '/arsip/'
     | '/login/'
     | '/penyusun/'
@@ -222,7 +222,7 @@ export interface FileRouteTypes {
     | '/penyusun/sop/$id'
     | '/admin/accounts/'
     | '/admin/authorities/'
-    | '/admin/processes/'
+    | '/admin/proses-bisnis/'
     | '/penyusun/me/'
     | '/penyusun/pelaksana/'
     | '/penyusun/peraturan/'
@@ -234,7 +234,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/work/queue'
-    | '/approval'
+    | '/persetujuan'
     | '/arsip'
     | '/login'
     | '/penyusun'
@@ -242,7 +242,7 @@ export interface FileRouteTypes {
     | '/penyusun/sop/$id'
     | '/admin/accounts'
     | '/admin/authorities'
-    | '/admin/processes'
+    | '/admin/proses-bisnis'
     | '/penyusun/me'
     | '/penyusun/pelaksana'
     | '/penyusun/peraturan'
@@ -253,11 +253,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
-    | '/approval'
+    | '/persetujuan'
     | '/penyusun'
     | '/work'
     | '/work/queue'
-    | '/approval/'
+    | '/persetujuan/'
     | '/arsip/'
     | '/login/'
     | '/penyusun/'
@@ -265,7 +265,7 @@ export interface FileRouteTypes {
     | '/penyusun/sop/$id'
     | '/admin/accounts/'
     | '/admin/authorities/'
-    | '/admin/processes/'
+    | '/admin/proses-bisnis/'
     | '/penyusun/me/'
     | '/penyusun/pelaksana/'
     | '/penyusun/peraturan/'
@@ -302,10 +302,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PenyusunRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/approval': {
-      id: '/approval'
-      path: '/approval'
-      fullPath: '/approval'
+    '/persetujuan': {
+      id: '/persetujuan'
+      path: '/persetujuan'
+      fullPath: '/persetujuan'
       preLoaderRoute: typeof ApprovalRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -351,10 +351,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArsipIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/approval/': {
-      id: '/approval/'
+    '/persetujuan/': {
+      id: '/persetujuan/'
       path: '/'
-      fullPath: '/approval/'
+      fullPath: '/persetujuan/'
       preLoaderRoute: typeof ApprovalIndexRouteImport
       parentRoute: typeof ApprovalRouteRoute
     }
@@ -400,10 +400,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PenyusunMeIndexRouteImport
       parentRoute: typeof PenyusunRouteRoute
     }
-    '/admin/processes/': {
-      id: '/admin/processes/'
-      path: '/processes'
-      fullPath: '/admin/processes/'
+    '/admin/proses-bisnis/': {
+      id: '/admin/proses-bisnis/'
+      path: '/prosesBisnis'
+      fullPath: '/admin/proses-bisnis/'
       preLoaderRoute: typeof AdminProsesBisnisesIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../../core/auth/auth.module';
-import { ProsesBisnisModule } from '../../core/process/process.module';
+import { ProsesBisnisModule } from '../../core/proses-bisnis/proses-bisnis.module';
 import { SopWorkbenchModule } from '../catalog/sop-workbench.module';
 import { PelaksanaModule } from '../pelaksana/pelaksana.module';
 import { SopProsedurController } from './sop-prosedur.controller';

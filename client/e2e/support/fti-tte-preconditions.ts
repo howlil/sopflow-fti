@@ -28,7 +28,7 @@ export async function seedProsesBisnisSopReadyForTte(
 ): Promise<ReadyProsesBisnisSopFixture> {
   const authorityUser = options.authorityUser ?? targetUsers.dean
   const sop = await seedProsesBisnisSopAwaitingOwnerReview(apiFor, prefix, options)
-  const ownerApi = await apiFor(targetUsers.processOwner)
+  const ownerApi = await apiFor(targetUsers.penanggungJawabProsesBisnis)
   const authorityApi = await apiFor(authorityUser)
 
   await apiPost(ownerApi, `/sop-proses-bisnis/${sop.detailSopId}/review`, {

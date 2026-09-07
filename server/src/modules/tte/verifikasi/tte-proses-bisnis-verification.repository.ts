@@ -14,7 +14,7 @@ export class ProsesBisnisTteVerificationRepository {
       },
       select: {
         authority: true,
-        authorityKey: true,
+        kunciPejabatBerwenang: true,
         approvedById: true,
       },
     });

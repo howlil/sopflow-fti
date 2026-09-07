@@ -6,7 +6,7 @@ import {
   StatusSOP,
 } from '../../../generated/prisma';
 import type { JwtAccessPayload } from '../../../common';
-import type { NotifikasiProsesBisnisService } from '../../notifications/process/process-notification.service';
+import type { NotifikasiProsesBisnisService } from '../../notifications/proses-bisnis/notifikasi-proses-bisnis.service';
 import type { SopOfficialPdfService } from '../../sop/pdf/sop-official-pdf.service';
 import type { SopPdfStorageService } from '../../sop/pdf/sop-pdf-storage.service';
 import type { TteRepository } from '../shared/repository/tte.repository';
@@ -32,7 +32,7 @@ const context: ProsesBisnisTteSigningContext = {
   approval: {
     approvedById: user.sub,
     authority: PejabatBerwenang.DEAN,
-    authorityKey: 'DEAN',
+    kunciPejabatBerwenang: 'DEAN',
     approvedAt: new Date('2026-09-01T00:00:00Z'),
   },
 };
@@ -51,12 +51,12 @@ function createService(overrides?: {
       detailSopId: signingContext.detailSopId,
       dokumenTteId: 'doc-1',
       authority: signingContext.approval.authority,
-      authorityKey: signingContext.approval.authorityKey,
+      kunciPejabatBerwenang: signingContext.approval.kunciPejabatBerwenang,
     };
   const tx = {
-    process: {
+    prosesBisnis: {
       findUnique: jest.fn().mockResolvedValue({
-        ownerId: overrides?.processOwnerId ?? 'owner-1',
+        penanggungJawabId: overrides?.processOwnerId ?? 'owner-1',
         nama: 'Akademik',
       }),
     },
@@ -219,7 +219,7 @@ describe('ProsesBisnisTteService', () => {
       approval: {
         ...context.approval,
         authority: PejabatBerwenang.HEAD_OF_DEPARTMENT,
-        authorityKey: 'HEAD_OF_DEPARTMENT:00000000-0000-4000-8000-000000000020',
+        kunciPejabatBerwenang: 'HEAD_OF_DEPARTMENT:00000000-0000-4000-8000-000000000020',
       },
     };
     const { service, processRepo } = createService({ context: departmentContext });
@@ -238,7 +238,7 @@ describe('ProsesBisnisTteService', () => {
     );
     expect(result).toEqual(expect.objectContaining({
       authority: PejabatBerwenang.HEAD_OF_DEPARTMENT,
-      authorityKey: departmentContext.approval.authorityKey,
+      kunciPejabatBerwenang: departmentContext.approval.kunciPejabatBerwenang,
       status: StatusSOP.EFFECTIVE,
     }));
   });

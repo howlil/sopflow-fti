@@ -25,7 +25,7 @@ test.describe('End-to-End Business Journey — Departemen persetujuan akhir', ()
     })
 
     await test.step('Relevant Penanggung Jawab Proses Bisnis menerima SOP Departemen untuk persetujuan akhir handoff', async () => {
-      const owner = await roleSession(targetUsers.processOwner)
+      const owner = await roleSession(targetUsers.penanggungJawabProsesBisnis)
       await acceptProsesBisnisSopViaUi(owner.page, sop.detailSopId)
     })
 
@@ -37,12 +37,12 @@ test.describe('End-to-End Business Journey — Departemen persetujuan akhir', ()
 
       const relevantNotifications = await apiGet<NotifikasiProsesBisnis[]>(
         relevantApi,
-        '/notifications/process?limit=20',
+        '/notifications/proses-bisnis?limit=20',
       )
-      const deanNotifications = await apiGet<NotifikasiProsesBisnis[]>(deanApi, '/notifications/process?limit=20')
+      const deanNotifications = await apiGet<NotifikasiProsesBisnis[]>(deanApi, '/notifications/proses-bisnis?limit=20')
       const otherNotifications = await apiGet<NotifikasiProsesBisnis[]>(
         otherHeadApi,
-        '/notifications/process?limit=20',
+        '/notifications/proses-bisnis?limit=20',
       )
 
       expect(relevantNotifications.some((item) => item.preview === expectedPreview)).toBe(true)

@@ -1,4 +1,4 @@
-/** Profil kredensial TTE. Authority tanda tangan berasal dari ProsesBisnis scope. */
+/** Profil kredensial TTE. Authority tanda tangan berasal dari ProsesBisnis lingkup. */
 export interface TteProfil {
   id: string;
   userId: string;
@@ -148,7 +148,7 @@ export interface TandaTanganiProsesBisnisSopResponse {
   detailSopId: string;
   dokumenTteId: string;
   authority: TteAuthority;
-  authorityKey: string;
+  kunciPejabatBerwenang: string;
   status: 'EFFECTIVE';
   ditandatanganiPada: string;
   tanggalEfektif: string;

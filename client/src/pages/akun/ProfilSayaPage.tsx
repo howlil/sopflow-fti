@@ -5,7 +5,7 @@ import { FormField } from "@/components/ui/form-field";
 import { SetPageHeader } from "@/components/layout/PageHeaderProvider";
 import { useAuth } from "@/api/auth";
 import { useTTEProfil } from "@/api/tte";
-import { useMyOrganizationalAuthorities } from "@/api/organizational-authority";
+import { useMyOrganizationalAuthorities } from "@/api/pejabat-berwenang";
 import { useAuthStore } from "@/stores/authStore";
 import { TteSetupSection } from "@/pages/akun/components/TteSetupSection";
 import { PhoneProfileSection } from "@/pages/akun/components/PhoneProfileSection";

@@ -23,7 +23,7 @@ describe('public auth design contract', () => {
     expect(loginPageSource).toContain('LoginForm isSubmitting={isLoggingIn} onSubmitLogin={login}')
   })
 
-  it('uses FTI identity and the native lifecycle in the visual panel', () => {
+  it('uses FTI identity and the native siklus in the visual panel', () => {
     expect(loginHeroSource).toContain('Portal Internal SOP FTI')
     expect(loginHeroSource).toContain('Kelola SOP berdasarkan Proses Bisnis dan kewenangan organisasi')
     expect(loginHeroSource).toContain('Fakultas Teknologi Informasi · SOPFlow')

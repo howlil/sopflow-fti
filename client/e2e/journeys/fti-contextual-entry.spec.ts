@@ -7,7 +7,7 @@ test.describe('End-to-End Business Journey — FTI contextual entry', () => {
     roleSession,
   }) => {
     await test.step('Penanggung Jawab Proses Bisnis melihat pekerjaan Proses Bisnis tanpa workflow legacy sebagai jalur utama', async () => {
-      const { page } = await roleSession(targetUsers.processOwner)
+      const { page } = await roleSession(targetUsers.penanggungJawabProsesBisnis)
 
       await page.goto('/work')
       await waitForAppReady(page)

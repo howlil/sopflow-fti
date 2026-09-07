@@ -16,14 +16,14 @@ export const sopPublicApi = {
   listProsesBisnis: (params?: PublicArsipQueryParams) =>
     unwrapApiData<PublicProsesBisnisPage>(
       apiClient.get<ApiSuccessResponse<PublicProsesBisnisPage>>(
-        `/sop/public/fti/processes${buildQueryString(params as Record<string, unknown> | undefined)}`,
+        `/sop/public/fti/prosesBisnis${buildQueryString(params as Record<string, unknown> | undefined)}`,
       ),
     ),
 
   listSopByProsesBisnis: (prosesBisnisId: string, params?: PublicArsipQueryParams) =>
     unwrapApiData<PublicSopByProsesBisnisPage>(
       apiClient.get<ApiSuccessResponse<PublicSopByProsesBisnisPage>>(
-        `/sop/public/fti/processes/${encodeURIComponent(prosesBisnisId)}/sop${buildQueryString(params as Record<string, unknown> | undefined)}`,
+        `/sop/public/fti/prosesBisnis/${encodeURIComponent(prosesBisnisId)}/sop${buildQueryString(params as Record<string, unknown> | undefined)}`,
       ),
     ),
 

@@ -16,7 +16,7 @@ interface VersionHistoryRow {
 }
 
 test.describe('End-to-End Business Journey — contextual SOP revocation', () => {
-  test('J28 Contextual Revocation Authority — Dean/Kadep mencabut hanya SOP dalam authority scope-nya', async ({
+  test('J28 Contextual Revocation Authority — Dean/Kadep mencabut hanya SOP dalam authority lingkup-nya', async ({
     roleApi,
     roleSession,
   }) => {
@@ -44,7 +44,7 @@ test.describe('End-to-End Business Journey — contextual SOP revocation', () =>
     await test.step('Wrong HoD, Penanggung Jawab Proses Bisnis, dan SUPER_ADMIN tanpa authority tidak dapat mencabut', async () => {
       for (const actor of [
         targetUsers.otherHeadOfDepartemen,
-        targetUsers.processOwner,
+        targetUsers.penanggungJawabProsesBisnis,
         users.pjEvaluator,
       ]) {
         await expectRevocationRejectedViaApi(

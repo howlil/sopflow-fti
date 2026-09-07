@@ -17,17 +17,17 @@ test.describe('End-to-End Business Journey — contextual persetujuan akhir', ()
     const deanApi = await roleApi(targetUsers.dean)
 
     await test.step('Isolasi notifikasi Proses Bisnis Dean dari journey sebelumnya', async () => {
-      const response = await deanApi.post(toApiUrl('/notifications/process/read-all'))
+      const response = await deanApi.post(toApiUrl('/notifications/proses-bisnis/read-all'))
       expect(response.status()).toBe(201)
     })
 
     await test.step('Penanggung Jawab Proses Bisnis menerima SOP melalui UI', async () => {
-      const owner = await roleSession(targetUsers.processOwner)
+      const owner = await roleSession(targetUsers.penanggungJawabProsesBisnis)
       await acceptProsesBisnisSopViaUi(owner.page, sop.detailSopId)
     })
 
     await test.step('Dekan menerima tepat satu contextual notification baru', async () => {
-      const response = await deanApi.get(toApiUrl('/notifications/process?limit=50'))
+      const response = await deanApi.get(toApiUrl('/notifications/proses-bisnis?limit=50'))
       expect(response.status()).toBe(200)
       const payload = (await response.json()) as {
         data: Array<{
@@ -53,7 +53,7 @@ test.describe('End-to-End Business Journey — contextual persetujuan akhir', ()
 
     await test.step('Dekan menyetujui SOP fakultas dan meninggalkannya siap TTE', async () => {
       const dean = await roleSession(targetUsers.dean)
-      await dean.page.goto('/approval')
+      await dean.page.goto('/persetujuan')
       await approveFacultyProsesBisnisSopViaUi(dean.page, sop.title)
     })
   })

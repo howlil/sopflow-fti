@@ -38,24 +38,24 @@ export class SopWorkbenchReader {
 
     const process = await this.prisma.prosesBisnis.findUnique({
       where: { prosesBisnisId: row.sop.prosesBisnisId },
-      select: { scope: true, departemenId: true },
+      select: { lingkup: true, departemenId: true },
     });
     if (process === null) return mapped;
 
     const expectedAuthority =
-      process.scope === LingkupOrganisasi.FACULTY
+      process.lingkup === LingkupOrganisasi.FACULTY
         ? PejabatBerwenang.DEAN
         : PejabatBerwenang.HEAD_OF_DEPARTMENT;
-    const authorityKey =
-      process.scope === LingkupOrganisasi.FACULTY
+    const kunciPejabatBerwenang =
+      process.lingkup === LingkupOrganisasi.FACULTY
         ? 'DEAN'
         : process.departemenId === null
           ? null
           : `HEAD_OF_DEPARTMENT:${process.departemenId}`;
-    if (authorityKey === null) return mapped;
+    if (kunciPejabatBerwenang === null) return mapped;
 
     const assignment = await this.prisma.penugasanPejabatBerwenang.findUnique({
-      where: { authorityKey },
+      where: { kunciPejabatBerwenang },
       select: { authority: true, departemenId: true, holderId: true },
     });
     if (

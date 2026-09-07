@@ -30,11 +30,11 @@ export const ROUTES = {
   },
   ADMIN: {
     ACCOUNTS: "/admin/accounts",
-    PROCESSES: "/admin/processes",
+    PROCESSES: "/admin/proses-bisnis",
     AUTHORITIES: "/admin/authorities",
   },
   APPROVAL: {
-    INBOX: "/approval",
+    INBOX: "/persetujuan",
   },
   /** Existing authoring route names are retained; access is ProsesBisnis-native. */
   PENYUSUN: {

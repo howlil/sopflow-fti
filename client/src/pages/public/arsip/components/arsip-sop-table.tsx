@@ -126,7 +126,7 @@ function SopTableRow({ sop, showContextColumn, isSelected, onSelectSop }: {
 }
 
 export function formatSopContext(sop: PublicSopItem): string {
-  if (sop.scope === 'DEPARTMENT' && sop.namaDepartemen) {
+  if (sop.lingkup === 'DEPARTMENT' && sop.namaDepartemen) {
     return `${sop.namaDepartemen} · ${sop.namaProsesBisnis}`
   }
   return `Fakultas · ${sop.namaProsesBisnis}`

@@ -35,7 +35,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
 
   if (process.env.E2E_SKIP_LOGIN_PREFLIGHT === 'true') return
 
-  const actor = targetUsers.processOwner
+  const actor = targetUsers.penanggungJawabProsesBisnis
   const loginApi = await request.newContext({ baseURL: apiBaseURL })
   try {
     const response = await loginApi.post(`${apiBaseURL}/auth/login`, {

@@ -11,7 +11,7 @@ export type ProsesBisnisInAppNotificationDto = {
   title: string
   preview: string
   body: string
-  actionHref: '/work/queue' | '/approval'
+  actionHref: '/work/queue' | '/persetujuan'
   readAt: string | null
   createdAt: string
 }

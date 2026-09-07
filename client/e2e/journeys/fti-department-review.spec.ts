@@ -22,28 +22,28 @@ test.describe('End-to-End Business Journey — Departemen Penanggung Jawab Prose
     })
 
     await test.step('Departemen Member melihat draft pada work queue', async () => {
-      const member = await roleSession(targetUsers.departmentMember)
-      await expectProsesBisnisDraftInMemberQueue(member.page, sop.title)
+      const anggota = await roleSession(targetUsers.departmentMember)
+      await expectProsesBisnisDraftInMemberQueue(anggota.page, sop.title)
     })
 
     await test.step('Departemen Member mengirim SOP lengkap untuk Penanggung Jawab Proses Bisnis review', async () => {
-      const member = await roleSession(targetUsers.departmentMember)
-      await submitProsesBisnisSopForReviewViaUi(member.page, sop.detailSopId)
+      const anggota = await roleSession(targetUsers.departmentMember)
+      await submitProsesBisnisSopForReviewViaUi(anggota.page, sop.detailSopId)
     })
 
     await test.step('Relevant Penanggung Jawab Proses Bisnis menerima pekerjaan review', async () => {
-      const owner = await roleSession(targetUsers.processOwner)
+      const owner = await roleSession(targetUsers.penanggungJawabProsesBisnis)
       await expectPemeriksaanProsesBisnisInOwnerQueue(owner.page, sop.title)
     })
 
     await test.step('Relevant Penanggung Jawab Proses Bisnis mengembalikan SOP untuk revisi', async () => {
-      const owner = await roleSession(targetUsers.processOwner)
+      const owner = await roleSession(targetUsers.penanggungJawabProsesBisnis)
       await requestProsesBisnisRevisionViaUi(owner.page, sop.detailSopId)
     })
 
     await test.step('Departemen Member menerima kembali SOP revisi dan Departemen B tetap ditolak', async () => {
-      const member = await roleSession(targetUsers.departmentMember)
-      await expectProsesBisnisRevisionInMemberQueue(member.page, sop.title)
+      const anggota = await roleSession(targetUsers.departmentMember)
+      await expectProsesBisnisRevisionInMemberQueue(anggota.page, sop.title)
 
       const unrelatedApi = await roleApi(targetUsers.otherDepartemenMember)
       const response = await unrelatedApi.get(

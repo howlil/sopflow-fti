@@ -43,7 +43,7 @@ export async function createDepartemenProsesBisnisViaAdminUi(
   page: Page,
   input: AdminProsesBisnisUiInput,
 ): Promise<void> {
-  await page.goto('/admin/processes')
+  await page.goto('/admin/proses-bisnis')
   await waitForAppReady(page)
   await expect(page.getByRole('heading', { name: 'Proses Bisnis FTI', exact: true })).toBeVisible()
 
@@ -53,7 +53,7 @@ export async function createDepartemenProsesBisnisViaAdminUi(
   await expect(page.getByText(input.namaDepartemen, { exact: true })).toBeVisible({ timeout: 15_000 })
 
   await page.getByLabel('Nama Proses Bisnis').fill(input.namaProsesBisnis)
-  await page.getByLabel('Scope').selectOption('DEPARTMENT')
+  await page.getByLabel('Lingkup').selectOption('DEPARTMENT')
   await page.getByLabel('Departemen').selectOption({ label: input.namaDepartemen })
   const ownerSelect = page
     .locator('label')
@@ -77,7 +77,7 @@ export async function createDepartemenProsesBisnisViaAdminUi(
   await expect(processHeading).toBeVisible({ timeout: 15_000 })
   const row = processHeading.locator('xpath=ancestor::div[.//button[normalize-space(.)="Edit"]][1]')
   await expect(row).toContainText(input.namaDepartemen)
-  await expect(row).toContainText(`${input.memberLabels.length} member`)
+  await expect(row).toContainText(`${input.memberLabels.length} anggota`)
   await expectNoAppShellError(page)
 }
 

@@ -49,7 +49,7 @@ model Departemen {
   nama         String    @unique @db.VarChar(100)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
-  processes    ProsesBisnis[]
+  prosesBisnis    ProsesBisnis[]
 
   @@map("Department")
 }
@@ -58,18 +58,18 @@ model Departemen {
 model ProsesBisnis {
   prosesBisnisId    String              @id @default(uuid()) @db.Char(36) @map("processId")
   nama         String              @db.VarChar(120)
-  scope        LingkupOrganisasi
+  lingkup        LingkupOrganisasi @map("scope")
   departemenId String?             @db.Char(36) @map("departmentId")
-  ownerId      String              @db.Char(36)
+  penanggungJawabId      String              @db.Char(36) @map("ownerId")
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
-  department   Departemen?         @relation(fields: [departemenId], references: [departemenId], onDelete: Restrict)
-  owner        Pengguna            @relation("PenanggungJawabProsesBisnis", fields: [ownerId], references: [penggunaId], onDelete: Restrict)
-  members      AnggotaProsesBisnis[]
-  sops         SOP[]
+  departemen   Departemen?         @relation(fields: [departemenId], references: [departemenId], onDelete: Restrict)
+  penanggungJawab        Pengguna            @relation("PenanggungJawabProsesBisnis", fields: [penanggungJawabId], references: [penggunaId], onDelete: Restrict)
+  anggota      AnggotaProsesBisnis[]
+  daftarSop         SOP[]
 
-  @@index([scope, departemenId], map: "Process_scope_departmentId_idx")
-  @@index([ownerId], map: "Process_ownerId_idx")
+  @@index([lingkup, departemenId], map: "Process_scope_departmentId_idx")
+  @@index([penanggungJawabId], map: "Process_ownerId_idx")
 
   @@map("Process")
 }
@@ -78,7 +78,7 @@ model AnggotaProsesBisnis {
   prosesBisnisId  String   @db.Char(36) @map("processId")
   penggunaId String   @db.Char(36)
   createdAt  DateTime @default(now())
-  process    ProsesBisnis  @relation(fields: [prosesBisnisId], references: [prosesBisnisId], onDelete: Cascade)
+  prosesBisnis    ProsesBisnis  @relation(fields: [prosesBisnisId], references: [prosesBisnisId], onDelete: Cascade)
   pengguna   Pengguna @relation(fields: [penggunaId], references: [penggunaId], onDelete: Restrict)
 
   @@id([prosesBisnisId, penggunaId])
@@ -117,7 +117,7 @@ model SOP {
   updatedAt  DateTime    @updatedAt
   detailSops DetailSOP[]
   /// Null is reserved only for imported archive rows that are not part of the active FTI workflow.
-  process    ProsesBisnis?    @relation(fields: [prosesBisnisId], references: [prosesBisnisId], onDelete: Restrict)
+  prosesBisnis    ProsesBisnis?    @relation(fields: [prosesBisnisId], references: [prosesBisnisId], onDelete: Restrict)
 
   @@index([prosesBisnisId])
 }
@@ -516,12 +516,12 @@ enum PejabatBerwenang {
 }
 
 /// Deterministic authority assignment for the fixed FTI approval model.
-/// `authorityKey` is `DEAN` for faculty scope or
-/// `HEAD_OF_DEPARTMENT:<departemenId>` for department scope.
+/// `kunciPejabatBerwenang` is `DEAN` for faculty lingkup or
+/// `HEAD_OF_DEPARTMENT:<departemenId>` for departemen lingkup.
 /// Relations are intentionally scalar-only during the OPD-to-FTI migration;
 /// database foreign keys are installed by the migration.
 model PenugasanPejabatBerwenang {
-  authorityKey String                  @id @db.VarChar(64)
+  kunciPejabatBerwenang String                  @id @db.VarChar(64) @map("authorityKey")
   authority    PejabatBerwenang
   departemenId String?                 @db.Char(36) @map("departmentId")
   holderId     String                  @db.Char(36)
@@ -543,12 +543,12 @@ model PersetujuanAkhirSOP {
   approvedById    String                  @db.Char(36)
   pemeriksaanProsesBisnisId String?                 @db.Char(36) @map("processReviewId")
   authority       PejabatBerwenang
-  authorityKey    String                  @db.VarChar(64)
+  kunciPejabatBerwenang    String                  @db.VarChar(64) @map("authorityKey")
   approvedAt      DateTime                @default(now())
 
   @@index([prosesBisnisId, approvedAt], map: "ProcessFinalApproval_processId_approvedAt_idx")
   @@index([approvedById, approvedAt], map: "ProcessFinalApproval_approvedById_approvedAt_idx")
-  @@index([authorityKey], map: "ProcessFinalApproval_authorityKey_idx")
+  @@index([kunciPejabatBerwenang], map: "ProcessFinalApproval_authorityKey_idx")
   @@index([pemeriksaanProsesBisnisId], map: "ProcessFinalApproval_processReviewId_idx")
 
   @@map("ProcessFinalApproval")
@@ -697,22 +697,22 @@ enum JenisAktivitasProsesBisnis {
   @@map("ProcessAuditEvent")
 }
 
-/// Eligibility to create and own ProsesBisnises in one organizational scope.
+/// Eligibility to create and own ProsesBisnises in one organizational lingkup.
 /// Deliberately separate from PlatformRole and PejabatBerwenang/TTE.
 model KewenanganPenanggungJawabProsesBisnis {
   kewenanganPenanggungJawabProsesBisnisId String              @id @default(uuid()) @db.Char(36) @map("processOwnerAuthorityId")
   penggunaId              String              @db.Char(36)
-  scope                    LingkupOrganisasi
+  lingkup                    LingkupOrganisasi @map("scope")
   departemenId             String?             @db.Char(36) @map("departmentId")
-  /// FACULTY or DEPARTMENT:<departemenId>; makes nullable-department uniqueness deterministic.
-  scopeKey                 String              @db.VarChar(64)
+  /// FACULTY or DEPARTMENT:<departemenId>; makes nullable-departemen uniqueness deterministic.
+  kunciLingkup                 String              @db.VarChar(64) @map("scopeKey")
   grantedById              String              @db.Char(36)
   revokedAt                DateTime?           @db.DateTime(3)
   createdAt                DateTime            @default(now()) @db.DateTime(3)
   updatedAt                DateTime            @updatedAt @db.DateTime(3)
 
-  @@unique([penggunaId, scopeKey], map: "ProcessOwnerAuthority_user_scopeKey_key")
-  @@index([scope, departemenId, revokedAt], map: "ProcessOwnerAuthority_scope_active_idx")
+  @@unique([penggunaId, kunciLingkup], map: "ProcessOwnerAuthority_user_scopeKey_key")
+  @@index([lingkup, departemenId, revokedAt], map: "ProcessOwnerAuthority_scope_active_idx")
   @@index([grantedById, createdAt], map: "ProcessOwnerAuthority_granter_created_idx")
 
   @@map("ProcessOwnerAuthority")

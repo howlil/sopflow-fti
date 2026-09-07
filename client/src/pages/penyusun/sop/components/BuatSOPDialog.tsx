@@ -36,7 +36,7 @@ export function BuatSOPDialog({
   onCreate,
 }: BuatSOPDialogProps) {
   const [formData, setFormData] = useState(EMPTY_FORM);
-  const { data: processes = [], isLoading: isLoadingProsesBisnises } = useMyProsesBisnises();
+  const { data: prosesBisnis = [], isLoading: isLoadingProsesBisnises } = useMyProsesBisnises();
   const { showToast } = useToast();
 
   const handleSubmit = async () => {
@@ -89,13 +89,13 @@ export function BuatSOPDialog({
               <option value="">
                 {isLoadingProsesBisnises ? "Memuat Proses Bisnis..." : "Pilih Proses Bisnis"}
               </option>
-              {processes.map((process) => (
+              {prosesBisnis.map((process) => (
                 <option key={process.prosesBisnisId} value={process.prosesBisnisId}>
-                  {process.nama} · {process.scope === "FACULTY" ? "Faculty" : process.department?.nama ?? "Departemen"}
+                  {process.nama} · {process.lingkup === "FACULTY" ? "Faculty" : process.departemen?.nama ?? "Departemen"}
                 </option>
               ))}
             </select>
-            {!isLoadingProsesBisnises && processes.length === 0 ? (
+            {!isLoadingProsesBisnises && prosesBisnis.length === 0 ? (
               <p className="mt-1 text-xs text-secondary-foreground">
                 Anda belum ditugaskan sebagai ProsesBisnis Owner atau Member.
               </p>
@@ -135,7 +135,7 @@ export function BuatSOPDialog({
             size="sm"
             className="h-8 gap-1.5 text-xs"
             onClick={handleSubmit}
-            disabled={processes.length === 0}
+            disabled={prosesBisnis.length === 0}
           >
             <FileText className="w-3.5 h-3.5" />
             Buat SOP

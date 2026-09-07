@@ -7,7 +7,7 @@ import {
 import { assertDetailSopEditable } from '../../../common/status/sop-editable.util';
 import type { JwtAccessPayload } from '../../../common';
 import { JenisLangkahProsedur, Prisma } from '../../../generated/prisma';
-import { ProsesBisnisContextService } from '../../core/process/konteks-proses-bisnis.service';
+import { ProsesBisnisContextService } from '../../core/proses-bisnis/konteks-proses-bisnis.service';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
 import { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
 import type { LangkahPatchItem } from './dto/langkah-patch-item.dto';
@@ -26,7 +26,7 @@ export class SopProsedurService {
   constructor(
     private readonly sopProsedurRepository: SopProsedurRepository,
     private readonly sopWorkbenchReader: SopWorkbenchReader,
-    private readonly processContextService: ProsesBisnisContextService,
+    private readonly konteksProsesBisnisService: ProsesBisnisContextService,
   ) {}
 
   async updateProsedur(
@@ -42,10 +42,10 @@ export class SopProsedurService {
 
     if (resolved.prosesBisnisId === null) {
       throw new ConflictException(
-        'SOP belum memiliki Penanggung Jawab Proses Bisnisship dan tidak tersedia pada endpoint native',
+        'SOP belum memiliki Penanggung Jawab kepemilikan Proses Bisnis dan tidak tersedia pada endpoint native',
       );
     }
-    await this.processContextService.assertCanAuthor(user.sub, resolved.prosesBisnisId);
+    await this.konteksProsesBisnisService.assertCanAuthor(user.sub, resolved.prosesBisnisId);
 
     const detailStatus = await this.sopProsedurRepository.findDetailStatus(resolved.detailSopId);
     if (detailStatus === null) {

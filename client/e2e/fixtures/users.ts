@@ -10,7 +10,7 @@ export interface E2eUser {
 
 const defaultPassword = process.env.E2E_SEED_PASSWORD ?? '@Password123:)'
 
-/** Native FTI identities. Workflow capability comes from ProsesBisnis relationship or Organizational Authority. */
+/** Native FTI identities. Workflow capability comes from ProsesBisnis relationship or Pejabat Berwenang. */
 export const targetUsers = {
   admin: {
     role: 'SUPER_ADMIN',
@@ -19,17 +19,17 @@ export const targetUsers = {
     password: process.env.E2E_ADMIN_PASSWORD ?? defaultPassword,
     landingPath: '/admin',
   },
-  processOwner: {
+  penanggungJawabProsesBisnis: {
     role: 'USER',
     roleLabel: 'Pemilik Proses',
-    email: process.env.E2E_PROCESS_OWNER_EMAIL ?? 'process.owner@gmail.com',
+    email: process.env.E2E_PROCESS_OWNER_EMAIL ?? 'process.penanggungJawab@gmail.com',
     password: process.env.E2E_PROCESS_OWNER_PASSWORD ?? defaultPassword,
     landingPath: '/work',
   },
   anggotaProsesBisnis: {
     role: 'USER',
     roleLabel: 'Penyusun SOP',
-    email: process.env.E2E_PROCESS_MEMBER_EMAIL ?? 'process.member@gmail.com',
+    email: process.env.E2E_PROCESS_MEMBER_EMAIL ?? 'process.anggota@gmail.com',
     password: process.env.E2E_PROCESS_MEMBER_PASSWORD ?? defaultPassword,
     landingPath: '/work',
   },
@@ -50,14 +50,14 @@ export const targetUsers = {
   departmentMember: {
     role: 'USER',
     roleLabel: 'Penyusun SOP Informatika',
-    email: process.env.E2E_DEPARTMENT_MEMBER_EMAIL ?? 'process.member.if@gmail.com',
+    email: process.env.E2E_DEPARTMENT_MEMBER_EMAIL ?? 'process.anggota.if@gmail.com',
     password: process.env.E2E_DEPARTMENT_MEMBER_PASSWORD ?? defaultPassword,
     landingPath: '/work',
   },
   otherDepartemenMember: {
     role: 'USER',
     roleLabel: 'Penyusun SOP Sistem Informasi',
-    email: process.env.E2E_OTHER_DEPARTMENT_MEMBER_EMAIL ?? 'process.member.si@gmail.com',
+    email: process.env.E2E_OTHER_DEPARTMENT_MEMBER_EMAIL ?? 'process.anggota.si@gmail.com',
     password: process.env.E2E_OTHER_DEPARTMENT_MEMBER_PASSWORD ?? defaultPassword,
     landingPath: '/work',
   },

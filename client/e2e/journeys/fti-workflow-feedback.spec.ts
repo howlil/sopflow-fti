@@ -23,7 +23,7 @@ test.describe('End-to-End Business Journey — Proses Bisnis workflow feedback c
       namaProsesBisnis,
     })
     const authorApi = await roleApi(targetUsers.anggotaProsesBisnis)
-    const ownerApi = await roleApi(targetUsers.processOwner)
+    const ownerApi = await roleApi(targetUsers.penanggungJawabProsesBisnis)
     await markAllNotifikasiProsesBisnissRead(authorApi)
     await markAllNotifikasiProsesBisnissRead(ownerApi)
 
@@ -54,7 +54,7 @@ test.describe('End-to-End Business Journey — Proses Bisnis workflow feedback c
     )
 
     await test.step('Author dan Penanggung Jawab Proses Bisnis masing-masing menerima satu effective feedback', async () => {
-      for (const recipient of [targetUsers.anggotaProsesBisnis, targetUsers.processOwner]) {
+      for (const recipient of [targetUsers.anggotaProsesBisnis, targetUsers.penanggungJawabProsesBisnis]) {
         await expectSingleProsesBisnisFeedback(
           await roleApi(recipient),
           'PROCESS_SOP_EFFECTIVE',
@@ -80,7 +80,7 @@ test.describe('End-to-End Business Journey — Proses Bisnis workflow feedback c
       'Fakultas · Dekan',
     )
     const authorApi = await roleApi(targetUsers.anggotaProsesBisnis)
-    const ownerApi = await roleApi(targetUsers.processOwner)
+    const ownerApi = await roleApi(targetUsers.penanggungJawabProsesBisnis)
     await markAllNotifikasiProsesBisnissRead(authorApi)
     await markAllNotifikasiProsesBisnissRead(ownerApi)
 
@@ -108,7 +108,7 @@ test.describe('End-to-End Business Journey — Proses Bisnis workflow feedback c
     })
     const authorApi = await roleApi(targetUsers.anggotaProsesBisnis)
     await markAllNotifikasiProsesBisnissRead(authorApi)
-    await requestProsesBisnisRevisionViaApi(await roleApi(targetUsers.processOwner), sop.detailSopId)
+    await requestProsesBisnisRevisionViaApi(await roleApi(targetUsers.penanggungJawabProsesBisnis), sop.detailSopId)
 
     const expected = {
       title: 'Revisi SOP Proses Bisnis diperlukan',
@@ -129,7 +129,7 @@ test.describe('End-to-End Business Journey — Proses Bisnis workflow feedback c
     const feedbackId = unreadFeedback[0]!.notifikasiProsesBisnisId
 
     await test.step('Unread count merefleksikan feedback sebelum user membukanya', async () => {
-      const summary = await apiGet<{ unreadCount: number }>(authorApi, '/notifications/process/summary')
+      const summary = await apiGet<{ unreadCount: number }>(authorApi, '/notifications/proses-bisnis/summary')
       expect(summary.unreadCount).toBe(1)
     })
 
@@ -142,7 +142,7 @@ test.describe('End-to-End Business Journey — Proses Bisnis workflow feedback c
       const feedback = await findProsesBisnisFeedback(authorApi, 'PROCESS_REVISION_REQUESTED')
       const openedFeedback = feedback.find((item) => item.notifikasiProsesBisnisId === feedbackId)
       expect(openedFeedback?.readAt).not.toBeNull()
-      const summary = await apiGet<{ unreadCount: number }>(authorApi, '/notifications/process/summary')
+      const summary = await apiGet<{ unreadCount: number }>(authorApi, '/notifications/proses-bisnis/summary')
       expect(summary.unreadCount).toBe(0)
     })
   })

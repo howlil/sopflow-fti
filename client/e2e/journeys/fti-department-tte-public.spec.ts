@@ -23,7 +23,7 @@ test.describe('End-to-End Business Journey — Departemen TTE and public integri
 
     await test.step('Kadep Departemen lain tidak melihat SOP sebagai signing work miliknya', async () => {
       const otherHead = await roleSession(targetUsers.otherHeadOfDepartemen)
-      await otherHead.page.goto('/approval')
+      await otherHead.page.goto('/persetujuan')
       await waitForAppReady(otherHead.page)
       await expect(otherHead.page.getByRole('heading', { name: sop.title, exact: true })).toHaveCount(0)
       await expectNoAppShellError(otherHead.page)
@@ -35,8 +35,8 @@ test.describe('End-to-End Business Journey — Departemen TTE and public integri
     })
 
     await test.step('Departemen Anggota Proses Bisnis melihat SOP sudah berlaku', async () => {
-      const member = await roleSession(targetUsers.departmentMember)
-      await expectProsesBisnisSopBerlakuInWorkQueue(member.page, sop.title)
+      const anggota = await roleSession(targetUsers.departmentMember)
+      await expectProsesBisnisSopBerlakuInWorkQueue(anggota.page, sop.title)
     })
 
     await test.step('Arsip publik menampilkan SOP Departemen tanpa data workflow internal', async () => {

@@ -69,7 +69,7 @@ export const SEED_FTI_USERS: ReadonlyArray<SeedUserInput> = [
     nohp: '6281234567807',
   },
   {
-    email: 'process.owner@gmail.com',
+    email: 'process.penanggungJawab@gmail.com',
     nama: 'Ir. Hendri Gunawan, M.T.',
     nip: '198501012009011101',
     jabatan: 'Pemilik Proses',
@@ -77,7 +77,7 @@ export const SEED_FTI_USERS: ReadonlyArray<SeedUserInput> = [
     nohp: '6281234567801',
   },
   {
-    email: 'process.member@gmail.com',
+    email: 'process.anggota@gmail.com',
     nama: 'Rian Pratama, S.Kom.',
     nip: '198501012009011102',
     jabatan: 'Penyusun SOP Fakultas',
@@ -85,7 +85,7 @@ export const SEED_FTI_USERS: ReadonlyArray<SeedUserInput> = [
     nohp: '6281234567802',
   },
   {
-    email: 'process.member.if@gmail.com',
+    email: 'process.anggota.if@gmail.com',
     nama: 'Dian Paramita, S.Kom.',
     nip: '198501012009011105',
     jabatan: 'Penyusun SOP Informatika',
@@ -93,7 +93,7 @@ export const SEED_FTI_USERS: ReadonlyArray<SeedUserInput> = [
     nohp: '6281234567805',
   },
   {
-    email: 'process.member.si@gmail.com',
+    email: 'process.anggota.si@gmail.com',
     nama: 'Arief Wicaksono, S.Kom.',
     nip: '198501012009011106',
     jabatan: 'Penyusun SOP Sistem Informasi',
@@ -113,7 +113,7 @@ export const SEED_FTI_PERATURAN: ReadonlyArray<SeedPeraturanInput> = [
     nomor: 'Peraturan Dekan 01/2024',
     tahun: 2024,
     nama: 'Tata Kelola SOP FTI',
-    tentang: 'Pedoman penyusunan, review, TTE, dan lifecycle SOP di lingkungan FTI.',
+    tentang: 'Pedoman penyusunan, review, TTE, dan siklus SOP di lingkungan FTI.',
   },
   {
     nomor: 'Peraturan Rektor 12/2023',
@@ -152,20 +152,20 @@ export class SeedService {
       const users = await this.seedUsers(tx, hashedPassword);
       const deptIf = await this.ensureDepartemen(tx, 'Informatika');
       const deptSi = await this.ensureDepartemen(tx, 'Sistem Informasi');
-      const ownerId = users['process.owner@gmail.com'].penggunaId;
+      const penanggungJawabId = users['process.penanggungJawab@gmail.com'].penggunaId;
       const adminId = users['admin.fti@gmail.com'].penggunaId;
 
-      await this.ensureKewenanganPenanggungJawabProsesBisnis(tx, ownerId, adminId, LingkupOrganisasi.FACULTY, null);
+      await this.ensureKewenanganPenanggungJawabProsesBisnis(tx, penanggungJawabId, adminId, LingkupOrganisasi.FACULTY, null);
       await this.ensureKewenanganPenanggungJawabProsesBisnis(
         tx,
-        ownerId,
+        penanggungJawabId,
         adminId,
         LingkupOrganisasi.DEPARTMENT,
         deptIf.departemenId,
       );
       await this.ensureKewenanganPenanggungJawabProsesBisnis(
         tx,
-        ownerId,
+        penanggungJawabId,
         adminId,
         LingkupOrganisasi.DEPARTMENT,
         deptSi.departemenId,
@@ -175,38 +175,38 @@ export class SeedService {
         tx,
         'Pengelolaan Akademik FTI',
         LingkupOrganisasi.FACULTY,
-        ownerId,
+        penanggungJawabId,
         null,
       );
       const processIf = await this.ensureProsesBisnis(
         tx,
         'Layanan Akademik Informatika',
         LingkupOrganisasi.DEPARTMENT,
-        ownerId,
+        penanggungJawabId,
         deptIf.departemenId,
       );
       const processSi = await this.ensureProsesBisnis(
         tx,
         'Layanan Akademik Sistem Informasi',
         LingkupOrganisasi.DEPARTMENT,
-        ownerId,
+        penanggungJawabId,
         deptSi.departemenId,
       );
 
       await this.ensureAnggotaProsesBisnis(
         tx,
         processFaculty.prosesBisnisId,
-        users['process.member@gmail.com'].penggunaId,
+        users['process.anggota@gmail.com'].penggunaId,
       );
       await this.ensureAnggotaProsesBisnis(
         tx,
         processIf.prosesBisnisId,
-        users['process.member.if@gmail.com'].penggunaId,
+        users['process.anggota.if@gmail.com'].penggunaId,
       );
       await this.ensureAnggotaProsesBisnis(
         tx,
         processSi.prosesBisnisId,
-        users['process.member.si@gmail.com'].penggunaId,
+        users['process.anggota.si@gmail.com'].penggunaId,
       );
 
       await this.seedPejabatBerwenang(tx, {
@@ -222,7 +222,7 @@ export class SeedService {
     });
 
     this.logger.log(
-      'Seed FTI native selesai: identity netral, Departemen, Proses Bisnis, owner eligibility, membership, Dean/HOD authority, Peraturan global, dan Pelaksana global.',
+      'Seed FTI native selesai: identity netral, Departemen, Proses Bisnis, kelayakan penanggung jawab Proses Bisnis, keanggotaan, Dean/HOD authority, Peraturan global, dan Pelaksana global.',
     );
     this.logger.warn(
       `Login seed menggunakan SEED_DEFAULT_PASSWORD (default ${DEFAULT_SEED_PASSWORD}).`,
@@ -285,22 +285,22 @@ export class SeedService {
     tx: Prisma.TransactionClient,
     penggunaId: string,
     grantedById: string,
-    scope: LingkupOrganisasi,
+    lingkup: LingkupOrganisasi,
     departemenId: string | null,
   ): Promise<void> {
-    const scopeKey = scope === LingkupOrganisasi.FACULTY ? 'FACULTY' : `DEPARTMENT:${departemenId}`;
+    const kunciLingkup = lingkup === LingkupOrganisasi.FACULTY ? 'FACULTY' : `DEPARTMENT:${departemenId}`;
     await tx.kewenanganPenanggungJawabProsesBisnis.upsert({
-      where: { penggunaId_scopeKey: { penggunaId, scopeKey } },
-      create: { penggunaId, scope, departemenId, scopeKey, grantedById },
-      update: { scope, departemenId, grantedById, revokedAt: null },
+      where: { penggunaId_kunciLingkup: { penggunaId, kunciLingkup } },
+      create: { penggunaId, lingkup, departemenId, kunciLingkup, grantedById },
+      update: { lingkup, departemenId, grantedById, revokedAt: null },
     });
   }
 
   private async ensureProsesBisnis(
     tx: Prisma.TransactionClient,
     nama: string,
-    scope: LingkupOrganisasi,
-    ownerId: string,
+    lingkup: LingkupOrganisasi,
+    penanggungJawabId: string,
     departemenId: string | null,
   ): Promise<{ prosesBisnisId: string; nama: string }> {
     const existing = await tx.prosesBisnis.findFirst({
@@ -310,12 +310,12 @@ export class SeedService {
     const process =
       existing === null
         ? await tx.prosesBisnis.create({
-            data: { nama, scope, ownerId, departemenId },
+            data: { nama, lingkup, penanggungJawabId, departemenId },
             select: { prosesBisnisId: true, nama: true },
           })
         : await tx.prosesBisnis.update({
             where: { prosesBisnisId: existing.prosesBisnisId },
-            data: { scope, ownerId, departemenId },
+            data: { lingkup, penanggungJawabId, departemenId },
             select: { prosesBisnisId: true, nama: true },
           });
 
@@ -351,19 +351,19 @@ export class SeedService {
   ): Promise<void> {
     const assignments = [
       {
-        authorityKey: 'DEAN',
+        kunciPejabatBerwenang: 'DEAN',
         authority: PejabatBerwenang.DEAN,
         departemenId: null,
         holderId: params.deanId,
       },
       {
-        authorityKey: `HEAD_OF_DEPARTMENT:${params.deptIfId}`,
+        kunciPejabatBerwenang: `HEAD_OF_DEPARTMENT:${params.deptIfId}`,
         authority: PejabatBerwenang.HEAD_OF_DEPARTMENT,
         departemenId: params.deptIfId,
         holderId: params.kadepIfId,
       },
       {
-        authorityKey: `HEAD_OF_DEPARTMENT:${params.deptSiId}`,
+        kunciPejabatBerwenang: `HEAD_OF_DEPARTMENT:${params.deptSiId}`,
         authority: PejabatBerwenang.HEAD_OF_DEPARTMENT,
         departemenId: params.deptSiId,
         holderId: params.kadepSiId,
@@ -372,7 +372,7 @@ export class SeedService {
 
     for (const assignment of assignments) {
       await tx.penugasanPejabatBerwenang.upsert({
-        where: { authorityKey: assignment.authorityKey },
+        where: { kunciPejabatBerwenang: assignment.kunciPejabatBerwenang },
         create: assignment,
         update: {
           authority: assignment.authority,

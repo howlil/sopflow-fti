@@ -8,19 +8,19 @@ import { validateEnv } from './config/env.validation';
 import { AuthModule } from './modules/core/auth/auth.module';
 import { PenggunaModule } from './modules/core/pengguna/pengguna.module';
 import { PeraturanModule } from './modules/core/peraturan/peraturan.module';
-import { ProsesBisnisModule } from './modules/core/process/process.module';
+import { ProsesBisnisModule } from './modules/core/proses-bisnis/proses-bisnis.module';
 import { SopCatalogModule } from './modules/sop/catalog/sop-catalog.module';
 import { SopProsedurModule } from './modules/sop/prosedur/sop-prosedur.module';
 import { SopDiagramModule } from './modules/sop/diagram/sop-diagram.module';
 import { SopPublicModule } from './modules/sop/public/sop-public.module';
 import { PelaksanaModule } from './modules/sop/pelaksana/pelaksana.module';
-import { ProsesBisnisSopAuthoringModule } from './modules/sop/process-authoring/sop-proses-bisnis-authoring.module';
+import { ProsesBisnisSopAuthoringModule } from './modules/sop/penyusunan-proses-bisnis/sop-proses-bisnis-authoring.module';
 import { TteSharedModule } from './modules/tte/shared/tte-shared.module';
 import { TteProfilModule } from './modules/tte/profil/tte-profil.module';
 import { TtePenandatangananModule } from './modules/tte/penandatanganan/tte-penandatanganan.module';
 import { TteVerifikasiModule } from './modules/tte/verifikasi/tte-verifikasi.module';
 import { TteCoreModule } from './modules/tte/core/tte-core.module';
-import { NotifikasiProsesBisnisModule } from './modules/notifications/process/process-notification.module';
+import { NotifikasiProsesBisnisModule } from './modules/notifications/proses-bisnis/notifikasi-proses-bisnis.module';
 
 @Module({
   imports: [

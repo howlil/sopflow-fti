@@ -4,7 +4,7 @@
 
 Use these concepts in new code:
 - `PlatformRole.SUPER_ADMIN | USER`
-- `ProsesBisnis.ownerId`
+- `ProsesBisnis.penanggungJawabId`
 - `AnggotaProsesBisnis`
 - `LingkupOrganisasi.FACULTY | DEPARTMENT`
 - `PejabatBerwenang.DEAN | HEAD_OF_DEPARTMENT`
@@ -17,11 +17,11 @@ Resolve authorization from the owning ProsesBisnis and its relationships. Do not
 
 ## Repository boundaries
 
-Repositories should select only fields required by their domain. Keep identity/session, ProsesBisnis relationship, organizational authority, SOP lifecycle, TTE, catalog, and presentation concerns separate.
+Repositories should select only fields required by their domain. Keep identity/session, ProsesBisnis relationship, pejabat berwenang, SOP siklus, TTE, catalog, and presentation concerns separate.
 
 ## Testing
 
-Fixtures should represent native actors: platform admin, ProsesBisnis Owner, ProsesBisnis Member, Dean, and Departemen Head. Test native lifecycle states directly. Prefer focused unit tests plus real-boundary migration/database checks; do not recreate retired product models in fixtures.
+Fixtures should represent native actors: platform admin, ProsesBisnis Owner, ProsesBisnis Member, Dean, and Departemen Head. Test native siklus states directly. Prefer focused unit tests plus real-boundary migration/database checks; do not recreate retired product models in fixtures.
 
 ## Migration rule
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { undanganAnggotaProsesBisnisApi } from '@/api/undangan-anggota-proses-bisnis'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import type { UndanganAnggotaProsesBisnisPreviewDto } from '@/types/dto/process.dto'
+import type { UndanganAnggotaProsesBisnisPreviewDto } from '@/types/dto/proses-bisnis.dto'
 
 export function AktivasiUndanganAnggotaProsesBisnis({ token }: { token: string }) {
   const [preview, setPreview] = useState<UndanganAnggotaProsesBisnisPreviewDto | null>(null)
@@ -93,7 +93,7 @@ export function AktivasiUndanganAnggotaProsesBisnis({ token }: { token: string }
         <p className="text-sm font-medium text-primary">Undangan Penyusun SOP</p>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Aktifkan akun Anda</h1>
         <p className="text-sm leading-6 text-secondary-foreground">
-          {preview.nama}, Anda diundang ke ProsesBisnis <span className="font-medium text-foreground">{preview.process.nama}</span>.
+          {preview.nama}, Anda diundang ke ProsesBisnis <span className="font-medium text-foreground">{preview.prosesBisnis.nama}</span>.
           Buat kata sandi Anda sendiri untuk mengaktifkan akses.
         </p>
       </div>
@@ -101,7 +101,7 @@ export function AktivasiUndanganAnggotaProsesBisnis({ token }: { token: string }
       <div className="rounded-surface border border-border bg-surface-muted p-4 text-sm">
         <p className="font-medium text-foreground">{preview.email}</p>
         <p className="mt-1 text-secondary-foreground">
-          Scope: {preview.process.scope === 'FACULTY' ? 'Fakultas' : 'Jurusan'}
+          Lingkup: {preview.prosesBisnis.lingkup === 'FACULTY' ? 'Fakultas' : 'Jurusan'}
         </p>
       </div>
 

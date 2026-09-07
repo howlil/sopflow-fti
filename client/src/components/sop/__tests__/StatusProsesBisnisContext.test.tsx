@@ -7,7 +7,7 @@ describe('StatusProsesBisnisContext', () => {
     render(
       <StatusProsesBisnisContext
         namaProsesBisnis="Pengelolaan Akademik"
-        lifecycle={{
+        siklus={{
           stage: 'FINAL_APPROVAL',
           stateLabel: 'Menunggu persetujuan akhir',
           responsibility: { type: 'DEAN', name: 'Dekan FTI' },
@@ -17,7 +17,7 @@ describe('StatusProsesBisnisContext', () => {
       />,
     )
 
-    expect(screen.getByTestId('process-lifecycle-context')).toBeInTheDocument()
+    expect(screen.getByTestId('siklus-proses-bisnis-context')).toBeInTheDocument()
     expect(screen.getByText('Pengelolaan Akademik')).toBeInTheDocument()
     expect(screen.getByText('Menunggu persetujuan akhir')).toBeInTheDocument()
     expect(screen.getByText('Dekan FTI')).toBeInTheDocument()

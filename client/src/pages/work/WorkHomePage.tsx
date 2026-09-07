@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { FileText, ShieldCheck, Workflow, ArrowRight } from "lucide-react";
 import { useMyProsesBisnises } from "@/api/konteks-proses-bisnis";
-import { useProsesBisnisOwnerSelfService } from "@/api/process-owner";
-import { useMyOrganizationalAuthorities } from "@/api/organizational-authority";
+import { useProsesBisnisOwnerSelfService } from "@/api/penanggung-jawab-proses-bisnis";
+import { useMyOrganizationalAuthorities } from "@/api/pejabat-berwenang";
 import { ListPageLayout } from "@/components/layout/ListPageLayout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,20 +50,20 @@ function CapabilityCard({
 export function WorkHomePage() {
   useDocumentTitle("Beranda Kerja");
   const user = useAuthStore((state) => state.user);
-  const { data: processes = [], isLoading: isLoadingProsesBisnises } = useMyProsesBisnises();
+  const { data: prosesBisnis = [], isLoading: isLoadingProsesBisnises } = useMyProsesBisnises();
   const {
     scopes: ownerScopes,
-    processes: ownedProsesBisnises,
+    prosesBisnis: ownedProsesBisnises,
     isLoading: isLoadingOwnerContext,
   } = useProsesBisnisOwnerSelfService();
   const { data: authorities = [], isLoading: isLoadingAuthorities } =
     useMyOrganizationalAuthorities();
 
-  const ownerCount = user ? processes.filter((process) => process.ownerId === user.id).length : 0;
-  const memberCount = Math.max(processes.length - ownerCount, 0);
+  const ownerCount = user ? prosesBisnis.filter((process) => process.penanggungJawabId === user.id).length : 0;
+  const memberCount = Math.max(prosesBisnis.length - ownerCount, 0);
   const isLoading = isLoadingProsesBisnises || isLoadingAuthorities || isLoadingOwnerContext;
   const hasContextualCapability =
-    processes.length > 0 ||
+    prosesBisnis.length > 0 ||
     ownedProsesBisnises.length > 0 ||
     ownerScopes.length > 0 ||
     authorities.length > 0 ||
@@ -88,7 +88,7 @@ export function WorkHomePage() {
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {processes.length > 0 ? (
+            {prosesBisnis.length > 0 ? (
               <CapabilityCard
                 title="Pekerjaan SOP"
                 description={`${ownerCount} ProsesBisnis sebagai Owner · ${memberCount} sebagai Member. Draft, revisi, dan review yang memerlukan tindakan Anda tersedia dalam satu daftar kerja.`}

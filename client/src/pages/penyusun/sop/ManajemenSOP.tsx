@@ -35,7 +35,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { SopDaftarRow } from "@/types/dto/sop.dto";
 import { canHapusSopDraftAwal, useHapusSopDraftAwal } from "@/api/sop";
 
-type ProsesBisnisAwareSopRow = SopDaftarRow & { processNama?: string | null };
+type ProsesBisnisAwareSopRow = SopDaftarRow & { namaProsesBisnis?: string | null };
 
 const formatFilterDate = (value: string) =>
   new Intl.DateTimeFormat("id-ID", {
@@ -221,15 +221,15 @@ export function ManajemenSOP() {
                     />
                   ) : (
                     pageData.map((sop) => {
-                      const processNama = (sop as ProsesBisnisAwareSopRow).processNama;
+                      const namaProsesBisnis = (sop as ProsesBisnisAwareSopRow).namaProsesBisnis;
                       return (
                         <Table.BodyRow key={sop.id}>
                           <Table.Td>
                             <div className="space-y-0.5">
                               <SopPrimaryCell title={sop.judul} />
-                              {processNama ? (
+                              {namaProsesBisnis ? (
                                 <p className="text-xs text-secondary-foreground">
-                                  ProsesBisnis: {processNama}
+                                  ProsesBisnis: {namaProsesBisnis}
                                 </p>
                               ) : null}
                             </div>

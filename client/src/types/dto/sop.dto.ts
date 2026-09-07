@@ -32,7 +32,7 @@ export interface SopDaftarVersiSlice {
 export interface SopDaftarRow {
   id: string;
   prosesBisnisId?: string | null;
-  processNama?: string | null;
+  namaProsesBisnis?: string | null;
   detailSopId: string | null;
   judul: string;
   nomorSop: string | null;
@@ -47,7 +47,7 @@ export interface SopDaftarRow {
   versiBerlaku?: SopDaftarVersiSlice | null;
   canBuatVersiBaru?: boolean;
   canCabutSop?: boolean;
-  lifecycle?: ProsesBisnisSopLifecycleProjection;
+  siklus?: ProsesBisnisSopLifecycleProjection;
 }
 
 export type ProsesBisnisSopLifecycleStage =
@@ -103,7 +103,7 @@ export interface SopRiwayatVersiRow {
 export interface Sop {
   id: string;
   prosesBisnisId?: string | null;
-  processNama?: string | null;
+  namaProsesBisnis?: string | null;
   judul: string;
   createdAt: string;
   updatedAt: string;
@@ -190,7 +190,7 @@ export interface PenyusunWorkbenchLogEdit {
 
 /** Respons GET `/sop/penyusun-workbench/:detailSopId`. */
 export interface PenyusunWorkbenchData {
-  lifecycle?: ProsesBisnisSopLifecycleProjection;
+  siklus?: ProsesBisnisSopLifecycleProjection;
   detail: SopDetail;
   langkah: LangkahSOP[];
   logEdit: PenyusunWorkbenchLogEdit[];

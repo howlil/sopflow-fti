@@ -28,7 +28,7 @@ export class PublicSopItemDto {
   readonly namaProsesBisnis!: string;
 
   @ApiProperty({ enum: LingkupOrganisasi })
-  readonly scope!: LingkupOrganisasi;
+  readonly lingkup!: LingkupOrganisasi;
 
   @ApiPropertyOptional({ format: 'uuid', nullable: true })
   readonly departemenId!: string | null;

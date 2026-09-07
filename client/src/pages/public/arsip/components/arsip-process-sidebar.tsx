@@ -39,8 +39,8 @@ export function ArsipProsesBisnisSidebar({
   embedded = false,
   compactPagination = false,
 }: ArsipProsesBisnisSidebarProps) {
-  const faculty = items.filter((item) => item.scope === 'FACULTY')
-  const departments = items.filter((item) => item.scope === 'DEPARTMENT')
+  const faculty = items.filter((item) => item.lingkup === 'FACULTY')
+  const departemen = items.filter((item) => item.lingkup === 'DEPARTMENT')
   const hasFilter = processFilter.trim().length > 0
 
   return (
@@ -95,11 +95,11 @@ export function ArsipProsesBisnisSidebar({
                 onSelectProsesBisnis={onSelectProsesBisnis}
               />
             ) : null}
-            {departments.length > 0 ? (
+            {departemen.length > 0 ? (
               <ProsesBisnisGroup
                 label="Departemen"
                 icon={<Building2 className="h-4 w-4" aria-hidden />}
-                items={departments}
+                items={departemen}
                 selectedProsesBisnisId={selectedProsesBisnisId}
                 onSelectProsesBisnis={onSelectProsesBisnis}
               />
@@ -180,7 +180,7 @@ function ProsesBisnisGroup({
                     {process.nama}
                   </span>
                   <span className="mt-0.5 block text-xs text-muted-foreground">
-                    {process.scope === 'DEPARTMENT' && process.namaDepartemen
+                    {process.lingkup === 'DEPARTMENT' && process.namaDepartemen
                       ? `${process.namaDepartemen} · `
                       : ''}
                     {process.jumlahSopBerlaku} SOP berlaku

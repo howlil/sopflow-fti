@@ -54,7 +54,7 @@ interface AutosaveAppearance {
 
 type ProsesBisnisAwareWorkbenchSop = NonNullable<PenyusunWorkbenchData['detail']['sop']> & {
   prosesBisnisId?: string | null
-  processNama?: string | null
+  namaProsesBisnis?: string | null
 }
 
 function autosaveAppearance(status: SopHeaderAutosaveStatus): AutosaveAppearance | null {
@@ -97,11 +97,11 @@ export function DetailSOPPenyusunHeader({
   const processSop = workbench?.detail.sop as ProsesBisnisAwareWorkbenchSop | undefined
   const prosesBisnisId = processSop?.prosesBisnisId ?? null
   const isProsesBisnisWorkflow = prosesBisnisId !== null
-  const lifecycle = isProsesBisnisWorkflow ? workbench?.lifecycle : undefined
-  const isProsesBisnisOwner = lifecycle?.stage === 'PROCESS_REVIEW' && lifecycle.responsibility.type === 'CURRENT_USER'
-  const isWaitingForPemeriksaanProsesBisnis = lifecycle?.stage === 'PROCESS_REVIEW'
-  const isProsesBisnisRevision = lifecycle?.stage === 'AUTHORING' && lifecycle.stateLabel === 'Perlu revisi'
-  const displayedStatusLabel = lifecycle?.stateLabel ?? currentSopStatusLabel
+  const siklus = isProsesBisnisWorkflow ? workbench?.siklus : undefined
+  const isProsesBisnisOwner = siklus?.stage === 'PROCESS_REVIEW' && siklus.responsibility.type === 'CURRENT_USER'
+  const isWaitingForPemeriksaanProsesBisnis = siklus?.stage === 'PROCESS_REVIEW'
+  const isProsesBisnisRevision = siklus?.stage === 'AUTHORING' && siklus.stateLabel === 'Perlu revisi'
+  const displayedStatusLabel = siklus?.stateLabel ?? currentSopStatusLabel
 
   const updateWorkbenchCache = (nextWorkbench: PenyusunWorkbenchData) => {
     if (!sopDetailId) return
@@ -166,7 +166,7 @@ export function DetailSOPPenyusunHeader({
       showToast(
         decision === 'ACCEPT'
           ? 'SOP diterima dan siap menuju persetujuan akhir.'
-          : 'SOP dikembalikan ke Proses Bisnis Team untuk revisi.',
+          : 'SOP dikembalikan ke Tim Proses Bisnis untuk revisi.',
       )
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Gagal menyimpan keputusan review'
@@ -352,7 +352,7 @@ export function DetailSOPPenyusunHeader({
         description={
           reviewDecision === 'ACCEPT'
             ? 'SOP akan ditandai siap menuju persetujuan akhir. Tahap persetujuan Dean/Kadep belum dijalankan pada aksi ini.'
-            : 'SOP akan kembali dapat diedit oleh Proses Bisnis Team untuk memperbaiki dokumen.'
+            : 'SOP akan kembali dapat diedit oleh Tim Proses Bisnis untuk memperbaiki dokumen.'
         }
         confirmLabel={reviewDecision === 'ACCEPT' ? 'Ya, terima' : 'Ya, minta revisi'}
         cancelLabel="Batal"

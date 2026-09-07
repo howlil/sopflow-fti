@@ -112,7 +112,7 @@ export interface SOPTemplate {
   id?: string;
   judul: string;
   prosesBisnisId?: string;
-  processNama?: string;
+  namaProsesBisnis?: string;
   kode?: string;
   kategori?: string;
   versi?: number;

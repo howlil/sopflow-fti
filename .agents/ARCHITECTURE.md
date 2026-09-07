@@ -17,15 +17,15 @@ Pengguna + PlatformRole
 
 ### Identity and authorization
 
-`PlatformRole` is only platform administration. Workflow authorization is contextual to ProsesBisnis ownership/membership. Final approval and TTE authorization come only from the organizational authority resolved for the ProsesBisnis scope. No platform administrator bypass exists for workflow approval or signing.
+`PlatformRole` is only platform administration. Workflow authorization is contextual to ProsesBisnis ownership/keanggotaan. Final approval and TTE authorization come only from the pejabat berwenang resolved for the ProsesBisnis lingkup. No platform administrator bypass exists for workflow approval or signing.
 
 ### SOP ownership
 
-An active SOP belongs directly to one ProsesBisnis through `SOP.prosesBisnisId`. A ProsesBisnis has exactly one owner and zero or more members. Departemen context is organizational scope metadata, not SOP ownership.
+An active SOP belongs directly to one ProsesBisnis through `SOP.prosesBisnisId`. A ProsesBisnis has exactly one owner and zero or more members. Departemen context is organizational lingkup metadata, not SOP ownership.
 
 ### Lifecycle
 
-`DRAFT -> PROCESS_REVIEW -> REVISION_REQUIRED | FINAL_APPROVAL -> TTE_PENDING -> EFFECTIVE -> SUPERSEDED | REVOKED`. Review, final approval, signing evidence, publication, version replacement, and revocation must transition this lifecycle atomically where required.
+`DRAFT -> PROCESS_REVIEW -> REVISION_REQUIRED | FINAL_APPROVAL -> TTE_PENDING -> EFFECTIVE -> SUPERSEDED | REVOKED`. Review, final approval, signing evidence, publication, version replacement, and revocation must transition this siklus atomically where required.
 
 ### TTE
 

@@ -193,10 +193,10 @@ export function DetailSOPPenyusunMain({
 
   return (
     <div className="h-full min-h-0 flex-1 overflow-auto p-4">
-      {workbench?.lifecycle ? (
+      {workbench?.siklus ? (
         <StatusProsesBisnisContext
-          lifecycle={workbench.lifecycle}
-          namaProsesBisnis={workbench.detail.sop?.processNama}
+          siklus={workbench.siklus}
+          namaProsesBisnis={workbench.detail.sop?.namaProsesBisnis}
         />
       ) : null}
       <SOPPreviewTemplate

@@ -18,7 +18,7 @@ async function expectWorkQueueRow(
   await expect(titleHeading).toBeVisible()
 
   // Multiple target journeys intentionally share one runtime database in CI.
-  // Scope status/action assertions to the card identified by this unique SOP title.
+  // Lingkup status/action assertions to the card identified by this unique SOP title.
   const row = titleHeading.locator(
     `xpath=ancestor::div[.//a[normalize-space(.)="${params.actionLabel}"]][1]`,
   )

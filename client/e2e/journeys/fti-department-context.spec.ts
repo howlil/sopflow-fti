@@ -53,7 +53,7 @@ test.describe('End-to-End Business Journey — Departemen context isolation', ()
       }
     })
 
-    await test.step('Unrelated Departemen member dan SUPER_ADMIN ditolak dari workbench Departemen A', async () => {
+    await test.step('Unrelated Departemen anggota dan SUPER_ADMIN ditolak dari workbench Departemen A', async () => {
       const sop = await seedReadyProsesBisnisSop(roleApi, 'J12-DEPT-ISOLATION', {
         actor: targetUsers.departmentMember,
         namaProsesBisnis: 'Layanan Akademik Informatika',

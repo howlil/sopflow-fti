@@ -15,7 +15,7 @@ interface IdentityHeroProps {
 export function IdentityHero({ stages }: IdentityHeroProps) {
   return (
     <section
-      aria-label={`SOPFlow memandu ${stages.length} tahapan lifecycle SOP FTI`}
+      aria-label={`SOPFlow memandu ${stages.length} tahapan siklus SOP FTI`}
       className="relative overflow-hidden border-b border-border bg-[#f8fbff] text-foreground"
     >
       <div

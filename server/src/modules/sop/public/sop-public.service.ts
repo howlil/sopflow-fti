@@ -3,8 +3,8 @@ import { resolvePagination, toPaginatedData, type PaginatedData } from '../../..
 import { SopCatalogService } from '../catalog/sop-catalog.service';
 import { SopPdfStorageService } from '../pdf/sop-pdf-storage.service';
 import type { PublicArsipQueryDto } from './dto/public-arsip-query.dto';
-import type { PublicProsesBisnisItemDto } from './dto/public-process-item.dto';
-import type { PublicSopByProsesBisnisPageDto } from './dto/public-sop-by-process-page.dto';
+import type { PublicProsesBisnisItemDto } from './dto/public-proses-bisnis-item.dto';
+import type { PublicSopByProsesBisnisPageDto } from './dto/public-sop-by-proses-bisnis-page.dto';
 import type { PublicSopDokumenDto } from './dto/public-sop-dokumen.dto';
 import type { PublicSopItemDto } from './dto/public-sop-item.dto';
 import { SopPublicRepository, type PublicFtiSopDbRow, type PublicProsesBisnisDbRow } from './sop-public.repository';
@@ -40,7 +40,7 @@ export class SopPublicService {
     ]);
     return {
       ...toPaginatedData(rows.map((row) => this.mapSopItem(row)), total, page, limit),
-      process: this.mapProsesBisnisItem(process),
+      prosesBisnis: this.mapProsesBisnisItem(process),
     };
   }
 
@@ -82,7 +82,7 @@ export class SopPublicService {
     return {
       prosesBisnisId: row.prosesBisnisId,
       nama: row.nama,
-      scope: row.scope,
+      lingkup: row.lingkup,
       departemenId: row.departemenId,
       namaDepartemen: row.namaDepartemen,
       jumlahSopBerlaku: row.jumlahSopBerlaku,
@@ -99,7 +99,7 @@ export class SopPublicService {
       tanggalEfektif: row.tanggalEfektif === null ? null : row.tanggalEfektif.toISOString(),
       prosesBisnisId: row.prosesBisnisId,
       namaProsesBisnis: row.namaProsesBisnis,
-      scope: row.scope,
+      lingkup: row.lingkup,
       departemenId: row.departemenId,
       namaDepartemen: row.namaDepartemen,
       pdfUrl: `/sop/public/pdf/${encodeURIComponent(row.detailSopId)}`,

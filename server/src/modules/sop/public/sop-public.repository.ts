@@ -5,7 +5,7 @@ import { JenisDokumenTte, LingkupOrganisasi, Prisma, StatusSOP } from '../../../
 export type PublicProsesBisnisDbRow = {
   readonly prosesBisnisId: string;
   readonly nama: string;
-  readonly scope: LingkupOrganisasi;
+  readonly lingkup: LingkupOrganisasi;
   readonly departemenId: string | null;
   readonly namaDepartemen: string | null;
   readonly jumlahSopBerlaku: number;
@@ -21,7 +21,7 @@ export type PublicFtiSopDbRow = {
   readonly pdfPath: string;
   readonly prosesBisnisId: string;
   readonly namaProsesBisnis: string;
-  readonly scope: LingkupOrganisasi;
+  readonly lingkup: LingkupOrganisasi;
   readonly departemenId: string | null;
   readonly namaDepartemen: string | null;
 };
@@ -67,7 +67,7 @@ export class SopPublicRepository {
       SELECT
         p.prosesBisnisId,
         p.nama,
-        p.scope,
+        p.lingkup,
         p.departemenId,
         dep.nama AS namaDepartemen,
         COUNT(DISTINCT d.detailSopId) AS jumlahSopBerlaku
@@ -81,9 +81,9 @@ export class SopPublicRepository {
         AND dt.pdfStatus = ${'PUBLISHED'}
         AND dt.pdfPath IS NOT NULL
         ${this.processCatalogSearchSql(params.search)}
-      GROUP BY p.prosesBisnisId, p.nama, p.scope, p.departemenId, dep.nama
+      GROUP BY p.prosesBisnisId, p.nama, p.lingkup, p.departemenId, dep.nama
       ORDER BY
-        CASE WHEN p.scope = ${LingkupOrganisasi.FACULTY} THEN 0 ELSE 1 END,
+        CASE WHEN p.lingkup = ${LingkupOrganisasi.FACULTY} THEN 0 ELSE 1 END,
         dep.nama ASC,
         p.nama ASC
       LIMIT ${params.take} OFFSET ${params.skip}
@@ -98,7 +98,7 @@ export class SopPublicRepository {
       SELECT
         p.prosesBisnisId,
         p.nama,
-        p.scope,
+        p.lingkup,
         p.departemenId,
         dep.nama AS namaDepartemen,
         COUNT(DISTINCT d.detailSopId) AS jumlahSopBerlaku
@@ -112,7 +112,7 @@ export class SopPublicRepository {
         AND dt.pdfStatus = ${'PUBLISHED'}
         AND dt.pdfPath IS NOT NULL
       WHERE p.prosesBisnisId = ${prosesBisnisId}
-      GROUP BY p.prosesBisnisId, p.nama, p.scope, p.departemenId, dep.nama
+      GROUP BY p.prosesBisnisId, p.nama, p.lingkup, p.departemenId, dep.nama
       LIMIT 1
     `;
     const row = rows[0];
@@ -214,7 +214,7 @@ export class SopPublicRepository {
         dt.pdfPath,
         p.prosesBisnisId,
         p.nama AS namaProsesBisnis,
-        p.scope,
+        p.lingkup,
         p.departemenId,
         dep.nama AS namaDepartemen
       FROM SOP s

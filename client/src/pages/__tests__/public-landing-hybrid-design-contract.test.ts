@@ -28,7 +28,7 @@ const allRenderedSources = [
 ].join('\n')
 
 describe('FTI public landing contract', () => {
-  it('keeps FTI identity and the native lifecycle', () => {
+  it('keeps FTI identity and the native siklus', () => {
     expect(landingSource).toContain('Fakultas Teknologi Informasi')
     expect(landingSource).toContain('SOPFlow FTI')
 
@@ -79,7 +79,7 @@ describe('FTI public landing contract', () => {
     expect(landingSource).toContain('<WorkflowStory stages={WORKFLOW_STAGES} />')
     expect(landingSource).toContain('<RoleWorkspaceShowcase roles={ROLE_PROFILES} />')
     expect(workflowSource).toContain('stages.map')
-    expect(roleSource).toContain('Tiga tanggung jawab dalam lifecycle SOP FTI.')
+    expect(roleSource).toContain('Tiga tanggung jawab dalam siklus SOP FTI.')
     expect(roleSource).toContain('Kewenangan kontekstual')
     expect(roleSource).not.toContain('Lima peran dalam pengelolaan SOP.')
   })

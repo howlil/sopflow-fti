@@ -6,7 +6,7 @@ export type {
   VerifyPdfResponse,
 } from '../../penandatanganan/tte-pdf-signing.service';
 
-/** Credential state only. Signing authority is resolved from Organizational Authority. */
+/** Credential state only. Signing authority is resolved from Pejabat Berwenang. */
 export type TteProfilResponse = {
   readonly id: string;
   readonly userId: string;

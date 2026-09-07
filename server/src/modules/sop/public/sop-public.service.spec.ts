@@ -41,7 +41,7 @@ describe('SopPublicService', () => {
   const processRow = {
     prosesBisnisId: 'process-1',
     nama: 'Akademik',
-    scope: 'FACULTY',
+    lingkup: 'FACULTY',
     departemenId: null,
     namaDepartemen: null,
     jumlahSopBerlaku: 2,
@@ -56,7 +56,7 @@ describe('SopPublicService', () => {
     tanggalEfektif: new Date('2026-09-01T00:00:00.000Z'),
     prosesBisnisId: 'process-1',
     namaProsesBisnis: 'Akademik',
-    scope: 'FACULTY',
+    lingkup: 'FACULTY',
     departemenId: null,
     namaDepartemen: null,
   } as const;
@@ -89,7 +89,7 @@ describe('SopPublicService', () => {
       limit: 10,
     } as PublicArsipQueryDto);
 
-    expect(result.process.prosesBisnisId).toBe('process-1');
+    expect(result.prosesBisnis.prosesBisnisId).toBe('process-1');
     expect(result.items[0]).toMatchObject({
       detailSopId: 'detail-1',
       prosesBisnisId: 'process-1',

@@ -50,7 +50,7 @@ export async function openFinalApprovalFromNotification(
     .first()
   await expect(notification).toBeVisible()
   await notification.click()
-  await page.waitForURL((url) => url.pathname === '/approval', { timeout: 15_000 })
+  await page.waitForURL((url) => url.pathname === '/persetujuan', { timeout: 15_000 })
   await waitForAppReady(page)
   await expectNoAppShellError(page)
 }

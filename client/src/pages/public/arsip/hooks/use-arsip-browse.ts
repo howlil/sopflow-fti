@@ -29,10 +29,10 @@ export interface ArsipBrowseMobileState {
   detailSopId?: string
 }
 
-function formatProsesBisnisContext(process: PublicProsesBisnisItem): string {
-  return process.scope === 'DEPARTMENT' && process.namaDepartemen
-    ? `${process.namaDepartemen} · ${process.nama}`
-    : `Fakultas · ${process.nama}`
+function formatProsesBisnisContext(prosesBisnis: PublicProsesBisnisItem): string {
+  return prosesBisnis.lingkup === 'DEPARTMENT' && prosesBisnis.namaDepartemen
+    ? `${prosesBisnis.namaDepartemen} · ${prosesBisnis.nama}`
+    : `Fakultas · ${prosesBisnis.nama}`
 }
 
 export function useArsipBrowse() {
@@ -103,7 +103,7 @@ export function useArsipBrowse() {
   const processItems = processQuery.data?.items ?? []
   const processPagination = processQuery.data?.pagination
   const selectedProsesBisnis =
-    sopByProsesBisnisQuery.data?.process ?? processItems.find((item) => item.prosesBisnisId === prosesBisnisId)
+    sopByProsesBisnisQuery.data?.prosesBisnis ?? processItems.find((item) => item.prosesBisnisId === prosesBisnisId)
   const selectedProsesBisnisName = selectedProsesBisnis ? formatProsesBisnisContext(selectedProsesBisnis) : undefined
 
   const sopItems = useMemo(
@@ -238,7 +238,7 @@ export function useArsipBrowse() {
     if (prosesBisnisId && selectedProsesBisnis) {
       items.push({
         label:
-          selectedProsesBisnis.scope === 'DEPARTMENT' && selectedProsesBisnis.namaDepartemen
+          selectedProsesBisnis.lingkup === 'DEPARTMENT' && selectedProsesBisnis.namaDepartemen
             ? selectedProsesBisnis.namaDepartemen
             : 'Fakultas',
       })

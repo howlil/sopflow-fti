@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
-import { useProsesBisnisOwnerSelfService } from '@/api/process-owner'
+import { useProsesBisnisOwnerSelfService } from '@/api/penanggung-jawab-proses-bisnis'
 import { DataSurface } from '@/components/data/data-surface'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import type { InviteAnggotaProsesBisnisPayload } from '@/types/dto/process.dto'
+import type { InviteAnggotaProsesBisnisPayload } from '@/types/dto/proses-bisnis.dto'
 
 const EMPTY_INVITE: InviteAnggotaProsesBisnisPayload = {
   nama: '',
@@ -17,51 +17,51 @@ const EMPTY_INVITE: InviteAnggotaProsesBisnisPayload = {
 export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
   const {
     scopes,
-    processes,
+    prosesBisnis,
     users,
     isLoading,
     createProsesBisnis,
     renameProsesBisnis,
     addMember,
-    removeMember,
-    inviteMember,
+    hapusAnggota,
+    undangAnggota,
     archiveProsesBisnis,
     isSaving,
   } = useProsesBisnisOwnerSelfService()
   const [namaProsesBisnis, setProsesBisnisName] = useState('')
-  const [scopeKey, setScopeKey] = useState('')
+  const [kunciLingkup, setScopeKey] = useState('')
   const [selectedProsesBisnisId, setSelectedProsesBisnisId] = useState<string | null>(null)
-  const [memberId, setMemberId] = useState('')
+  const [anggotaId, setMemberId] = useState('')
   const [invite, setInvite] = useState(EMPTY_INVITE)
   const [activationPath, setActivationPath] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [archiveReason, setArchiveReason] = useState('')
 
   const selected = useMemo(
-    () => processes.find((process) => process.prosesBisnisId === selectedProsesBisnisId) ?? null,
-    [processes, selectedProsesBisnisId],
+    () => prosesBisnis.find((process) => process.prosesBisnisId === selectedProsesBisnisId) ?? null,
+    [prosesBisnis, selectedProsesBisnisId],
   )
-  const selectedMemberIds = new Set(selected?.members.map((member) => member.penggunaId) ?? [])
+  const selectedMemberIds = new Set(selected?.anggota.map((anggota) => anggota.penggunaId) ?? [])
   const availableUsers = users.filter(
-    (user) => user.penggunaId !== selected?.ownerId && !selectedMemberIds.has(user.penggunaId),
+    (user) => user.penggunaId !== selected?.penanggungJawabId && !selectedMemberIds.has(user.penggunaId),
   )
 
-  if (!isLoading && scopes.length === 0 && processes.length === 0) return null
+  if (!isLoading && scopes.length === 0 && prosesBisnis.length === 0) return null
 
-  const selectedAuthority = scopes.find((scope) => scope.scopeKey === scopeKey) ?? null
+  const selectedAuthority = scopes.find((lingkup) => lingkup.kunciLingkup === kunciLingkup) ?? null
   const canCreate = namaProsesBisnis.trim().length >= 2 && selectedAuthority !== null
   const activationUrl = activationPath
     ? `${typeof window === 'undefined' ? '' : window.location.origin}${activationPath}`
     : null
 
   return (
-    <section className="space-y-4" aria-labelledby="process-owner-self-service-title">
+    <section className="space-y-4" aria-labelledby="penanggung-jawab-proses-bisnis-self-service-title">
       <div>
-        <h2 id="process-owner-self-service-title" className="text-base font-semibold text-foreground">
+        <h2 id="penanggung-jawab-proses-bisnis-self-service-title" className="text-base font-semibold text-foreground">
           Kelola ProsesBisnis
         </h2>
         <p className="mt-1 text-sm text-secondary-foreground">
-          Buat ProsesBisnis pada scope yang diberikan Admin, lalu kelola Penyusun SOP tanpa tiket administrasi.
+          Buat ProsesBisnis pada lingkup yang diberikan Admin, lalu kelola Penyusun SOP tanpa tiket administrasi.
         </p>
       </div>
 
@@ -80,13 +80,13 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                 />
                 <select
                   className="h-9 w-full rounded-control border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={scopeKey}
+                  value={kunciLingkup}
                   onChange={(event) => setScopeKey(event.target.value)}
                 >
-                  <option value="">Pilih scope</option>
-                  {scopes.map((scope) => (
-                    <option key={scope.kewenanganPenanggungJawabProsesBisnisId} value={scope.scopeKey}>
-                      {scope.scope === 'FACULTY' ? 'Fakultas' : scope.department?.nama ?? 'Jurusan'}
+                  <option value="">Pilih lingkup</option>
+                  {scopes.map((lingkup) => (
+                    <option key={lingkup.kewenanganPenanggungJawabProsesBisnisId} value={lingkup.kunciLingkup}>
+                      {lingkup.lingkup === 'FACULTY' ? 'Fakultas' : lingkup.departemen?.nama ?? 'Jurusan'}
                     </option>
                   ))}
                 </select>
@@ -98,7 +98,7 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                       try {
                         const created = await createProsesBisnis({
                           nama: namaProsesBisnis.trim(),
-                          scope: selectedAuthority.scope,
+                          lingkup: selectedAuthority.lingkup,
                           departemenId: selectedAuthority.departemenId,
                         })
                         setProsesBisnisName('')
@@ -122,10 +122,10 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
             <div className="divide-y divide-border">
               {isLoading ? (
                 <p className="p-4 text-sm text-secondary-foreground">Memuat ProsesBisnis...</p>
-              ) : processes.length === 0 ? (
+              ) : prosesBisnis.length === 0 ? (
                 <p className="p-4 text-sm text-secondary-foreground">Belum ada ProsesBisnis.</p>
               ) : (
-                processes.map((process) => (
+                prosesBisnis.map((process) => (
                   <button
                     type="button"
                     key={process.prosesBisnisId}
@@ -139,11 +139,11 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium text-foreground">{process.nama}</span>
                       <span className="mt-0.5 block text-xs text-secondary-foreground">
-                        {process.scope === 'FACULTY' ? 'Fakultas' : process.department?.nama ?? 'Jurusan'} · {process.members.length} Penyusun
+                        {process.lingkup === 'FACULTY' ? 'Fakultas' : process.departemen?.nama ?? 'Jurusan'} · {process.anggota.length} Penyusun
                       </span>
                     </span>
                     <span className="text-xs text-secondary-foreground">
-                      {process.lifecycleStatus === 'ARCHIVED' ? 'Diarsipkan' : 'Aktif'}
+                      {process.siklusStatus === 'ARCHIVED' ? 'Diarsipkan' : 'Aktif'}
                     </span>
                   </button>
                 ))
@@ -158,7 +158,7 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
               <div className="space-y-0.5">
                 <h3 className="text-sm font-semibold text-foreground">{selected.nama}</h3>
                 <p className="text-sm text-secondary-foreground">
-                  {selected.lifecycleStatus === 'ARCHIVED'
+                  {selected.siklusStatus === 'ARCHIVED'
                     ? 'Proses Bisnis read-only. Riwayat dan bukti workflow tetap dipertahankan.'
                     : 'Kelola identitas Proses Bisnis dan Penyusun SOP yang memiliki akses eksplisit.'}
                 </p>
@@ -166,7 +166,7 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
             </DataSurface.Header>
 
             <div className="divide-y divide-border">
-              {selected.lifecycleStatus !== 'ARCHIVED' ? (
+              {selected.siklusStatus !== 'ARCHIVED' ? (
                 <div className="space-y-3 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-secondary-foreground">Identitas</p>
                   <div className="flex gap-2">
@@ -184,22 +184,22 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
 
               <div className="space-y-3 p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-secondary-foreground">Penyusun SOP</p>
-                {selected.members.length === 0 ? (
+                {selected.anggota.length === 0 ? (
                   <p className="text-sm text-secondary-foreground">Belum ada Penyusun SOP.</p>
                 ) : (
                   <div className="space-y-1">
-                    {selected.members.map((membership) => (
-                      <div key={membership.penggunaId} className="flex items-center justify-between gap-3 py-1.5">
+                    {selected.anggota.map((keanggotaan) => (
+                      <div key={keanggotaan.penggunaId} className="flex items-center justify-between gap-3 py-1.5">
                         <div className="min-w-0">
-                          <p className="truncate text-sm text-foreground">{membership.pengguna.nama}</p>
-                          <p className="truncate text-xs text-secondary-foreground">{membership.pengguna.email}</p>
+                          <p className="truncate text-sm text-foreground">{keanggotaan.pengguna.nama}</p>
+                          <p className="truncate text-xs text-secondary-foreground">{keanggotaan.pengguna.email}</p>
                         </div>
-                        {selected.lifecycleStatus !== 'ARCHIVED' ? (
+                        {selected.siklusStatus !== 'ARCHIVED' ? (
                           <Button
                             size="sm"
                             variant="ghost"
                             disabled={isSaving}
-                            onClick={() => removeMember({ prosesBisnisId: selected.prosesBisnisId, penggunaId: membership.penggunaId })}
+                            onClick={() => hapusAnggota({ prosesBisnisId: selected.prosesBisnisId, penggunaId: keanggotaan.penggunaId })}
                           >
                             Cabut
                           </Button>
@@ -209,11 +209,11 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                   </div>
                 )}
 
-                {selected.lifecycleStatus !== 'ARCHIVED' ? (
+                {selected.siklusStatus !== 'ARCHIVED' ? (
                   <div className="flex gap-2 border-t border-border pt-3">
                     <select
                       className="h-9 min-w-0 flex-1 rounded-control border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                      value={memberId}
+                      value={anggotaId}
                       onChange={(event) => setMemberId(event.target.value)}
                     >
                       <option value="">Tambahkan akun aktif...</option>
@@ -225,10 +225,10 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                     </select>
                     <Button
                       variant="outline"
-                      disabled={!memberId || isSaving}
+                      disabled={!anggotaId || isSaving}
                       onClick={async () => {
                         try {
-                          await addMember({ prosesBisnisId: selected.prosesBisnisId, penggunaId: memberId })
+                          await addMember({ prosesBisnisId: selected.prosesBisnisId, penggunaId: anggotaId })
                           setMemberId('')
                         } catch {
                           // Toast owns error reporting.
@@ -241,7 +241,7 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                 ) : null}
               </div>
 
-              {selected.lifecycleStatus !== 'ARCHIVED' ? (
+              {selected.siklusStatus !== 'ARCHIVED' ? (
                 <div className="space-y-3 p-4">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-secondary-foreground">Undang akun baru</p>
@@ -263,7 +263,7 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                       disabled={Object.values(invite).some((value) => value.trim() === '') || isSaving}
                       onClick={async () => {
                         try {
-                          const result = await inviteMember({ prosesBisnisId: selected.prosesBisnisId, payload: invite })
+                          const result = await undangAnggota({ prosesBisnisId: selected.prosesBisnisId, payload: invite })
                           setInvite(EMPTY_INVITE)
                           setActivationPath(result.kind === 'INVITATION_CREATED' ? result.activationPath : null)
                         } catch {
@@ -290,7 +290,7 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                 </div>
               ) : null}
 
-              {selected.lifecycleStatus !== 'ARCHIVED' ? (
+              {selected.siklusStatus !== 'ARCHIVED' ? (
                 <div className="space-y-3 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-secondary-foreground">Arsipkan ProsesBisnis</p>
                   <p className="text-xs text-secondary-foreground">

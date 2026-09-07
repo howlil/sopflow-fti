@@ -4,8 +4,8 @@ import type { ApiSuccessResponse } from '../../../common';
 import type { PaginatedData } from '../../../common/utils/pagination.util';
 import type { Response } from 'express';
 import { PublicArsipQueryDto } from './dto/public-arsip-query.dto';
-import { PublicProsesBisnisItemDto } from './dto/public-process-item.dto';
-import { PublicSopByProsesBisnisPageDto } from './dto/public-sop-by-process-page.dto';
+import { PublicProsesBisnisItemDto } from './dto/public-proses-bisnis-item.dto';
+import { PublicSopByProsesBisnisPageDto } from './dto/public-sop-by-proses-bisnis-page.dto';
 import { PublicSopDokumenDto } from './dto/public-sop-dokumen.dto';
 import { PublicSopItemDto } from './dto/public-sop-item.dto';
 import { SopPublicService } from './sop-public.service';
@@ -15,7 +15,7 @@ import { SopPublicService } from './sop-public.service';
 export class SopPublicController {
   constructor(private readonly sopPublicService: SopPublicService) {}
 
-  @Get('fti/processes')
+  @Get('fti/prosesBisnis')
   @ApiOperation({
     summary: 'Daftar Proses Bisnis FTI dengan SOP resmi berlaku',
     description: 'Target-native public discovery melalui SOP.prosesBisnisId.',
@@ -30,7 +30,7 @@ export class SopPublicController {
     };
   }
 
-  @Get('fti/processes/:prosesBisnisId/sop')
+  @Get('fti/prosesBisnis/:prosesBisnisId/sop')
   @ApiOperation({
     summary: 'Daftar SOP resmi berlaku per Proses Bisnis FTI',
     description: 'Klasifikasi hanya melalui SOP.prosesBisnisId.',

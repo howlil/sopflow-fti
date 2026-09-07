@@ -20,7 +20,7 @@ export interface ProsesBisnisFeedbackNotification {
 }
 
 export async function markAllNotifikasiProsesBisnissRead(api: APIRequestContext): Promise<void> {
-  await apiPost(api, '/notifications/process/read-all')
+  await apiPost(api, '/notifications/proses-bisnis/read-all')
 }
 
 export async function requestProsesBisnisRevisionViaApi(
@@ -38,7 +38,7 @@ export async function findProsesBisnisFeedback(
   api: APIRequestContext,
   kind: ProsesBisnisFeedbackKind,
 ): Promise<ProsesBisnisFeedbackNotification[]> {
-  const notifications = await apiGet<ProsesBisnisFeedbackNotification[]>(api, '/notifications/process?limit=50')
+  const notifications = await apiGet<ProsesBisnisFeedbackNotification[]>(api, '/notifications/proses-bisnis?limit=50')
   return notifications.filter((item) => item.kind === kind)
 }
 
@@ -78,7 +78,7 @@ export async function openProsesBisnisFeedbackFromNotification(
   await bell.click()
 
   const notification = notifikasiProsesBisnisId
-    ? page.locator(`[data-process-notification-id="${notifikasiProsesBisnisId}"]`)
+    ? page.locator(`[data-notifikasi-proses-bisnis-id="${notifikasiProsesBisnisId}"]`)
     : page
         .getByRole('link')
         .filter({ hasText: expected.title })
@@ -94,7 +94,7 @@ export async function openProsesBisnisFeedbackFromNotification(
         (response) =>
           response.request().method() === 'POST' &&
           response.url().includes(
-            `/notifications/process/items/${encodeURIComponent(notifikasiProsesBisnisId)}/read`,
+            `/notifications/proses-bisnis/items/${encodeURIComponent(notifikasiProsesBisnisId)}/read`,
           ),
         { timeout: 15_000 },
       )

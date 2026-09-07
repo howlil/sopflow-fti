@@ -2,11 +2,11 @@
 
 ## Product
 
-SOPFlow FTI manages the complete SOP lifecycle for Fakultas Teknologi Informasi: authoring, ProsesBisnis review, contextual final approval, electronic signing, publication, public verification, version replacement, and revocation.
+SOPFlow FTI manages the complete SOP siklus for Fakultas Teknologi Informasi: authoring, ProsesBisnis review, contextual final approval, electronic signing, publication, public verification, version replacement, and revocation.
 
 ## Actors
 
-- **Platform Admin**: configures accounts, departments, owner eligibility, and organizational authority assignments.
+- **Platform Admin**: configures accounts, departemen, kelayakan penanggung jawab Proses Bisnis, and pejabat berwenang assignments.
 - **ProsesBisnis Owner**: owns a ProsesBisnis, manages its team, and reviews submitted SOP work.
 - **ProsesBisnis Member / Penyusun SOP**: authors SOPs within ProsesBisnises they belong to.
 - **Dean**: final approval and TTE authority for Faculty-scoped ProsesBisnises.
@@ -30,9 +30,9 @@ Create/choose ProsesBisnis
 - Active SOP ownership is direct to `ProsesBisnis`.
 - Platform administration is not workflow authority.
 - Review authorization is ProsesBisnis-contextual.
-- Final approval and TTE holder are derived from ProsesBisnis organizational scope.
+- Final approval and TTE holder are derived from ProsesBisnis organizational lingkup.
 - Faculty ProsesBisnis resolves to Dean; Departemen ProsesBisnis resolves to that Departemen Head.
-- Signing evidence stores contextual organizational authority.
+- Signing evidence stores contextual pejabat berwenang.
 - Peraturan and Pelaksana are reusable global catalogs.
 - Public archive and public signing verification expose current FTI semantics.
 - Historical migration SQL is immutable implementation history and is not a product contract.

@@ -10,7 +10,7 @@ import type { Request } from 'express';
 import type { JwtAccessPayload } from '../../../common';
 import { toWibDateOnly } from '../../../common/date/wib-date.util';
 import { JenisDokumenTte, JenisNotifikasiProsesBisnis, StatusSOP } from '../../../generated/prisma';
-import { NotifikasiProsesBisnisService } from '../../notifications/process/process-notification.service';
+import { NotifikasiProsesBisnisService } from '../../notifications/proses-bisnis/notifikasi-proses-bisnis.service';
 import { SopOfficialPdfService } from '../../sop/pdf/sop-official-pdf.service';
 import { SopPdfStorageService } from '../../sop/pdf/sop-pdf-storage.service';
 import { TandaTanganiProsesBisnisSopDto } from '../shared/dto/tanda-tangani-sop-proses-bisnis.dto';
@@ -120,7 +120,7 @@ export class ProsesBisnisTteService {
             const [process, detail] = await Promise.all([
               tx.prosesBisnis.findUnique({
                 where: { prosesBisnisId: finalizedContext.prosesBisnisId },
-                select: { ownerId: true, nama: true },
+                select: { penanggungJawabId: true, nama: true },
               }),
               tx.detailSOP.findUnique({
                 where: { detailSopId: finalizedContext.detailSopId },
@@ -148,7 +148,7 @@ export class ProsesBisnisTteService {
                 detailSopId: finalizedContext.detailSopId,
                 sopId: finalizedContext.sopId,
                 prosesBisnisId: finalizedContext.prosesBisnisId,
-                penggunaId: process.ownerId,
+                penggunaId: process.penanggungJawabId,
                 kind: JenisNotifikasiProsesBisnis.PROCESS_SOP_EFFECTIVE,
                 namaProsesBisnis: process.nama,
               },
@@ -162,7 +162,7 @@ export class ProsesBisnisTteService {
         detailSopId: finalized.detailSopId,
         dokumenTteId: finalized.dokumenTteId,
         authority: finalized.authority,
-        authorityKey: finalized.authorityKey,
+        kunciPejabatBerwenang: finalized.kunciPejabatBerwenang,
         status: StatusSOP.EFFECTIVE,
         ditandatanganiPada: signedAt.toISOString(),
         tanggalEfektif: tanggalEfektif.toISOString(),

@@ -29,12 +29,12 @@ function signingContextTx() {
       findMany: jest.fn().mockResolvedValue([{ detailSopId: 'detail-old' }]),
       updateMany: jest.fn().mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 }),
     },
-    processFinalApproval: {
+    persetujuanAkhirSOP: {
       findUnique: jest.fn().mockResolvedValue({
         prosesBisnisId,
         approvedById: userId,
         authority: PejabatBerwenang.DEAN,
-        authorityKey: 'DEAN',
+        kunciPejabatBerwenang: 'DEAN',
         approvedAt: new Date('2026-09-01T00:00:00Z'),
       }),
     },
@@ -140,7 +140,7 @@ describe('ProsesBisnisTteRepository effective-state integrity', () => {
     expect(tx.dokumenTte.update).not.toHaveBeenCalled();
   });
 
-  it('rejects a TTE document without explicit Penanggung Jawab Proses Bisnisship', async () => {
+  it('rejects a TTE document without explicit Penanggung Jawab kepemilikan Proses Bisnis', async () => {
     const tx = signingContextTx();
     tx.dokumenTte.findUnique.mockResolvedValue({
       dokumenTteId,
@@ -166,7 +166,7 @@ describe('ProsesBisnisTteRepository effective-state integrity', () => {
     expect(tx.dokumenTte.update).not.toHaveBeenCalled();
   });
 
-  it('rejects a TTE document whose explicit Penanggung Jawab Proses Bisnisship drifts from the SOP', async () => {
+  it('rejects a TTE document whose explicit Penanggung Jawab kepemilikan Proses Bisnis drifts from the SOP', async () => {
     const tx = signingContextTx();
     tx.dokumenTte.findUnique.mockResolvedValue({
       dokumenTteId,

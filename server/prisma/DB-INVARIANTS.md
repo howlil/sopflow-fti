@@ -8,17 +8,17 @@
 - A ProsesBisnis has one owner.
 - Faculty ProsesBisnis has no `departemenId`.
 - Departemen ProsesBisnis has a valid `departemenId`.
-- ProsesBisnis membership is unique by `(prosesBisnisId, penggunaId)`.
+- ProsesBisnis keanggotaan is unique by `(prosesBisnisId, penggunaId)`.
 
 ## SOP
 - Active SOP ownership is `SOP.prosesBisnisId`.
 - Version identity is unique by `(sopId, versi)`.
-- `DetailSOP.status` uses only the native lifecycle enum.
+- `DetailSOP.status` uses only the native siklus enum.
 - Effective/version replacement/revocation transitions must preserve a coherent version chain.
 
 ## Review and approval
 - ProsesBisnis review evidence belongs to the same ProsesBisnis/SOP/detail being transitioned.
-- Final approval references the accepted ProsesBisnis review and resolved organizational authority.
+- Final approval references the accepted ProsesBisnis review and resolved pejabat berwenang.
 - Faculty approval authority is Dean. Departemen approval authority is that Departemen Head.
 
 ## TTE

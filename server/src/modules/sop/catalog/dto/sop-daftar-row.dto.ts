@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type { ProsesBisnisSopLifecycleProjection } from '../../process-authoring/sop-proses-bisnis-lifecycle.projection';
+import type { ProsesBisnisSopLifecycleProjection } from '../../penyusunan-proses-bisnis/sop-proses-bisnis-siklus.projection';
 import { SopDaftarVersiSliceDto } from './sop-daftar-versi-slice.dto';
 import { TerakhirDieditDto } from './terakhir-diedit.dto';
 
@@ -29,7 +29,7 @@ export class SopDaftarRowDto {
   @ApiProperty({ description: 'Status persistence DetailSOP versi terakhir' })
   readonly status!: string;
 
-  @ApiProperty({ description: 'Label lifecycle FTI untuk UI' })
+  @ApiProperty({ description: 'Label siklus FTI untuk UI' })
   readonly statusLabel!: string;
 
   @ApiPropertyOptional({ nullable: true })
@@ -46,7 +46,7 @@ export class SopDaftarRowDto {
 
   @ApiProperty({
     description:
-      'Versi BERLAKU secara lifecycle dapat dicabut bila tidak ada revisi berjalan; kewenangan aktor diverifikasi endpoint revocation secara kontekstual.',
+      'Versi BERLAKU secara siklus dapat dicabut bila tidak ada revisi berjalan; kewenangan aktor diverifikasi endpoint revocation secara kontekstual.',
   })
   readonly canCabutSop!: boolean;
 
@@ -54,8 +54,8 @@ export class SopDaftarRowDto {
   readonly canHapusSopDraft!: boolean;
 
   @ApiPropertyOptional({
-    description: 'Canonical lifecycle projection for native Proses Bisnis SOP work queues',
+    description: 'Canonical siklus projection for native Proses Bisnis SOP work queues',
     nullable: true,
   })
-  readonly lifecycle?: ProsesBisnisSopLifecycleProjection;
+  readonly siklus?: ProsesBisnisSopLifecycleProjection;
 }

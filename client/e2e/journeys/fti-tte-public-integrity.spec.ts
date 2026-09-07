@@ -20,9 +20,9 @@ test.describe('End-to-End Business Journey — Proses Bisnis TTE and public hand
       await signFacultyProsesBisnisSopViaUi(dean.page, sop.title)
     })
 
-    await test.step('Proses Bisnis Team melihat SOP sudah berlaku', async () => {
-      const member = await roleSession(targetUsers.anggotaProsesBisnis)
-      await expectProsesBisnisSopBerlakuInWorkQueue(member.page, sop.title)
+    await test.step('Tim Proses Bisnis melihat SOP sudah berlaku', async () => {
+      const anggota = await roleSession(targetUsers.anggotaProsesBisnis)
+      await expectProsesBisnisSopBerlakuInWorkQueue(anggota.page, sop.title)
     })
 
     await test.step('Arsip publik menampilkan SOP Proses Bisnis berlaku tanpa data evaluasi internal', async () => {
