@@ -140,7 +140,7 @@ describe('ProcessTteRepository effective-state integrity', () => {
     expect(tx.dokumenTte.update).not.toHaveBeenCalled();
   });
 
-  it('backfills Process ownership on an existing native TTE document during preparation', async () => {
+  it('rejects a TTE document without explicit Process ownership', async () => {
     const tx = signingContextTx();
     tx.dokumenTte.findUnique.mockResolvedValue({
       dokumenTteId,
@@ -161,12 +161,9 @@ describe('ProcessTteRepository effective-state integrity', () => {
         nomorDokumen: 'SOP-01-v2',
         judulDokumen: 'Pengesahan SOP Akademik',
       }),
-    ).resolves.toMatchObject({ ok: true });
+    ).resolves.toEqual({ error: 'INVALID_DOC_PARENT' });
 
-    expect(tx.dokumenTte.update).toHaveBeenCalledWith({
-      where: { dokumenTteId },
-      data: expect.objectContaining({ processId }),
-    });
+    expect(tx.dokumenTte.update).not.toHaveBeenCalled();
   });
 
   it('rejects a TTE document whose explicit Process ownership drifts from the SOP', async () => {
