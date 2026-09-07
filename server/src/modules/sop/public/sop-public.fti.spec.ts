@@ -84,7 +84,6 @@ describe('SopPublicService — FTI-native archive', () => {
         nomorSOP: 'FTI-001',
         versi: 3,
         tanggalEfektif: new Date('2026-09-03T00:00:00.000Z'),
-        opdNama: 'Legacy OPD',
         pdfPath: 'official.pdf',
         prosesBisnisId: 'process-faculty',
         namaProsesBisnis: 'Pengelolaan Akademik FTI',
@@ -116,21 +115,20 @@ describe('SopPublicService — FTI-native archive', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('J38 mempertahankan nullable Proses Bisnis context untuk legacy-unbound compatibility result', async () => {
+  it('J38 hanya memetakan SOP global yang memiliki konteks Proses Bisnis', async () => {
     repo.countFtiSopGlobal.mockResolvedValue(1);
     repo.findFtiSopGlobal.mockResolvedValue([
       {
-        detailSopId: 'legacy-detail',
-        sopId: 'legacy-sop',
-        judul: 'SOP Legacy',
-        nomorSOP: 'LEG-001',
+        detailSopId: 'detail-global',
+        sopId: 'sop-global',
+        judul: 'SOP Global FTI',
+        nomorSOP: 'FTI-002',
         versi: 1,
-        tanggalEfektif: null,
-        opdNama: 'Legacy OPD',
-        pdfPath: 'legacy.pdf',
-        prosesBisnisId: null,
-        namaProsesBisnis: null,
-        lingkup: null,
+        tanggalEfektif: new Date('2026-09-03T00:00:00.000Z'),
+        pdfPath: 'global.pdf',
+        prosesBisnisId: 'process-faculty',
+        namaProsesBisnis: 'Pengelolaan Akademik FTI',
+        lingkup: LingkupOrganisasi.FACULTY,
         departemenId: null,
         namaDepartemen: null,
       },
@@ -139,16 +137,16 @@ describe('SopPublicService — FTI-native archive', () => {
     const actual = await service.listFtiSopGlobal({
       page: 1,
       limit: 15,
-      search: 'Legacy',
+      search: 'Akademik',
     } as PublicArsipQueryDto);
 
     expect(actual.items).toHaveLength(1);
     expect(actual.items[0]).toEqual(
       expect.objectContaining({
-        detailSopId: 'legacy-detail',
-        prosesBisnisId: null,
-        namaProsesBisnis: null,
-        opdNama: 'Legacy OPD',
+        detailSopId: 'detail-global',
+        prosesBisnisId: 'process-faculty',
+        namaProsesBisnis: 'Pengelolaan Akademik FTI',
+        pdfUrl: '/sop/public/pdf/detail-global',
       }),
     );
   });
