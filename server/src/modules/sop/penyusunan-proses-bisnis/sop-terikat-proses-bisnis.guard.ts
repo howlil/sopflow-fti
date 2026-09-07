@@ -8,8 +8,8 @@ import { ProsesBisnisContextService } from '../../core/proses-bisnis/konteks-pro
 /**
  * Compatibility guard for legacy `/sop/:id...` endpoints.
  *
- * Once an SOP is owned by a ProsesBisnis, a legacy route must not reintroduce organisasi or
- * global workflow-role authorization. ProsesBisnis keanggotaan/ownership is the only
+ * Once an SOP is owned by a ProsesBisnis, a legacy route must not bypass ProsesBisnis authorization with
+ * retired global workflow-role compatibility. ProsesBisnis keanggotaan/ownership is the only
  * authoring authority for ProsesBisnis-bound SOPs. Unbound historical SOPs remain on
  * their explicit legacy compatibility path until their retention contract is retired.
  */

@@ -163,7 +163,7 @@ export class SopOfficialPdfService {
         color: rgb(0, 0, 0),
       });
 
-      // Sel tanda tangan Kepala organisasi memakai inset dari sudut kanan atas halaman.
+      // Sel tanda tangan pejabat berwenang memakai inset dari sudut kanan atas halaman.
       firstPage.drawImage(
         qrImage,
         resolveSignatureQrPlacement({

@@ -2,7 +2,7 @@ import type { PrismaService } from '../../../../common/prisma/prisma.service';
 import { TteRepository } from './tte.repository';
 
 describe('TteRepository current identity boundary', () => {
-  it('loads active signer identity without current role or organisasi shadow', async () => {
+  it('loads only the native active signer identity projection', async () => {
     const prisma = {
       pengguna: {
         findFirst: jest.fn().mockResolvedValue({
@@ -28,10 +28,14 @@ describe('TteRepository current identity boundary', () => {
 
     expect(prisma.pengguna.findFirst).toHaveBeenCalledWith({
       where: { penggunaId: 'u-1', deletedAt: null },
-      select: expect.not.objectContaining({
-        peran: expect.anything(),
-        organisasi: expect.anything(),
-      }),
+      select: {
+        penggunaId: true,
+        email: true,
+        nama: true,
+        nip: true,
+        jabatan: true,
+        pangkat: true,
+      },
     });
   });
 });

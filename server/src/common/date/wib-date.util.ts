@@ -1,6 +1,6 @@
 /**
  * Tanggal kalender Asia/Jakarta pada 00:00+07:00 dari instant pengesahan.
- * Dipakai untuk `DetailSOP.tanggalEfektif` saat Kepala organisasi mengesahkan SOP.
+ * Dipakai untuk `DetailSOP.tanggalEfektif` saat pengesahan final mengaktifkan SOP.
  */
 export function toWibDateOnly(instant: Date): Date {
   const ymd = new Intl.DateTimeFormat('en-CA', {

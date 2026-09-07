@@ -1,5 +1,5 @@
 import { expect, test } from '../fixtures/business-test'
-import { targetUsers, users } from '../fixtures/users'
+import { targetUsers } from '../fixtures/users'
 import {
   createDepartemenProsesBisnisViaAdminUi,
   assignDeanViaAdminUi,
@@ -35,7 +35,7 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
     roleSession,
   }) => {
     await test.step('SUPER_ADMIN melihat entry administrasi FTI dan API admin menerima sesi', async () => {
-      const admin = await roleSession(users.pjEvaluator)
+      const admin = await roleSession(targetUsers.admin)
       await admin.page.goto('/work')
       await waitForAppReady(admin.page)
       await expect(admin.page.getByRole('link', { name: 'Proses FTI', exact: true })).toBeVisible()
@@ -72,8 +72,8 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
     })
 
     await test.step('SUPER_ADMIN tanpa Proses Bisnis relationship tetap ditolak dari authoring target', async () => {
-      expect(await listMyProsesBisnises(roleApi, users.pjEvaluator)).toEqual([])
-      expect(await listMyAuthorities(roleApi, users.pjEvaluator)).toEqual([])
+      expect(await listMyProsesBisnises(roleApi, targetUsers.admin)).toEqual([])
+      expect(await listMyAuthorities(roleApi, targetUsers.admin)).toEqual([])
 
       const process = (await listAdminProsesBisnises(roleApi))[0]
       expect(process).toBeDefined()
@@ -103,7 +103,7 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
     const anggota = requireAdminUser(adminUsers, targetUsers.departmentMember.email)
 
     await test.step('SUPER_ADMIN membuat Departemen dan Departemen Proses Bisnis melalui UI target', async () => {
-      const admin = await roleSession(users.pjEvaluator)
+      const admin = await roleSession(targetUsers.admin)
       await createDepartemenProsesBisnisViaAdminUi(admin.page, {
         namaDepartemen,
         namaProsesBisnis,
@@ -152,7 +152,7 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
 
     try {
       await test.step('Admin UI mengganti Dean dan assignment langsung berpindah ke holder baru', async () => {
-        const admin = await roleSession(users.pjEvaluator)
+        const admin = await roleSession(targetUsers.admin)
         await assignDeanViaAdminUi(admin.page, adminUserLabel(temporaryDean))
 
         const temporaryAuthorities = await listMyAuthorities(roleApi, targetUsers.otherDepartemenMember)
@@ -166,7 +166,7 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
       })
 
       await test.step('Admin UI menetapkan satu Kadep untuk Departemen baru tanpa cross-lingkup leak', async () => {
-        const admin = await roleSession(users.pjEvaluator)
+        const admin = await roleSession(targetUsers.admin)
         await assignDepartemenHeadViaAdminUi(
           admin.page,
           namaDepartemen,
@@ -213,7 +213,7 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
     const departmentHead = requireAdminUser(adminUsers, targetUsers.headOfDepartemen.email)
 
     await test.step('SUPER_ADMIN bootstrap Departemen, Tim Proses Bisnis, dan Kadep melalui UI administrasi', async () => {
-      const admin = await roleSession(users.pjEvaluator)
+      const admin = await roleSession(targetUsers.admin)
       await createDepartemenProsesBisnisViaAdminUi(admin.page, {
         namaDepartemen,
         namaProsesBisnis,
@@ -245,7 +245,7 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
     })
 
     await test.step('Platform admin tetap di luar workflow Proses Bisnis yang baru dibootstrap', async () => {
-      const adminProsesBisnises = await listMyProsesBisnises(roleApi, users.pjEvaluator)
+      const adminProsesBisnises = await listMyProsesBisnises(roleApi, targetUsers.admin)
       expect(adminProsesBisnises.some((row) => row.prosesBisnisId === sop.prosesBisnisId)).toBe(false)
 
       const api = await adminApi(roleApi)

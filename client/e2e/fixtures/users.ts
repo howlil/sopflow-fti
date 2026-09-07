@@ -70,12 +70,6 @@ export const targetUsers = {
   },
 } satisfies Record<string, E2eUser>
 
-/**
- * Transitional symbol kept only so existing FTI journey files can reference the platform admin
- * while the legacy role matrix itself is deleted. The value is the native SUPER_ADMIN identity;
- * it does not carry PJ Evaluator authorization or persistence semantics.
- */
-export const users = { pjEvaluator: targetUsers.admin } as const
 
 export const allTargetUsers = Object.values(targetUsers)
 export const publicRoutes = ['/', '/login', '/arsip', '/validasi/pdf']

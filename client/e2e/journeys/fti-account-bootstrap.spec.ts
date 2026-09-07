@@ -1,5 +1,5 @@
 import { expect, test } from '../fixtures/business-test'
-import { targetUsers, users } from '../fixtures/users'
+import { targetUsers } from '../fixtures/users'
 import { apiGet, toApiUrl } from '../support/api'
 import { waitForAppReady } from '../support/app'
 import {
@@ -50,8 +50,8 @@ test.describe('End-to-End Business Journey — FTI account provisioning bootstra
   }) => {
     const fixture = platformAccountFixture(`J24-${e2eRunId('acct')}`)
 
-    await test.step('SUPER_ADMIN membuat akun melalui target UI tanpa memilih organisasi atau legacy role', async () => {
-      const admin = await roleSession(users.pjEvaluator)
+    await test.step('SUPER_ADMIN membuat akun melalui target UI tanpa role workflow global', async () => {
+      const admin = await roleSession(targetUsers.admin)
       await admin.page.goto('/work')
       await waitForAppReady(admin.page)
       await expect(admin.page.getByRole('link', { name: 'Akun FTI', exact: true })).toBeVisible()
@@ -125,7 +125,7 @@ test.describe('End-to-End Business Journey — FTI account provisioning bootstra
     })
 
     await test.step('SUPER_ADMIN membuat Proses Bisnis dengan fresh Owner dan Member melalui UI', async () => {
-      const admin = await roleSession(users.pjEvaluator)
+      const admin = await roleSession(targetUsers.admin)
       await createDepartemenProsesBisnisViaAdminUi(admin.page, {
         namaDepartemen,
         namaProsesBisnis,
@@ -168,11 +168,11 @@ test.describe('End-to-End Business Journey — FTI account provisioning bootstra
     await test.step('Account creation saja tidak memberi pejabat berwenang', async () => {
       expect(await listMyAuthorities(roleApi, head)).toEqual([])
       expect(await listMyAuthorities(roleApi, unrelated)).toEqual([])
-      expect(await listMyAuthorities(roleApi, users.pjEvaluator)).toEqual([])
+      expect(await listMyAuthorities(roleApi, targetUsers.admin)).toEqual([])
     })
 
     await test.step('Admin membuat Departemen lalu memilih fresh USER sebagai Kadep lewat authority UI', async () => {
-      const admin = await roleSession(users.pjEvaluator)
+      const admin = await roleSession(targetUsers.admin)
       await admin.page.goto('/admin/proses-bisnis')
       await waitForAppReady(admin.page)
       await admin.page.getByPlaceholder('Nama departemen').fill(namaDepartemen)
@@ -219,7 +219,7 @@ test.describe('End-to-End Business Journey — FTI account provisioning bootstra
     const head = toDynamicE2eUser(headFixture, 'M7 J27 Head of Departemen')
 
     await test.step('Bootstrap admin membuat Departemen, Tim Proses Bisnis, dan Kadep dari fresh accounts', async () => {
-      const admin = await roleSession(users.pjEvaluator)
+      const admin = await roleSession(targetUsers.admin)
       await createDepartemenProsesBisnisViaAdminUi(admin.page, {
         namaDepartemen,
         namaProsesBisnis,

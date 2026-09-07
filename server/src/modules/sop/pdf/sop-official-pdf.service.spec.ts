@@ -54,7 +54,7 @@ describe('SopOfficialPdfService', () => {
     expect(placement.height).toBe(11);
   });
 
-  it('menjaga posisi QR di tengah sel tanda tangan Kepala organisasi', () => {
+  it('menjaga posisi QR di tengah sel tanda tangan pejabat berwenang', () => {
     const a4Landscape = resolveSignatureQrPlacement({ width: 841.89, height: 595.28 });
     expect(a4Landscape.x).toBeCloseTo(683.15252, 5);
     expect(a4Landscape.y).toBeCloseTo(352.64, 5);

@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/business-test'
-import { targetUsers, users } from '../fixtures/users'
+import { targetUsers } from '../fixtures/users'
 import { apiGet, toApiUrl } from '../support/api'
 import { expectNoAppShellError, waitForAppReady } from '../support/app'
 import { seedReadyProsesBisnisSop } from '../support/fti-proses-bisnis-preconditions'
@@ -66,7 +66,7 @@ test.describe('End-to-End Business Journey — Departemen context isolation', ()
       )
       expect(unrelatedResponse.status()).toBe(403)
 
-      const superAdminApi = await roleApi(users.pjEvaluator)
+      const superAdminApi = await roleApi(targetUsers.admin)
       const superAdminResponse = await superAdminApi.get(
         toApiUrl(`/sop-proses-bisnis/workbench/${sop.detailSopId}`),
       )

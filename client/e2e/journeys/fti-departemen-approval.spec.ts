@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/business-test'
-import { targetUsers, users } from '../fixtures/users'
+import { targetUsers } from '../fixtures/users'
 import { apiGet, toApiUrl } from '../support/api'
 import {
   acceptProsesBisnisSopViaUi,
@@ -51,7 +51,7 @@ test.describe('End-to-End Business Journey — Departemen persetujuan akhir', ()
     })
 
     await test.step('Dean, Kadep Departemen lain, dan SUPER_ADMIN tidak dapat approve SOP Departemen A', async () => {
-      const deniedUsers = [targetUsers.dean, targetUsers.otherHeadOfDepartemen, users.pjEvaluator]
+      const deniedUsers = [targetUsers.dean, targetUsers.otherHeadOfDepartemen, targetUsers.admin]
       for (const user of deniedUsers) {
         const api = await roleApi(user)
         const response = await api.post(toApiUrl(`/persetujuan-akhir-sop/${sop.detailSopId}/approve`))

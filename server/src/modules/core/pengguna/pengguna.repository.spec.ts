@@ -31,7 +31,7 @@ describe('PenggunaRepository native platform accounts', () => {
     );
   });
 
-  it('creates a native USER without fabricated role or organisasi shadow', async () => {
+  it('creates a native USER without fabricated retired identity fields', async () => {
     prismaMock.pengguna.create.mockResolvedValueOnce({
       penggunaId: 'native-user-1',
       platformRole: 'USER',

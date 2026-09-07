@@ -40,9 +40,9 @@ describe('regresi aksesibilitas komponen UI', () => {
   })
 
   it('mempertahankan ukuran badge dan status panjang yang terbaca', () => {
-    render(<><Badge variant="default">Aktif</Badge><SopStatusBadge status="DIVERIFIKASI_PJ_EVALUATOR_ORGANISASI" label="Menunggu pengesahan Kepala organisasi" showDomain={false} /></>)
+    render(<><Badge variant="default">Aktif</Badge><SopStatusBadge status="FINAL_APPROVAL" label="Menunggu persetujuan akhir" showDomain={false} /></>)
     expect(screen.getByText('Aktif')).toHaveClass('min-h-6', 'text-primary-hover')
-    expect(screen.getByText('Menunggu pengesahan Kepala organisasi')).toHaveClass('whitespace-nowrap', 'rounded-full')
+    expect(screen.getByText('Menunggu persetujuan akhir')).toHaveClass('whitespace-nowrap', 'rounded-full')
   })
 
   it('menggunakan peran visual semantik pada kartu dan tabel', () => {

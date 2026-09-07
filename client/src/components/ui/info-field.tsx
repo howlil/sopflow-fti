@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/utils/cn";
 
 export interface InfoFieldProps {
-  /** Label (e.g. "Tanggal", "organisasi", "Status") */
+  /** Label (e.g. "Tanggal", "Proses Bisnis", "Status") */
   label: string;
   /** Value — string or ReactNode (e.g. Badge, StatusBadge) */
   children?: ReactNode;

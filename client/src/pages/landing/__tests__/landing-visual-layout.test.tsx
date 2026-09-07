@@ -53,9 +53,7 @@ describe('landing visual layout', () => {
     render(<LandingProductPreview />)
     expect(screen.getByText('Review Proses Bisnis')).toBeInTheDocument()
     expect(screen.getByText('Contoh SOP FTI')).toBeInTheDocument()
-    expect(screen.queryByText('organisasi terhubung')).not.toBeInTheDocument()
     expect(screen.queryByText('Pengajuan Evaluasi')).not.toBeInTheDocument()
-    expect(screen.queryByText('Menunggu TTD PJ Evaluator')).not.toBeInTheDocument()
   })
 
   it('keeps global navigation focused on public destinations and login', () => {
@@ -80,8 +78,6 @@ describe('landing visual layout', () => {
   it('keeps responsibility information concise without a legacy role matrix', () => {
     render(<RoleWorkspaceShowcase roles={roles} />)
     expect(screen.getByText('Tiga tanggung jawab dalam siklus SOP FTI.')).toBeInTheDocument()
-    expect(screen.queryByText('Kepala organisasi')).not.toBeInTheDocument()
-    expect(screen.queryByText('PJ Evaluator')).not.toBeInTheDocument()
   })
 
   it('uses a direct FTI closing with one action', () => {

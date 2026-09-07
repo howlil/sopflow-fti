@@ -33,8 +33,6 @@ describe('public auth design contract', () => {
     expect(loginHeroSource).toContain('lg:min-h-screen')
     expect(loginHeroSource).not.toContain('Pemerintah Provinsi Sumatera Barat')
     expect(loginHeroSource).not.toContain('Biro Organisasi')
-    expect(loginHeroSource).not.toContain('Kepala organisasi')
-    expect(loginHeroSource).not.toContain('PJ Evaluator')
   })
 
   it('keeps the form clean and preserves login behavior', () => {

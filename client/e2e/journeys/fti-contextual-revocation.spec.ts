@@ -1,5 +1,5 @@
 import { expect, test } from '../fixtures/business-test'
-import { targetUsers, users } from '../fixtures/users'
+import { targetUsers } from '../fixtures/users'
 import { apiGet, toApiUrl } from '../support/api'
 import {
   expectProsesBisnisSopAbsentFromPublicArchive,
@@ -45,7 +45,7 @@ test.describe('End-to-End Business Journey — contextual SOP revocation', () =>
       for (const actor of [
         targetUsers.otherHeadOfDepartemen,
         targetUsers.penanggungJawabProsesBisnis,
-        users.pjEvaluator,
+        targetUsers.admin,
       ]) {
         await expectRevocationRejectedViaApi(
           await roleApi(actor),

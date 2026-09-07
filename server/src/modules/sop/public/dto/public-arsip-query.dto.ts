@@ -11,9 +11,9 @@ function trimSearch(value: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-/** Query bersama daftar arsip publik (organisasi / SOP). */
+/** Query bersama daftar arsip publik Proses Bisnis / SOP. */
 export class PublicArsipQueryDto extends PaginationQueryDto {
-  @ApiPropertyOptional({ description: 'Pencarian substring (nama organisasi atau judul/nomor SOP)' })
+  @ApiPropertyOptional({ description: 'Pencarian substring (nama Proses Bisnis atau judul/nomor SOP)' })
   @IsOptional()
   @IsString()
   @MaxLength(200)

@@ -1,5 +1,5 @@
 import { expect, test } from '../fixtures/business-test'
-import { targetUsers, users } from '../fixtures/users'
+import { targetUsers } from '../fixtures/users'
 import { toApiUrl } from '../support/api'
 import { signProsesBisnisSopViaUi } from '../support/fti-tte-actions'
 import { e2ePin, validPdfBase64 } from '../support/test-data'
@@ -22,7 +22,7 @@ test.describe('End-to-End Business Journey — Departemen Proses Bisnis version 
     })
 
     await test.step('Dean, Kadep Departemen lain, dan SUPER_ADMIN tidak dapat TTE V2 Departemen A', async () => {
-      for (const deniedUser of [targetUsers.dean, targetUsers.otherHeadOfDepartemen, users.pjEvaluator]) {
+      for (const deniedUser of [targetUsers.dean, targetUsers.otherHeadOfDepartemen, targetUsers.admin]) {
         const api = await roleApi(deniedUser)
         const response = await api.post(toApiUrl(`/tte-proses-bisnis/${fixture.v2.id}/sign`), {
           data: {

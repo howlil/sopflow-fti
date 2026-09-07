@@ -25,7 +25,7 @@ describe('PelaksanaRepository global catalog', () => {
     repo = new PelaksanaRepository(prismaMock as unknown as PrismaService);
   });
 
-  it('lists Pelaksana globally without organisasi filtering', async () => {
+  it('lists Pelaksana globally without organization scoping', async () => {
     prismaMock.pelaksana.findMany.mockResolvedValueOnce([]);
     await repo.findAll();
     expect(prismaMock.pelaksana.findMany).toHaveBeenCalledWith({
@@ -55,7 +55,7 @@ describe('PelaksanaRepository global catalog', () => {
     });
   });
 
-  it('reads creator/editor attribution independently of organisasi', async () => {
+  it('reads creator/editor attribution independently of organization scoping', async () => {
     prismaMock.pelaksanaAuditAttribution.findMany.mockResolvedValueOnce([]);
     await repo.findAttributionByPelaksanaIds(['actor-1', 'actor-2']);
     expect(prismaMock.pelaksanaAuditAttribution.findMany).toHaveBeenCalledWith({

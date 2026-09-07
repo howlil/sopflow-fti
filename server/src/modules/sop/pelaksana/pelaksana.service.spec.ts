@@ -39,7 +39,7 @@ describe('PelaksanaService global catalog', () => {
     repo.findByNama.mockResolvedValue(null);
   });
 
-  it('lists the global catalog without organisasi filtering', async () => {
+  it('lists the global catalog without organization scoping', async () => {
     repo.findAll.mockResolvedValue([row]);
 
     await expect(service.list()).resolves.toEqual([
@@ -55,7 +55,7 @@ describe('PelaksanaService global catalog', () => {
     expect(repo.findAll).toHaveBeenCalledTimes(1);
   });
 
-  it('creates a global actor without any organisasi storage dependency and records attribution', async () => {
+  it('creates a global actor without any organization-scoped storage dependency and records attribution', async () => {
     repo.createGlobal.mockResolvedValue(row);
     repo.findAttributionByPelaksanaIds.mockResolvedValue([
       { pelaksanaId: 'pl-1', createdById: 'u-1', updatedById: 'u-1' },

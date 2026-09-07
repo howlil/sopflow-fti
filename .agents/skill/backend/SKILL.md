@@ -474,5 +474,5 @@ For a backend task:
 - rewrite applied migration history casually;
 - use destructive reset for migration recovery;
 - expose TTE/secrets/stack details;
-- propagate legacy retired organization model/evaluator semantics into new target-domain abstractions;
+- propagate legacy retired organization model/Pemilik Proses semantics into new target-domain abstractions;
 - refactor unrelated modules while delivering a bounded backend change.

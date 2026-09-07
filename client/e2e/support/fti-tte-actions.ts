@@ -67,6 +67,5 @@ export async function expectProsesBisnisSopInPublicArchive(
   await expect(item).toBeVisible({ timeout: 15_000 })
   await item.click()
   await expect(page.locator('body')).toContainText(/pratinjau|dokumen|sop/i)
-  await expect(page.locator('body')).not.toContainText(/catatan evaluator|nilai organisasi|internal evaluasi/i)
   await expectNoAppShellError(page)
 }

@@ -7,7 +7,7 @@ import { IsUUID } from 'class-validator';
  */
 export class PelaksanaPatchItem {
   @ApiProperty({
-    description: 'ID master Pelaksana milik organisasi pemilik SOP',
+    description: 'ID master Pelaksana global yang dipilih untuk SOP',
     format: 'uuid',
   })
   @IsUUID('4')

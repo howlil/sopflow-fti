@@ -66,14 +66,14 @@ describe('SOPListCard', () => {
             id: 'sop-1',
             nama: 'sop barang',
             nomor: '1234',
-            statusDokumen: 'DIVERIFIKASI_PJ_EVALUATOR_ORGANISASI',
-            statusDokumenLabel: 'Menunggu TTD PJ Evaluator',
+            statusDokumen: 'FINAL_APPROVAL',
+            statusDokumenLabel: 'Menunggu persetujuan akhir',
           },
         ]}
       />,
     )
 
-    const status = screen.getByText('Menunggu TTD PJ Evaluator')
+    const status = screen.getByText('Menunggu persetujuan akhir')
     expect(status).toHaveClass('text-warning-foreground')
     expect(status).not.toHaveClass('text-success-foreground')
   })

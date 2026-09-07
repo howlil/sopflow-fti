@@ -130,7 +130,7 @@ export function useSopEditor(): SopEditorContextValue {
   return ctx
 }
 
-/** Versi non-throwing untuk komponen yang dapat dipakai di luar provider (mis. halaman evaluator). */
+/** Versi non-throwing untuk komponen yang dapat dipakai di luar provider (mis. halaman read-only). */
 export function useSopEditorOptional(): SopEditorContextValue | null {
   return useContext(SopEditorContext)
 }

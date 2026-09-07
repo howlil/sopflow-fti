@@ -1,5 +1,5 @@
 import { expect, test } from '../fixtures/business-test'
-import { targetUsers, users } from '../fixtures/users'
+import { targetUsers } from '../fixtures/users'
 import { toApiUrl } from '../support/api'
 import { expectNoAppShellError, waitForAppReady } from '../support/app'
 import {
@@ -47,7 +47,7 @@ test.describe('End-to-End Business Journey — Proses Bisnis version creation', 
     })
 
     await test.step('Actor tanpa Proses Bisnis relationship tidak dapat membuat versi target', async () => {
-      for (const deniedUser of [targetUsers.dean, targetUsers.departmentMember, users.pjEvaluator]) {
+      for (const deniedUser of [targetUsers.dean, targetUsers.departmentMember, targetUsers.admin]) {
         const api = await roleApi(deniedUser)
         const response = await api.post(toApiUrl(`/sop-proses-bisnis/${v1.detailSopId}/version`))
         expect(response.status()).toBe(403)

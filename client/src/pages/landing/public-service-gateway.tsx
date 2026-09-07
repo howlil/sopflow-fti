@@ -5,7 +5,7 @@ import { ROUTES } from '@/utils/constants'
 const services = [
   {
     title: 'Arsip SOP',
-    description: 'Cari SOP yang telah dipublikasikan berdasarkan organisasi atau informasi dokumen.',
+    description: 'Cari SOP yang telah dipublikasikan berdasarkan Proses Bisnis atau informasi dokumen.',
     action: 'Buka Arsip',
     to: ROUTES.ARSIP.PREFIX,
     icon: Archive,

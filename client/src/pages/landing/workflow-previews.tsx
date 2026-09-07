@@ -4,7 +4,7 @@ interface PreviewFrameProps {
   rows: ReadonlyArray<readonly [string, string]>
 }
 
-export type WorkflowPreviewKind = 'authoring' | 'evaluation' | 'approval'
+export type WorkflowPreviewKind = 'authoring' | 'process-review' | 'approval'
 
 const previewSurfaceClass = 'rounded-[24px] border border-slate-200/80 bg-surface p-5 shadow-[0_28px_70px_-48px_rgba(15,23,42,0.34)] sm:p-7'
 
@@ -33,7 +33,7 @@ function PreviewFrame({ eyebrow, title, rows }: PreviewFrameProps) {
   )
 }
 
-function EvaluationRow({ label, status }: { label: string; status: 'Sesuai' | 'Perlu perbaikan' }) {
+function ProcessReviewRow({ label, status }: { label: string; status: 'Sesuai' | 'Perlu perbaikan' }) {
   return (
     <div className="flex items-center justify-between gap-5 py-3">
       <span className="text-sm text-secondary-foreground">{label}</span>
@@ -55,21 +55,21 @@ export function AuthoringPreview() {
   return <PreviewFrame eyebrow="Workspace penyusunan" title="SOP Pelayanan Administrasi" rows={rows} />
 }
 
-export function EvaluationPreview() {
+export function ProcessReviewPreview() {
   return (
     <div className={previewSurfaceClass}>
       <div className="border-b border-border pb-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Evaluasi</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Review Proses Bisnis</p>
         <h3 className="mt-2 text-lg font-semibold text-foreground">SOP Pelayanan Administrasi</h3>
-        <p className="mt-1 text-xs text-muted-foreground">Penilaian dan catatan tetap terhubung ke dokumen yang sama.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Review dan catatan tetap terhubung ke dokumen yang sama.</p>
       </div>
       <div className="mt-4 divide-y divide-row-border border-y border-row-border">
-        <EvaluationRow label="Kelengkapan dokumen" status="Sesuai" />
-        <EvaluationRow label="Urutan prosedur" status="Perlu perbaikan" />
-        <EvaluationRow label="Kejelasan pelaksana" status="Sesuai" />
+        <ProcessReviewRow label="Kelengkapan dokumen" status="Sesuai" />
+        <ProcessReviewRow label="Urutan prosedur" status="Perlu perbaikan" />
+        <ProcessReviewRow label="Kejelasan pelaksana" status="Sesuai" />
       </div>
       <div className="mt-5 rounded-[14px] border-l-2 border-warning bg-warning-subtle px-4 py-3">
-        <p className="text-xs font-semibold text-warning-foreground">Catatan evaluator</p>
+        <p className="text-xs font-semibold text-warning-foreground">Catatan Pemilik Proses</p>
         <p className="mt-1 text-sm leading-6 text-secondary-foreground">
           Perbaiki keterkaitan langkah persetujuan dengan pelaksana yang bertanggung jawab.
         </p>
@@ -79,7 +79,7 @@ export function EvaluationPreview() {
 }
 
 export function ApprovalArchivePreview() {
-  const events = ['Evaluasi selesai', 'Berita acara siap', 'Pengesahan internal', 'Arsip berlaku'] as const
+  const events = ['Review proses selesai', 'Persetujuan akhir', 'TTE selesai', 'Arsip berlaku'] as const
 
   return (
     <div className={previewSurfaceClass}>
@@ -106,8 +106,8 @@ export function WorkflowPreview({ preview }: { preview: WorkflowPreviewKind }) {
   switch (preview) {
     case 'authoring':
       return <AuthoringPreview />
-    case 'evaluation':
-      return <EvaluationPreview />
+    case 'process-review':
+      return <ProcessReviewPreview />
     case 'approval':
       return <ApprovalArchivePreview />
   }

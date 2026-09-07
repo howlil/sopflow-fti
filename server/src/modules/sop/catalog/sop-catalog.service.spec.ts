@@ -41,7 +41,6 @@ describe('SopCatalogService', () => {
         judul: 'SOP Native',
         createdAt: now,
         updatedAt: now,
-        organisasi: null,
       },
       dibuatOleh: { penggunaId: 'user-1', nama: 'Pengguna' },
       terakhirDieditOleh: null,

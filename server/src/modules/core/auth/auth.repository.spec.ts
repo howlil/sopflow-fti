@@ -15,7 +15,7 @@ describe('Pengujian AuthRepository', () => {
     repo = new AuthRepository(prismaMock as unknown as PrismaService);
   });
 
-  it('mencari pengguna aktif berdasarkan email tanpa membaca role/organisasi legacy', async () => {
+  it('mencari pengguna aktif berdasarkan email tanpa membaca retired identity fields', async () => {
     prismaMock.pengguna.findFirst.mockResolvedValueOnce({ penggunaId: 'p-1' });
     await repo.findActivePenggunaByEmail('user@example.test');
     expect(prismaMock.pengguna.findFirst).toHaveBeenCalledWith({
@@ -26,7 +26,7 @@ describe('Pengujian AuthRepository', () => {
     });
   });
 
-  it('mencari pengguna aktif berdasarkan id tanpa membaca role/organisasi legacy', async () => {
+  it('mencari pengguna aktif berdasarkan id tanpa membaca retired identity fields', async () => {
     prismaMock.pengguna.findFirst.mockResolvedValueOnce({ penggunaId: 'p-1' });
     await repo.findActivePenggunaById('p-1');
     expect(prismaMock.pengguna.findFirst).toHaveBeenCalledWith({

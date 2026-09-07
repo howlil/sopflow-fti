@@ -66,7 +66,7 @@ describe('SopProsedurService Proses Bisnis-native actor policy', () => {
     );
   });
 
-  it('allows a Proses Bisnis anggota based on Proses Bisnis relationship, independent from organisasi shadow', async () => {
+  it('allows a Proses Bisnis anggota based on Proses Bisnis relationship, independent from retired organization shadow', async () => {
     await service.updateProsedur(anggotaProsesBisnis, 'detail-1', {
       pelaksana: [{ pelaksanaId: 'actor-1' }],
     });
@@ -89,7 +89,7 @@ describe('SopProsedurService Proses Bisnis-native actor policy', () => {
     );
   });
 
-  it('rejects an unbound SOP instead of using organisasi compatibility authorization', async () => {
+  it('rejects an unbound SOP instead of using retired compatibility authorization', async () => {
     repo.findDetailIdByDetailOrSopId.mockResolvedValue({
       detailSopId: 'detail-1',
       sopId: 'sop-1',
