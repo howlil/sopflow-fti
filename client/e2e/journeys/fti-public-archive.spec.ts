@@ -3,7 +3,7 @@ import { expect, test } from '../fixtures/business-test'
 import { targetUsers } from '../fixtures/users'
 import { apiGet, toApiUrl } from '../support/api'
 import { expectNoAppShellError, waitForAppReady } from '../support/app'
-import type { ReadyProsesBisnisSopFixture } from '../support/fti-process-preconditions'
+import type { ReadyProsesBisnisSopFixture } from '../support/fti-proses-bisnis-preconditions'
 import { revokeProsesBisnisSopViaApi } from '../support/fti-revocation-actions'
 import { seedEffectiveProsesBisnisSop } from '../support/fti-revocation-preconditions'
 

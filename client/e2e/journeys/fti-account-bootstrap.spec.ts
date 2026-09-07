@@ -27,8 +27,8 @@ import {
   expectProsesBisnisDraftInMemberQueue,
   expectPemeriksaanProsesBisnisInOwnerQueue,
   submitProsesBisnisSopForReviewViaUi,
-} from '../support/fti-process-actions'
-import { seedReadyProsesBisnisSop } from '../support/fti-process-preconditions'
+} from '../support/fti-proses-bisnis-actions'
+import { seedReadyProsesBisnisSop } from '../support/fti-proses-bisnis-preconditions'
 import {
   expectProsesBisnisSopBerlakuInWorkQueue,
   expectProsesBisnisSopInPublicArchive,

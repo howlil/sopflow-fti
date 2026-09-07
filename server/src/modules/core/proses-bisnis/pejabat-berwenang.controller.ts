@@ -17,7 +17,7 @@ export class PejabatBerwenangController {
   @ApiOperation({ summary: 'Daftar pejabat berwenang milik pengguna saat ini' })
   async mine(@Req() req: Request & { user: JwtAccessPayload }): Promise<ApiSuccessResponse<unknown>> {
     return {
-      message: 'Organizational authority berhasil diambil',
+      message: 'Pejabat berwenang berhasil diambil',
       success: true,
       data: await this.service.listMine(req.user.sub),
     };

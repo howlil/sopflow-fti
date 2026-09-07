@@ -12,7 +12,7 @@ import {
 import type {
   ProsesBisnisSopSeedOptions,
   ReadyProsesBisnisSopFixture,
-} from './fti-process-preconditions'
+} from './fti-proses-bisnis-preconditions'
 import { signProsesBisnisSopViaUi } from './fti-tte-actions'
 import { ensureTteReady } from './e2e-flow'
 

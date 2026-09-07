@@ -2,7 +2,7 @@ import { test, expect } from '../fixtures/business-test'
 import { targetUsers, users } from '../fixtures/users'
 import { apiGet, toApiUrl } from '../support/api'
 import { expectNoAppShellError, waitForAppReady } from '../support/app'
-import { seedReadyProsesBisnisSop } from '../support/fti-process-preconditions'
+import { seedReadyProsesBisnisSop } from '../support/fti-proses-bisnis-preconditions'
 
 interface ProsesBisnisContextRow {
   prosesBisnisId: string

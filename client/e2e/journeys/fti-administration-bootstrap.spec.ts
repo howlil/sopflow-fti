@@ -23,8 +23,8 @@ import {
   expectProsesBisnisDraftInMemberQueue,
   expectPemeriksaanProsesBisnisInOwnerQueue,
   submitProsesBisnisSopForReviewViaUi,
-} from '../support/fti-process-actions'
-import { seedReadyProsesBisnisSop } from '../support/fti-process-preconditions'
+} from '../support/fti-proses-bisnis-actions'
+import { seedReadyProsesBisnisSop } from '../support/fti-proses-bisnis-preconditions'
 import { toApiUrl } from '../support/api'
 import { waitForAppReady } from '../support/app'
 import { e2eRunId, sopFixture } from '../support/test-data'

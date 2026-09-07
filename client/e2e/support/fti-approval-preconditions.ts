@@ -5,7 +5,7 @@ import {
   seedReadyProsesBisnisSop,
   type ProsesBisnisSopSeedOptions,
   type ReadyProsesBisnisSopFixture,
-} from './fti-process-preconditions'
+} from './fti-proses-bisnis-preconditions'
 
 interface Workbench {
   detail: {

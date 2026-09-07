@@ -9,7 +9,7 @@ import {
   ArsipSopShell,
 } from './components/arsip-chrome'
 import { ArsipBrowseWorkspace } from './components/arsip-browse-workspace'
-import { ArsipProsesBisnisSidebar } from './components/arsip-process-sidebar'
+import { ArsipProsesBisnisSidebar } from './components/arsip-proses-bisnis-sidebar'
 import { ArsipSopPanel } from './components/arsip-sop-panel'
 import { ArsipSopPreviewPane } from './components/arsip-sop-preview-pane'
 import { useArsipBrowse } from './hooks/use-arsip-browse'

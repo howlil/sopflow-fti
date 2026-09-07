@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/collapsible-side-panel'
 import type { PaginationMetaDto } from '@/types/dto/common.dto'
 import type { PublicProsesBisnisItem, PublicSopItem } from '@/types/dto/sop-public.dto'
-import { ArsipProsesBisnisSidebar } from './arsip-process-sidebar'
+import { ArsipProsesBisnisSidebar } from './arsip-proses-bisnis-sidebar'
 import { ArsipSopPanel } from './arsip-sop-panel'
 import { ArsipSopPreviewPane } from './arsip-sop-preview-pane'
 

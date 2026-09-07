@@ -233,7 +233,7 @@ FTI target screens should derive visible entry points from separate capability d
 
 ```text
 ProsesBisnis relationship
-Organizational authority
+Pejabat berwenang
 Platform role
 ```
 

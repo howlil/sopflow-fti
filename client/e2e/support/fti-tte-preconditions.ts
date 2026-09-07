@@ -6,7 +6,7 @@ import { seedProsesBisnisSopAwaitingOwnerReview } from './fti-approval-precondit
 import type {
   ProsesBisnisSopSeedOptions,
   ReadyProsesBisnisSopFixture,
-} from './fti-process-preconditions'
+} from './fti-proses-bisnis-preconditions'
 
 interface ApprovalRow {
   detailSopId: string

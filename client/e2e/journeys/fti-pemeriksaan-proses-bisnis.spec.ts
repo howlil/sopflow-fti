@@ -6,8 +6,8 @@ import {
   expectProsesBisnisRevisionInMemberQueue,
   requestProsesBisnisRevisionViaUi,
   submitProsesBisnisSopForReviewViaUi,
-} from '../support/fti-process-actions'
-import { seedReadyProsesBisnisSop } from '../support/fti-process-preconditions'
+} from '../support/fti-proses-bisnis-actions'
+import { seedReadyProsesBisnisSop } from '../support/fti-proses-bisnis-preconditions'
 
 test.describe('End-to-End Business Journey — Proses Bisnis work and owner review', () => {
   test('J09 Penanggung Jawab Proses Bisnis Review — Member submit, Owner review, lalu kembali revisi', async ({

@@ -5,7 +5,7 @@ import { ensureTteReady } from './e2e-flow'
 import type {
   ProsesBisnisSopSeedOptions,
   ReadyProsesBisnisSopFixture,
-} from './fti-process-preconditions'
+} from './fti-proses-bisnis-preconditions'
 import { seedProsesBisnisSopReadyForTte } from './fti-tte-preconditions'
 import { e2ePin, validPdfBase64 } from './test-data'
 
