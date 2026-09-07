@@ -63,7 +63,7 @@ function buildMinimalWorkbench(
         urutan: 1,
         createdAt: t,
         updatedAt: t,
-        pelaksana: { pelaksanaId: 'pel-1', opdId: null, nama: 'Staf' },
+        pelaksana: { pelaksanaId: 'pel-1', nama: 'Staf' },
       },
     ],
     langkahSOP: [
@@ -131,7 +131,7 @@ describe('Pengujian validator kelengkapan SOP', () => {
       );
     } catch (err) {
       expect((err as BadRequestException).message).toContain(
-        'SOP belum lengkap untuk status Siap Dievaluasi',
+        'SOP belum lengkap untuk Pemeriksaan Proses Bisnis',
       );
     }
   });
