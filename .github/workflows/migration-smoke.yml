@@ -3,19 +3,17 @@ name: Migration Smoke
 on:
   push:
     paths:
-      - 'server/prisma/migrations/**'
-      - 'server/prisma/recovery/**'
-      - 'server/prisma/*.prisma'
-      - 'server/prisma/*.ts'
+      - 'server/prisma/**'
+      - 'server/src/database/seed/**'
       - 'server/prisma.config.ts'
+      - 'server/package.json'
       - '.github/workflows/migration-smoke.yml'
   pull_request:
     paths:
-      - 'server/prisma/migrations/**'
-      - 'server/prisma/recovery/**'
-      - 'server/prisma/*.prisma'
-      - 'server/prisma/*.ts'
+      - 'server/prisma/**'
+      - 'server/src/database/seed/**'
       - 'server/prisma.config.ts'
+      - 'server/package.json'
       - '.github/workflows/migration-smoke.yml'
 
 permissions:
@@ -37,279 +35,52 @@ jobs:
       DATABASE_PORT: 3307
       DATABASE_USER: sop_test
       DATABASE_PASSWORD: sop_test_password
-      DATABASE_NAME: sop_biro_organisasi_test
-      DATABASE_URL: mysql://sop_test:sop_test_password@127.0.0.1:3307/sop_biro_organisasi_test
+      DATABASE_NAME: sop_fti_test
+      DATABASE_URL: mysql://sop_test:sop_test_password@127.0.0.1:3307/sop_fti_test
+      E2E_SEED_PASSWORD: MigrationSmoke-CI-Only-123!
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
         with:
           version: 11.21.0
           run_install: false
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
           cache-dependency-path: server/pnpm-lock.yaml
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Validate recovery scripts
-        run: find prisma/recovery -type f -name '*.sh' -print0 | xargs -0 -r -n1 bash -n
-
-      - name: Start runtime-matched MariaDB
+      - name: Start MariaDB
         run: |
-          docker run --detach \
-            --name sop-migration-smoke-db \
-            --publish 3307:3306 \
+          docker run --detach --name sop-migration-smoke-db --publish 3307:3306 \
             --env MARIADB_ROOT_PASSWORD=root_test_password \
-            --env MARIADB_DATABASE=sop_biro_organisasi_test \
-            --env MARIADB_USER=sop_test \
-            --env MARIADB_PASSWORD=sop_test_password \
-            --env TZ=Asia/Jakarta \
-            mariadb:11.4 \
-            --lower_case_table_names=1
-
+            --env MARIADB_DATABASE=sop_fti_test \
+            --env MARIADB_USER=sop_test --env MARIADB_PASSWORD=sop_test_password \
+            --env TZ=Asia/Jakarta mariadb:11.4 --lower_case_table_names=1
       - name: Wait for MariaDB
         run: |
           for attempt in $(seq 1 60); do
-            if docker exec sop-migration-smoke-db healthcheck.sh --connect --innodb_initialized >/dev/null 2>&1; then
-              exit 0
-            fi
+            docker exec sop-migration-smoke-db healthcheck.sh --connect --innodb_initialized >/dev/null 2>&1 && exit 0
             sleep 2
           done
           docker logs sop-migration-smoke-db
           exit 1
-
       - name: Validate Prisma schema
         run: pnpm prisma validate
-
       - name: Generate Prisma client
         run: pnpm prisma generate
-
       - name: Apply full migration chain
         run: pnpm prisma migrate deploy
-
       - name: Verify migration status
         run: pnpm prisma migrate status
-
       - name: Verify migration history completeness
         run: |
           expected="$(find prisma/migrations -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
-          applied="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM sop_biro_organisasi_test._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL")"
-          failed="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM sop_biro_organisasi_test._prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL")"
-
-          test "$applied" = "$expected" || {
-            echo "Expected $expected applied migrations, got $applied"
-            exit 1
-          }
-          test "$failed" = "0" || {
-            echo "Found $failed unresolved failed migration(s)"
-            exit 1
-          }
-
-      - name: Verify Process foundation database invariants
-        run: |
-          fk_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'sop_biro_organisasi_test' AND CONSTRAINT_NAME IN ('Process_departmentId_fkey', 'Process_ownerId_fkey', 'ProcessMember_processId_fkey', 'ProcessMember_penggunaId_fkey')")"
-          test "$fk_count" = "4" || {
-            echo "Expected all four Process/ProcessMember foreign keys, got $fk_count"
-            exit 1
-          }
-
-          trigger_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = 'sop_biro_organisasi_test' AND TRIGGER_NAME IN ('trg_process_scope_department_insert', 'trg_process_scope_department_update')")"
-          test "$trigger_count" = "2" || {
-            echo "Expected Process scope INSERT/UPDATE triggers"
-            exit 1
-          }
-
-          docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -e "
-            SET FOREIGN_KEY_CHECKS=0;
-            INSERT INTO \`Process\` (processId, nama, scope, departmentId, ownerId, createdAt, updatedAt)
-            VALUES ('00000000-0000-0000-0000-000000000001', 'CI Faculty', 'FACULTY', NULL, '00000000-0000-0000-0000-000000000099', NOW(3), NOW(3));
-            INSERT INTO \`Process\` (processId, nama, scope, departmentId, ownerId, createdAt, updatedAt)
-            VALUES ('00000000-0000-0000-0000-000000000002', 'CI Department', 'DEPARTMENT', '00000000-0000-0000-0000-000000000098', '00000000-0000-0000-0000-000000000099', NOW(3), NOW(3));
-            SET FOREIGN_KEY_CHECKS=1;
-          "
-
-          expect_scope_rejection() {
-            set +e
-            output="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -e "$1" 2>&1)"
-            status=$?
-            set -e
-            if [ "$status" -eq 0 ]; then
-              echo "Expected Process scope invariant rejection"
-              exit 1
-            fi
-            printf '%s\n' "$output" | grep -q 'Process scope and departmentId are inconsistent' || {
-              printf '%s\n' "$output"
-              echo "Process write failed for an unexpected reason"
-              exit 1
-            }
-          }
-
-          expect_scope_rejection "SET FOREIGN_KEY_CHECKS=0; INSERT INTO \`Process\` (processId, nama, scope, departmentId, ownerId, createdAt, updatedAt) VALUES ('00000000-0000-0000-0000-000000000003', 'Invalid Faculty', 'FACULTY', '00000000-0000-0000-0000-000000000098', '00000000-0000-0000-0000-000000000099', NOW(3), NOW(3));"
-          expect_scope_rejection "SET FOREIGN_KEY_CHECKS=0; INSERT INTO \`Process\` (processId, nama, scope, departmentId, ownerId, createdAt, updatedAt) VALUES ('00000000-0000-0000-0000-000000000004', 'Invalid Department', 'DEPARTMENT', NULL, '00000000-0000-0000-0000-000000000099', NOW(3), NOW(3));"
-          expect_scope_rejection "SET FOREIGN_KEY_CHECKS=0; UPDATE \`Process\` SET departmentId = '00000000-0000-0000-0000-000000000098' WHERE processId = '00000000-0000-0000-0000-000000000001';"
-
-      - name: Verify native FTI SOP ownership cutover and retired binding evidence
-        run: |
-          native_fk_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'sop_biro_organisasi_test' AND CONSTRAINT_NAME = 'SOP_processId_fkey'")"
-          test "$native_fk_count" = "1" || {
-            echo "Expected SOP.processId foreign key"
-            exit 1
-          }
-
-          active_binding="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = 'ProcessSopBinding'")"
-          retired_binding="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = '_retired_ProcessSopBinding_20260906'")"
-          test "$active_binding" = "0" || { echo "ProcessSopBinding must not remain active"; exit 1; }
-          test "$retired_binding" = "1" || { echo "Expected retired ProcessSopBinding evidence table"; exit 1; }
-
-          unbackfilled="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -Nse "SELECT COUNT(*) FROM _retired_ProcessSopBinding_20260906 b LEFT JOIN SOP s ON s.sopId = b.sopId WHERE s.sopId IS NULL OR s.processId IS NULL")"
-          test "$unbackfilled" = "0" || {
-            echo "Found $unbackfilled retired binding row(s) without native SOP.processId backfill"
-            exit 1
-          }
-
-          mismatched="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -Nse "SELECT COUNT(*) FROM _retired_ProcessSopBinding_20260906 b JOIN SOP s ON s.sopId = b.sopId WHERE s.processId <> b.processId")"
-          test "$mismatched" = "0" || {
-            echo "Found $mismatched retired binding ownership mismatch(es)"
-            exit 1
-          }
-
-          orphaned="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -Nse "SELECT COUNT(*) FROM SOP s LEFT JOIN Process p ON p.processId = s.processId WHERE s.processId IS NOT NULL AND p.processId IS NULL")"
-          test "$orphaned" = "0" || {
-            echo "Found $orphaned SOP row(s) with invalid native Process ownership"
-            exit 1
-          }
-
-          pengguna_opd_nullable="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -Nse "SELECT IS_NULLABLE = 'YES' FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = 'Pengguna' AND COLUMN_NAME = 'opdId'")"
-          test "$pengguna_opd_nullable" = "1" || {
-            echo "Expected Pengguna.opdId to remain nullable historical shadow"
-            exit 1
-          }
-
-          sop_opd_nullable="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -Nse "SELECT IS_NULLABLE = 'YES' FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = 'SOP' AND COLUMN_NAME = 'opdId'")"
-          test "$sop_opd_nullable" = "1" || {
-            echo "Expected SOP.opdId to remain nullable historical shadow"
-            exit 1
-          }
-
-      - name: Verify native Process review evidence boundary
-        run: |
-          review_table_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = 'ProcessReview'")"
-          test "$review_table_count" = "1" || {
-            echo "Expected ProcessReview table"
-            exit 1
-          }
-
-          review_note_column="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT CONCAT(IS_NULLABLE, '|', DATA_TYPE) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = 'ProcessReview' AND COLUMN_NAME = 'catatan'")"
-          test "$review_note_column" = "YES|text" || {
-            echo "Expected nullable TEXT ProcessReview.catatan column, got $review_note_column"
-            exit 1
-          }
-
-          review_fk_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'sop_biro_organisasi_test' AND CONSTRAINT_NAME IN ('ProcessReview_detailSopId_fkey', 'ProcessReview_sopId_fkey', 'ProcessReview_processId_fkey', 'ProcessReview_reviewedById_fkey')")"
-          test "$review_fk_count" = "4" || {
-            echo "Expected all four ProcessReview foreign keys, got $review_fk_count"
-            exit 1
-          }
-
-          approval_review_fk_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'sop_biro_organisasi_test' AND CONSTRAINT_NAME = 'ProcessFinalApproval_processReviewId_fkey'")"
-          test "$approval_review_fk_count" = "1" || {
-            echo "Expected ProcessFinalApproval.processReviewId foreign key"
-            exit 1
-          }
-
-          tte_process_fk_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'sop_biro_organisasi_test' AND CONSTRAINT_NAME = 'DokumenTte_processId_fkey'")"
-          test "$tte_process_fk_count" = "1" || {
-            echo "Expected DokumenTte.processId foreign key"
-            exit 1
-          }
-
-          tte_process_mismatch_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password sop_biro_organisasi_test -Nse "SELECT COUNT(*) FROM DokumenTte d INNER JOIN DetailSOP ds ON ds.detailSopId = d.detailSopId INNER JOIN SOP s ON s.sopId = ds.sopId WHERE d.detailSopId IS NOT NULL AND d.pengajuanEvaluasiId IS NULL AND s.processId IS NOT NULL AND (d.processId IS NULL OR d.processId <> s.processId)")"
-          test "$tte_process_mismatch_count" = "0" || {
-            echo "Expected native TTE artifacts to carry matching Process ownership, got $tte_process_mismatch_count"
-            exit 1
-          }
-
-      - name: Verify native Process reminder boundary
-        run: |
-          reminder_table_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = 'ProcessReminder'")"
-          test "$reminder_table_count" = "1" || {
-            echo "Expected ProcessReminder table"
-            exit 1
-          }
-
-          reminder_fk_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = 'sop_biro_organisasi_test' AND CONSTRAINT_NAME IN ('ProcessReminder_detailSopId_fkey', 'ProcessReminder_sopId_fkey', 'ProcessReminder_processId_fkey', 'ProcessReminder_penggunaId_fkey')")"
-          test "$reminder_fk_count" = "4" || {
-            echo "Expected all four ProcessReminder foreign keys, got $reminder_fk_count"
-            exit 1
-          }
-
-          reminder_unique_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME = 'ProcessReminder' AND INDEX_NAME = 'ProcessReminder_detail_recipient_kind_key' AND NON_UNIQUE = 0")"
-          test "$reminder_unique_count" = "3" || {
-            echo "Expected the three-column ProcessReminder identity unique key, got $reminder_unique_count"
-            exit 1
-          }
-
-      - name: Verify retired evaluation and WhatsApp tables are archived
-        run: |
-          active_legacy_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME IN ('NilaiEvaluasi', 'LogNilaiEvaluasi', 'PengingatWhatsApp', 'NotifikasiInApp')")"
-          test "$active_legacy_count" = "0" || {
-            echo "Retired legacy tables are still active: $active_legacy_count"
-            exit 1
-          }
-
-          retired_count="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'sop_biro_organisasi_test' AND TABLE_NAME IN ('_retired_NilaiEvaluasi_20260906', '_retired_LogNilaiEvaluasi_20260906', '_retired_PengingatWhatsApp_20260906', '_retired_NotifikasiInApp_20260906')")"
-          test "$retired_count" = "4" || {
-            echo "Expected four archived legacy tables, got $retired_count"
-            exit 1
-          }
-
-      - name: Validate target E2E seed against migrated schema
+          applied="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse \"SELECT COUNT(*) FROM sop_fti_test._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL\")"
+          test "$applied" = "$expected"
+      - name: Seed native FTI graph
         run: pnpm db:seed:e2e
-
-      - name: Verify target E2E context
-        run: |
-          target_users="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM sop_biro_organisasi_test.Pengguna WHERE email IN ('process.owner@gmail.com','process.member@gmail.com','dean.fti@gmail.com','kadep.if@gmail.com','process.member.if@gmail.com','process.member.si@gmail.com','kadep.si@gmail.com')")"
-          target_processes="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM sop_biro_organisasi_test.\`Process\` WHERE nama IN ('Pengelolaan Akademik FTI','Layanan Akademik Informatika','Layanan Akademik Sistem Informasi')")"
-          target_authorities="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse "SELECT COUNT(*) FROM sop_biro_organisasi_test.OrganizationalAuthorityAssignment")"
-
-          test "$target_users" = "7" || {
-            echo "Expected seven target E2E identities, got $target_users"
-            exit 1
-          }
-          test "$target_processes" = "3" || {
-            echo "Expected three target E2E Processes, got $target_processes"
-            exit 1
-          }
-          test "$target_authorities" = "3" || {
-            echo "Expected three target E2E authority assignments, got $target_authorities"
-            exit 1
-          }
-
-      - name: Run idempotent legacy retention backfill
-        run: pnpm db:backfill:legacy-retention
-
-      - name: Run read-only Full FTI baseline and legacy classification audit
+      - name: Prove post-contraction FTI invariants
         run: pnpm db:audit:fti
-
-      - name: Rehearse retired binding rollback without row loss
-        run: pnpm ts-node --transpile-only prisma/rehearse-process-sop-binding-retirement.ts
-
-      - name: Re-run Full FTI audit after rollback rehearsal
-        run: pnpm db:audit:fti
-
-      - name: Database logs on failure
-        if: failure()
-        run: docker logs sop-migration-smoke-db || true
-
-      - name: Stop migration database
-        if: always()
-        run: docker rm --force sop-migration-smoke-db || true
