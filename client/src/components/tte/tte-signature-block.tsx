@@ -6,7 +6,7 @@ import { formatDateIdLong } from '@/utils/format-date'
 
 export interface TTESignatureBlockProps {
   payload: TTESignaturePayload
-  /** Contoh label penanda: "OPD" atau "PJ Evaluator" */
+  /** Contoh label penanda: "Dekan" atau "Kepala Departemen" */
   roleLabel?: string
   /** Ukuran sisi QR (px). */
   qrSize?: number

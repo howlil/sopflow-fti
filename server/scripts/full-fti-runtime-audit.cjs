@@ -36,13 +36,13 @@ const forbiddenEverywhere = [
   /BagianSOP\.EVALUASI\b/,
   /\bSiapDievaluasi\b/,
   /\bSiap Dievaluasi\b/,
-  /\blegacy-unbound\b/i,
+  /\bimported-unbound\b/i,
 ];
 const forbiddenInCode = [
   /\bperan\s*:\s*['"](?:PENYUSUN|EVALUATOR|KEPALA_OPD|PJ_EVALUATOR|PJ_PENYUSUN)['"]/,
 ];
 const forbiddenPaths = [
-  /(?:^|\/)opd(?:\/|\.|-|_)/i,
+  /(?:^|\/)organisasi(?:\/|\.|-|_)/i,
   /(?:^|\/)tim\.dto\.ts$/,
   /identity-shadow-audit\.ts$/,
   /fti-legacy-retention-backfill\.ts$/,
@@ -86,7 +86,7 @@ for (const relative of trackedFiles) {
 const schemaPath = path.join(repoRoot, 'server/prisma/schema.prisma');
 const schema = fs.readFileSync(schemaPath, 'utf8');
 for (const pattern of [
-  /model OPD\b/,
+  /model organisasi\b/,
   /\bopdId\s+String/,
   /enum PeranPengguna\b/,
   /model PengajuanEvaluasi\b/,

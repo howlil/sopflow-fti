@@ -63,7 +63,7 @@ export function useSopSuspense(params?: SopListQueryParams) {
 
 /**
  * GET `/sop-proses-bisnis/workbench/:detailSopId` — agregat detail + langkah + log.
- * SOP target memakai ProsesBisnis authorization; SOP legacy fallback ke OPD authorization.
+ * SOP aktif memakai ProsesBisnis authorization.
  */
 export function usePenyusunWorkbench(detailSopId: string | undefined) {
   return useQuery({

@@ -87,7 +87,7 @@ test.describe.serial('End-to-End Business Journey — FTI-native public archive'
     })
   })
 
-  test('J36 Public Proses Bisnis Discovery — visitor menelusuri Proses Bisnis lalu SOP tanpa OPD picker', async ({
+  test('J36 Public Proses Bisnis Discovery — visitor menelusuri Proses Bisnis lalu SOP tanpa organisasi picker', async ({
     publicPage,
     roleApi,
     roleSession,
@@ -112,7 +112,7 @@ test.describe.serial('End-to-End Business Journey — FTI-native public archive'
       await expect(publicPage.getByText(sop.title, { exact: true }).first()).toBeVisible({
         timeout: 15_000,
       })
-      await expect(publicPage.locator('body')).not.toContainText('Pilih OPD')
+      await expect(publicPage.locator('body')).not.toContainText('Pilih organisasi')
       await expectNoAppShellError(publicPage)
     })
   })
@@ -140,7 +140,7 @@ test.describe.serial('End-to-End Business Journey — FTI-native public archive'
       expect(pdf.headers()['content-type']).toContain('application/pdf')
     })
 
-    await test.step('Workspace publik membuka official document tanpa jalur OPD', async () => {
+    await test.step('Workspace publik membuka official document tanpa jalur organisasi', async () => {
       await publicPage.goto(
         `/arsip?prosesBisnisId=${encodeURIComponent(sop.prosesBisnisId)}&detailSopId=${encodeURIComponent(sop.detailSopId)}`,
       )
@@ -169,10 +169,10 @@ test.describe.serial('End-to-End Business Journey — FTI-native public archive'
       )
       expect(before.items.filter((item) => item.detailSopId === sop.detailSopId)).toHaveLength(1)
 
-      const legacyEndpoint = await request.get(toApiUrl('/sop/public/opd?page=1&limit=1'))
+      const legacyEndpoint = await request.get(toApiUrl('/sop/public/organisasi?page=1&limit=1'))
       expect(
         legacyEndpoint.ok(),
-        'legacy OPD public endpoint tetap tersedia sebagai compatibility API',
+        'legacy organisasi public endpoint tetap tersedia sebagai compatibility API',
       ).toBe(true)
     })
 

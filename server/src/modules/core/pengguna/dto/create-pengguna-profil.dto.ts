@@ -6,7 +6,7 @@ import {
   normalizeIndonesianMobileNumber,
 } from '../../../../common/pengguna/indonesian-mobile-number.util';
 
-/** Field profil bersama pembuatan akun pengguna (penyusun, kepala OPD, evaluator). */
+/** Field profil bersama pembuatan akun pengguna (penyusun, kepala organisasi, evaluator). */
 export class CreatePenggunaProfilDto {
   @ApiProperty({ example: 'Budi Penyusun' })
   @IsString()

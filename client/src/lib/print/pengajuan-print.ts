@@ -15,7 +15,7 @@ import type { TTESignaturePayload } from '@/types/dto/tte.dto'
 export { downloadSopPdf, printSopPdfDocument } from './print-sop-pdf'
 
 export const CETAK_ARSIP_DISABLED_TITLE =
-  'Tersedia setelah seluruh SOP ditandatangani Kepala OPD (status pengajuan selesai).'
+  'Tersedia setelah seluruh SOP ditandatangani Kepala organisasi (status pengajuan selesai).'
 
 /** Cetak SOP arsip pengajuan — hanya setelah pengajuan SELESAI (semua SOP Berlaku). */
 export function canCetakSopArsipPengajuan(status: string | undefined): boolean {
@@ -60,7 +60,7 @@ export function printSopArsipFromPreviewProps(
   })
 }
 
-/** Bangun artefak PDF resmi untuk disimpan server saat Kepala OPD mengesahkan SOP. */
+/** Bangun artefak PDF resmi untuk disimpan server saat Kepala organisasi mengesahkan SOP. */
 export function buildSopArsipPdfBase64FromPreviewProps(
   preview: SopPreviewWorkbenchProps,
 ): Promise<string> {

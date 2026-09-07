@@ -41,7 +41,7 @@ describe('SopCatalogService', () => {
         judul: 'SOP Native',
         createdAt: now,
         updatedAt: now,
-        opd: null,
+        organisasi: null,
       },
       dibuatOleh: { penggunaId: 'user-1', nama: 'Pengguna' },
       terakhirDieditOleh: null,
@@ -76,7 +76,7 @@ describe('SopCatalogService', () => {
     );
   });
 
-  it('rejects an effective legacy-unbound document from first-party public discovery', async () => {
+  it('rejects an effective imported-unbound document from first-party public discovery', async () => {
     repository.findWorkbenchPayloadByDetailOrSopId.mockResolvedValue(
       workbench(StatusSOP.EFFECTIVE, null),
     );

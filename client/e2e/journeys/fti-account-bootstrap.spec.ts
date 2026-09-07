@@ -50,7 +50,7 @@ test.describe('End-to-End Business Journey — FTI account provisioning bootstra
   }) => {
     const fixture = platformAccountFixture(`J24-${e2eRunId('acct')}`)
 
-    await test.step('SUPER_ADMIN membuat akun melalui target UI tanpa memilih OPD atau legacy role', async () => {
+    await test.step('SUPER_ADMIN membuat akun melalui target UI tanpa memilih organisasi atau legacy role', async () => {
       const admin = await roleSession(users.pjEvaluator)
       await admin.page.goto('/work')
       await waitForAppReady(admin.page)

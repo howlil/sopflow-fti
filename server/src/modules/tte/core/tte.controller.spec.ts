@@ -16,7 +16,7 @@ describe('Pengujian TteController - Profil', () => {
     updatedAt: '2026-05-20T03:04:05.000Z',
     user: {
       id: 'user-1',
-      nama: 'Kepala OPD',
+      nama: 'Kepala organisasi',
       email: 'kepala@test.id',
       nip: '198001012006041001',
       jabatan: 'Kepala Dinas',

@@ -38,7 +38,7 @@ describe('FTI public landing contract', () => {
 
     expect(allRenderedSources).not.toContain('Pemerintah Provinsi Sumatera Barat')
     expect(allRenderedSources).not.toContain('Biro Organisasi')
-    expect(allRenderedSources).not.toContain('Kepala OPD')
+    expect(allRenderedSources).not.toContain('Kepala organisasi')
     expect(allRenderedSources).not.toContain('PJ Evaluator')
   })
 
@@ -60,7 +60,7 @@ describe('FTI public landing contract', () => {
     expect(productPreviewSource).toContain('Menunggu persetujuan akhir')
     expect(productPreviewSource).toContain('Kewenangan kontekstual')
     expect(productPreviewSource).not.toContain('Pengajuan Evaluasi')
-    expect(productPreviewSource).not.toContain('Contoh paket SOP OPD')
+    expect(productPreviewSource).not.toContain('Contoh paket SOP organisasi')
     expect(productPreviewSource).not.toContain('Menunggu TTD PJ Evaluator')
   })
 

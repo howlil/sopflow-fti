@@ -4,7 +4,7 @@ import { SopWorkbenchReader } from './sop-workbench-reader.service';
 
 /**
  * Native/read-only workbench boundary.
- * Deliberately does not import OPD or legacy catalog providers.
+ * Deliberately does not import organisasi or legacy catalog providers.
  */
 @Module({
   providers: [SopCatalogRepository, SopWorkbenchReader],

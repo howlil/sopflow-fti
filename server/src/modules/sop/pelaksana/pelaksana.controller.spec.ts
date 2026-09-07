@@ -32,7 +32,7 @@ describe('PelaksanaController global catalog', () => {
     controller = new PelaksanaController(service as unknown as PelaksanaService);
   });
 
-  it('returns the global list without OPD input', async () => {
+  it('returns the global list without organisasi input', async () => {
     service.list.mockResolvedValueOnce([responseRow]);
     const actual = await controller.list();
     expect(service.list).toHaveBeenCalledWith();

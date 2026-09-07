@@ -6,14 +6,14 @@ describe('InitialSeedService', () => {
   function createSubject(
     counts: {
       pengguna?: number;
-      opd?: number;
+      organisasi?: number;
       peraturan?: number;
       pelaksana?: number;
     } = {},
   ) {
     const prisma = {
       pengguna: { count: jest.fn().mockResolvedValue(counts.pengguna ?? 0) },
-      oPD: { count: jest.fn().mockResolvedValue(counts.opd ?? 0) },
+      organisasi: { count: jest.fn().mockResolvedValue(counts.organisasi ?? 0) },
       peraturan: { count: jest.fn().mockResolvedValue(counts.peraturan ?? 0) },
       pelaksana: { count: jest.fn().mockResolvedValue(counts.pelaksana ?? 0) },
     } as unknown as PrismaService;

@@ -56,7 +56,7 @@ export function RelatedPosDialog({
       renderItem={(item) => (
         <p className="text-xs font-medium text-foreground leading-snug">{item.label}</p>
       )}
-      emptyMessage="Belum ada SOP lain pada OPD ini."
+      emptyMessage="Belum ada SOP lain pada organisasi ini."
       emptySearchMessage="Tidak ada SOP yang cocok dengan pencarian."
       itemClassName="items-center"
       onConfirm={(selectedIds) => {

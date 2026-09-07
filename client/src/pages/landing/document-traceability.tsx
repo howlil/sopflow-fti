@@ -1,7 +1,7 @@
 import { CheckCircle2, FileSearch, ShieldCheck } from 'lucide-react'
 
 const validationRows = [
-  ['Nomor dokumen', 'SOP-OPD-2026-014'],
+  ['Nomor dokumen', 'SOP-organisasi-2026-014'],
   ['Status arsip', 'Berlaku'],
   ['Validasi PDF', 'Valid'],
 ]

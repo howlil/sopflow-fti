@@ -40,7 +40,7 @@ describe('PeraturanService global FTI catalog', () => {
     service = new PeraturanService(repo as unknown as PeraturanRepository);
   });
 
-  it('lists the global catalog without OPD resolution or filtering', async () => {
+  it('lists the global catalog without organisasi resolution or filtering', async () => {
     repo.findMany.mockResolvedValue([row]);
 
     await expect(service.list()).resolves.toEqual([
@@ -65,7 +65,7 @@ describe('PeraturanService global FTI catalog', () => {
     await expect(service.getById('missing')).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('creates a regulation with editor attribution but no OPD ownership link', async () => {
+  it('creates a regulation with editor attribution but no organisasi ownership link', async () => {
     repo.create.mockResolvedValue({ ...row, peraturanId: 'per-new', lastEditedById: user.sub });
 
     const result = await service.create(user, {

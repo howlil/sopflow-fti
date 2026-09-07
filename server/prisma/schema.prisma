@@ -518,7 +518,7 @@ enum PejabatBerwenang {
 /// Deterministic authority assignment for the fixed FTI approval model.
 /// `kunciPejabatBerwenang` is `DEAN` for faculty lingkup or
 /// `HEAD_OF_DEPARTMENT:<departemenId>` for departemen lingkup.
-/// Relations are intentionally scalar-only during the OPD-to-FTI migration;
+/// Relations are intentionally scalar-only during the FTI cutover;
 /// database foreign keys are installed by the migration.
 model PenugasanPejabatBerwenang {
   kunciPejabatBerwenang String                  @id @db.VarChar(64) @map("authorityKey")
