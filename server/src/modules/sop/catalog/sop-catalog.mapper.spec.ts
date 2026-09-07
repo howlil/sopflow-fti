@@ -12,7 +12,7 @@ describe('Pengujian SopCatalogMapper', () => {
     expect(toIso(d)).toBe('2026-03-01T08:00:00.000Z');
   });
 
-  it('seharusnya memetakan workbench dengan keputusan langkah', () => {
+  it('seharusnya memetakan workbench Process dengan keputusan langkah', () => {
     const t = new Date('2026-03-02T10:00:00.000Z');
     const row = {
       detailSopId: 'det-1',
@@ -23,7 +23,7 @@ describe('Pengujian SopCatalogMapper', () => {
       tanggalPembuatan: t,
       tanggalRevisi: null,
       tanggalEfektif: null,
-      namaLembaga: 'Lembaga',
+      namaLembaga: 'Fakultas Teknologi Informasi',
       dibuatOlehId: 'p1',
       terakhirDieditOlehId: null,
       revisiDariDetailSopId: null,
@@ -32,10 +32,10 @@ describe('Pengujian SopCatalogMapper', () => {
       updatedAt: t,
       sop: {
         sopId: 'sop-1',
+        processId: 'process-1',
         judul: 'Judul SOP',
         createdAt: t,
         updatedAt: t,
-        opd: { opdId: 'opd-1', nama: 'OPD', pengguna: [] },
       },
       dibuatOleh: { penggunaId: 'p1', nama: 'Budi' },
       terakhirDieditOleh: null,
@@ -48,11 +48,12 @@ describe('Pengujian SopCatalogMapper', () => {
           peraturanId: 'per-1',
           createdAt: t,
           updatedAt: t,
-          peraturan: { tentang: 'UU X', nomor: 1, tahun: 2020 },
+          peraturan: { tentang: 'UU X', nomor: '1', tahun: 2020 },
         },
       ],
       relasiSopKeluar: [],
       relasiSopMasuk: [],
+      dokumenTte: [],
       swimlanes: [
         {
           detailSopId: 'det-1',
@@ -60,7 +61,7 @@ describe('Pengujian SopCatalogMapper', () => {
           urutan: 1,
           createdAt: t,
           updatedAt: t,
-          pelaksana: { pelaksanaId: 'pel-1', opdId: 'opd-1', nama: 'Staf' },
+          pelaksana: { pelaksanaId: 'pel-1', nama: 'Staf' },
         },
       ],
       langkahSOP: [
@@ -84,13 +85,20 @@ describe('Pengujian SopCatalogMapper', () => {
         },
       ],
       logEditSop: [],
+      konfigurasiDiagram: [],
     } as unknown as SopWorkbenchDbPayload;
+
     const actual = mapWorkbenchPayload(row);
+
     expect(actual.langkah[0]?.jenis).toBe(String(JenisLangkahProsedur.KEPUTUSAN));
     expect(actual.detail.dasarHukumPeraturanIds).toEqual(['per-1']);
+    expect(actual.detail.sop).toMatchObject({
+      id: 'sop-1',
+      processId: 'process-1',
+    });
   });
 
-  it('seharusnya memetakan baris daftar dengan flag versi berlaku', () => {
+  it('seharusnya memetakan baris daftar dengan versi efektif', () => {
     const t = new Date('2026-01-15T10:00:00.000Z');
     const actual = mapDaftarRow({
       sopId: 'sop-1',
@@ -117,6 +125,7 @@ describe('Pengujian SopCatalogMapper', () => {
       },
       allStatuses: [StatusSOP.EFFECTIVE],
     });
+
     expect(actual.canBuatVersiBaru).toBe(true);
     expect(actual.canCabutSop).toBe(true);
     expect(actual.canHapusSopDraft).toBe(false);
@@ -141,18 +150,19 @@ describe('Pengujian SopCatalogMapper', () => {
       versiBerlaku: null,
       allStatuses: [StatusSOP.DRAFT],
     });
+
     expect(actual.canHapusSopDraft).toBe(true);
   });
 
-  it('seharusnya mengizinkan versi baru dari SOP yang versi pertamanya ditolak', () => {
+  it('seharusnya mengizinkan versi baru dari SOP yang telah dicabut', () => {
     const t = new Date('2026-08-02T10:00:00.000Z');
     const actual = mapDaftarRow({
-      sopId: 'sop-ditolak',
-      judul: 'SOP Ditolak',
+      sopId: 'sop-revoked',
+      judul: 'SOP Dicabut',
       detail: {
         detailSopId: 'det-v1',
-        nomorSOP: 'REJECT-001',
-        status: StatusSOP.DITOLAK_EVALUATOR,
+        nomorSOP: 'REV-001',
+        status: StatusSOP.REVOKED,
         versi: 1,
         updatedAt: t,
         pembuatNama: 'Budi',
@@ -160,7 +170,7 @@ describe('Pengujian SopCatalogMapper', () => {
         peraturanId: null,
       },
       versiBerlaku: null,
-      allStatuses: [StatusSOP.DITOLAK_EVALUATOR],
+      allStatuses: [StatusSOP.REVOKED],
     });
 
     expect(actual.canBuatVersiBaru).toBe(true);
