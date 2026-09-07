@@ -67,8 +67,6 @@ export function useArsipBrowse() {
         detailSopId: undefined,
         sopPage: 1,
         sopSearch: undefined,
-        opdId: undefined,
-        opdPage: undefined,
       }),
     })
   }, [debouncedGlobal, navigate, q])
@@ -155,8 +153,6 @@ export function useArsipBrowse() {
         detailSopId: undefined,
         sopPage: 1,
         sopSearch: undefined,
-        opdId: undefined,
-        opdPage: undefined,
       }),
     })
   }

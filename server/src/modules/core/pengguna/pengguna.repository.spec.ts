@@ -26,7 +26,6 @@ describe('PenggunaRepository native platform accounts', () => {
         where: { deletedAt: null },
         select: expect.not.objectContaining({
           peran: expect.anything(),
-          opdId: expect.anything(),
         }),
       }),
     );
@@ -51,11 +50,9 @@ describe('PenggunaRepository native platform accounts', () => {
     expect(prismaMock.pengguna.create).toHaveBeenCalledWith({
       data: expect.not.objectContaining({
         peran: expect.anything(),
-        opdId: expect.anything(),
       }),
       select: expect.not.objectContaining({
         peran: expect.anything(),
-        opdId: expect.anything(),
       }),
     });
   });

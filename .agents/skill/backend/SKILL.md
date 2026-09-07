@@ -300,7 +300,7 @@ resolve intended recipient from Process/authority context
 -> emit in-app change signal after commit
 ```
 
-Do not force new Process events into archived legacy `PengajuanEvaluasi` / `JenisPengingatWhatsApp` persistence. The UI bell reads only the Process-native notification source.
+Do not force new Process events into archived legacy `retired evaluation persistence` / `JenisPengingatWhatsApp` persistence. The UI bell reads only the Process-native notification source.
 
 ## Organizational Authority Pattern
 
@@ -474,5 +474,5 @@ For a backend task:
 - rewrite applied migration history casually;
 - use destructive reset for migration recovery;
 - expose TTE/secrets/stack details;
-- propagate legacy OPD/evaluator semantics into new target-domain abstractions;
+- propagate legacy retired organization model/evaluator semantics into new target-domain abstractions;
 - refactor unrelated modules while delivering a bounded backend change.

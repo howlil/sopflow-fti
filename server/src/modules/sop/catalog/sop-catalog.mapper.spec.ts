@@ -32,7 +32,6 @@ describe('Pengujian SopCatalogMapper', () => {
       updatedAt: t,
       sop: {
         sopId: 'sop-1',
-        opdId: 'opd-1',
         judul: 'Judul SOP',
         createdAt: t,
         updatedAt: t,
@@ -95,7 +94,6 @@ describe('Pengujian SopCatalogMapper', () => {
     const t = new Date('2026-01-15T10:00:00.000Z');
     const actual = mapDaftarRow({
       sopId: 'sop-1',
-      opdId: 'opd-1',
       judul: 'Judul',
       detail: {
         detailSopId: 'det-1',
@@ -129,7 +127,6 @@ describe('Pengujian SopCatalogMapper', () => {
     const t = new Date('2026-01-15T10:00:00.000Z');
     const actual = mapDaftarRow({
       sopId: 'sop-draft',
-      opdId: 'opd-1',
       judul: 'Draft awal',
       detail: {
         detailSopId: 'det-draft',
@@ -151,7 +148,6 @@ describe('Pengujian SopCatalogMapper', () => {
     const t = new Date('2026-08-02T10:00:00.000Z');
     const actual = mapDaftarRow({
       sopId: 'sop-ditolak',
-      opdId: 'opd-1',
       judul: 'SOP Ditolak',
       detail: {
         detailSopId: 'det-v1',

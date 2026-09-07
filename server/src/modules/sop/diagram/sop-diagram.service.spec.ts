@@ -1,11 +1,10 @@
 import { BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
-import { JenisDiagram, PeranPengguna } from '../../../generated/prisma';
+import { JenisDiagram } from '../../../generated/prisma';
 import { SopDiagramService } from './sop-diagram.service';
 
 describe('Pengujian SopDiagramService', () => {
   const user = {
     sub: 'user-1',
-    peran: PeranPengguna.PENYUSUN,
     email: 'a@b.c',
   } as never;
 
@@ -111,7 +110,7 @@ describe('Pengujian SopDiagramService', () => {
     });
 
     it('seharusnya melempar ConflictException jika status detail tidak dapat diedit (False Case)', async () => {
-      const { service } = createService({ status: 'DITANDATANGANI_KEPALA_OPD' });
+      const { service } = createService({ status: 'DITANDATANGANI_DEAN' });
       await expect(
         service.updateDiagram(user, 'det-1', { jenis: JenisDiagram.FLOWCHART }),
       ).rejects.toBeInstanceOf(ConflictException);

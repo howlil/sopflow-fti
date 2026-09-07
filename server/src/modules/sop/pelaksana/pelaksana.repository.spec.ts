@@ -31,7 +31,6 @@ describe('PelaksanaRepository global catalog', () => {
     expect(prismaMock.pelaksana.findMany).toHaveBeenCalledWith({
       select: {
         pelaksanaId: true,
-        opdId: true,
         nama: true,
         createdAt: true,
         updatedAt: true,

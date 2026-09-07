@@ -119,7 +119,7 @@ export function DetailSOPPenyusunHeader({
       const previewProps = mapPenyusunWorkbenchToPreviewProps(workbench)
       const { diagramExportFailed } = await printSopArsipFromPreviewProps(
         previewProps,
-        workbench.tteSignaturePayloadKepalaOpd ?? null,
+        workbench.tteSignaturePayload ?? null,
         { signPdf: false },
       )
       if (diagramExportFailed) {
@@ -178,7 +178,7 @@ export function DetailSOPPenyusunHeader({
   }
 
   const indicator = isReadOnly ? null : autosaveAppearance(autosaveStatus)
-  const hasPrintAction = currentSopStatus === 'BERLAKU'
+  const hasPrintAction = currentSopStatus === 'EFFECTIVE'
   const hasVersionAction = canBuatVersiBaru && onBuatVersiBaru !== undefined
   const hasSecondaryActions = hasPrintAction || hasVersionAction
   const documentTitle = metadata.nama ?? metadata.judul ?? 'SOP'

@@ -1,5 +1,4 @@
 import * as bcrypt from 'bcrypt';
-import { PeranPengguna } from '../../../generated/prisma';
 import { TteCredentialRepository } from '../shared/repository/tte-credential.repository';
 import { TteRepository } from '../shared/repository/tte.repository';
 import {
@@ -42,8 +41,6 @@ describe('TteProfilService PIN rotation', () => {
         nip: '198001012006041001',
         jabatan: 'Kepala Dinas',
         pangkat: 'Pembina',
-        peran: PeranPengguna.KEPALA_OPD,
-        opdId: 'opd-1',
         opdNama: 'Dinas Test',
       }),
       findKredensial: jest.fn().mockResolvedValue({
@@ -77,7 +74,6 @@ describe('TteProfilService PIN rotation', () => {
       {
         sub: 'user-1',
         email: 'kepala@example.test',
-        peran: PeranPengguna.KEPALA_OPD,
       },
       { pinLama: oldPin, pinBaru: newPin },
     );

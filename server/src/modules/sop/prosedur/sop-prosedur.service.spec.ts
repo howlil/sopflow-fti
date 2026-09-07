@@ -48,7 +48,6 @@ describe('SopProsedurService Process-native actor policy', () => {
     repo.findDetailIdByDetailOrSopId.mockResolvedValue({
       detailSopId: 'detail-1',
       sopId: 'sop-1',
-      sopOpdId: 'legacy-opd-1',
       processId: 'process-1',
     });
     repo.findDetailStatus.mockResolvedValue(StatusSOP.DRAFT);
@@ -94,7 +93,6 @@ describe('SopProsedurService Process-native actor policy', () => {
     repo.findDetailIdByDetailOrSopId.mockResolvedValue({
       detailSopId: 'detail-1',
       sopId: 'sop-1',
-      sopOpdId: 'legacy-opd-1',
       processId: null,
     });
     await expect(service.updateProsedur(processMember, 'detail-1', {})).rejects.toBeInstanceOf(

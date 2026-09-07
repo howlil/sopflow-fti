@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
-import { JenisDokumenTte, PeranPengguna } from '../../../generated/prisma';
+import { JenisDokumenTte, OrganizationalAuthority } from '../../../generated/prisma';
 import { verifyPdfWithP12 } from '../shared/utils/pdf-signature-verification.util';
 import { TtePdfSigningService } from './tte-pdf-signing.service';
 import { TteRepository } from '../shared/repository/tte.repository';
@@ -26,8 +26,7 @@ describe('Pengujian TtePdfSigningService', () => {
   const kepalaOpdUser = {
     sub: 'kepala-1',
     email: 'k@opd.id',
-    peran: PeranPengguna.KEPALA_OPD,
-    opdId: 'opd-1',
+    authority: OrganizationalAuthority.DEAN,
   };
 
   beforeAll(() => {
@@ -76,8 +75,7 @@ describe('Pengujian TtePdfSigningService', () => {
     service = module.get(TtePdfSigningService);
     repository.findPenggunaAktif.mockResolvedValue({
       penggunaId: kepalaOpdUser.sub,
-      peran: PeranPengguna.KEPALA_OPD,
-      opdId: 'opd-1',
+      authority: OrganizationalAuthority.DEAN,
       nama: 'Kepala OPD',
       nip: '123',
       jabatan: 'Kepala',
@@ -97,7 +95,7 @@ describe('Pengujian TtePdfSigningService', () => {
     repository.findRiwayatForPdfSigning.mockResolvedValue({
       userId,
       dokumenTteId,
-      peran: PeranPengguna.PJ_EVALUATOR,
+      authority: OrganizationalAuthority.DEAN,
       ditandatanganiPada: new Date('2026-05-01T00:00:00.000Z'),
       dokumenTte: {
         dokumenTteId,
@@ -114,7 +112,7 @@ describe('Pengujian TtePdfSigningService', () => {
     });
     const pdfBase64 = (await createSamplePdf()).toString('base64');
     const actual = await service.signPdf(
-      { sub: userId, email: 'pj@example.test', peran: PeranPengguna.PJ_EVALUATOR },
+      { sub: userId, email: 'pj@example.test', peran: OrganizationalAuthority.DEAN },
       {
         pin: '123456',
         dokumenTteId,
@@ -137,7 +135,7 @@ describe('Pengujian TtePdfSigningService', () => {
     repository.findRiwayatForPdfSigning.mockResolvedValue({
       userId,
       dokumenTteId,
-      peran: PeranPengguna.PJ_EVALUATOR,
+      authority: OrganizationalAuthority.DEAN,
       ditandatanganiPada: new Date('2026-05-01T00:00:00.000Z'),
       dokumenTte: {
         dokumenTteId,
@@ -154,7 +152,7 @@ describe('Pengujian TtePdfSigningService', () => {
     });
     const pdfBase64 = (await createSamplePdf()).toString('base64');
     const actual = await service.signPdf(
-      { sub: userId, email: 'pj@example.test', peran: PeranPengguna.PJ_EVALUATOR },
+      { sub: userId, email: 'pj@example.test', peran: OrganizationalAuthority.DEAN },
       {
         pin: '123456',
         dokumenTteId,

@@ -80,7 +80,6 @@ describe('SopPublicService — FTI-native archive', () => {
       {
         detailSopId: 'detail-1',
         sopId: 'sop-1',
-        opdId: 'legacy-opd',
         judul: 'SOP Akademik',
         nomorSOP: 'FTI-001',
         versi: 3,
@@ -123,7 +122,6 @@ describe('SopPublicService — FTI-native archive', () => {
       {
         detailSopId: 'legacy-detail',
         sopId: 'legacy-sop',
-        opdId: 'legacy-opd',
         judul: 'SOP Legacy',
         nomorSOP: 'LEG-001',
         versi: 1,

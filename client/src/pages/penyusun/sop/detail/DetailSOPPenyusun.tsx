@@ -225,7 +225,7 @@ export function DetailSOPPenyusun() {
             isReadOnly={isReadOnly}
             canBuatVersiBaru={canBuatVersiBaru}
             buatVersiBaruBlockingReason={
-              currentSopStatus === 'BERLAKU' ? buatVersiBaruBlockingReason : null
+              currentSopStatus === 'EFFECTIVE' ? buatVersiBaruBlockingReason : null
             }
             onBuatVersiBaru={() => {
               if (currentVersionSource) setBuatVersiSource(currentVersionSource)

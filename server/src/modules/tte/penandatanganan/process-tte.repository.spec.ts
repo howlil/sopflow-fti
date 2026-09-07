@@ -3,7 +3,6 @@
 import {
   JenisDokumenTte,
   OrganizationalAuthority,
-  PeranPengguna,
   StatusSOP,
 } from '../../../generated/prisma';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
@@ -44,14 +43,12 @@ function signingContextTx() {
         dokumenTteId,
         detailSopId,
         processId,
-        pengajuanEvaluasiId: null,
         jenisDokumen: JenisDokumenTte.SOP_BERLAKU,
       }),
       update: jest.fn().mockResolvedValue({
         dokumenTteId,
         detailSopId,
         processId,
-        pengajuanEvaluasiId: null,
         jenisDokumen: JenisDokumenTte.SOP_BERLAKU,
       }),
       create: jest.fn(),
@@ -95,11 +92,10 @@ describe('ProcessTteRepository effective-state integrity', () => {
     const result = await repository.finalizeWithArtifact({
       detailOrSopId: detailSopId,
       userId,
-      peran: PeranPengguna.PENYUSUN,
       signedAt: new Date('2026-09-01T01:00:00Z'),
       tanggalEfektif: new Date('2026-09-01T00:00:00Z'),
       dokumenTteId,
-      pdfPath: 'opd/sop/v2.pdf',
+      pdfPath: 'process/sop/v2.pdf',
       pdfSha256: 'a'.repeat(64),
       pdfSizeBytes: 100,
       signatureMetadata,
@@ -150,7 +146,6 @@ describe('ProcessTteRepository effective-state integrity', () => {
       dokumenTteId,
       detailSopId,
       processId: null,
-      pengajuanEvaluasiId: null,
       jenisDokumen: JenisDokumenTte.SOP_BERLAKU,
     });
     const prisma = {
@@ -180,7 +175,6 @@ describe('ProcessTteRepository effective-state integrity', () => {
       dokumenTteId,
       detailSopId,
       processId: '00000000-0000-4000-8000-000000000099',
-      pengajuanEvaluasiId: null,
       jenisDokumen: JenisDokumenTte.SOP_BERLAKU,
     });
     const prisma = {

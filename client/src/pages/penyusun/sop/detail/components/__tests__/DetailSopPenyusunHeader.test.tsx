@@ -84,7 +84,7 @@ describe('DetailSOPPenyusunHeader', () => {
 
   it('menaruh aksi dokumen sekunder di menu yang sama', async () => {
     renderHeader({
-      currentSopStatus: 'BERLAKU',
+      currentSopStatus: 'EFFECTIVE',
       currentSopStatusLabel: 'Berlaku',
       canBuatVersiBaru: true,
       onBuatVersiBaru,

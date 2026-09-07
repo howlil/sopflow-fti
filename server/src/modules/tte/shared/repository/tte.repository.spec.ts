@@ -30,7 +30,6 @@ describe('TteRepository current identity boundary', () => {
       where: { penggunaId: 'u-1', deletedAt: null },
       select: expect.not.objectContaining({
         peran: expect.anything(),
-        opdId: expect.anything(),
         opd: expect.anything(),
       }),
     });

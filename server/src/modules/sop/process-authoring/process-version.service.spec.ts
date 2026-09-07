@@ -24,7 +24,6 @@ describe('ProcessVersionService', () => {
         detailSopId: 'detail-v1',
         sopId: 'sop-a',
         processId: binding?.processId ?? null,
-        sopOpdId: null,
       }),
       findLatestDetailStatusContext: jest.fn().mockResolvedValue({ detailSopId: 'detail-v1' }),
       cloneDetailSopFromSource: jest.fn().mockResolvedValue({

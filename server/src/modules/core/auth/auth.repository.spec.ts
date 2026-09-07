@@ -22,7 +22,6 @@ describe('Pengujian AuthRepository', () => {
       where: { email: 'user@example.test', deletedAt: null },
       select: expect.not.objectContaining({
         peran: expect.anything(),
-        opdId: expect.anything(),
       }),
     });
   });
@@ -34,7 +33,6 @@ describe('Pengujian AuthRepository', () => {
       where: { penggunaId: 'p-1', deletedAt: null },
       select: expect.not.objectContaining({
         peran: expect.anything(),
-        opdId: expect.anything(),
       }),
     });
   });
@@ -67,7 +65,6 @@ describe('Pengujian AuthRepository', () => {
       data: { nohp: '6281234567890' },
       select: expect.not.objectContaining({
         peran: expect.anything(),
-        opdId: expect.anything(),
       }),
     });
     expect(actual.nohp).toBe('6281234567890');

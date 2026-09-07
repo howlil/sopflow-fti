@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JenisDokumenTte, OrganizationalAuthority, PeranPengguna } from '../../../generated/prisma';
+import { JenisDokumenTte, OrganizationalAuthority, OrganizationalAuthority } from '../../../generated/prisma';
 import { TteRepository } from '../shared/repository/tte.repository';
 import { TtePublicUrlResolver } from '../shared/utils/tte-public-url.resolver';
 import type { ProcessTteVerificationRepository } from './process-tte-verification.repository';
@@ -18,7 +18,7 @@ describe('Pengujian TteVerifikasiService', () => {
     userId: 'user-123',
     dokumenTteId: 'dok-123',
     ditandatanganiPada: new Date('2026-06-01T10:00:00.000Z'),
-    peran: PeranPengguna.PJ_PENYUSUN,
+    authority: OrganizationalAuthority.HEAD_OF_DEPARTMENT,
     user: {
       nama: 'Budi Santoso',
       nip: '199001012020121001',
@@ -31,7 +31,6 @@ describe('Pengujian TteVerifikasiService', () => {
       jenisDokumen: JenisDokumenTte.SOP_BERLAKU,
       hashDokumen: 'abc123hash',
       detailSopId: 'sop-1',
-      pengajuanEvaluasiId: null,
       processId: 'process-1',
     },
   };
@@ -135,7 +134,7 @@ describe('Pengujian TteVerifikasiService', () => {
     it('menampilkan Dean dari ProcessFinalApproval, bukan legacy account role', async () => {
       (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue({
         ...defaultRiwayatRow,
-        peran: PeranPengguna.PENYUSUN,
+        authority: OrganizationalAuthority.DEAN,
       });
       mockProcessVerificationRepository.findApprovalForSignedDetail.mockResolvedValue({
         authority: OrganizationalAuthority.DEAN,
@@ -145,7 +144,7 @@ describe('Pengujian TteVerifikasiService', () => {
 
       const result = await service.getPengesahanPublic('dok-123', 'user-123');
 
-      expect(result.peran).toBe(PeranPengguna.PENYUSUN);
+      expect(result.peran).toBe(OrganizationalAuthority.DEAN);
       expect(result.authority).toBe(OrganizationalAuthority.DEAN);
       expect(result.authorityLabel).toBe('Dekan');
       expect(mockProcessVerificationRepository.findApprovalForSignedDetail).toHaveBeenCalledWith(
@@ -200,7 +199,7 @@ describe('Pengujian TteVerifikasiService', () => {
         userId: 'user-123',
         dokumenTteId: 'dok-123',
         ditandatanganiPada: '2026-06-01T10:00:00.000Z',
-        peran: 'PJ_PENYUSUN',
+        authority: 'HEAD_OF_DEPARTMENT',
         penandatangan: {
           nama: 'Budi Santoso',
           nip: '199001012020121001',

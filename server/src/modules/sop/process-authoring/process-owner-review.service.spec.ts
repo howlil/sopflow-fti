@@ -5,7 +5,6 @@ import type { PrismaService } from '../../../common/prisma/prisma.service';
 import {
   JenisLangkahProsedur,
   OrganizationalAuthority,
-  PeranPengguna,
   ProcessNotificationKind,
   StatusSOP,
 } from '../../../generated/prisma';
@@ -20,7 +19,6 @@ import type { ProcessSopAuthoringService } from './process-sop-authoring.service
 const user = {
   sub: 'user-1',
   email: 'user@example.test',
-  peran: PeranPengguna.PENYUSUN,
   sesiTokenVersion: 1,
 };
 
@@ -86,7 +84,6 @@ function makeService(options?: { owner?: boolean; status?: StatusSOP; transition
     findLatestDetailStatusContext: jest.fn().mockResolvedValue({
       detailSopId: 'detail-a',
       sopId: 'sop-a',
-      sopOpdId: 'opd-a',
       status: options?.status ?? StatusSOP.DRAFT,
     }),
     findWorkbenchPayloadByDetailOrSopId: jest.fn().mockResolvedValue({
@@ -96,7 +93,7 @@ function makeService(options?: { owner?: boolean; status?: StatusSOP; transition
       versi: 1,
       nomorSOP: '001',
       namaLembaga: 'Fakultas Teknologi Informasi',
-      sop: { sopId: 'sop-a', judul: 'SOP', opdId: 'opd-a' },
+      sop: { sopId: 'sop-a', judul: 'SOP'},
       dasarHukum: [{ peraturanId: 'p-1' }],
       relasiSopKeluar: [
         {

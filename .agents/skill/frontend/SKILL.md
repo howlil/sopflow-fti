@@ -384,7 +384,7 @@ For a frontend task:
 - create a generic design/component system beside the existing one;
 - use imperative navigation for ordinary links;
 - copy backend authorization logic as the sole permission enforcement;
-- propagate legacy OPD/evaluator semantics into new target UI;
+- propagate legacy retired organization model/evaluator semantics into new target UI;
 - modify generated route files manually as source code;
 - alter the protected Edit SOP workspace without explicit user direction;
 - add browser/manual acceptance gates as completion ceremony;

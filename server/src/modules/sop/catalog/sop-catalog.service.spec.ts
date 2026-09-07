@@ -37,7 +37,6 @@ describe('SopCatalogService', () => {
       updatedAt: now,
       sop: {
         sopId: 'sop-1',
-        opdId: null,
         processId,
         judul: 'SOP Native',
         createdAt: now,

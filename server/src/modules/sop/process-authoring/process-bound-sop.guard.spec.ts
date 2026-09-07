@@ -2,7 +2,6 @@ import type { ExecutionContext } from '@nestjs/common';
 import type { JwtAccessPayload } from '../../../common';
 import type { JwtAuthGuard } from '../../../common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
-import { PeranPengguna } from '../../../generated/prisma';
 import type { ProcessContextService } from '../../core/process/process-context.service';
 import { ProcessBoundSopGuard } from './process-bound-sop.guard';
 
@@ -54,7 +53,6 @@ describe('ProcessBoundSopGuard', () => {
         request.user = {
           sub: 'user-1',
           email: 'u@example.test',
-          peran: PeranPengguna.PENYUSUN,
           sesiTokenVersion: 1,
         };
         return true;

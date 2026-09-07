@@ -1,5 +1,4 @@
 import type { Request } from 'express';
-import { PeranPengguna } from '../../../generated/prisma';
 import { TteController } from './tte.controller';
 import type { TteService } from './tte.service';
 
@@ -7,13 +6,12 @@ describe('Pengujian TteController - Profil', () => {
   const user = {
     sub: 'user-1',
     email: 'kepala@test.id',
-    peran: PeranPengguna.KEPALA_OPD,
   };
   const req = { user } as Request & { user: typeof user };
   const profil = {
     id: 'user-1',
     userId: 'user-1',
-    peran: 'KEPALA_OPD' as const,
+    peran: 'DEAN' as const,
     createdAt: '2026-05-20T03:04:05.000Z',
     updatedAt: '2026-05-20T03:04:05.000Z',
     user: {

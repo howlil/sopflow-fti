@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import type { JwtAccessPayload } from '../../../common/types/jwt-access-payload.type';
-import { PeranPengguna } from '../../../generated/prisma';
 import type { TteRepository } from '../shared/repository/tte.repository';
 import { TteProfilService } from './tte-profil.service';
 
@@ -35,7 +34,7 @@ describe('Pengujian TteProfilService', () => {
   const updatedAt = new Date('2026-05-20T03:04:05.000Z');
   const kredensial = { hashPin: 'hash-lama', updatedAt };
 
-  function pengguna(peran: PeranPengguna = PeranPengguna.KEPALA_OPD) {
+  function pengguna() {
     return {
       penggunaId: user.sub,
       email: user.email,
@@ -43,8 +42,6 @@ describe('Pengujian TteProfilService', () => {
       nip: '198001012006041001',
       jabatan: 'Kepala Dinas',
       pangkat: 'Pembina',
-      peran,
-      opdId: 'opd-1',
     };
   }
 
@@ -97,9 +94,7 @@ describe('Pengujian TteProfilService', () => {
     });
 
     it.each([
-      PeranPengguna.KEPALA_OPD,
-      PeranPengguna.PJ_EVALUATOR,
-      PeranPengguna.PJ_PENYUSUN,
+      PeranPengguna.DEAN.DEAN.HEAD_OF_DEPARTMENT,
     ] as const)('seharusnya tidak mengekspos legacy role pada profil kredensial %s', async (peran) => {
       const repo = createRepoMock({
         findPenggunaAktif: jest.fn().mockResolvedValue(pengguna(peran)),
@@ -128,7 +123,7 @@ describe('Pengujian TteProfilService', () => {
 
     it('seharusnya menyediakan profil kredensial untuk legacy role non-TTE tanpa memberi authority tanda tangan', async () => {
       const repo = createRepoMock({
-        findPenggunaAktif: jest.fn().mockResolvedValue(pengguna(PeranPengguna.PENYUSUN)),
+        findPenggunaAktif: jest.fn().mockResolvedValue(pengguna()),
         findKredensial: jest.fn().mockResolvedValue(kredensial),
       });
 

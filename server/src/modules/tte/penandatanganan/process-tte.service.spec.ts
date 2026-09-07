@@ -2,7 +2,6 @@ import { ConflictException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import {
   OrganizationalAuthority,
-  PeranPengguna,
   ProcessNotificationKind,
   StatusSOP,
 } from '../../../generated/prisma';
@@ -99,9 +98,9 @@ function createService(overrides?: {
     stampPengesahanMetadata: jest.fn().mockResolvedValue(Buffer.from('%PDF-stamped')),
   } as unknown as jest.Mocked<SopOfficialPdfService>;
   const storage = {
-    buildRelativePath: jest.fn().mockReturnValue('opd/sop/v2.pdf'),
+    buildRelativePath: jest.fn().mockReturnValue('process/sop/v2.pdf'),
     writeOfficialPdf: jest.fn().mockResolvedValue({
-      relativePath: 'opd/sop/v2.pdf',
+      relativePath: 'process/sop/v2.pdf',
       sha256: 'b'.repeat(64),
       sizeBytes: 100,
     }),
@@ -170,7 +169,7 @@ describe('ProcessTteService', () => {
     await expect(service.sign(user, context.detailSopId, dto)).rejects.toThrow(ConflictException);
   });
 
-  it('menandatangani Faculty Process SOP, membuat effective feedback atomically, dan menyimpan historical signature role tanpa membaca Pengguna.peran', async () => {
+  it('menandatangani Faculty Process SOP, membuat effective feedback atomically, dan menyimpan contextual signing authority', async () => {
     const { service, processRepo, signer, processNotifications, tx } = createService();
     const result = await service.sign(user, context.detailSopId, dto);
 
@@ -178,7 +177,7 @@ describe('ProcessTteService', () => {
       expect.objectContaining({ userId: user.sub, dokumenTteId: 'doc-1', pin: '1234' }),
     );
     expect(processRepo.finalizeWithArtifact).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: user.sub, peran: PeranPengguna.KEPALA_OPD }),
+      expect.objectContaining({ userId: user.sub }),
       expect.any(Function),
     );
     expect(processNotifications.createManyInTransaction).toHaveBeenCalledWith(
@@ -234,7 +233,7 @@ describe('ProcessTteService', () => {
       }),
     );
     expect(processRepo.finalizeWithArtifact).toHaveBeenCalledWith(
-      expect.objectContaining({ peran: PeranPengguna.KEPALA_OPD }),
+      expect.objectContaining({ userId: user.sub }),
       expect.any(Function),
     );
     expect(result).toEqual(expect.objectContaining({
@@ -249,7 +248,7 @@ describe('ProcessTteService', () => {
       finalizeResult: { error: 'SOP_STATUS_DRIFT' },
     });
     await expect(service.sign(user, context.detailSopId, dto)).rejects.toThrow(/Status SOP berubah/);
-    expect(storage.deleteStoredPdf).toHaveBeenCalledWith('opd/sop/v2.pdf');
+    expect(storage.deleteStoredPdf).toHaveBeenCalledWith('process/sop/v2.pdf');
     expect(processNotifications.emitChangedMany).not.toHaveBeenCalled();
   });
 });

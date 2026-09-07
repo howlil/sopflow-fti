@@ -24,7 +24,6 @@ describe('PelaksanaService global catalog', () => {
   };
   const row = {
     pelaksanaId: 'pl-1',
-    opdId: null,
     nama: 'Dosen',
     createdAt: new Date('2026-09-01T00:00:00.000Z'),
     updatedAt: new Date('2026-09-01T01:00:00.000Z'),
