@@ -24,7 +24,7 @@ export class ProsesBisnisContextService {
 
   async listForUser(penggunaId: string) {
     const archivedIds = await this.archivedProsesBisnisIds();
-    return this.prisma.process.findMany({
+    return this.prisma.prosesBisnis.findMany({
       where: {
         ...(archivedIds.length > 0 ? { prosesBisnisId: { notIn: archivedIds } } : {}),
         OR: [{ ownerId: penggunaId }, { members: { some: { penggunaId } } }],
@@ -38,7 +38,7 @@ export class ProsesBisnisContextService {
     if (await this.isArchived(prosesBisnisId)) {
       throw new ForbiddenException('Proses Bisnis sudah diarsipkan dan bersifat read-only');
     }
-    const process = await this.prisma.process.findFirst({
+    const process = await this.prisma.prosesBisnis.findFirst({
       where: {
         prosesBisnisId,
         OR: [{ ownerId: penggunaId }, { members: { some: { penggunaId } } }],
@@ -55,7 +55,7 @@ export class ProsesBisnisContextService {
     if (await this.isArchived(prosesBisnisId)) {
       throw new ForbiddenException('Proses Bisnis sudah diarsipkan dan tidak menerima tindakan workflow baru');
     }
-    const process = await this.prisma.process.findFirst({
+    const process = await this.prisma.prosesBisnis.findFirst({
       where: { prosesBisnisId, ownerId: penggunaId },
       include: processInclude,
     });
@@ -66,7 +66,7 @@ export class ProsesBisnisContextService {
   }
 
   private async archivedProsesBisnisIds(): Promise<string[]> {
-    const rows = await this.prisma.processLifecycle.findMany({
+    const rows = await this.prisma.statusProsesBisnis.findMany({
       where: { status: StatusKeaktifanProsesBisnis.ARCHIVED },
       select: { prosesBisnisId: true },
     });
@@ -74,7 +74,7 @@ export class ProsesBisnisContextService {
   }
 
   private async isArchived(prosesBisnisId: string): Promise<boolean> {
-    const lifecycle = await this.prisma.processLifecycle.findUnique({
+    const lifecycle = await this.prisma.statusProsesBisnis.findUnique({
       where: { prosesBisnisId },
       select: { status: true },
     });

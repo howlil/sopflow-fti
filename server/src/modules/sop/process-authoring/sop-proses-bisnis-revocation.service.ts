@@ -54,7 +54,7 @@ export class ProsesBisnisSopRevocationService {
       .map((assignment) => assignment.departemenId as string);
     if (!isDean && departemenIds.length === 0) return [];
 
-    const processes = await this.prisma.process.findMany({
+    const processes = await this.prisma.prosesBisnis.findMany({
       where: {
         OR: [
           ...(isDean ? [{ scope: LingkupOrganisasi.FACULTY }] : []),
@@ -158,7 +158,7 @@ export class ProsesBisnisSopRevocationService {
     }
 
     const [process, detail] = await Promise.all([
-      this.prisma.process.findUnique({
+      this.prisma.prosesBisnis.findUnique({
         where: { prosesBisnisId },
         select: { ownerId: true, nama: true },
       }),

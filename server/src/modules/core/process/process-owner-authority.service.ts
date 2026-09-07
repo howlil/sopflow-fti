@@ -13,7 +13,7 @@ export class KewenanganPenanggungJawabProsesBisnisService {
 
   async listMine(penggunaId: string) {
     return this.enrich(
-      await this.prisma.processOwnerAuthority.findMany({
+      await this.prisma.kewenanganPenanggungJawabProsesBisnis.findMany({
         where: { penggunaId, revokedAt: null },
         orderBy: [{ scope: 'asc' }, { createdAt: 'asc' }],
       }),
@@ -22,7 +22,7 @@ export class KewenanganPenanggungJawabProsesBisnisService {
 
   async listConfiguration() {
     return this.enrich(
-      await this.prisma.processOwnerAuthority.findMany({
+      await this.prisma.kewenanganPenanggungJawabProsesBisnis.findMany({
         where: { revokedAt: null },
         orderBy: [{ scope: 'asc' }, { createdAt: 'asc' }],
       }),
@@ -35,7 +35,7 @@ export class KewenanganPenanggungJawabProsesBisnisService {
     const scopeKey = this.scopeKey(dto.scope, departemenId);
 
     const authority = await this.prisma.$transaction(async (tx) => {
-      const row = await tx.processOwnerAuthority.upsert({
+      const row = await tx.kewenanganPenanggungJawabProsesBisnis.upsert({
         where: { penggunaId_scopeKey: { penggunaId: dto.penggunaId, scopeKey } },
         create: {
           penggunaId: dto.penggunaId,
@@ -51,7 +51,7 @@ export class KewenanganPenanggungJawabProsesBisnisService {
           revokedAt: null,
         },
       });
-      await tx.processAudit.create({
+      await tx.riwayatAktivitasProsesBisnis.create({
         data: {
           actorId: grantedById,
           event: JenisAktivitasProsesBisnis.OWNER_AUTHORITY_GRANTED,
@@ -66,18 +66,18 @@ export class KewenanganPenanggungJawabProsesBisnisService {
   }
 
   async revoke(grantedById: string, kewenanganPenanggungJawabProsesBisnisId: string) {
-    const current = await this.prisma.processOwnerAuthority.findUnique({
+    const current = await this.prisma.kewenanganPenanggungJawabProsesBisnis.findUnique({
       where: { kewenanganPenanggungJawabProsesBisnisId },
     });
     if (current === null || current.revokedAt !== null) {
       throw new NotFoundException('Kewenangan Penanggung Jawab Proses Bisnis aktif tidak ditemukan');
     }
     await this.prisma.$transaction([
-      this.prisma.processOwnerAuthority.update({
+      this.prisma.kewenanganPenanggungJawabProsesBisnis.update({
         where: { kewenanganPenanggungJawabProsesBisnisId },
         data: { revokedAt: new Date() },
       }),
-      this.prisma.processAudit.create({
+      this.prisma.riwayatAktivitasProsesBisnis.create({
         data: {
           actorId: grantedById,
           event: JenisAktivitasProsesBisnis.OWNER_AUTHORITY_REVOKED,
@@ -99,7 +99,7 @@ export class KewenanganPenanggungJawabProsesBisnisService {
   ): Promise<{ scope: LingkupOrganisasi; departemenId: string | null; scopeKey: string }> {
     const departemenId = await this.resolveDepartemen(scope, requestedDepartemenId);
     const scopeKey = this.scopeKey(scope, departemenId);
-    const authority = await this.prisma.processOwnerAuthority.findUnique({
+    const authority = await this.prisma.kewenanganPenanggungJawabProsesBisnis.findUnique({
       where: { penggunaId_scopeKey: { penggunaId, scopeKey } },
     });
     if (authority === null || authority.revokedAt !== null) {
@@ -138,7 +138,7 @@ export class KewenanganPenanggungJawabProsesBisnisService {
     if (!departemenId) {
       throw new ConflictException('Scope DEPARTMENT wajib memiliki departemenId');
     }
-    const exists = await this.prisma.department.count({ where: { departemenId } });
+    const exists = await this.prisma.departemen.count({ where: { departemenId } });
     if (exists !== 1) {
       throw new NotFoundException('Departemen tidak ditemukan');
     }
@@ -153,7 +153,7 @@ export class KewenanganPenanggungJawabProsesBisnisService {
         where: { penggunaId: { in: userIds } },
         select: { penggunaId: true, nama: true, email: true, nip: true, deletedAt: true },
       }),
-      this.prisma.department.findMany({
+      this.prisma.departemen.findMany({
         where: { departemenId: { in: departemenIds } },
         select: { departemenId: true, nama: true },
       }),

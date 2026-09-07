@@ -12,8 +12,8 @@ import { ProsesBisnisRepository } from './process.repository';
 export class ProsesBisnisService {
   constructor(private readonly processRepository: ProsesBisnisRepository) {}
 
-  listDepartemens() {
-    return this.processRepository.listDepartemens();
+  listDepartemen() {
+    return this.processRepository.listDepartemen();
   }
 
   async createDepartemen(dto: CreateDepartemenDto) {
@@ -39,8 +39,8 @@ export class ProsesBisnisService {
     return this.processRepository.listAssignableUsers(search);
   }
 
-  listProsesBisnises() {
-    return this.processRepository.listProsesBisnises();
+  listProsesBisnis() {
+    return this.processRepository.listProsesBisnis();
   }
 
   async createProsesBisnis(dto: CreateProsesBisnisDto) {

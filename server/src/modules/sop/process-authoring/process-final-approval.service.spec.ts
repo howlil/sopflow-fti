@@ -101,7 +101,7 @@ describe('PersetujuanAkhirSOPService', () => {
       where: { detailSopId: 'detail-a', status: StatusSOP.FINAL_APPROVAL },
       data: { status: StatusSOP.TTE_PENDING, terakhirDieditOlehId: 'dean-1' },
     });
-    expect(tx.processFinalApproval.create).toHaveBeenCalledWith({
+    expect(tx.persetujuanAkhirSOP.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         detailSopId: 'detail-a',
         prosesBisnisId: 'process-a',
@@ -128,7 +128,7 @@ describe('PersetujuanAkhirSOPService', () => {
       orderBy: { createdAt: 'desc' },
       select: { pemeriksaanProsesBisnisId: true },
     });
-    expect(tx.processFinalApproval.create).toHaveBeenCalledWith({
+    expect(tx.persetujuanAkhirSOP.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ pemeriksaanProsesBisnisId: 'review-accepted' }),
     });
   });
@@ -181,6 +181,6 @@ describe('PersetujuanAkhirSOPService', () => {
       'Final approval hanya dapat diberikan pada versi SOP terbaru',
     );
     expect(authority.assertCanApprove).not.toHaveBeenCalled();
-    expect(tx.processFinalApproval.create).not.toHaveBeenCalled();
+    expect(tx.persetujuanAkhirSOP.create).not.toHaveBeenCalled();
   });
 });

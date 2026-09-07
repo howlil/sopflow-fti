@@ -4,7 +4,7 @@ import type { Request } from 'express';
 import { JwtAuthGuard, type ApiSuccessResponse } from '../../../common';
 import type { JwtAccessPayload } from '../../../common/types/jwt-access-payload.type';
 import { ACCESS_TOKEN_COOKIE_NAME } from '../../core/auth/helpers/auth.shared';
-import { TandaTanganiProsesBisnisSopDto } from '../shared/dto/tanda-tangani-process-sop.dto';
+import { TandaTanganiProsesBisnisSopDto } from '../shared/dto/tanda-tangani-sop-proses-bisnis.dto';
 import { ProsesBisnisTteService } from './tte-proses-bisnis.service';
 
 @ApiTags('Proses Bisnis TTE')

@@ -168,7 +168,7 @@ Prefer authorization queries that encode the relevant relationship directly and 
 Existing style:
 
 ```ts
-const process = await prisma.process.findFirst({
+const process = await prisma.prosesBisnis.findFirst({
   where: {
     prosesBisnisId,
     OR: [

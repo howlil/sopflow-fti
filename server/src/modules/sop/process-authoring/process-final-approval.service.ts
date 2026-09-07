@@ -36,7 +36,7 @@ export class PersetujuanAkhirSOPService {
       .map((assignment) => assignment.departemenId as string);
     if (!isDean && departemenIds.length === 0) return [];
 
-    const processes = await this.prisma.process.findMany({
+    const processes = await this.prisma.prosesBisnis.findMany({
       where: {
         OR: [
           ...(isDean ? [{ scope: LingkupOrganisasi.FACULTY }] : []),
@@ -92,7 +92,7 @@ export class PersetujuanAkhirSOPService {
     const approvals =
       approvalLatest.length === 0
         ? []
-        : await this.prisma.processFinalApproval.findMany({
+        : await this.prisma.persetujuanAkhirSOP.findMany({
             where: { detailSopId: { in: approvalLatest.map((detail) => detail.detailSopId) } },
           });
     const approvalByDetail = new Map(approvals.map((approval) => [approval.detailSopId, approval]));
@@ -124,7 +124,7 @@ export class PersetujuanAkhirSOPService {
   async getContext(user: JwtAccessPayload, detailOrSopId: string) {
     const context = await this.resolveTargetContext(detailOrSopId);
     const resolved = await this.authorityService.resolveForProsesBisnis(context.prosesBisnisId);
-    const approval = await this.prisma.processFinalApproval.findUnique({
+    const approval = await this.prisma.persetujuanAkhirSOP.findUnique({
       where: { detailSopId: context.detailSopId },
     });
     return {
@@ -212,7 +212,7 @@ export class PersetujuanAkhirSOPService {
           );
         }
 
-        return tx.processFinalApproval.create({
+        return tx.persetujuanAkhirSOP.create({
           data: {
             detailSopId: context.detailSopId,
             prosesBisnisId: context.prosesBisnisId,

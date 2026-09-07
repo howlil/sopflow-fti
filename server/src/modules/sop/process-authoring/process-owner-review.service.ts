@@ -16,7 +16,7 @@ import {
   type NotifikasiProsesBisnisCreateInput,
 } from '../../notifications/process/process-notification.service';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
-import { assertSopWorkbenchCompleteForSiapDievaluasi } from '../catalog/sop-completeness.validator';
+import { pastikanWorkbenchSopLengkapUntukPemeriksaanProsesBisnis } from '../catalog/sop-completeness.validator';
 import { SopCatalogRepository } from '../catalog/sop-catalog.repository';
 import { appendOrCreateLogSession } from '../collaboration/log-edit-session.helper';
 import { KeputusanPemeriksaanProsesBisnis } from './dto/pemeriksaan-proses-bisnis-decision.dto';
@@ -56,7 +56,7 @@ export class ProsesBisnisOwnerReviewService {
     if (draftPayload === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
-    assertSopWorkbenchCompleteForSiapDievaluasi(draftPayload);
+    pastikanWorkbenchSopLengkapUntukPemeriksaanProsesBisnis(draftPayload);
 
     await this.transitionStatus({
       detailSopId: context.detailSopId,

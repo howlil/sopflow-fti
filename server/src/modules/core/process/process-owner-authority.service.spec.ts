@@ -41,7 +41,7 @@ describe('KewenanganPenanggungJawabProsesBisnisService', () => {
   it('grants FACULTY owner eligibility without creating workflow/TTE authority', async () => {
     const { prisma, service } = makeService();
     prisma.pengguna.findFirst.mockResolvedValue({ platformRole: PlatformRole.USER });
-    prisma.processOwnerAuthority.upsert.mockResolvedValue({
+    prisma.kewenanganPenanggungJawabProsesBisnis.upsert.mockResolvedValue({
       kewenanganPenanggungJawabProsesBisnisId: '33333333-3333-4333-8333-333333333333',
       penggunaId: userId,
       scope: LingkupOrganisasi.FACULTY,
@@ -55,7 +55,7 @@ describe('KewenanganPenanggungJawabProsesBisnisService', () => {
     prisma.pengguna.findMany.mockResolvedValue([
       { penggunaId: userId, nama: 'Owner', email: 'owner@fti.test', nip: '1', deletedAt: null },
     ]);
-    prisma.department.findMany.mockResolvedValue([]);
+    prisma.departemen.findMany.mockResolvedValue([]);
 
     await service.grant(adminId, {
       penggunaId: userId,
@@ -63,12 +63,12 @@ describe('KewenanganPenanggungJawabProsesBisnisService', () => {
       departemenId: null,
     });
 
-    expect(prisma.processOwnerAuthority.upsert).toHaveBeenCalledWith(
+    expect(prisma.kewenanganPenanggungJawabProsesBisnis.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { penggunaId_scopeKey: { penggunaId: userId, scopeKey: 'FACULTY' } },
       }),
     );
-    expect(prisma.processAudit.create).toHaveBeenCalledWith({
+    expect(prisma.riwayatAktivitasProsesBisnis.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         actorId: adminId,
         event: JenisAktivitasProsesBisnis.OWNER_AUTHORITY_GRANTED,
@@ -79,7 +79,7 @@ describe('KewenanganPenanggungJawabProsesBisnisService', () => {
 
   it('rejects Proses Bisnis creation outside the granted owner scope', async () => {
     const { prisma, service } = makeService();
-    prisma.processOwnerAuthority.findUnique.mockResolvedValue(null);
+    prisma.kewenanganPenanggungJawabProsesBisnis.findUnique.mockResolvedValue(null);
 
     await expect(
       service.assertCanCreate(userId, LingkupOrganisasi.FACULTY, null),

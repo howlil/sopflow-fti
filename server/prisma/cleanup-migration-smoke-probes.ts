@@ -32,7 +32,7 @@ const adapter = new PrismaMariaDb({
 const prisma = new PrismaClient({ adapter });
 
 async function main(): Promise<void> {
-  await prisma.process.deleteMany({
+  await prisma.prosesBisnis.deleteMany({
     where: { prosesBisnisId: { in: [...MIGRATION_SMOKE_PROCESS_PROBES] } },
   });
 }

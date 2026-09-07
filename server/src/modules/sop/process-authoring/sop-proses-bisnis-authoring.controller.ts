@@ -23,7 +23,7 @@ import { ListSopQueryDto } from '../catalog/dto/list-sop-query.dto';
 import { SopRiwayatVersiRowDto } from '../catalog/dto/sop-riwayat-versi-row.dto';
 import { UpdateSopHeaderDto } from '../catalog/dto/update-sop-header.dto';
 import { PelaksanaSnapshotService } from '../pelaksana/pelaksana-snapshot.service';
-import { CreateProsesBisnisSopDto } from './dto/create-process-sop.dto';
+import { CreateProsesBisnisSopDto } from './dto/create-sop-proses-bisnis.dto';
 import { ProsesBisnisSopAuthoringService } from './sop-proses-bisnis-authoring.service';
 import { ProsesBisnisVersionService } from './process-version.service';
 

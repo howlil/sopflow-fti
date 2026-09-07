@@ -6,7 +6,7 @@ const userSelect = {
   penggunaId: true,
   nama: true,
   email: true,
-  peran: true,
+
   platformRole: true,
 } as const;
 
@@ -14,21 +14,21 @@ const userSelect = {
 export class ProsesBisnisRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  listDepartemens() {
-    return this.prisma.department.findMany({ orderBy: { nama: 'asc' } });
+  listDepartemen() {
+    return this.prisma.departemen.findMany({ orderBy: { nama: 'asc' } });
   }
 
   createDepartemen(nama: string) {
-    return this.prisma.department.create({ data: { nama } });
+    return this.prisma.departemen.create({ data: { nama } });
   }
 
   updateDepartemen(departemenId: string, nama: string) {
-    return this.prisma.department.update({ where: { departemenId }, data: { nama } });
+    return this.prisma.departemen.update({ where: { departemenId }, data: { nama } });
   }
 
   async departmentExists(departemenId: string): Promise<boolean> {
     return (
-      (await this.prisma.department.count({ where: { departemenId } })) === 1
+      (await this.prisma.departemen.count({ where: { departemenId } })) === 1
     );
   }
 
@@ -60,8 +60,8 @@ export class ProsesBisnisRepository {
     });
   }
 
-  listProsesBisnises() {
-    return this.prisma.process.findMany({
+  listProsesBisnis() {
+    return this.prisma.prosesBisnis.findMany({
       include: {
         department: true,
         owner: { select: userSelect },
@@ -75,7 +75,7 @@ export class ProsesBisnisRepository {
   }
 
   findProsesBisnisById(prosesBisnisId: string) {
-    return this.prisma.process.findUnique({
+    return this.prisma.prosesBisnis.findUnique({
       where: { prosesBisnisId },
       include: {
         department: true,
@@ -95,7 +95,7 @@ export class ProsesBisnisRepository {
     ownerId: string;
     memberIds: string[];
   }) {
-    return this.prisma.process.create({
+    return this.prisma.prosesBisnis.create({
       data: {
         nama: input.nama,
         scope: input.scope,
@@ -124,7 +124,7 @@ export class ProsesBisnisRepository {
       memberIds: string[];
     },
   ) {
-    return this.prisma.process.update({
+    return this.prisma.prosesBisnis.update({
       where: { prosesBisnisId },
       data: {
         nama: input.nama,

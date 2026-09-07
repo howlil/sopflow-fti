@@ -9,13 +9,13 @@ describe('ProsesBisnisService', () => {
   let repository: jest.Mocked<
     Pick<
       ProsesBisnisRepository,
-      | 'listDepartemens'
+      | 'listDepartemen'
       | 'createDepartemen'
       | 'updateDepartemen'
       | 'departmentExists'
       | 'listAssignableUsers'
       | 'findActiveUsersByIds'
-      | 'listProsesBisnises'
+      | 'listProsesBisnis'
       | 'findProsesBisnisById'
       | 'createProsesBisnis'
       | 'updateProsesBisnis'
@@ -24,13 +24,13 @@ describe('ProsesBisnisService', () => {
 
   beforeEach(async () => {
     repository = {
-      listDepartemens: jest.fn(),
+      listDepartemen: jest.fn(),
       createDepartemen: jest.fn(),
       updateDepartemen: jest.fn(),
       departmentExists: jest.fn(),
       listAssignableUsers: jest.fn(),
       findActiveUsersByIds: jest.fn(),
-      listProsesBisnises: jest.fn(),
+      listProsesBisnis: jest.fn(),
       findProsesBisnisById: jest.fn(),
       createProsesBisnis: jest.fn(),
       updateProsesBisnis: jest.fn(),

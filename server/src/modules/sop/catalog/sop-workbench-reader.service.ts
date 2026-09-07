@@ -36,7 +36,7 @@ export class SopWorkbenchReader {
     const mapped = mapWorkbenchPayload(row);
     if (row.sop.prosesBisnisId === null) return mapped;
 
-    const process = await this.prisma.process.findUnique({
+    const process = await this.prisma.prosesBisnis.findUnique({
       where: { prosesBisnisId: row.sop.prosesBisnisId },
       select: { scope: true, departemenId: true },
     });
@@ -54,7 +54,7 @@ export class SopWorkbenchReader {
           : `HEAD_OF_DEPARTMENT:${process.departemenId}`;
     if (authorityKey === null) return mapped;
 
-    const assignment = await this.prisma.organizationalAuthorityAssignment.findUnique({
+    const assignment = await this.prisma.penugasanPejabatBerwenang.findUnique({
       where: { authorityKey },
       select: { authority: true, departemenId: true, holderId: true },
     });

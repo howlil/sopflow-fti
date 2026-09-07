@@ -31,11 +31,11 @@ export class ProsesBisnisController {
 
   @Get('departments')
   @ApiOperation({ summary: 'Daftar departemen untuk konteks Proses Bisnis' })
-  async listDepartemens(): Promise<ApiSuccessResponse<unknown>> {
+  async listDepartemen(): Promise<ApiSuccessResponse<unknown>> {
     return {
       message: 'Daftar departemen berhasil diambil',
       success: true,
-      data: await this.processService.listDepartemens(),
+      data: await this.processService.listDepartemen(),
     };
   }
 
@@ -75,11 +75,11 @@ export class ProsesBisnisController {
 
   @Get('processes')
   @ApiOperation({ summary: 'Daftar Proses Bisnis beserta owner dan members' })
-  async listProsesBisnises(): Promise<ApiSuccessResponse<unknown>> {
+  async listProsesBisnis(): Promise<ApiSuccessResponse<unknown>> {
     return {
       message: 'Daftar Proses Bisnis berhasil diambil',
       success: true,
-      data: await this.processService.listProsesBisnises(),
+      data: await this.processService.listProsesBisnis(),
     };
   }
 

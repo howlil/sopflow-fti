@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useAuthStore } from "@/stores/authStore";
 import { ROUTES } from "@/utils/constants";
-import { ProsesBisnisOwnerSelfServicePanel } from "./ProsesBisnisOwnerSelfServicePanel";
+import { PanelLayananMandiriPenanggungJawabProsesBisnis } from "./PanelLayananMandiriPenanggungJawabProsesBisnis";
 
 function CapabilityCard({
   title,
@@ -127,7 +127,7 @@ export function WorkHomePage() {
           </div>
 
           {ownerScopes.length > 0 || ownedProsesBisnises.length > 0 ? (
-            <ProsesBisnisOwnerSelfServicePanel />
+            <PanelLayananMandiriPenanggungJawabProsesBisnis />
           ) : null}
         </>
       )}

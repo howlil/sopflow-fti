@@ -15,7 +15,7 @@ import type {
 } from '@/types/dto/process.dto'
 
 export const processAdminApi = {
-  listDepartemens: (): Promise<DepartemenDto[]> =>
+  listDepartemen: (): Promise<DepartemenDto[]> =>
     unwrapApiData(apiClient.get<ApiSuccessResponse<DepartemenDto[]>>('/administrasi-proses-bisnis/departments')),
 
   createDepartemen: (nama: string): Promise<DepartemenDto> =>
@@ -29,7 +29,7 @@ export const processAdminApi = {
   listUsers: (): Promise<ProsesBisnisAssignableUserDto[]> =>
     unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisAssignableUserDto[]>>('/administrasi-proses-bisnis/users')),
 
-  listProsesBisnises: (): Promise<ProsesBisnisDto[]> =>
+  listProsesBisnis: (): Promise<ProsesBisnisDto[]> =>
     unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisDto[]>>('/administrasi-proses-bisnis/processes')),
 
   /** Reserved for administrative repair/bootstrap; normal creation belongs to the authorized owner. */
@@ -58,7 +58,7 @@ export const processAdminApi = {
 export function useProsesBisnisAdministration() {
   const departmentsQuery = useQuery({
     queryKey: queryKeys.processAdminDepartemens,
-    queryFn: processAdminApi.listDepartemens,
+    queryFn: processAdminApi.listDepartemen,
     staleTime: STALE_TIME.MEDIUM,
   })
   const usersQuery = useQuery({
@@ -68,7 +68,7 @@ export function useProsesBisnisAdministration() {
   })
   const processesQuery = useQuery({
     queryKey: queryKeys.processAdminProsesBisnises,
-    queryFn: processAdminApi.listProsesBisnises,
+    queryFn: processAdminApi.listProsesBisnis,
     staleTime: STALE_TIME.MEDIUM,
   })
   const ownerAuthoritiesQuery = useQuery({

@@ -77,7 +77,7 @@ export function collectSopWorkbenchCompletenessIssues(row: SopWorkbenchDbPayload
   return pesan;
 }
 
-export function assertSopWorkbenchCompleteForPemeriksaanProsesBisnis(row: SopWorkbenchDbPayload): void {
+export function pastikanWorkbenchSopLengkapUntukPemeriksaanProsesBisnis(row: SopWorkbenchDbPayload): void {
   const pesan = collectSopWorkbenchCompletenessIssues(row);
   if (pesan.length > 0) {
     throw new BadRequestException(`SOP belum lengkap untuk ProsesBisnis Review. ${pesan.join(' ')}`);

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { UndanganAnggotaProsesBisnisPreviewDto } from '@/types/dto/process.dto'
 
-export function UndanganAnggotaProsesBisnisActivation({ token }: { token: string }) {
+export function AktivasiUndanganAnggotaProsesBisnis({ token }: { token: string }) {
   const [preview, setPreview] = useState<UndanganAnggotaProsesBisnisPreviewDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)

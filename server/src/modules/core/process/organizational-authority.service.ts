@@ -20,14 +20,14 @@ export class PejabatBerwenangService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listMine(userId: string) {
-    return this.prisma.organizationalAuthorityAssignment.findMany({
+    return this.prisma.penugasanPejabatBerwenang.findMany({
       where: { holderId: userId },
       orderBy: { authorityKey: 'asc' },
     });
   }
 
   async listConfiguration() {
-    const assignments = await this.prisma.organizationalAuthorityAssignment.findMany({
+    const assignments = await this.prisma.penugasanPejabatBerwenang.findMany({
       orderBy: { authorityKey: 'asc' },
     });
     const holderIds = [...new Set(assignments.map((assignment) => assignment.holderId))];
@@ -37,7 +37,7 @@ export class PejabatBerwenangService {
         where: { penggunaId: { in: holderIds } },
         select: { penggunaId: true, nama: true, email: true, deletedAt: true },
       }),
-      this.prisma.department.findMany({
+      this.prisma.departemen.findMany({
         where: { departemenId: { in: departemenIds } },
         select: { departemenId: true, nama: true },
       }),
@@ -53,7 +53,7 @@ export class PejabatBerwenangService {
 
   async assignDean(holderId: string) {
     await this.assertActiveUser(holderId);
-    return this.prisma.organizationalAuthorityAssignment.upsert({
+    return this.prisma.penugasanPejabatBerwenang.upsert({
       where: { authorityKey: this.deanKey() },
       create: {
         authorityKey: this.deanKey(),
@@ -71,14 +71,14 @@ export class PejabatBerwenangService {
 
   async assignDepartemenHead(departemenId: string, holderId: string) {
     const [department] = await Promise.all([
-      this.prisma.department.findUnique({ where: { departemenId }, select: { departemenId: true } }),
+      this.prisma.departemen.findUnique({ where: { departemenId }, select: { departemenId: true } }),
       this.assertActiveUser(holderId),
     ]);
     if (department === null) {
       throw new NotFoundException('Departemen tidak ditemukan');
     }
     const authorityKey = this.departmentHeadKey(departemenId);
-    return this.prisma.organizationalAuthorityAssignment.upsert({
+    return this.prisma.penugasanPejabatBerwenang.upsert({
       where: { authorityKey },
       create: {
         authorityKey,
@@ -95,7 +95,7 @@ export class PejabatBerwenangService {
   }
 
   async resolveForProsesBisnis(prosesBisnisId: string): Promise<ResolvedPejabatBerwenang> {
-    const process = await this.prisma.process.findUnique({
+    const process = await this.prisma.prosesBisnis.findUnique({
       where: { prosesBisnisId },
       select: { prosesBisnisId: true, nama: true, scope: true, departemenId: true },
     });
@@ -113,7 +113,7 @@ export class PejabatBerwenangService {
       ? this.deanKey()
       : this.departmentHeadKey(process.departemenId as string);
 
-    const assignment = await this.prisma.organizationalAuthorityAssignment.findUnique({
+    const assignment = await this.prisma.penugasanPejabatBerwenang.findUnique({
       where: { authorityKey },
     });
     if (assignment === null) {

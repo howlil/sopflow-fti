@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { ProsesBisnisManagementPage } from '@/pages/admin/ProsesBisnisManagementPage'
+import { HalamanPengelolaanProsesBisnis } from '@/pages/admin/HalamanPengelolaanProsesBisnis'
 
 export const Route = createFileRoute('/admin/processes/')({
-  component: ProsesBisnisManagementPage,
+  component: HalamanPengelolaanProsesBisnis,
 })

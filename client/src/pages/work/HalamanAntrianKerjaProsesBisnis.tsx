@@ -78,7 +78,7 @@ function WorkRow({
   )
 }
 
-export function ProsesBisnisWorkQueuePage() {
+export function HalamanAntrianKerjaProsesBisnis() {
   useDocumentTitle('Pekerjaan SOP')
   const { data: processes = [] } = useMyProsesBisnises()
   const { list, create } = useSopSuspense()

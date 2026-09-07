@@ -2,7 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { JenisLangkahProsedur } from '../../../generated/prisma';
 import type { SopWorkbenchDbPayload } from './sop-catalog.repository';
 import {
-  assertSopWorkbenchCompleteForSiapDievaluasi,
+  pastikanWorkbenchSopLengkapUntukPemeriksaanProsesBisnis,
   collectSopWorkbenchCompletenessIssues,
 } from './sop-completeness.validator';
 
@@ -121,12 +121,12 @@ describe('Pengujian validator kelengkapan SOP', () => {
 
   it('seharusnya melempar BadRequestException dengan prefix ketika validasi gagal', () => {
     expect(() =>
-      assertSopWorkbenchCompleteForSiapDievaluasi(
+      pastikanWorkbenchSopLengkapUntukPemeriksaanProsesBisnis(
         buildMinimalWorkbench({ langkahSOP: [], swimlanes: [] }),
       ),
     ).toThrow(BadRequestException);
     try {
-      assertSopWorkbenchCompleteForSiapDievaluasi(
+      pastikanWorkbenchSopLengkapUntukPemeriksaanProsesBisnis(
         buildMinimalWorkbench({ langkahSOP: [], swimlanes: [] }),
       );
     } catch (err) {

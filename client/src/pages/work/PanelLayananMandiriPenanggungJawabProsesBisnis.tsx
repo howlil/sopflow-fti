@@ -14,7 +14,7 @@ const EMPTY_INVITE: InviteAnggotaProsesBisnisPayload = {
   nohp: '',
 }
 
-export function ProsesBisnisOwnerSelfServicePanel() {
+export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
   const {
     scopes,
     processes,

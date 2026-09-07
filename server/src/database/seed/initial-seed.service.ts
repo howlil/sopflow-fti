@@ -18,8 +18,8 @@ export class InitialSeedService {
     const [penggunaCount, processCount, departmentCount, peraturanCount, pelaksanaCount] =
       await Promise.all([
         this.prisma.pengguna.count(),
-        this.prisma.process.count(),
-        this.prisma.department.count(),
+        this.prisma.prosesBisnis.count(),
+        this.prisma.departemen.count(),
         this.prisma.peraturan.count(),
         this.prisma.pelaksana.count(),
       ]);

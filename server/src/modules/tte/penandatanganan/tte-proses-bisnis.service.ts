@@ -13,7 +13,7 @@ import { JenisDokumenTte, JenisNotifikasiProsesBisnis, StatusSOP } from '../../.
 import { NotifikasiProsesBisnisService } from '../../notifications/process/process-notification.service';
 import { SopOfficialPdfService } from '../../sop/pdf/sop-official-pdf.service';
 import { SopPdfStorageService } from '../../sop/pdf/sop-pdf-storage.service';
-import { TandaTanganiProsesBisnisSopDto } from '../shared/dto/tanda-tangani-process-sop.dto';
+import { TandaTanganiProsesBisnisSopDto } from '../shared/dto/tanda-tangani-sop-proses-bisnis.dto';
 import { TteRepository } from '../shared/repository/tte.repository';
 import { buildTteQrPayload } from '../shared/utils/tte-verifikasi-qr.util';
 import { TtePublicUrlResolver } from '../shared/utils/tte-public-url.resolver';
@@ -118,7 +118,7 @@ export class ProsesBisnisTteService {
           },
           async (tx, finalizedContext) => {
             const [process, detail] = await Promise.all([
-              tx.process.findUnique({
+              tx.prosesBisnis.findUnique({
                 where: { prosesBisnisId: finalizedContext.prosesBisnisId },
                 select: { ownerId: true, nama: true },
               }),

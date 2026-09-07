@@ -12,7 +12,7 @@ const EMPTY_AUTHORITY: GrantKewenanganPenanggungJawabProsesBisnisPayload = {
   departemenId: null,
 }
 
-export function ProsesBisnisManagementPage() {
+export function HalamanPengelolaanProsesBisnis() {
   const {
     departments,
     users,

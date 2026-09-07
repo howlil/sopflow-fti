@@ -268,13 +268,13 @@ export class SeedService {
     tx: Prisma.TransactionClient,
     nama: string,
   ): Promise<{ departemenId: string; nama: string }> {
-    const existing = await tx.department.findUnique({
+    const existing = await tx.departemen.findUnique({
       where: { nama },
       select: { departemenId: true, nama: true },
     });
     return (
       existing ??
-      tx.department.create({
+      tx.departemen.create({
         data: { nama },
         select: { departemenId: true, nama: true },
       })
@@ -289,7 +289,7 @@ export class SeedService {
     departemenId: string | null,
   ): Promise<void> {
     const scopeKey = scope === LingkupOrganisasi.FACULTY ? 'FACULTY' : `DEPARTMENT:${departemenId}`;
-    await tx.processOwnerAuthority.upsert({
+    await tx.kewenanganPenanggungJawabProsesBisnis.upsert({
       where: { penggunaId_scopeKey: { penggunaId, scopeKey } },
       create: { penggunaId, scope, departemenId, scopeKey, grantedById },
       update: { scope, departemenId, grantedById, revokedAt: null },
@@ -303,23 +303,23 @@ export class SeedService {
     ownerId: string,
     departemenId: string | null,
   ): Promise<{ prosesBisnisId: string; nama: string }> {
-    const existing = await tx.process.findFirst({
+    const existing = await tx.prosesBisnis.findFirst({
       where: { nama },
       select: { prosesBisnisId: true, nama: true },
     });
     const process =
       existing === null
-        ? await tx.process.create({
+        ? await tx.prosesBisnis.create({
             data: { nama, scope, ownerId, departemenId },
             select: { prosesBisnisId: true, nama: true },
           })
-        : await tx.process.update({
+        : await tx.prosesBisnis.update({
             where: { prosesBisnisId: existing.prosesBisnisId },
             data: { scope, ownerId, departemenId },
             select: { prosesBisnisId: true, nama: true },
           });
 
-    await tx.processLifecycle.upsert({
+    await tx.statusProsesBisnis.upsert({
       where: { prosesBisnisId: process.prosesBisnisId },
       create: { prosesBisnisId: process.prosesBisnisId, status: StatusKeaktifanProsesBisnis.ACTIVE },
       update: { status: StatusKeaktifanProsesBisnis.ACTIVE, archivedAt: null, archivedReason: null },
@@ -371,7 +371,7 @@ export class SeedService {
     ];
 
     for (const assignment of assignments) {
-      await tx.organizationalAuthorityAssignment.upsert({
+      await tx.penugasanPejabatBerwenang.upsert({
         where: { authorityKey: assignment.authorityKey },
         create: assignment,
         update: {

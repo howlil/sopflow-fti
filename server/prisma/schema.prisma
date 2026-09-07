@@ -38,8 +38,8 @@ model Pengguna {
   logEditSop                LogEditSOP[]
   peraturanTerakhirDiedit   Peraturan[]      @relation("PeraturanTerakhirDiedit")
   tandaTangan               RiwayatTandaTangan[]
-  prosesBisnisYangDikelola              ProsesBisnis[]        @relation("ProsesBisnisOwner")
-  anggotaProsesBisniships        AnggotaProsesBisnis[]
+  prosesBisnisYangDikelola              ProsesBisnis[]        @relation("PenanggungJawabProsesBisnis")
+  keanggotaanProsesBisnis        AnggotaProsesBisnis[]
 
   @@index([platformRole, deletedAt], map: "Pengguna_platformRole_deletedAt_idx")
 }
@@ -64,12 +64,12 @@ model ProsesBisnis {
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
   department   Departemen?         @relation(fields: [departemenId], references: [departemenId], onDelete: Restrict)
-  owner        Pengguna            @relation("ProsesBisnisOwner", fields: [ownerId], references: [penggunaId], onDelete: Restrict)
+  owner        Pengguna            @relation("PenanggungJawabProsesBisnis", fields: [ownerId], references: [penggunaId], onDelete: Restrict)
   members      AnggotaProsesBisnis[]
   sops         SOP[]
 
-  @@index([scope, departemenId], map: "ProsesBisnis_scope_departemenId_idx")
-  @@index([ownerId], map: "ProsesBisnis_ownerId_idx")
+  @@index([scope, departemenId], map: "Process_scope_departmentId_idx")
+  @@index([ownerId], map: "Process_ownerId_idx")
 
   @@map("Process")
 }
@@ -82,7 +82,7 @@ model AnggotaProsesBisnis {
   pengguna   Pengguna @relation(fields: [penggunaId], references: [penggunaId], onDelete: Restrict)
 
   @@id([prosesBisnisId, penggunaId])
-  @@index([penggunaId], map: "AnggotaProsesBisnis_penggunaId_idx")
+  @@index([penggunaId], map: "ProcessMember_penggunaId_idx")
 
   @@map("ProcessMember")
 }
@@ -528,8 +528,8 @@ model PenugasanPejabatBerwenang {
   createdAt    DateTime                @default(now())
   updatedAt    DateTime                @updatedAt
 
-  @@index([authority, departemenId], map: "PenugasanPejabatBerwenang_authority_departemenId_idx")
-  @@index([holderId], map: "PenugasanPejabatBerwenang_holderId_idx")
+  @@index([authority, departemenId], map: "OrganizationalAuthorityAssignment_authority_departmentId_idx")
+  @@index([holderId], map: "OrganizationalAuthorityAssignment_holderId_idx")
 
   @@map("OrganizationalAuthorityAssignment")
 }
@@ -546,10 +546,10 @@ model PersetujuanAkhirSOP {
   authorityKey    String                  @db.VarChar(64)
   approvedAt      DateTime                @default(now())
 
-  @@index([prosesBisnisId, approvedAt], map: "PersetujuanAkhirSOP_prosesBisnisId_approvedAt_idx")
-  @@index([approvedById, approvedAt], map: "PersetujuanAkhirSOP_approvedById_approvedAt_idx")
-  @@index([authorityKey], map: "PersetujuanAkhirSOP_authorityKey_idx")
-  @@index([pemeriksaanProsesBisnisId], map: "PersetujuanAkhirSOP_pemeriksaanProsesBisnisId_idx")
+  @@index([prosesBisnisId, approvedAt], map: "ProcessFinalApproval_processId_approvedAt_idx")
+  @@index([approvedById, approvedAt], map: "ProcessFinalApproval_approvedById_approvedAt_idx")
+  @@index([authorityKey], map: "ProcessFinalApproval_authorityKey_idx")
+  @@index([pemeriksaanProsesBisnisId], map: "ProcessFinalApproval_processReviewId_idx")
 
   @@map("ProcessFinalApproval")
 }
@@ -579,9 +579,9 @@ model PemeriksaanProsesBisnis {
   nextStatus      StatusSOP
   createdAt       DateTime              @default(now()) @db.DateTime(3)
 
-  @@index([detailSopId, createdAt], map: "PemeriksaanProsesBisnis_detail_created_idx")
-  @@index([prosesBisnisId, createdAt], map: "PemeriksaanProsesBisnis_process_created_idx")
-  @@index([reviewedById, createdAt], map: "PemeriksaanProsesBisnis_reviewer_created_idx")
+  @@index([detailSopId, createdAt], map: "ProcessReview_detail_created_idx")
+  @@index([prosesBisnisId, createdAt], map: "ProcessReview_process_created_idx")
+  @@index([reviewedById, createdAt], map: "ProcessReview_reviewer_created_idx")
 
   @@map("ProcessReview")
 }
@@ -615,9 +615,9 @@ model NotifikasiProsesBisnis {
   readAt                DateTime?               @db.DateTime(3)
   createdAt             DateTime                @default(now()) @db.DateTime(3)
 
-  @@index([penggunaId, readAt, createdAt], map: "NotifikasiProsesBisnis_pengguna_read_created_idx")
-  @@index([detailSopId, createdAt], map: "NotifikasiProsesBisnis_detail_created_idx")
-  @@index([prosesBisnisId, createdAt], map: "NotifikasiProsesBisnis_process_created_idx")
+  @@index([penggunaId, readAt, createdAt], map: "ProcessNotification_pengguna_read_created_idx")
+  @@index([detailSopId, createdAt], map: "ProcessNotification_detail_created_idx")
+  @@index([prosesBisnisId, createdAt], map: "ProcessNotification_process_created_idx")
 
   @@map("ProcessNotification")
 }
@@ -656,10 +656,10 @@ model PengingatProsesBisnis {
   createdAt           DateTime            @default(now()) @db.DateTime(3)
   updatedAt           DateTime            @updatedAt @db.DateTime(3)
 
-  @@unique([detailSopId, penggunaId, kind], map: "PengingatProsesBisnis_detail_recipient_kind_key")
-  @@index([nextSendAt, lockedUntil], map: "PengingatProsesBisnis_due_lock_idx")
-  @@index([prosesBisnisId, createdAt], map: "PengingatProsesBisnis_process_created_idx")
-  @@index([penggunaId, createdAt], map: "PengingatProsesBisnis_recipient_created_idx")
+  @@unique([detailSopId, penggunaId, kind], map: "ProcessReminder_detail_recipient_kind_key")
+  @@index([nextSendAt, lockedUntil], map: "ProcessReminder_due_lock_idx")
+  @@index([prosesBisnisId, createdAt], map: "ProcessReminder_process_created_idx")
+  @@index([penggunaId, createdAt], map: "ProcessReminder_recipient_created_idx")
 
   @@map("ProcessReminder")
 }
@@ -711,9 +711,9 @@ model KewenanganPenanggungJawabProsesBisnis {
   createdAt                DateTime            @default(now()) @db.DateTime(3)
   updatedAt                DateTime            @updatedAt @db.DateTime(3)
 
-  @@unique([penggunaId, scopeKey], map: "KewenanganPenanggungJawabProsesBisnis_user_scopeKey_key")
-  @@index([scope, departemenId, revokedAt], map: "KewenanganPenanggungJawabProsesBisnis_scope_active_idx")
-  @@index([grantedById, createdAt], map: "KewenanganPenanggungJawabProsesBisnis_granter_created_idx")
+  @@unique([penggunaId, scopeKey], map: "ProcessOwnerAuthority_user_scopeKey_key")
+  @@index([scope, departemenId, revokedAt], map: "ProcessOwnerAuthority_scope_active_idx")
+  @@index([grantedById, createdAt], map: "ProcessOwnerAuthority_granter_created_idx")
 
   @@map("ProcessOwnerAuthority")
 }
@@ -727,7 +727,7 @@ model StatusProsesBisnis {
   archivedReason String?                @db.VarChar(255)
   updatedAt      DateTime               @updatedAt @db.DateTime(3)
 
-  @@index([status, updatedAt], map: "StatusProsesBisnis_status_updated_idx")
+  @@index([status, updatedAt], map: "ProcessLifecycle_status_updated_idx")
 
   @@map("ProcessLifecycle")
 }
@@ -752,9 +752,9 @@ model UndanganAnggotaProsesBisnis {
   createdAt            DateTime                @default(now()) @db.DateTime(3)
   updatedAt            DateTime                @updatedAt @db.DateTime(3)
 
-  @@index([prosesBisnisId, status], map: "UndanganAnggotaProsesBisnis_process_status_idx")
-  @@index([email, status], map: "UndanganAnggotaProsesBisnis_email_status_idx")
-  @@index([invitedById, createdAt], map: "UndanganAnggotaProsesBisnis_inviter_created_idx")
+  @@index([prosesBisnisId, status], map: "ProcessInvitation_process_status_idx")
+  @@index([email, status], map: "ProcessInvitation_email_status_idx")
+  @@index([invitedById, createdAt], map: "ProcessInvitation_inviter_created_idx")
 
   @@map("ProcessInvitation")
 }
@@ -769,9 +769,9 @@ model RiwayatAktivitasProsesBisnis {
   metadata       Json?
   createdAt      DateTime          @default(now()) @db.DateTime(3)
 
-  @@index([prosesBisnisId, createdAt], map: "RiwayatAktivitasProsesBisnis_process_created_idx")
-  @@index([actorId, createdAt], map: "RiwayatAktivitasProsesBisnis_actor_created_idx")
-  @@index([targetUserId, createdAt], map: "RiwayatAktivitasProsesBisnis_target_created_idx")
+  @@index([prosesBisnisId, createdAt], map: "ProcessAudit_process_created_idx")
+  @@index([actorId, createdAt], map: "ProcessAudit_actor_created_idx")
+  @@index([targetUserId, createdAt], map: "ProcessAudit_target_created_idx")
 
   @@map("ProcessAudit")
 }

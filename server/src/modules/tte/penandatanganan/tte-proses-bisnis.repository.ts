@@ -314,7 +314,7 @@ export class ProsesBisnisTteRepository {
     const prosesBisnisId = detail.sop.prosesBisnisId;
     if (prosesBisnisId === null) return { error: 'UNASSIGNED_ARCHIVE' as const };
 
-    const approval = await tx.processFinalApproval.findUnique({
+    const approval = await tx.persetujuanAkhirSOP.findUnique({
       where: { detailSopId: detail.detailSopId },
       select: {
         prosesBisnisId: true,

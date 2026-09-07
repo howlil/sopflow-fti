@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/useToast'
 import { buildSopArsipPdfBase64FromPreviewProps } from '@/lib/print/pengajuan-print'
 import { mapPenyusunWorkbenchToPreviewProps } from '@/lib/sop/detailSop.mappers'
 
-export function ProsesBisnisApprovalPage() {
+export function HalamanPersetujuanAkhirSOP() {
   const { rows, isLoading, approve, isApproving } = useProsesBisnisApprovalQueue()
   const {
     rows: revocationRows,

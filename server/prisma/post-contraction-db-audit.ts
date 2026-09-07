@@ -40,13 +40,13 @@ function parseMariaDbEnum(columnType: string): string[] | null {
       continue;
     }
     if (char === ',' && !quoted) {
-      values.push(current.replaceAll("\\'", "'"));
+      values.push(current.split("\\'").join("'"));
       current = '';
       continue;
     }
     current += char;
   }
-  values.push(current.replaceAll("\\'", "'"));
+  values.push(current.split("\\'").join("'"));
   return values;
 }
 
@@ -59,7 +59,7 @@ function sameSet(left: Iterable<string>, right: Iterable<string>): boolean {
 async function run(): Promise<void> {
   const models = Prisma.dmmf.datamodel.models;
   const enumByName = new Map(
-    Prisma.dmmf.datamodel.enums.map((entry) => [entry.name, new Set(entry.values)]),
+    Prisma.dmmf.datamodel.enums.map((entry) => [entry.name, new Set(entry.values.map((value) => value.dbName ?? value.name))]),
   );
 
   const expectedTables = new Set([

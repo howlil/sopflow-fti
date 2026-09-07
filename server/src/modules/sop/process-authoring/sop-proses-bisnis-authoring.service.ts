@@ -23,7 +23,7 @@ import {
 } from '../catalog/sop-catalog.repository';
 import { assertSopCatalogRepoOk } from '../catalog/sop-catalog-repo-error.util';
 import { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
-import type { CreateProsesBisnisSopDto } from './dto/create-process-sop.dto';
+import type { CreateProsesBisnisSopDto } from './dto/create-sop-proses-bisnis.dto';
 import {
   projectProsesBisnisSopLifecycle,
   type ProsesBisnisSopLifecycleProjection,
@@ -107,13 +107,13 @@ export class ProsesBisnisSopAuthoringService {
       await Promise.all([
         detailIds.length === 0
           ? []
-          : this.prisma.processFinalApproval.findMany({
+          : this.prisma.persetujuanAkhirSOP.findMany({
               where: { detailSopId: { in: detailIds } },
               select: { detailSopId: true },
             }),
         authorityKeys.length === 0
           ? []
-          : this.prisma.organizationalAuthorityAssignment.findMany({
+          : this.prisma.penugasanPejabatBerwenang.findMany({
               where: { authorityKey: { in: authorityKeys } },
               select: { authorityKey: true, authority: true, departemenId: true, holderId: true },
             }),
@@ -385,7 +385,7 @@ export class ProsesBisnisSopAuthoringService {
     process: Awaited<ReturnType<ProsesBisnisContextService['assertCanAuthor']>>,
   ): Promise<PenyusunWorkbenchDataDto> {
     const detailSopId = workbench.detail.id;
-    const approval = await this.prisma.processFinalApproval.findFirst({
+    const approval = await this.prisma.persetujuanAkhirSOP.findFirst({
       where: { detailSopId },
       select: { detailSopId: true },
     });
@@ -398,7 +398,7 @@ export class ProsesBisnisSopAuthoringService {
           : `HEAD_OF_DEPARTMENT:${process.departemenId}`;
     let authority: { holderId: string; holderName: string | null } | null = null;
     if (authorityKey !== null) {
-      const assignment = await this.prisma.organizationalAuthorityAssignment.findFirst({
+      const assignment = await this.prisma.penugasanPejabatBerwenang.findFirst({
         where: { authorityKey },
         select: { authority: true, departemenId: true, holderId: true },
       });
