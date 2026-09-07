@@ -1,4 +1,4 @@
-name: Finalisasi Istilah Proses Bisnis
+name: Audit Akhir Istilah Proses Bisnis
 
 on:
   push:
@@ -6,108 +6,101 @@ on:
       - refactor/fti-only-final-cleanup
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  refactor:
-    if: github.actor != 'github-actions[bot]'
+  audit:
     runs-on: ubuntu-latest
-    env:
-      DATABASE_PASSWORD: ci-not-used
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.21.0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: |
-            server/pnpm-lock.yaml
-            client/pnpm-lock.yaml
-
-      - name: Terapkan finalizer
-        run: python3 server/scripts/proses-bisnis-refactor-repair.py
-
-      - name: Koreksi kontrak client non-domain
+      - name: Audit vocabulary dan path domain aktif
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           import subprocess
+          import sys
 
-          # `scope` here is Playwright worker configuration, not domain lingkup.
-          fixture = Path('client/e2e/fixtures/business-test.ts')
-          text = fixture.read_text(encoding='utf-8')
-          text = text.replace("{ lingkup: 'worker' }", "{ scope: 'worker' }")
-          fixture.write_text(text, encoding='utf-8')
+          excluded_prefixes = (
+              'server/prisma/migrations/',
+              'server/src/generated/',
+              '.github/workflows/',
+          )
+          excluded_files = {
+              'server/scripts/proses-bisnis-refactor-repair.py',
+              'server/prisma/schema.prisma',
+              'server/prisma/post-contraction-db-audit.ts',
+              'server/prisma/cleanup-migration-smoke-probes.ts',
+          }
+          suffixes = {'.ts', '.tsx', '.js', '.cjs', '.mjs', '.md', '.json', '.yml', '.yaml'}
+          content_patterns = {
+              'ProcessOwner': re.compile(r'\bProcessOwner(?:Authority)?\b'),
+              'ProcessMember': re.compile(r'\bProcessMember\b'),
+              'ProcessReview': re.compile(r'\bProcessReview\b'),
+              'ProcessLifecycle': re.compile(r'\bProcessLifecycle\b'),
+              'ProcessInvitation': re.compile(r'\bProcessInvitation\b'),
+              'ProcessAudit': re.compile(r'\bProcessAudit\b'),
+              'ProcessFinalApproval': re.compile(r'\bProcessFinalApproval\b'),
+              'ProcessNotification': re.compile(r'\bProcessNotification\b'),
+              'ProcessReminder': re.compile(r'\bProcessReminder\b'),
+              'OrganizationalAuthority': re.compile(r'\bOrganizationalAuthority(?:Assignment)?\b'),
+              'Department type': re.compile(r'\bDepartment\b'),
+              'processId': re.compile(r'\bprocessId\b'),
+              'processName': re.compile(r'\bprocessName\b'),
+              'departmentId': re.compile(r'\bdepartmentId\b'),
+              'scopeKey': re.compile(r'\bscopeKey\b'),
+              'authorityKey': re.compile(r'\bauthorityKey\b'),
+              'ownerId': re.compile(r'\bownerId\b'),
+              'memberIds': re.compile(r'\bmemberIds\b'),
+              'English domain phrase': re.compile(
+                  r'\b(?:Process Owner|Process Member|Process Review|Process Lifecycle|Process Invitation|Organizational Authority|Business Process|Department Process)\b',
+                  re.I,
+              ),
+          }
 
-          # Preserve Node.js global process in the E2E bootstrap.
-          setup = Path('client/e2e/global-setup.ts')
-          text = setup.read_text(encoding='utf-8')
-          text = text.replace('...prosesBisnis.env', '...process.env')
-          text = text.replace('prosesBisnis.env', 'process.env')
-          text = text.replace('prosesBisnis.platform', 'process.platform')
-          setup.write_text(text, encoding='utf-8')
+          tracked = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
+          tracked = [item for item in tracked if item]
+          content_findings = []
+          path_findings = []
 
-          # Persetujuan is a domain DTO as well, so rename the file instead of leaving a hybrid import.
-          old = Path('client/src/types/dto/approval.dto.ts')
-          new = Path('client/src/types/dto/persetujuan.dto.ts')
-          if old.exists() and not new.exists():
-              subprocess.run(['git', 'mv', old.as_posix(), new.as_posix()], check=True)
+          for rel in tracked:
+              if rel.startswith(excluded_prefixes) or rel in excluded_files:
+                  continue
+              lower = rel.lower()
+              name = Path(rel).name.lower()
+              if (
+                  '/process/' in lower
+                  or '/processes/' in lower
+                  or 'process-' in name
+                  or name.startswith('process.')
+                  or 'department-' in name
+                  or name.startswith('department.')
+                  or 'organizational-authority' in lower
+              ):
+                  path_findings.append(rel)
 
-          for path in Path('client').rglob('*.ts*'):
-              text = path.read_text(encoding='utf-8')
-              original = text
-              text = text.replace("./process.dto", "./proses-bisnis.dto")
-              text = text.replace("@/types/dto/approval.dto", "@/types/dto/persetujuan.dto")
-              if text != original:
-                  path.write_text(text, encoding='utf-8')
+              path = Path(rel)
+              if path.suffix not in suffixes:
+                  continue
+              try:
+                  text = path.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+              for line_no, line in enumerate(text.splitlines(), 1):
+                  for label, pattern in content_patterns.items():
+                      if pattern.search(line):
+                          content_findings.append((rel, line_no, label, line.strip()))
 
-          # The archive formatter's parameter is domain data, not the global Node `process` object.
-          archive = Path('client/src/pages/public/arsip/hooks/use-arsip-browse.ts')
-          text = archive.read_text(encoding='utf-8')
-          text = text.replace('function formatProsesBisnisContext(process:', 'function formatProsesBisnisContext(prosesBisnis:')
-          text = text.replace('process.lingkup', 'prosesBisnis.lingkup')
-          text = text.replace('process.namaDepartemen', 'prosesBisnis.namaDepartemen')
-          text = text.replace('process.nama', 'prosesBisnis.nama')
-          archive.write_text(text, encoding='utf-8')
+          print('=== CONTENT RESIDUE ===')
+          for rel, line_no, label, line in content_findings:
+              print(f'{rel}:{line_no}: [{label}] {line}')
+          print('=== PATH RESIDUE ===')
+          for rel in path_findings:
+              print(rel)
+          print(f'RESIDUE_COUNTS content={len(content_findings)} paths={len(path_findings)}')
+
+          if content_findings or path_findings:
+              sys.exit(1)
           PY
-
-      - name: Server install
-        working-directory: server
-        run: pnpm install --frozen-lockfile
-
-      - name: Validate Prisma
-        working-directory: server
-        run: |
-          pnpm exec prisma validate
-          pnpm exec prisma generate
-
-      - name: Server typecheck
-        working-directory: server
-        run: pnpm typecheck
-
-      - name: Client install and typecheck
-        working-directory: client
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm typecheck
-
-      - name: Commit refactor
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No changes"
-            exit 0
-          fi
-          git commit -m "refactor: tuntaskan istilah domain Proses Bisnis"
-          git push origin HEAD:refactor/fti-only-final-cleanup
