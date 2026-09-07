@@ -1,0 +1,80 @@
+name: FTI Vocabulary Cleanup
+
+on:
+  push:
+    branches:
+      - refactor/fti-only-final-cleanup
+    paths:
+      - '.github/workflows/fti-vocabulary-cleanup.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/fti-only-final-cleanup
+          fetch-depth: 0
+      - name: Remove active retired vocabulary
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+
+          root = Path('.')
+          workflow = '.github/workflows/fti-vocabulary-cleanup.yml'
+          extensions = {'.ts', '.tsx', '.js', '.cjs', '.mjs', '.prisma', '.md', '.yml', '.yaml', '.json', '.sh', '.py'}
+          tracked = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
+
+          exact_replacements = {
+              'SOP target memakai ProsesBisnis authorization; SOP legacy fallback ke OPD authorization.':
+                  'SOP aktif memakai ProsesBisnis authorization.',
+              '/** Contoh label penanda: "OPD" atau "PJ Evaluator" */':
+                  '/** Contoh label penanda: "Dekan" atau "Kepala Departemen" */',
+              'OPD-to-FTI migration': 'FTI cutover',
+              'OPD-to-FTI': 'FTI cutover',
+              'legacy-unbound': 'imported-unbound',
+              'Legacy-unbound': 'Imported-unbound',
+          }
+
+          changed = []
+          for relative in tracked:
+              if not relative or relative == workflow or relative.startswith('server/prisma/migrations/'):
+                  continue
+              path = root / relative
+              if path.suffix not in extensions or not path.is_file():
+                  continue
+              try:
+                  text = path.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+              updated = text
+              for old, new in exact_replacements.items():
+                  updated = updated.replace(old, new)
+              updated = re.sub(r'\bOPD\b', 'organisasi', updated, flags=re.IGNORECASE)
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+                  changed.append(relative)
+
+          print(f'Updated {len(changed)} tracked files')
+          for relative in changed:
+              print(relative)
+          PY
+          rm -f .github/workflows/fti-vocabulary-cleanup.yml
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'refactor: remove active retired organization vocabulary'
+          git push origin HEAD:refactor/fti-only-final-cleanup
