@@ -1,0 +1,288 @@
+name: Proses Bisnis Domain Refactor
+
+on:
+  push:
+    branches:
+      - refactor/fti-only-final-cleanup
+
+permissions:
+  contents: write
+
+jobs:
+  refactor:
+    if: github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, '[proses-bisnis-refactor]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Refactor domain terminology and consolidate Prisma schema
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          import re
+          import subprocess
+
+          ROOT = Path('.')
+          PRISMA = ROOT / 'server' / 'prisma'
+          MAIN_SCHEMA = PRISMA / 'schema.prisma'
+          WORKFLOW = Path('.github/workflows/proses-bisnis-domain-refactor.yml')
+
+          # 1. Satu source of truth Prisma. Migration historis tidak pernah disentuh.
+          fragment_order = [
+              'organizational-authority.prisma',
+              'process-sop.prisma',
+              'process-notifications.prisma',
+              'process-reminders.prisma',
+              'process-owner-self-service.prisma',
+              'pelaksana-catalog.prisma',
+              'notifications.prisma',
+          ]
+          main = MAIN_SCHEMA.read_text(encoding='utf-8').rstrip()
+          sections = []
+          for name in fragment_order:
+              path = PRISMA / name
+              if not path.exists() or path == MAIN_SCHEMA:
+                  continue
+              body = path.read_text(encoding='utf-8').strip()
+              if body:
+                  title = {
+                      'organizational-authority.prisma': 'PEJABAT BERWENANG & PERSETUJUAN AKHIR',
+                      'process-sop.prisma': 'PEMERIKSAAN PROSES BISNIS',
+                      'process-notifications.prisma': 'NOTIFIKASI PROSES BISNIS',
+                      'process-reminders.prisma': 'PENGINGAT PROSES BISNIS',
+                      'process-owner-self-service.prisma': 'ADMINISTRASI PROSES BISNIS',
+                      'pelaksana-catalog.prisma': 'KATALOG PELAKSANA',
+                  }.get(name, name)
+                  sections.append(f'\n\n/// =========================\n/// {title}\n/// =========================\n{body}')
+              path.unlink()
+          MAIN_SCHEMA.write_text(main + ''.join(sections) + '\n', encoding='utf-8')
+
+          # 2. Bahasa domain canonical. Longest names first.
+          identifier_replacements = [
+              ('OrganizationalAuthorityAssignment', 'PenugasanPejabatBerwenang'),
+              ('OrganizationalAuthority', 'PejabatBerwenang'),
+              ('OrganizationalScope', 'LingkupOrganisasi'),
+              ('ProcessOwnerAuthority', 'KewenanganPenanggungJawabProsesBisnis'),
+              ('ProcessLifecycleStatus', 'StatusKeaktifanProsesBisnis'),
+              ('ProcessInvitationStatus', 'StatusUndanganAnggotaProsesBisnis'),
+              ('ProcessNotificationKind', 'JenisNotifikasiProsesBisnis'),
+              ('ProcessReminderKind', 'JenisPengingatProsesBisnis'),
+              ('ProcessReviewDecision', 'KeputusanPemeriksaanProsesBisnis'),
+              ('ProcessFinalApproval', 'PersetujuanAkhirSOP'),
+              ('ProcessLifecycle', 'StatusProsesBisnis'),
+              ('ProcessInvitation', 'UndanganAnggotaProsesBisnis'),
+              ('ProcessNotification', 'NotifikasiProsesBisnis'),
+              ('ProcessReminder', 'PengingatProsesBisnis'),
+              ('ProcessAuditEvent', 'JenisAktivitasProsesBisnis'),
+              ('ProcessAudit', 'RiwayatAktivitasProsesBisnis'),
+              ('ProcessReview', 'PemeriksaanProsesBisnis'),
+              ('ProcessMember', 'AnggotaProsesBisnis'),
+              ('Department', 'Departemen'),
+              ('Process', 'ProsesBisnis'),
+              ('processOwnerAuthorityId', 'kewenanganPenanggungJawabProsesBisnisId'),
+              ('processNotificationId', 'notifikasiProsesBisnisId'),
+              ('processInvitationId', 'undanganAnggotaProsesBisnisId'),
+              ('processReminderId', 'pengingatProsesBisnisId'),
+              ('processReviewId', 'pemeriksaanProsesBisnisId'),
+              ('processAuditId', 'riwayatAktivitasProsesBisnisId'),
+              ('processNotifications', 'notifikasiProsesBisnis'),
+              ('processInvitations', 'undanganAnggotaProsesBisnis'),
+              ('processReminders', 'pengingatProsesBisnis'),
+              ('processReviews', 'pemeriksaanProsesBisnis'),
+              ('processMembers', 'anggotaProsesBisnis'),
+              ('processMemberships', 'keanggotaanProsesBisnis'),
+              ('processOwned', 'prosesBisnisYangDikelola'),
+              ('processNotification', 'notifikasiProsesBisnis'),
+              ('processInvitation', 'undanganAnggotaProsesBisnis'),
+              ('processReminder', 'pengingatProsesBisnis'),
+              ('processReview', 'pemeriksaanProsesBisnis'),
+              ('processMember', 'anggotaProsesBisnis'),
+              ('processName', 'namaProsesBisnis'),
+              ('processScope', 'lingkupProsesBisnis'),
+              ('processId', 'prosesBisnisId'),
+              ('departmentName', 'namaDepartemen'),
+              ('departmentId', 'departemenId'),
+          ]
+
+          display_replacements = [
+              ('Process Owner', 'Penanggung Jawab Proses Bisnis'),
+              ('Process owner', 'Penanggung Jawab Proses Bisnis'),
+              ('process owner', 'penanggung jawab proses bisnis'),
+              ('Process Member', 'Anggota Proses Bisnis'),
+              ('process member', 'anggota proses bisnis'),
+              ('Process Review', 'Pemeriksaan Proses Bisnis'),
+              ('process review', 'pemeriksaan proses bisnis'),
+              ('Final Approval', 'Persetujuan Akhir'),
+              ('final approval', 'persetujuan akhir'),
+              ('Organizational Authority', 'Pejabat Berwenang'),
+              ('organizational authority', 'pejabat berwenang'),
+              ('Department', 'Departemen'),
+          ]
+
+          route_replacements = [
+              ('/process-admin', '/administrasi-proses-bisnis'),
+              ('/process-context', '/konteks-proses-bisnis'),
+              ('/process-sop', '/sop-proses-bisnis'),
+              ('/process-review', '/pemeriksaan-proses-bisnis'),
+              ('/process-approval', '/persetujuan-akhir-sop'),
+              ('/process-invitations', '/undangan-anggota-proses-bisnis'),
+              ('/process-revocation', '/pencabutan-sop'),
+              ('/process-tte', '/tte-proses-bisnis'),
+          ]
+
+          text_suffixes = {'.ts', '.tsx', '.js', '.cjs', '.mjs', '.prisma', '.md', '.json', '.yml', '.yaml'}
+          skip_roots = ('server/prisma/migrations/', 'server/src/generated/', 'client/node_modules/', 'server/node_modules/')
+          skip_names = {'pnpm-lock.yaml', 'package-lock.json', 'yarn.lock'}
+
+          # Quoted user-facing strings first, so PascalCase identifier replacement does not create "ProsesBisnis" labels.
+          quoted = re.compile(r"(['\"])(?:\\.|(?!\1).)*\1")
+          def translate_literal(match):
+              literal = match.group(0)
+              quote = literal[0]
+              inner = literal[1:-1]
+              for old, new in display_replacements:
+                  inner = inner.replace(old, new)
+              inner = re.sub(r'\bProcess\b', 'Proses Bisnis', inner)
+              if inner.startswith('/process-'):
+                  for old, new in route_replacements:
+                      inner = inner.replace(old, new)
+              return quote + inner + quote
+
+          for path in list(ROOT.rglob('*')):
+              if not path.is_file():
+                  continue
+              rel = path.as_posix()
+              if rel == WORKFLOW.as_posix() or rel in skip_names or rel.startswith(skip_roots):
+                  continue
+              if path.suffix not in text_suffixes and path.name not in {'AGENTS.md'}:
+                  continue
+              try:
+                  text = path.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+              original = text
+              if path.suffix in {'.ts', '.tsx', '.js', '.cjs', '.mjs'}:
+                  text = quoted.sub(translate_literal, text)
+              for old, new in route_replacements:
+                  text = text.replace(old, new)
+              for old, new in identifier_replacements:
+                  text = text.replace(old, new)
+              text = text.replace('IDENTITY & ORGANIZATION', 'IDENTITAS & ORGANISASI')
+              text = text.replace('REGULATION CATALOG', 'KATALOG PERATURAN')
+              text = text.replace('SOP AUTHORING', 'PENYUSUNAN SOP')
+              text = text.replace('SOP ACTIVITY', 'AKTIVITAS SOP')
+              if text != original:
+                  path.write_text(text, encoding='utf-8')
+
+          # 3. Prisma Client memakai Bahasa Indonesia, DB fisik tetap memakai nama tabel/kolom existing.
+          schema = MAIN_SCHEMA.read_text(encoding='utf-8')
+
+          model_maps = {
+              'Departemen': 'Department',
+              'ProsesBisnis': 'Process',
+              'AnggotaProsesBisnis': 'ProcessMember',
+              'PemeriksaanProsesBisnis': 'ProcessReview',
+              'PersetujuanAkhirSOP': 'ProcessFinalApproval',
+              'PenugasanPejabatBerwenang': 'OrganizationalAuthorityAssignment',
+              'KewenanganPenanggungJawabProsesBisnis': 'ProcessOwnerAuthority',
+              'StatusProsesBisnis': 'ProcessLifecycle',
+              'UndanganAnggotaProsesBisnis': 'ProcessInvitation',
+              'RiwayatAktivitasProsesBisnis': 'ProcessAudit',
+              'NotifikasiProsesBisnis': 'ProcessNotification',
+              'PengingatProsesBisnis': 'ProcessReminder',
+          }
+          enum_maps = {
+              'PejabatBerwenang': 'OrganizationalAuthority',
+              'LingkupOrganisasi': 'OrganizationalScope',
+              'KeputusanPemeriksaanProsesBisnis': 'ProcessReviewDecision',
+              'StatusKeaktifanProsesBisnis': 'ProcessLifecycleStatus',
+              'StatusUndanganAnggotaProsesBisnis': 'ProcessInvitationStatus',
+              'JenisAktivitasProsesBisnis': 'ProcessAuditEvent',
+              'JenisNotifikasiProsesBisnis': 'ProcessNotificationKind',
+              'JenisPengingatProsesBisnis': 'ProcessReminderKind',
+          }
+
+          def inject_block_map(source, keyword, name, physical):
+              pattern = re.compile(rf'({keyword}\s+{re.escape(name)}\s*\{{)(.*?)(\n\}})', re.S)
+              def repl(m):
+                  body = m.group(2)
+                  if '@@map(' in body:
+                      return m.group(0)
+                  return m.group(1) + body.rstrip() + f'\n\n  @@map("{physical}")' + m.group(3)
+              return pattern.sub(repl, source, count=1)
+
+          for name, physical in model_maps.items():
+              schema = inject_block_map(schema, 'model', name, physical)
+          for name, physical in enum_maps.items():
+              schema = inject_block_map(schema, 'enum', name, physical)
+
+          field_maps = {
+              'prosesBisnisId': 'processId',
+              'departemenId': 'departmentId',
+              'pemeriksaanProsesBisnisId': 'processReviewId',
+              'notifikasiProsesBisnisId': 'processNotificationId',
+              'undanganAnggotaProsesBisnisId': 'processInvitationId',
+              'pengingatProsesBisnisId': 'processReminderId',
+              'riwayatAktivitasProsesBisnisId': 'processAuditId',
+              'kewenanganPenanggungJawabProsesBisnisId': 'processOwnerAuthorityId',
+          }
+          lines = []
+          for line in schema.splitlines():
+              stripped = line.strip()
+              for field, physical in field_maps.items():
+                  if re.match(rf'^{re.escape(field)}\s+', stripped) and '@map(' not in line:
+                      line = line + f' @map("{physical}")'
+                      break
+              lines.append(line)
+          MAIN_SCHEMA.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+
+          # Prisma sekarang hanya membaca satu schema canonical.
+          config = Path('server/prisma.config.ts')
+          cfg = config.read_text(encoding='utf-8')
+          cfg = cfg.replace("schema: 'prisma',", "schema: 'prisma/schema.prisma',")
+          config.write_text(cfg, encoding='utf-8')
+
+          # 4. Pulihkan version ranges package manifest agar cocok dengan frozen lockfile.
+          package_path = Path('server/package.json')
+          package = json.loads(package_path.read_text(encoding='utf-8'))
+          package['devDependencies'].update({
+              '@eslint/js': '^9.18.0',
+              '@nestjs/cli': '^11.0.0',
+              '@nestjs/schematics': '^11.0.0',
+              '@nestjs/testing': '^11.0.1',
+              '@types/express': '^5.0.0',
+              '@types/node': '^22.10.7',
+              '@types/supertest': '^6.0.2',
+              'eslint': '^9.18.0',
+              'eslint-config-prettier': '^10.0.1',
+              'eslint-plugin-prettier': '^5.2.2',
+              'globals': '^16.0.0',
+              'jest': '^30.0.0',
+              'prettier': '^3.4.2',
+              'supertest': '^7.0.0',
+              'ts-jest': '^29.2.5',
+              'typescript': '^5.7.3',
+              'typescript-eslint': '^8.20.0',
+          })
+          package_path.write_text(json.dumps(package, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          # Keep formatter-friendly EOFs.
+          subprocess.run(['git', 'status', '--short'], check=True)
+          PY
+
+      - name: Commit refactor
+        shell: bash
+        run: |
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "refactor: gunakan istilah Proses Bisnis [proses-bisnis-refactor]"
+          git push origin HEAD:refactor/fti-only-final-cleanup
