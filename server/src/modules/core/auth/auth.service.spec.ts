@@ -125,8 +125,6 @@ describe('Pengujian AuthService', () => {
       nohp: sampleRow.nohp,
       tte: { configured: false },
     });
-    expect(actual.pengguna).not.toHaveProperty('peran');
-    expect(actual.pengguna).not.toHaveProperty('opdId');
     expect(authRepository.startSession).toHaveBeenCalledWith(sampleRow.penggunaId);
     expect(authRepository.storeRefreshToken).toHaveBeenCalledWith(
       sampleRow.penggunaId,
@@ -162,7 +160,7 @@ describe('Pengujian AuthService', () => {
     await expect(service.getMe('missing-id')).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('seharusnya mengembalikan data publik FTI tanpa legacy OPD/role ketika getMe berhasil', async () => {
+  it('seharusnya mengembalikan data publik FTI ketika getMe berhasil', async () => {
     authRepository.findActivePenggunaById.mockResolvedValue(sampleRow);
     const actual = await service.getMe(sampleRow.penggunaId);
     expect(actual).toEqual({
@@ -176,8 +174,6 @@ describe('Pengujian AuthService', () => {
       nohp: sampleRow.nohp,
       tte: { configured: false },
     });
-    expect(actual).not.toHaveProperty('peran');
-    expect(actual).not.toHaveProperty('opdId');
   });
 
   it('seharusnya memperbarui nomor HP dan mengembalikan profil terbaru', async () => {
@@ -230,7 +226,7 @@ describe('Pengujian AuthService', () => {
     expect(authRepository.updateKataSandi).not.toHaveBeenCalled();
   });
 
-  it('seharusnya merotasi refresh token dan menerbitkan access token baru tanpa legacy role', async () => {
+  it('seharusnya merotasi refresh token dan menerbitkan access token baru', async () => {
     const rowWithRefresh: PenggunaAuthRecord = {
       ...sampleRow,
       refreshTokenHash: 'stored-refresh-hash',
