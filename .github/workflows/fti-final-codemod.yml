@@ -21,6 +21,8 @@ jobs:
           fetch-depth: 0
       - name: Apply deterministic FTI-only cleanup
         run: python .automation/fti-final-codemod.py
+      - name: Keep CI workflow writes outside bot commit
+        run: git checkout -- .github/workflows/full-fti-exit.yml .github/workflows/migration-smoke.yml
       - name: Commit cleanup result
         run: |
           if git diff --quiet && git diff --cached --quiet; then
