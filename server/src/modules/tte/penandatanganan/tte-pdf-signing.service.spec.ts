@@ -13,7 +13,7 @@ const PDFDocument = require(
   require.resolve('pdfkit', { paths: [require.resolve('@signpdf/placeholder-plain')] }),
 );
 
-describe('Pengujian TtePdfSigningService', () => {
+describe('TtePdfSigningService', () => {
   let service: TtePdfSigningService;
   let repository: {
     findPenggunaAktif: jest.Mock;
@@ -23,10 +23,9 @@ describe('Pengujian TtePdfSigningService', () => {
   };
   let p12Base64 = '';
   const passphrase = 'test-passphrase';
-  const kepalaOpdUser = {
-    sub: 'kepala-1',
-    email: 'k@opd.id',
-    authority: OrganizationalAuthority.DEAN,
+  const deanUser = {
+    sub: 'dean-1',
+    email: 'dean@fti.example.test',
   };
 
   beforeAll(() => {
@@ -34,9 +33,7 @@ describe('Pengujian TtePdfSigningService', () => {
       encoding: 'utf8',
     });
     const line = output.split('\n').find((entry) => entry.startsWith('PDF_SIGNING_P12_BASE64='));
-    if (!line) {
-      throw new Error('Gagal menghasilkan sertifikat uji PDF.');
-    }
+    if (!line) throw new Error('Gagal menghasilkan sertifikat uji PDF.');
     p12Base64 = line.split('=')[1];
   });
 
@@ -50,10 +47,7 @@ describe('Pengujian TtePdfSigningService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TtePdfSigningService,
-        {
-          provide: TteRepository,
-          useValue: repository,
-        },
+        { provide: TteRepository, useValue: repository },
         {
           provide: ConfigService,
           useValue: {
@@ -74,22 +68,22 @@ describe('Pengujian TtePdfSigningService', () => {
     }).compile();
     service = module.get(TtePdfSigningService);
     repository.findPenggunaAktif.mockResolvedValue({
-      penggunaId: kepalaOpdUser.sub,
-      authority: OrganizationalAuthority.DEAN,
-      nama: 'Kepala OPD',
+      penggunaId: deanUser.sub,
+      nama: 'Dekan FTI',
       nip: '123',
-      jabatan: 'Kepala',
+      jabatan: 'Dekan',
       pangkat: 'IV/a',
-      email: 'k@opd.id',
+      email: deanUser.email,
     });
     repository.findKredensial.mockResolvedValue({
-      userId: kepalaOpdUser.sub,
+      hashPin: 'unused-by-signing-test',
       p12Base64,
       p12PassphraseEncrypted: encryptP12Passphrase(passphrase, '123456'),
+      updatedAt: new Date('2026-05-01T00:00:00.000Z'),
     });
   });
 
-  it('seharusnya tidak menginjeksi CA ketika signPdf menerima jenis Berita Acara', async () => {
+  it('tidak menginjeksi signature baru untuk tipe dokumen yang tidak memerlukan PDF signing', async () => {
     const userId = '00000000-0000-4000-8000-0000000000aa';
     const dokumenTteId = '00000000-0000-4000-8000-0000000000bb';
     repository.findRiwayatForPdfSigning.mockResolvedValue({
@@ -99,20 +93,21 @@ describe('Pengujian TtePdfSigningService', () => {
       ditandatanganiPada: new Date('2026-05-01T00:00:00.000Z'),
       dokumenTte: {
         dokumenTteId,
-        nomorDokumen: 'BA-NO-CA',
-        judulDokumen: 'Berita Acara Tanpa CA',
+        nomorDokumen: 'DOC-NO-CA',
+        judulDokumen: 'Dokumen Tanpa CA',
         jenisDokumen: JenisDokumenTte.BERITA_ACARA_EVALUASI,
       },
       user: {
         penggunaId: userId,
-        nama: 'PJ Evaluator',
+        nama: 'Dekan FTI',
         nip: '198001011234567890',
-        jabatan: 'PJ Evaluator',
+        jabatan: 'Dekan',
       },
     });
     const pdfBase64 = (await createSamplePdf()).toString('base64');
+
     const actual = await service.signPdf(
-      { sub: userId, email: 'pj@example.test', peran: OrganizationalAuthority.DEAN },
+      { sub: userId, email: 'dean@example.test' },
       {
         pin: '123456',
         dokumenTteId,
@@ -129,7 +124,7 @@ describe('Pengujian TtePdfSigningService', () => {
     expect(repository.updateRiwayatPdfSignatureMetadata).not.toHaveBeenCalled();
   });
 
-  it('seharusnya menyimpan metadata sertifikat real dan binding TTE pada PDF SOP', async () => {
+  it('menyimpan metadata sertifikat dan binding TTE pada PDF SOP', async () => {
     const userId = '00000000-0000-4000-8000-0000000000aa';
     const dokumenTteId = '00000000-0000-4000-8000-0000000000bb';
     repository.findRiwayatForPdfSigning.mockResolvedValue({
@@ -145,14 +140,15 @@ describe('Pengujian TtePdfSigningService', () => {
       },
       user: {
         penggunaId: userId,
-        nama: 'PJ Evaluator',
+        nama: 'Dekan FTI',
         nip: '198001011234567890',
-        jabatan: 'PJ Evaluator',
+        jabatan: 'Dekan',
       },
     });
     const pdfBase64 = (await createSamplePdf()).toString('base64');
+
     const actual = await service.signPdf(
-      { sub: userId, email: 'pj@example.test', peran: OrganizationalAuthority.DEAN },
+      { sub: userId, email: 'dean@example.test' },
       {
         pin: '123456',
         dokumenTteId,
@@ -161,6 +157,7 @@ describe('Pengujian TtePdfSigningService', () => {
         pdfBase64,
       },
     );
+
     expect(actual.signed).toBe(true);
     expect(repository.updateRiwayatPdfSignatureMetadata).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -199,7 +196,7 @@ function createSamplePdf(): Promise<Buffer> {
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
-    doc.text('Dokumen uji Berita Acara arsip');
+    doc.text('Dokumen uji TTE');
     doc.end();
   });
 }
