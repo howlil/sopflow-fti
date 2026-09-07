@@ -34,6 +34,51 @@ jobs:
       - name: Terapkan finalizer
         run: python3 server/scripts/proses-bisnis-refactor-repair.py
 
+      - name: Koreksi kontrak client non-domain
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          # `scope` here is Playwright worker configuration, not domain lingkup.
+          fixture = Path('client/e2e/fixtures/business-test.ts')
+          text = fixture.read_text(encoding='utf-8')
+          text = text.replace("{ lingkup: 'worker' }", "{ scope: 'worker' }")
+          fixture.write_text(text, encoding='utf-8')
+
+          # Preserve Node.js global process in the E2E bootstrap.
+          setup = Path('client/e2e/global-setup.ts')
+          text = setup.read_text(encoding='utf-8')
+          text = text.replace('...prosesBisnis.env', '...process.env')
+          text = text.replace('prosesBisnis.env', 'process.env')
+          text = text.replace('prosesBisnis.platform', 'process.platform')
+          setup.write_text(text, encoding='utf-8')
+
+          # Persetujuan is a domain DTO as well, so rename the file instead of leaving a hybrid import.
+          old = Path('client/src/types/dto/approval.dto.ts')
+          new = Path('client/src/types/dto/persetujuan.dto.ts')
+          if old.exists() and not new.exists():
+              subprocess.run(['git', 'mv', old.as_posix(), new.as_posix()], check=True)
+
+          for path in Path('client').rglob('*.ts*'):
+              text = path.read_text(encoding='utf-8')
+              original = text
+              text = text.replace("./process.dto", "./proses-bisnis.dto")
+              text = text.replace("@/types/dto/approval.dto", "@/types/dto/persetujuan.dto")
+              if text != original:
+                  path.write_text(text, encoding='utf-8')
+
+          # The archive formatter's parameter is domain data, not the global Node `process` object.
+          archive = Path('client/src/pages/public/arsip/hooks/use-arsip-browse.ts')
+          text = archive.read_text(encoding='utf-8')
+          text = text.replace('function formatProsesBisnisContext(process:', 'function formatProsesBisnisContext(prosesBisnis:')
+          text = text.replace('process.lingkup', 'prosesBisnis.lingkup')
+          text = text.replace('process.namaDepartemen', 'prosesBisnis.namaDepartemen')
+          text = text.replace('process.nama', 'prosesBisnis.nama')
+          archive.write_text(text, encoding='utf-8')
+          PY
+
       - name: Server install
         working-directory: server
         run: pnpm install --frozen-lockfile
