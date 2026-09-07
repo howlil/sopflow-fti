@@ -1,4 +1,4 @@
-name: Proses Bisnis Refactor Repair Validated
+name: Audit Istilah Proses Bisnis
 
 on:
   push:
@@ -6,62 +6,87 @@ on:
       - refactor/fti-only-final-cleanup
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  repair:
+  audit:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    env:
-      DATABASE_PASSWORD: ci-not-used
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.21.0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: |
-            server/pnpm-lock.yaml
-            client/pnpm-lock.yaml
-
-      - name: Apply repair
-        run: python3 server/scripts/proses-bisnis-refactor-repair.py
-
-      - name: Server install
-        working-directory: server
-        run: pnpm install --frozen-lockfile
-
-      - name: Validate Prisma
-        working-directory: server
+      - name: Audit istilah domain aktif
+        shell: bash
         run: |
-          pnpm exec prisma validate
-          pnpm exec prisma generate
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+          import sys
 
-      - name: Server typecheck
-        working-directory: server
-        run: pnpm typecheck
+          tracked = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
+          tracked = [p for p in tracked if p]
 
-      - name: Client install and typecheck
-        working-directory: client
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm typecheck
+          excluded_prefixes = (
+              'server/prisma/migrations/',
+              'server/src/generated/',
+              '.github/workflows/',
+          )
+          db_technical = {
+              'server/prisma/schema.prisma',
+              'server/prisma/post-contraction-db-audit.ts',
+              'server/prisma/cleanup-migration-smoke-probes.ts',
+          }
+          suffixes = {'.ts', '.tsx', '.js', '.cjs', '.mjs', '.md', '.json', '.yml', '.yaml'}
+          patterns = {
+              'ProcessOwner': re.compile(r'\bProcessOwner(?:Authority)?\b'),
+              'ProcessMember': re.compile(r'\bProcessMember\b'),
+              'ProcessReview': re.compile(r'\bProcessReview\b'),
+              'ProcessLifecycle': re.compile(r'\bProcessLifecycle\b'),
+              'ProcessInvitation': re.compile(r'\bProcessInvitation\b'),
+              'ProcessAudit': re.compile(r'\bProcessAudit\b'),
+              'ProcessFinalApproval': re.compile(r'\bProcessFinalApproval\b'),
+              'ProcessNotification': re.compile(r'\bProcessNotification\b'),
+              'ProcessReminder': re.compile(r'\bProcessReminder\b'),
+              'OrganizationalAuthority': re.compile(r'\bOrganizationalAuthority(?:Assignment)?\b'),
+              'Department': re.compile(r'\bDepartment\b'),
+              'processId': re.compile(r'\bprocessId\b'),
+              'processName': re.compile(r'\bprocessName\b'),
+              'departmentId': re.compile(r'\bdepartmentId\b'),
+              'domain phrase': re.compile(r'\b(?:Process Owner|Process Member|Process Review|Process Lifecycle|Process Invitation|Organizational Authority)\b', re.I),
+          }
 
-      - name: Commit repair
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No changes"
-            exit 0
-          fi
-          git commit -m "refactor: selaraskan domain Proses Bisnis [proses-bisnis-repair]"
-          git push origin HEAD:refactor/fti-only-final-cleanup
+          findings = []
+          for rel in tracked:
+              if rel.startswith(excluded_prefixes) or rel in db_technical:
+                  continue
+              path = Path(rel)
+              if path.suffix not in suffixes:
+                  continue
+              try:
+                  text = path.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+              for line_no, line in enumerate(text.splitlines(), 1):
+                  for label, pattern in patterns.items():
+                      if pattern.search(line):
+                          findings.append((rel, line_no, label, line.strip()))
+
+          path_findings = []
+          for rel in tracked:
+              if rel.startswith(excluded_prefixes):
+                  continue
+              if '/process/' in rel or '/process-' in rel or rel.startswith('process-') or 'Process' in Path(rel).name or '/processes/' in rel:
+                  path_findings.append(rel)
+
+          print('=== ACTIVE DOMAIN TERM RESIDUE ===')
+          for rel, line_no, label, line in findings:
+              print(f'{rel}:{line_no}: [{label}] {line}')
+          print('=== ACTIVE PATH RESIDUE ===')
+          for rel in path_findings:
+              print(rel)
+          print(f'RESIDUE_COUNTS content={len(findings)} paths={len(path_findings)}')
+
+          if findings or path_findings:
+              sys.exit(1)
+          PY
