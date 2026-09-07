@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { Prisma, PrismaClient } from '../src/generated/prisma';
 
@@ -50,6 +52,33 @@ function parseMariaDbEnum(columnType: string): string[] | null {
   return values;
 }
 
+function parseCanonicalEnumValues(): Map<string, Set<string>> {
+  const schema = readFileSync(join(__dirname, 'schema.prisma'), 'utf8');
+  const enumByName = new Map<string, Set<string>>();
+  const enumPattern = /enum\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{([\s\S]*?)\}/g;
+
+  for (const match of schema.matchAll(enumPattern)) {
+    const [, enumName, body] = match;
+    if (enumName === undefined || body === undefined) continue;
+
+    const values = new Set<string>();
+    for (const rawLine of body.split('\n')) {
+      const line = rawLine.replace(/\/\/.*$/, '').trim();
+      if (!line) continue;
+      const valueMatch = line.match(
+        /^([A-Za-z_][A-Za-z0-9_]*)(?:\s+@map\("([^"]+)"\))?/,
+      );
+      if (valueMatch === null) continue;
+      const [, valueName, mappedName] = valueMatch;
+      if (valueName !== undefined) values.add(mappedName ?? valueName);
+    }
+
+    enumByName.set(enumName, values);
+  }
+
+  return enumByName;
+}
+
 function sameSet(left: Iterable<string>, right: Iterable<string>): boolean {
   const a = new Set(left);
   const b = new Set(right);
@@ -58,9 +87,7 @@ function sameSet(left: Iterable<string>, right: Iterable<string>): boolean {
 
 async function run(): Promise<void> {
   const models = Prisma.dmmf.datamodel.models;
-  const enumByName = new Map(
-    Prisma.dmmf.datamodel.enums.map((entry) => [entry.name, new Set(entry.values.map((value) => value.dbName ?? value.name))]),
-  );
+  const enumByName = parseCanonicalEnumValues();
 
   const expectedTables = new Set([
     '_prisma_migrations',
@@ -82,8 +109,8 @@ async function run(): Promise<void> {
     for (const field of model.fields) {
       if (field.kind !== 'enum') continue;
       const values = enumByName.get(field.type);
-      if (values === undefined) {
-        throw new Error(`Enum Prisma ${field.type} tidak ditemukan dalam DMMF`);
+      if (values === undefined || values.size === 0) {
+        throw new Error(`Enum Prisma ${field.type} tidak ditemukan dalam schema canonical`);
       }
       expectedEnumColumns.set(`${tableName}.${field.dbName ?? field.name}`, values);
     }
