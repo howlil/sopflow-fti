@@ -1,0 +1,67 @@
+name: Proses Bisnis Refactor Repair Validated
+
+on:
+  push:
+    branches:
+      - refactor/fti-only-final-cleanup
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_PASSWORD: ci-not-used
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            server/pnpm-lock.yaml
+            client/pnpm-lock.yaml
+
+      - name: Apply repair
+        run: python3 server/scripts/proses-bisnis-refactor-repair.py
+
+      - name: Server install
+        working-directory: server
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate Prisma
+        working-directory: server
+        run: |
+          pnpm exec prisma validate
+          pnpm exec prisma generate
+
+      - name: Server typecheck
+        working-directory: server
+        run: pnpm typecheck
+
+      - name: Client install and typecheck
+        working-directory: client
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm typecheck
+
+      - name: Commit repair
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git commit -m "refactor: selaraskan domain Proses Bisnis [proses-bisnis-repair]"
+          git push origin HEAD:refactor/fti-only-final-cleanup
