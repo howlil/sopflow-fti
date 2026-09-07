@@ -22,6 +22,7 @@ def git_mv(src: str, dst: str) -> None:
     subprocess.run(['git', 'mv', src, dst], cwd=ROOT, check=True)
 
 
+# Rename ownership boundaries first.
 for source, target in (
     ('server/src/modules/core/process', 'server/src/modules/core/proses-bisnis'),
     ('server/src/modules/notifications/process', 'server/src/modules/notifications/proses-bisnis'),
@@ -34,6 +35,8 @@ for source, target in (
 
 
 filename_replacements = (
+    ('public-sop-by-process-page', 'public-sop-by-proses-bisnis-page'),
+    ('public-process-item', 'public-proses-bisnis-item'),
     ('process-owner-authority', 'kewenangan-penanggung-jawab-proses-bisnis'),
     ('organizational-authority', 'pejabat-berwenang'),
     ('process-final-approval', 'persetujuan-akhir-sop'),
@@ -91,6 +94,8 @@ literal_replacements = (
     ('routes/admin/processes', 'routes/admin/proses-bisnis'),
     ('pages/approval', 'pages/persetujuan'),
     ('routes/approval', 'routes/persetujuan'),
+    ('public-sop-by-process-page', 'public-sop-by-proses-bisnis-page'),
+    ('public-process-item', 'public-proses-bisnis-item'),
     ('process-owner-authority', 'kewenangan-penanggung-jawab-proses-bisnis'),
     ('organizational-authority', 'pejabat-berwenang'),
     ('process-final-approval', 'persetujuan-akhir-sop'),
@@ -214,15 +219,15 @@ identifier_replacements = (
 )
 
 suffixes = {'.ts', '.tsx', '.js', '.cjs', '.mjs', '.md', '.json', '.yml', '.yaml'}
+server_domain_prefixes = (
+    'server/src/modules/core/proses-bisnis/',
+    'server/src/modules/notifications/proses-bisnis/',
+    'server/src/modules/sop/penyusunan-proses-bisnis/',
+)
+
 domain_markers = (
-    'ProsesBisnis',
-    'prosesBisnis',
-    'Departemen',
-    'departemenId',
-    'LingkupOrganisasi',
-    'penanggungJawab',
-    'anggotaProsesBisnis',
-    'pemeriksaanProsesBisnis',
+    'ProsesBisnis', 'prosesBisnis', 'Departemen', 'departemenId', 'LingkupOrganisasi',
+    'penanggungJawab', 'anggotaProsesBisnis', 'pemeriksaanProsesBisnis',
 )
 
 for path in ROOT.rglob('*'):
@@ -242,18 +247,12 @@ for path in ROOT.rglob('*'):
         text = re.sub(rf'\b{re.escape(old)}\b', new, text)
 
     domain_file = any(marker in text for marker in domain_markers) or any(
-        marker in relative
-        for marker in (
-            '/proses-bisnis/',
-            'proses-bisnis.',
-            'administrasi-proses-bisnis',
-            'penyusunan-proses-bisnis',
-            '/persetujuan/',
+        marker in relative for marker in (
+            '/proses-bisnis/', 'proses-bisnis.', 'administrasi-proses-bisnis',
+            'penyusunan-proses-bisnis', '/persetujuan/',
         )
     )
     if domain_file:
-        text = re.sub(r'\bProcess\b', 'ProsesBisnis', text)
-        text = re.sub(r'\bprocess\b(?!\.env\b)', 'prosesBisnis', text)
         text = re.sub(r'\bscope\b', 'lingkup', text)
         text = re.sub(r'\bScope\b', 'Lingkup', text)
         text = re.sub(r'\.owner\b', '.penanggungJawab', text)
@@ -269,10 +268,18 @@ for path in ROOT.rglob('*'):
         text = re.sub(r'\bmember\b', 'anggota', text)
         text = re.sub(r'\bmembership\b', 'keanggotaan', text)
         text = re.sub(r'\binvitation\b', 'undangan', text)
+
+    # Only domain-owned server modules may rename a standalone local variable named process.
+    # Node/runtime files keep the global process object untouched (process.env/on/exit/cwd/etc.).
+    if relative.startswith(server_domain_prefixes):
+        text = re.sub(r'\bProcess\b', 'ProsesBisnis', text)
+        text = re.sub(r'\bprocess\b', 'prosesBisnis', text)
+
     if text != original:
         path.write_text(text, encoding='utf-8')
 
 
+# Prisma API names are Indonesian; quoted @map/@@map strings preserve physical DB names.
 schema = SCHEMA.read_text(encoding='utf-8')
 quoted = re.compile(r'("(?:\\.|[^"\\])*")')
 schema_replacements = (
@@ -343,13 +350,11 @@ for current, physical in physical_map_names.items():
     schema = schema.replace(f'map: "{current}"', f'map: "{physical}"')
 SCHEMA.write_text(schema, encoding='utf-8')
 
+# Prisma 7 audit compatibility.
 audit = ROOT / 'server' / 'prisma' / 'post-contraction-db-audit.ts'
 text = audit.read_text(encoding='utf-8')
 text = text.replace("current.replaceAll(\"\\\\'\", \"'\")", "current.split(\"\\\\'\").join(\"'\")")
-text = text.replace(
-    'new Set(entry.values)',
-    'new Set(entry.values.map((value) => value.dbName ?? value.name))',
-)
+text = text.replace('new Set(entry.values)', 'new Set(entry.values.map((value) => value.dbName ?? value.name))')
 audit.write_text(text, encoding='utf-8')
 
 subprocess.run(['git', 'status', '--short'], cwd=ROOT, check=True)
