@@ -1,8 +1,6 @@
 import { z } from 'zod'
 
 export const ARSIP_PROCESS_PAGE_SIZE = 50
-/** Compatibility alias for legacy archive code that remains in the repository. */
-export const ARSIP_OPD_PAGE_SIZE = ARSIP_PROCESS_PAGE_SIZE
 export const ARSIP_SOP_PAGE_SIZE = 15
 export const ARSIP_AUTO_SELECT_SOP_MAX = 10
 
