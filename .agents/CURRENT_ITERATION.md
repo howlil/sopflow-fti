@@ -6,13 +6,13 @@ The repository is completing the final FTI-only cleanup after persistence contra
 
 Current target runtime:
 - identity: `Pengguna` + `PlatformRole`;
-- organization: `Department` and `Process`;
-- workflow relationship: Process Owner / Process Member;
+- organization: `Departemen` and `ProsesBisnis`;
+- workflow relationship: ProsesBisnis Owner / ProsesBisnis Member;
 - legal signing authority: `DEAN` or `HEAD_OF_DEPARTMENT`;
 - SOP lifecycle: `DRAFT -> PROCESS_REVIEW -> REVISION_REQUIRED | FINAL_APPROVAL -> TTE_PENDING -> EFFECTIVE -> SUPERSEDED | REVOKED`;
-- active SOP ownership: `SOP.processId`;
-- public archive: Process-first;
-- notification, review, approval, TTE, versioning, and revocation are Process-native.
+- active SOP ownership: `SOP.prosesBisnisId`;
+- public archive: ProsesBisnis-first;
+- notification, review, approval, TTE, versioning, and revocation are ProsesBisnis-native.
 
 ## Current milestone
 

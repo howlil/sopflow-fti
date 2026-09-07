@@ -1,10 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 
-export class CreateProcessSopDto {
-  @ApiProperty({ description: 'Process yang menjadi owner kontekstual SOP' })
+export class CreateProsesBisnisSopDto {
+  @ApiProperty({ description: 'Proses Bisnis yang menjadi owner kontekstual SOP' })
   @IsUUID()
-  readonly processId!: string;
+  readonly prosesBisnisId!: string;
 
   @ApiProperty({ description: 'Judul SOP' })
   @IsString()

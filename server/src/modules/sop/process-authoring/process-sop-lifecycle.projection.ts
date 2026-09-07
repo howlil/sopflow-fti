@@ -1,6 +1,6 @@
-import { OrganizationalScope, StatusSOP } from '../../../generated/prisma';
+import { LingkupOrganisasi, StatusSOP } from '../../../generated/prisma';
 
-export type ProcessSopLifecycleStage =
+export type ProsesBisnisSopLifecycleStage =
   | 'AUTHORING'
   | 'PROCESS_REVIEW'
   | 'FINAL_APPROVAL'
@@ -8,47 +8,47 @@ export type ProcessSopLifecycleStage =
   | 'EFFECTIVE'
   | 'REVOKED';
 
-export type ProcessSopLifecycleResponsibilityType =
+export type ProsesBisnisSopLifecycleResponsibilityType =
   | 'CURRENT_USER'
   | 'PROCESS_OWNER'
   | 'DEAN'
   | 'HEAD_OF_DEPARTMENT'
   | 'NONE';
 
-export type ProcessSopLifecycleActionType =
+export type ProsesBisnisSopLifecycleActionType =
   | 'CONTINUE_AUTHORING'
   | 'REVIEW_PROCESS'
   | 'APPROVE_FINAL'
   | 'SIGN_TTE'
   | 'OPEN';
 
-export type ProcessSopLifecycleDestination = 'SOP_DETAIL' | 'APPROVAL_INBOX';
+export type ProsesBisnisSopLifecycleDestination = 'SOP_DETAIL' | 'APPROVAL_INBOX';
 
-export interface ProcessSopLifecycleProjection {
-  stage: ProcessSopLifecycleStage;
+export interface ProsesBisnisSopLifecycleProjection {
+  stage: ProsesBisnisSopLifecycleStage;
   stateLabel: string;
   responsibility: {
-    type: ProcessSopLifecycleResponsibilityType;
+    type: ProsesBisnisSopLifecycleResponsibilityType;
     name: string | null;
   };
   action: {
-    type: ProcessSopLifecycleActionType;
+    type: ProsesBisnisSopLifecycleActionType;
     label: string;
-    destination: ProcessSopLifecycleDestination;
+    destination: ProsesBisnisSopLifecycleDestination;
   } | null;
   blockingReason: string | null;
 }
 
-export interface ProcessSopLifecycleProjectionInput {
+export interface ProsesBisnisSopLifecycleProjectionInput {
   status: string;
   approvalExists: boolean;
   currentUserId: string;
   detailSopId: string;
   process: {
-    scope: OrganizationalScope;
+    scope: LingkupOrganisasi;
     ownerId: string;
     ownerName: string | null;
-    departmentName: string | null;
+    namaDepartemen: string | null;
   };
   authority: {
     holderId: string | null;
@@ -59,33 +59,33 @@ export interface ProcessSopLifecycleProjectionInput {
 function currentUserOr(
   currentUserId: string,
   responsibleId: string | null,
-  type: ProcessSopLifecycleResponsibilityType,
+  type: ProsesBisnisSopLifecycleResponsibilityType,
   name: string | null,
-): ProcessSopLifecycleProjection['responsibility'] {
+): ProsesBisnisSopLifecycleProjection['responsibility'] {
   return responsibleId === currentUserId ? { type: 'CURRENT_USER', name: 'Anda' } : { type, name };
 }
 
-function authorityLabel(scope: OrganizationalScope, departmentName: string | null): string {
-  return scope === OrganizationalScope.FACULTY
+function authorityLabel(scope: LingkupOrganisasi, namaDepartemen: string | null): string {
+  return scope === LingkupOrganisasi.FACULTY
     ? 'Dekan'
-    : `Kepala Departemen${departmentName ? ` ${departmentName}` : ''}`;
+    : `Kepala Departemen${namaDepartemen ? ` ${namaDepartemen}` : ''}`;
 }
 
 function lifecycleAction(
-  type: ProcessSopLifecycleActionType,
+  type: ProsesBisnisSopLifecycleActionType,
   label: string,
-  destination: ProcessSopLifecycleDestination,
-): NonNullable<ProcessSopLifecycleProjection['action']> {
+  destination: ProsesBisnisSopLifecycleDestination,
+): NonNullable<ProsesBisnisSopLifecycleProjection['action']> {
   return { type, label, destination };
 }
 
-export function projectProcessSopLifecycle(
-  input: ProcessSopLifecycleProjectionInput,
-): ProcessSopLifecycleProjection {
+export function projectProsesBisnisSopLifecycle(
+  input: ProsesBisnisSopLifecycleProjectionInput,
+): ProsesBisnisSopLifecycleProjection {
   const { process, authority } = input;
-  const authorityType: ProcessSopLifecycleResponsibilityType =
-    process.scope === OrganizationalScope.FACULTY ? 'DEAN' : 'HEAD_OF_DEPARTMENT';
-  const resolvedAuthorityLabel = authorityLabel(process.scope, process.departmentName);
+  const authorityType: ProsesBisnisSopLifecycleResponsibilityType =
+    process.scope === LingkupOrganisasi.FACULTY ? 'DEAN' : 'HEAD_OF_DEPARTMENT';
+  const resolvedAuthorityLabel = authorityLabel(process.scope, process.namaDepartemen);
 
   if (input.status === StatusSOP.DRAFT || input.status === StatusSOP.REVISION_REQUIRED) {
     const isRevision = input.status === StatusSOP.REVISION_REQUIRED;
@@ -112,12 +112,12 @@ export function projectProcessSopLifecycle(
     const isCurrentUser = responsibility.type === 'CURRENT_USER';
     return {
       stage: 'PROCESS_REVIEW',
-      stateLabel: 'Menunggu review Process Owner',
+      stateLabel: 'Menunggu review Penanggung Jawab Proses Bisnis',
       responsibility,
       action: isCurrentUser ? lifecycleAction('REVIEW_PROCESS', 'Review SOP', 'SOP_DETAIL') : null,
       blockingReason: isCurrentUser
         ? null
-        : `Menunggu review ${process.ownerName ?? 'Process Owner'}.`,
+        : `Menunggu review ${process.ownerName ?? 'Penanggung Jawab Proses Bisnis'}.`,
     };
   }
 

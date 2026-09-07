@@ -4,27 +4,27 @@ import { unwrapApiData } from '@/lib/api/response'
 import { useMutationWithToast } from '@/hooks/useMutationWithToast'
 import type { ApiSuccessResponse } from '@/types/dto/auth.dto'
 import type {
-  ProcessApprovalDocumentDto,
-  ProcessApprovalQueueRowDto,
-  ProcessFinalApprovalDto,
+  ProsesBisnisApprovalDocumentDto,
+  ProsesBisnisApprovalQueueRowDto,
+  PersetujuanAkhirSOPDto,
 } from '@/types/dto/approval.dto'
 
 export const approvalQueueKey = ['process-approval'] as const
 
 export const processApprovalApi = {
-  list: (): Promise<ProcessApprovalQueueRowDto[]> =>
-    unwrapApiData(apiClient.get<ApiSuccessResponse<ProcessApprovalQueueRowDto[]>>('/process-approval')),
-  document: (detailSopId: string): Promise<ProcessApprovalDocumentDto> =>
+  list: (): Promise<ProsesBisnisApprovalQueueRowDto[]> =>
+    unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisApprovalQueueRowDto[]>>('/persetujuan-akhir-sop')),
+  document: (detailSopId: string): Promise<ProsesBisnisApprovalDocumentDto> =>
     unwrapApiData(
-      apiClient.get<ApiSuccessResponse<ProcessApprovalDocumentDto>>(
-        `/process-approval/${detailSopId}/document`,
+      apiClient.get<ApiSuccessResponse<ProsesBisnisApprovalDocumentDto>>(
+        `/persetujuan-akhir-sop/${detailSopId}/document`,
       ),
     ),
-  approve: (detailSopId: string): Promise<ProcessFinalApprovalDto> =>
-    unwrapApiData(apiClient.post<ApiSuccessResponse<ProcessFinalApprovalDto>>(`/process-approval/${detailSopId}/approve`)),
+  approve: (detailSopId: string): Promise<PersetujuanAkhirSOPDto> =>
+    unwrapApiData(apiClient.post<ApiSuccessResponse<PersetujuanAkhirSOPDto>>(`/persetujuan-akhir-sop/${detailSopId}/approve`)),
 }
 
-export function useProcessApprovalQueue() {
+export function useProsesBisnisApprovalQueue() {
   const query = useQuery({ queryKey: approvalQueueKey, queryFn: processApprovalApi.list })
   const approve = useMutationWithToast({
     mutationFn: processApprovalApi.approve,

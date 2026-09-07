@@ -157,7 +157,7 @@ Never create ad hoc arrays repeatedly in screens.
 Prefer:
 
 ```ts
-queryKey: queryKeys.processAdminProcesses
+queryKey: queryKeys.processAdminProsesBisnises
 ```
 
 or a domain-specific key owner such as `processQueryKeys`.
@@ -178,12 +178,12 @@ Default to `useMutationWithToast` for ordinary mutations that follow the existin
 Existing shape:
 
 ```ts
-const updateProcess = useMutationWithToast({
-  mutationFn: ({ processId, payload }) =>
-    processAdminApi.updateProcess(processId, payload),
-  invalidateKeys: [queryKeys.processAdminProcesses],
-  successMessage: 'Process berhasil diperbarui',
-  errorMessagePrefix: 'Gagal memperbarui Process',
+const updateProsesBisnis = useMutationWithToast({
+  mutationFn: ({ prosesBisnisId, payload }) =>
+    processAdminApi.updateProsesBisnis(prosesBisnisId, payload),
+  invalidateKeys: [queryKeys.processAdminProsesBisnises],
+  successMessage: 'ProsesBisnis berhasil diperbarui',
+  errorMessagePrefix: 'Gagal memperbarui ProsesBisnis',
 })
 ```
 
@@ -232,7 +232,7 @@ Do not mirror query data into Zustand just to make it globally accessible.
 FTI target screens should derive visible entry points from separate capability dimensions:
 
 ```text
-Process relationship
+ProsesBisnis relationship
 Organizational authority
 Platform role
 ```
@@ -241,7 +241,7 @@ Do not rebuild target UI around one legacy global `peran` check.
 
 Examples:
 
-- Process Owner/Member work comes from `useMyProcesses()`;
+- ProsesBisnis Owner/Member work comes from `useMyProsesBisnises()`;
 - approval/TTE entry comes from organizational authority hooks;
 - platform administration comes from `platformRole`;
 - legacy role routing is compatibility fallback only where still required.
@@ -304,8 +304,8 @@ Use responsive utilities following nearby screens rather than inventing a new br
 For target FTI surfaces use product language from `PROJECT.md`:
 
 ```text
-Process
-Process Owner
+ProsesBisnis
+ProsesBisnis Owner
 Member
 Dekan
 Kepala Departemen

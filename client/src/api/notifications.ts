@@ -4,7 +4,7 @@ import { unwrapApiData } from '@/lib/api/response'
 import type { ApiSuccessResponse } from '@/types/dto/auth.dto'
 import type {
   NotificationSummaryDto,
-  ProcessInAppNotificationDto,
+  ProsesBisnisInAppNotificationDto,
 } from '@/types/dto/notifications.dto'
 
 export const notificationApi = {
@@ -15,19 +15,19 @@ export const notificationApi = {
 
   processList: (limit = 10) =>
     unwrapApiData(
-      apiClient.get<ApiSuccessResponse<ProcessInAppNotificationDto[]>>(
+      apiClient.get<ApiSuccessResponse<ProsesBisnisInAppNotificationDto[]>>(
         `/notifications/process${buildQueryString({ limit })}`,
       ),
     ),
 
-  markProcessRead: (processNotificationId: string) =>
+  markProsesBisnisRead: (notifikasiProsesBisnisId: string) =>
     unwrapApiData(
       apiClient.post<ApiSuccessResponse<NotificationSummaryDto>>(
-        `/notifications/process/items/${encodeURIComponent(processNotificationId)}/read`,
+        `/notifications/process/items/${encodeURIComponent(notifikasiProsesBisnisId)}/read`,
       ),
     ),
 
-  markAllProcessRead: () =>
+  markAllProsesBisnisRead: () =>
     unwrapApiData(
       apiClient.post<ApiSuccessResponse<NotificationSummaryDto & { updated: number }>>(
         '/notifications/process/read-all',

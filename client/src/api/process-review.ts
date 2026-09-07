@@ -3,33 +3,33 @@ import { unwrapApiData } from '@/lib/api/response'
 import type { ApiSuccessResponse } from '@/types/dto/auth.dto'
 import type { PenyusunWorkbenchData } from '@/types/dto/sop.dto'
 
-export type ProcessReviewDecision = 'REVISION' | 'ACCEPT'
+export type KeputusanPemeriksaanProsesBisnis = 'REVISION' | 'ACCEPT'
 
-export type ProcessReviewDecisionPayload = {
-  decision: ProcessReviewDecision
+export type KeputusanPemeriksaanProsesBisnisPayload = {
+  decision: KeputusanPemeriksaanProsesBisnis
   catatan?: string
 }
 
-export const processReviewApi = {
+export const pemeriksaanProsesBisnisApi = {
   submit: (detailOrSopId: string) =>
     unwrapApiData(
       apiClient.post<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/process-sop/${detailOrSopId}/submit-review`,
+        `/sop-proses-bisnis/${detailOrSopId}/submit-review`,
       ),
     ),
 
   decide: (
     detailOrSopId: string,
-    decision: ProcessReviewDecision,
+    decision: KeputusanPemeriksaanProsesBisnis,
     catatan?: string,
   ) =>
     unwrapApiData(
       apiClient.post<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/process-sop/${detailOrSopId}/review`,
+        `/sop-proses-bisnis/${detailOrSopId}/review`,
         {
           decision,
           ...(catatan !== undefined ? { catatan } : {}),
-        } satisfies ProcessReviewDecisionPayload,
+        } satisfies KeputusanPemeriksaanProsesBisnisPayload,
       ),
     ),
 }

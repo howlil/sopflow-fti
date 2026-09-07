@@ -3,9 +3,9 @@ import { targetUsers, users } from '../fixtures/users'
 import { apiGet, toApiUrl } from '../support/api'
 import { waitForAppReady } from '../support/app'
 import {
-  createDepartmentProcessViaAdminUi,
+  createDepartemenProsesBisnisViaAdminUi,
   createPlatformAccountViaAdminUi,
-  assignDepartmentHeadViaAdminUi,
+  assignDepartemenHeadViaAdminUi,
 } from '../support/fti-admin-actions'
 import {
   createPlatformAccountViaApi,
@@ -17,22 +17,22 @@ import {
 import {
   adminApi,
   listMyAuthorities,
-  listMyProcesses,
+  listMyProsesBisnises,
 } from '../support/fti-admin-preconditions'
 import {
-  acceptProcessSopViaUi,
-  approveProcessSopViaUi,
+  acceptProsesBisnisSopViaUi,
+  approveProsesBisnisSopViaUi,
 } from '../support/fti-approval-actions'
 import {
-  expectProcessDraftInMemberQueue,
-  expectProcessReviewInOwnerQueue,
-  submitProcessSopForReviewViaUi,
+  expectProsesBisnisDraftInMemberQueue,
+  expectPemeriksaanProsesBisnisInOwnerQueue,
+  submitProsesBisnisSopForReviewViaUi,
 } from '../support/fti-process-actions'
-import { seedReadyProcessSop } from '../support/fti-process-preconditions'
+import { seedReadyProsesBisnisSop } from '../support/fti-process-preconditions'
 import {
-  expectProcessSopBerlakuInWorkQueue,
-  expectProcessSopInPublicArchive,
-  signProcessSopViaUi,
+  expectProsesBisnisSopBerlakuInWorkQueue,
+  expectProsesBisnisSopInPublicArchive,
+  signProsesBisnisSopViaUi,
 } from '../support/fti-tte-actions'
 import { ensureTteReady } from '../support/e2e-flow'
 import { e2eRunId } from '../support/test-data'
@@ -60,8 +60,8 @@ test.describe('End-to-End Business Journey — FTI account provisioning bootstra
 
     const accountUser = toDynamicE2eUser(fixture, 'M7 J24 account')
 
-    await test.step('Akun baru dapat autentikasi tetapi belum memiliki Process/authority/admin capability', async () => {
-      expect(await listMyProcesses(roleApi, accountUser)).toEqual([])
+    await test.step('Akun baru dapat autentikasi tetapi belum memiliki Proses Bisnis/authority/admin capability', async () => {
+      expect(await listMyProsesBisnises(roleApi, accountUser)).toEqual([])
       expect(await listMyAuthorities(roleApi, accountUser)).toEqual([])
 
       const session = await roleSession(accountUser)
@@ -92,13 +92,13 @@ test.describe('End-to-End Business Journey — FTI account provisioning bootstra
 
       await expectPlatformAccountDenied(
         roleApi,
-        targetUsers.processMember,
+        targetUsers.anggotaProsesBisnis,
         platformAccountFixture(`J24-denied-${e2eRunId('acct')}`),
       )
     })
   })
 
-  test('J25 Account to Process Assignment — akun baru langsung assignable dan capability tetap contextual', async ({
+  test('J25 Account to Proses Bisnis Assignment — akun baru langsung assignable dan capability tetap contextual', async ({
     roleApi,
     roleSession,
   }) => {
@@ -106,41 +106,41 @@ test.describe('End-to-End Business Journey — FTI account provisioning bootstra
     const ownerFixture = platformAccountFixture(`J25-owner-${suffix}`)
     const memberFixture = platformAccountFixture(`J25-member-${suffix}`)
     const unrelatedFixture = platformAccountFixture(`J25-none-${suffix}`)
-    const departmentName = `M7 Dept ${suffix}`
-    const processName = `M7 Process ${suffix}`
+    const namaDepartemen = `M7 Dept ${suffix}`
+    const namaProsesBisnis = `M7 ProsesBisnis ${suffix}`
 
     await createPlatformAccountViaApi(roleApi, ownerFixture)
     await createPlatformAccountViaApi(roleApi, memberFixture)
     await createPlatformAccountViaApi(roleApi, unrelatedFixture)
 
-    const owner = toDynamicE2eUser(ownerFixture, 'M7 J25 Process Owner')
-    const member = toDynamicE2eUser(memberFixture, 'M7 J25 Process Member')
+    const owner = toDynamicE2eUser(ownerFixture, 'M7 J25 Penanggung Jawab Proses Bisnis')
+    const member = toDynamicE2eUser(memberFixture, 'M7 J25 Anggota Proses Bisnis')
     const unrelated = toDynamicE2eUser(unrelatedFixture, 'M7 J25 unrelated')
 
-    await test.step('Akun baru langsung muncul dalam daftar assignable Process user', async () => {
+    await test.step('Akun baru langsung muncul dalam daftar assignable Proses Bisnis user', async () => {
       const admin = await adminApi(roleApi)
-      const assignable = await apiGet<AssignableUserRow[]>(admin, '/process-admin/users')
+      const assignable = await apiGet<AssignableUserRow[]>(admin, '/administrasi-proses-bisnis/users')
       expect(assignable.some((row) => row.email === ownerFixture.email)).toBe(true)
       expect(assignable.some((row) => row.email === memberFixture.email)).toBe(true)
     })
 
-    await test.step('SUPER_ADMIN membuat Process dengan fresh Owner dan Member melalui UI', async () => {
+    await test.step('SUPER_ADMIN membuat Proses Bisnis dengan fresh Owner dan Member melalui UI', async () => {
       const admin = await roleSession(users.pjEvaluator)
-      await createDepartmentProcessViaAdminUi(admin.page, {
-        departmentName,
-        processName,
+      await createDepartemenProsesBisnisViaAdminUi(admin.page, {
+        namaDepartemen,
+        namaProsesBisnis,
         ownerLabel: platformAccountLabel(ownerFixture),
         memberLabels: [platformAccountLabel(memberFixture)],
       })
     })
 
-    await test.step('Process relationship langsung tersedia hanya bagi identity yang ditugaskan', async () => {
-      const ownerProcesses = await listMyProcesses(roleApi, owner)
-      const memberProcesses = await listMyProcesses(roleApi, member)
-      const unrelatedProcesses = await listMyProcesses(roleApi, unrelated)
-      expect(ownerProcesses.some((row) => row.nama === processName)).toBe(true)
-      expect(memberProcesses.some((row) => row.nama === processName)).toBe(true)
-      expect(unrelatedProcesses.some((row) => row.nama === processName)).toBe(false)
+    await test.step('Proses Bisnis relationship langsung tersedia hanya bagi identity yang ditugaskan', async () => {
+      const ownerProsesBisnises = await listMyProsesBisnises(roleApi, owner)
+      const memberProsesBisnises = await listMyProsesBisnises(roleApi, member)
+      const unrelatedProsesBisnises = await listMyProsesBisnises(roleApi, unrelated)
+      expect(ownerProsesBisnises.some((row) => row.nama === namaProsesBisnis)).toBe(true)
+      expect(memberProsesBisnises.some((row) => row.nama === namaProsesBisnis)).toBe(true)
+      expect(unrelatedProsesBisnises.some((row) => row.nama === namaProsesBisnis)).toBe(false)
 
       for (const actor of [owner, member]) {
         const session = await roleSession(actor)
@@ -151,37 +151,37 @@ test.describe('End-to-End Business Journey — FTI account provisioning bootstra
     })
   })
 
-  test('J26 Account to Organizational Authority — fresh USER dapat menjadi Kadep tanpa authority leak', async ({
+  test('J26 Account to Pejabat Berwenang — fresh USER dapat menjadi Kadep tanpa authority leak', async ({
     roleApi,
     roleSession,
   }) => {
     const suffix = e2eRunId('J26')
     const headFixture = platformAccountFixture(`J26-head-${suffix}`)
     const unrelatedFixture = platformAccountFixture(`J26-none-${suffix}`)
-    const departmentName = `M7 Authority ${suffix}`
+    const namaDepartemen = `M7 Authority ${suffix}`
 
     await createPlatformAccountViaApi(roleApi, headFixture)
     await createPlatformAccountViaApi(roleApi, unrelatedFixture)
     const head = toDynamicE2eUser(headFixture, 'M7 J26 Kadep')
     const unrelated = toDynamicE2eUser(unrelatedFixture, 'M7 J26 unrelated')
 
-    await test.step('Account creation saja tidak memberi organizational authority', async () => {
+    await test.step('Account creation saja tidak memberi pejabat berwenang', async () => {
       expect(await listMyAuthorities(roleApi, head)).toEqual([])
       expect(await listMyAuthorities(roleApi, unrelated)).toEqual([])
       expect(await listMyAuthorities(roleApi, users.pjEvaluator)).toEqual([])
     })
 
-    await test.step('Admin membuat Department lalu memilih fresh USER sebagai Kadep lewat authority UI', async () => {
+    await test.step('Admin membuat Departemen lalu memilih fresh USER sebagai Kadep lewat authority UI', async () => {
       const admin = await roleSession(users.pjEvaluator)
       await admin.page.goto('/admin/processes')
       await waitForAppReady(admin.page)
-      await admin.page.getByPlaceholder('Nama departemen').fill(departmentName)
+      await admin.page.getByPlaceholder('Nama departemen').fill(namaDepartemen)
       await admin.page.getByRole('button', { name: 'Tambah', exact: true }).click()
-      await expect(admin.page.getByText(departmentName, { exact: true })).toBeVisible({ timeout: 15_000 })
+      await expect(admin.page.getByText(namaDepartemen, { exact: true })).toBeVisible({ timeout: 15_000 })
 
-      await assignDepartmentHeadViaAdminUi(
+      await assignDepartemenHeadViaAdminUi(
         admin.page,
-        departmentName,
+        namaDepartemen,
         platformAccountLabel(headFixture),
       )
     })
@@ -198,7 +198,7 @@ test.describe('End-to-End Business Journey — FTI account provisioning bootstra
     })
   })
 
-  test('J27 Zero-to-Workflow Bootstrap — fresh accounts menjalankan Department SOP sampai public BERLAKU', async ({
+  test('J27 Zero-to-Workflow Bootstrap — fresh accounts menjalankan Departemen SOP sampai public BERLAKU', async ({
     roleApi,
     roleSession,
     publicPage,
@@ -207,58 +207,58 @@ test.describe('End-to-End Business Journey — FTI account provisioning bootstra
     const ownerFixture = platformAccountFixture(`J27-owner-${suffix}`)
     const memberFixture = platformAccountFixture(`J27-member-${suffix}`)
     const headFixture = platformAccountFixture(`J27-head-${suffix}`)
-    const departmentName = `M7 Zero Dept ${suffix}`
-    const processName = `M7 Zero Process ${suffix}`
+    const namaDepartemen = `M7 Zero Dept ${suffix}`
+    const namaProsesBisnis = `M7 Zero ProsesBisnis ${suffix}`
 
     await createPlatformAccountViaApi(roleApi, ownerFixture)
     await createPlatformAccountViaApi(roleApi, memberFixture)
     await createPlatformAccountViaApi(roleApi, headFixture)
 
-    const owner = toDynamicE2eUser(ownerFixture, 'M7 J27 Process Owner')
-    const member = toDynamicE2eUser(memberFixture, 'M7 J27 Process Member')
-    const head = toDynamicE2eUser(headFixture, 'M7 J27 Head of Department')
+    const owner = toDynamicE2eUser(ownerFixture, 'M7 J27 Penanggung Jawab Proses Bisnis')
+    const member = toDynamicE2eUser(memberFixture, 'M7 J27 Anggota Proses Bisnis')
+    const head = toDynamicE2eUser(headFixture, 'M7 J27 Head of Departemen')
 
-    await test.step('Bootstrap admin membuat Department, Process Team, dan Kadep dari fresh accounts', async () => {
+    await test.step('Bootstrap admin membuat Departemen, Proses Bisnis Team, dan Kadep dari fresh accounts', async () => {
       const admin = await roleSession(users.pjEvaluator)
-      await createDepartmentProcessViaAdminUi(admin.page, {
-        departmentName,
-        processName,
+      await createDepartemenProsesBisnisViaAdminUi(admin.page, {
+        namaDepartemen,
+        namaProsesBisnis,
         ownerLabel: platformAccountLabel(ownerFixture),
         memberLabels: [platformAccountLabel(memberFixture)],
       })
-      await assignDepartmentHeadViaAdminUi(
+      await assignDepartemenHeadViaAdminUi(
         admin.page,
-        departmentName,
+        namaDepartemen,
         platformAccountLabel(headFixture),
       )
     })
 
-    const sop = await seedReadyProcessSop(roleApi, 'J27-ZERO', {
+    const sop = await seedReadyProsesBisnisSop(roleApi, 'J27-ZERO', {
       actor: member,
-      processName,
-      institutionName: departmentName,
+      namaProsesBisnis,
+      institutionName: namaDepartemen,
     })
 
-    await test.step('Fresh Member login, melihat draft, dan submit untuk Process review', async () => {
+    await test.step('Fresh Member login, melihat draft, dan submit untuk Proses Bisnis review', async () => {
       const memberSession = await roleSession(member)
-      await expectProcessDraftInMemberQueue(memberSession.page, sop.title)
-      await submitProcessSopForReviewViaUi(memberSession.page, sop.detailSopId)
+      await expectProsesBisnisDraftInMemberQueue(memberSession.page, sop.title)
+      await submitProsesBisnisSopForReviewViaUi(memberSession.page, sop.detailSopId)
     })
 
-    await test.step('Fresh Process Owner login, menerima review, dan handoff ke Kadep', async () => {
+    await test.step('Fresh Penanggung Jawab Proses Bisnis login, menerima review, dan handoff ke Kadep', async () => {
       const ownerSession = await roleSession(owner)
-      await expectProcessReviewInOwnerQueue(ownerSession.page, sop.title)
-      await acceptProcessSopViaUi(ownerSession.page, sop.detailSopId)
+      await expectPemeriksaanProsesBisnisInOwnerQueue(ownerSession.page, sop.title)
+      await acceptProsesBisnisSopViaUi(ownerSession.page, sop.detailSopId)
     })
 
-    await test.step('Fresh Kadep login dan memberi final approval contextual', async () => {
+    await test.step('Fresh Kadep login dan memberi persetujuan akhir contextual', async () => {
       const headSession = await roleSession(head)
       await headSession.page.goto('/approval')
       await waitForAppReady(headSession.page)
-      await approveProcessSopViaUi(
+      await approveProsesBisnisSopViaUi(
         headSession.page,
         sop.title,
-        `${departmentName} · Kepala Departemen`,
+        `${namaDepartemen} · Kepala Departemen`,
       )
     })
 
@@ -266,14 +266,14 @@ test.describe('End-to-End Business Journey — FTI account provisioning bootstra
       const headApi = await roleApi(head)
       await ensureTteReady(headApi)
       const headSession = await roleSession(head)
-      await signProcessSopViaUi(headSession.page, sop.title)
+      await signProsesBisnisSopViaUi(headSession.page, sop.title)
 
       const memberSession = await roleSession(member)
-      await expectProcessSopBerlakuInWorkQueue(memberSession.page, sop.title)
+      await expectProsesBisnisSopBerlakuInWorkQueue(memberSession.page, sop.title)
     })
 
     await test.step('SOP hasil zero-to-workflow tersedia pada arsip publik', async () => {
-      await expectProcessSopInPublicArchive(publicPage, sop.title)
+      await expectProsesBisnisSopInPublicArchive(publicPage, sop.title)
     })
   })
 })

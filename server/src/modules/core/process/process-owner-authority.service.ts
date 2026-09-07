@@ -1,14 +1,14 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import {
-  OrganizationalScope,
+  LingkupOrganisasi,
   PlatformRole,
-  ProcessAuditEvent,
+  JenisAktivitasProsesBisnis,
 } from '../../../generated/prisma';
-import type { GrantProcessOwnerAuthorityDto } from './dto/process-owner.dto';
+import type { GrantKewenanganPenanggungJawabProsesBisnisDto } from './dto/process-owner.dto';
 
 @Injectable()
-export class ProcessOwnerAuthorityService {
+export class KewenanganPenanggungJawabProsesBisnisService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listMine(penggunaId: string) {
@@ -29,10 +29,10 @@ export class ProcessOwnerAuthorityService {
     );
   }
 
-  async grant(grantedById: string, dto: GrantProcessOwnerAuthorityDto) {
+  async grant(grantedById: string, dto: GrantKewenanganPenanggungJawabProsesBisnisDto) {
     await this.assertEligibleUser(dto.penggunaId);
-    const departmentId = await this.resolveDepartment(dto.scope, dto.departmentId);
-    const scopeKey = this.scopeKey(dto.scope, departmentId);
+    const departemenId = await this.resolveDepartemen(dto.scope, dto.departemenId);
+    const scopeKey = this.scopeKey(dto.scope, departemenId);
 
     const authority = await this.prisma.$transaction(async (tx) => {
       const row = await tx.processOwnerAuthority.upsert({
@@ -40,13 +40,13 @@ export class ProcessOwnerAuthorityService {
         create: {
           penggunaId: dto.penggunaId,
           scope: dto.scope,
-          departmentId,
+          departemenId,
           scopeKey,
           grantedById,
         },
         update: {
           scope: dto.scope,
-          departmentId,
+          departemenId,
           grantedById,
           revokedAt: null,
         },
@@ -54,9 +54,9 @@ export class ProcessOwnerAuthorityService {
       await tx.processAudit.create({
         data: {
           actorId: grantedById,
-          event: ProcessAuditEvent.OWNER_AUTHORITY_GRANTED,
+          event: JenisAktivitasProsesBisnis.OWNER_AUTHORITY_GRANTED,
           targetUserId: dto.penggunaId,
-          metadata: { scope: dto.scope, departmentId, scopeKey },
+          metadata: { scope: dto.scope, departemenId, scopeKey },
         },
       });
       return row;
@@ -65,26 +65,26 @@ export class ProcessOwnerAuthorityService {
     return (await this.enrich([authority]))[0];
   }
 
-  async revoke(grantedById: string, processOwnerAuthorityId: string) {
+  async revoke(grantedById: string, kewenanganPenanggungJawabProsesBisnisId: string) {
     const current = await this.prisma.processOwnerAuthority.findUnique({
-      where: { processOwnerAuthorityId },
+      where: { kewenanganPenanggungJawabProsesBisnisId },
     });
     if (current === null || current.revokedAt !== null) {
-      throw new NotFoundException('Kewenangan Process Owner aktif tidak ditemukan');
+      throw new NotFoundException('Kewenangan Penanggung Jawab Proses Bisnis aktif tidak ditemukan');
     }
     await this.prisma.$transaction([
       this.prisma.processOwnerAuthority.update({
-        where: { processOwnerAuthorityId },
+        where: { kewenanganPenanggungJawabProsesBisnisId },
         data: { revokedAt: new Date() },
       }),
       this.prisma.processAudit.create({
         data: {
           actorId: grantedById,
-          event: ProcessAuditEvent.OWNER_AUTHORITY_REVOKED,
+          event: JenisAktivitasProsesBisnis.OWNER_AUTHORITY_REVOKED,
           targetUserId: current.penggunaId,
           metadata: {
             scope: current.scope,
-            departmentId: current.departmentId,
+            departemenId: current.departemenId,
             scopeKey: current.scopeKey,
           },
         },
@@ -94,22 +94,22 @@ export class ProcessOwnerAuthorityService {
 
   async assertCanCreate(
     penggunaId: string,
-    scope: OrganizationalScope,
-    requestedDepartmentId?: string | null,
-  ): Promise<{ scope: OrganizationalScope; departmentId: string | null; scopeKey: string }> {
-    const departmentId = await this.resolveDepartment(scope, requestedDepartmentId);
-    const scopeKey = this.scopeKey(scope, departmentId);
+    scope: LingkupOrganisasi,
+    requestedDepartemenId?: string | null,
+  ): Promise<{ scope: LingkupOrganisasi; departemenId: string | null; scopeKey: string }> {
+    const departemenId = await this.resolveDepartemen(scope, requestedDepartemenId);
+    const scopeKey = this.scopeKey(scope, departemenId);
     const authority = await this.prisma.processOwnerAuthority.findUnique({
       where: { penggunaId_scopeKey: { penggunaId, scopeKey } },
     });
     if (authority === null || authority.revokedAt !== null) {
-      throw new ForbiddenException('Anda tidak memiliki kewenangan membuat Process pada scope ini');
+      throw new ForbiddenException('Anda tidak memiliki kewenangan membuat Proses Bisnis pada scope ini');
     }
-    return { scope, departmentId, scopeKey };
+    return { scope, departemenId, scopeKey };
   }
 
-  scopeKey(scope: OrganizationalScope, departmentId: string | null): string {
-    return scope === OrganizationalScope.FACULTY ? 'FACULTY' : `DEPARTMENT:${departmentId}`;
+  scopeKey(scope: LingkupOrganisasi, departemenId: string | null): string {
+    return scope === LingkupOrganisasi.FACULTY ? 'FACULTY' : `DEPARTMENT:${departemenId}`;
   }
 
   private async assertEligibleUser(penggunaId: string): Promise<void> {
@@ -121,49 +121,49 @@ export class ProcessOwnerAuthorityService {
       throw new NotFoundException('Pengguna aktif tidak ditemukan');
     }
     if (user.platformRole !== PlatformRole.USER) {
-      throw new ConflictException('SUPER_ADMIN tidak digunakan sebagai Process Owner operasional');
+      throw new ConflictException('SUPER_ADMIN tidak digunakan sebagai Penanggung Jawab Proses Bisnis operasional');
     }
   }
 
-  private async resolveDepartment(
-    scope: OrganizationalScope,
-    departmentId?: string | null,
+  private async resolveDepartemen(
+    scope: LingkupOrganisasi,
+    departemenId?: string | null,
   ): Promise<string | null> {
-    if (scope === OrganizationalScope.FACULTY) {
-      if (departmentId !== null && departmentId !== undefined) {
-        throw new ConflictException('Scope FACULTY tidak boleh memiliki departmentId');
+    if (scope === LingkupOrganisasi.FACULTY) {
+      if (departemenId !== null && departemenId !== undefined) {
+        throw new ConflictException('Scope FACULTY tidak boleh memiliki departemenId');
       }
       return null;
     }
-    if (!departmentId) {
-      throw new ConflictException('Scope DEPARTMENT wajib memiliki departmentId');
+    if (!departemenId) {
+      throw new ConflictException('Scope DEPARTMENT wajib memiliki departemenId');
     }
-    const exists = await this.prisma.department.count({ where: { departmentId } });
+    const exists = await this.prisma.department.count({ where: { departemenId } });
     if (exists !== 1) {
-      throw new NotFoundException('Department tidak ditemukan');
+      throw new NotFoundException('Departemen tidak ditemukan');
     }
-    return departmentId;
+    return departemenId;
   }
 
-  private async enrich<T extends { penggunaId: string; departmentId: string | null }>(rows: T[]) {
+  private async enrich<T extends { penggunaId: string; departemenId: string | null }>(rows: T[]) {
     const userIds = [...new Set(rows.map((row) => row.penggunaId))];
-    const departmentIds = [...new Set(rows.flatMap((row) => (row.departmentId ? [row.departmentId] : [])))];
+    const departemenIds = [...new Set(rows.flatMap((row) => (row.departemenId ? [row.departemenId] : [])))];
     const [users, departments] = await Promise.all([
       this.prisma.pengguna.findMany({
         where: { penggunaId: { in: userIds } },
         select: { penggunaId: true, nama: true, email: true, nip: true, deletedAt: true },
       }),
       this.prisma.department.findMany({
-        where: { departmentId: { in: departmentIds } },
-        select: { departmentId: true, nama: true },
+        where: { departemenId: { in: departemenIds } },
+        select: { departemenId: true, nama: true },
       }),
     ]);
     const userById = new Map(users.map((user) => [user.penggunaId, user]));
-    const departmentById = new Map(departments.map((department) => [department.departmentId, department]));
+    const departmentById = new Map(departments.map((department) => [department.departemenId, department]));
     return rows.map((row) => ({
       ...row,
       user: userById.get(row.penggunaId) ?? null,
-      department: row.departmentId ? departmentById.get(row.departmentId) ?? null : null,
+      department: row.departemenId ? departmentById.get(row.departemenId) ?? null : null,
     }));
   }
 }

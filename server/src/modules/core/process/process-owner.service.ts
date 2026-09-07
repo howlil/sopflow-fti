@@ -11,19 +11,19 @@ import { requireIndonesianMobileNumber } from '../../../common/pengguna/pengguna
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import {
   PlatformRole,
-  ProcessAuditEvent,
-  ProcessInvitationStatus,
-  ProcessLifecycleStatus,
+  JenisAktivitasProsesBisnis,
+  StatusUndanganAnggotaProsesBisnis,
+  StatusKeaktifanProsesBisnis,
   StatusSOP,
 } from '../../../generated/prisma';
 import type {
-  AcceptProcessInvitationDto,
-  ArchiveOwnedProcessDto,
-  CreateOwnedProcessDto,
-  InviteProcessMemberDto,
-  RenameOwnedProcessDto,
+  AcceptUndanganAnggotaProsesBisnisDto,
+  ArchiveOwnedProsesBisnisDto,
+  CreateOwnedProsesBisnisDto,
+  InviteAnggotaProsesBisnisDto,
+  RenameOwnedProsesBisnisDto,
 } from './dto/process-owner.dto';
-import { ProcessOwnerAuthorityService } from './process-owner-authority.service';
+import { KewenanganPenanggungJawabProsesBisnisService } from './process-owner-authority.service';
 
 const userSelect = {
   penggunaId: true,
@@ -49,17 +49,17 @@ const TERMINAL_SOP_STATUSES: StatusSOP[] = [
 ];
 
 @Injectable()
-export class ProcessOwnerService {
+export class ProsesBisnisOwnerService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly authorityService: ProcessOwnerAuthorityService,
+    private readonly authorityService: KewenanganPenanggungJawabProsesBisnisService,
   ) {}
 
   listScopes(penggunaId: string) {
     return this.authorityService.listMine(penggunaId);
   }
 
-  async listOwnedProcesses(penggunaId: string) {
+  async listOwnedProsesBisnises(penggunaId: string) {
     const rows = await this.prisma.process.findMany({
       where: { ownerId: penggunaId },
       include: processInclude,
@@ -91,33 +91,33 @@ export class ProcessOwnerService {
     });
   }
 
-  async createProcess(penggunaId: string, dto: CreateOwnedProcessDto) {
+  async createProsesBisnis(penggunaId: string, dto: CreateOwnedProsesBisnisDto) {
     const scope = await this.authorityService.assertCanCreate(
       penggunaId,
       dto.scope,
-      dto.departmentId,
+      dto.departemenId,
     );
-    await this.assertUniqueIdentity(dto.nama.trim(), scope.scope, scope.departmentId);
+    await this.assertUniqueIdentity(dto.nama.trim(), scope.scope, scope.departemenId);
 
     const created = await this.prisma.$transaction(async (tx) => {
       const process = await tx.process.create({
         data: {
           nama: dto.nama.trim(),
           scope: scope.scope,
-          departmentId: scope.departmentId,
+          departemenId: scope.departemenId,
           ownerId: penggunaId,
         },
         include: processInclude,
       });
       await tx.processLifecycle.create({
-        data: { processId: process.processId, status: ProcessLifecycleStatus.ACTIVE },
+        data: { prosesBisnisId: process.prosesBisnisId, status: StatusKeaktifanProsesBisnis.ACTIVE },
       });
       await tx.processAudit.create({
         data: {
-          processId: process.processId,
+          prosesBisnisId: process.prosesBisnisId,
           actorId: penggunaId,
-          event: ProcessAuditEvent.PROCESS_CREATED,
-          metadata: { scope: scope.scope, departmentId: scope.departmentId },
+          event: JenisAktivitasProsesBisnis.PROCESS_CREATED,
+          metadata: { scope: scope.scope, departemenId: scope.departemenId },
         },
       });
       return process;
@@ -125,21 +125,21 @@ export class ProcessOwnerService {
     return (await this.withLifecycle([created]))[0];
   }
 
-  async renameProcess(penggunaId: string, processId: string, dto: RenameOwnedProcessDto) {
-    const process = await this.requireOwnedProcess(penggunaId, processId, true);
+  async renameProsesBisnis(penggunaId: string, prosesBisnisId: string, dto: RenameOwnedProsesBisnisDto) {
+    const process = await this.requireOwnedProsesBisnis(penggunaId, prosesBisnisId, true);
     const nama = dto.nama.trim();
-    await this.assertUniqueIdentity(nama, process.scope, process.departmentId, processId);
+    await this.assertUniqueIdentity(nama, process.scope, process.departemenId, prosesBisnisId);
     const updated = await this.prisma.$transaction(async (tx) => {
       const row = await tx.process.update({
-        where: { processId },
+        where: { prosesBisnisId },
         data: { nama },
         include: processInclude,
       });
       await tx.processAudit.create({
         data: {
-          processId,
+          prosesBisnisId,
           actorId: penggunaId,
-          event: ProcessAuditEvent.PROCESS_RENAMED,
+          event: JenisAktivitasProsesBisnis.PROCESS_RENAMED,
           metadata: { previousName: process.nama, nextName: nama },
         },
       });
@@ -148,10 +148,10 @@ export class ProcessOwnerService {
     return (await this.withLifecycle([updated]))[0];
   }
 
-  async addExistingMember(penggunaId: string, processId: string, memberId: string) {
-    const process = await this.requireOwnedProcess(penggunaId, processId, true);
+  async addExistingMember(penggunaId: string, prosesBisnisId: string, memberId: string) {
+    const process = await this.requireOwnedProsesBisnis(penggunaId, prosesBisnisId, true);
     if (process.ownerId === memberId) {
-      throw new ConflictException('Process Owner tidak perlu ditambahkan sebagai member');
+      throw new ConflictException('Penanggung Jawab Proses Bisnis tidak perlu ditambahkan sebagai member');
     }
     const member = await this.prisma.pengguna.findFirst({
       where: { penggunaId: memberId, deletedAt: null, platformRole: PlatformRole.USER },
@@ -160,19 +160,19 @@ export class ProcessOwnerService {
     if (member === null) {
       throw new NotFoundException('Akun USER aktif tidak ditemukan');
     }
-    const existing = await this.prisma.processMember.findUnique({
-      where: { processId_penggunaId: { processId, penggunaId: memberId } },
+    const existing = await this.prisma.anggotaProsesBisnis.findUnique({
+      where: { prosesBisnisId_penggunaId: { prosesBisnisId, penggunaId: memberId } },
     });
     if (existing !== null) {
       return member;
     }
     await this.prisma.$transaction([
-      this.prisma.processMember.create({ data: { processId, penggunaId: memberId } }),
+      this.prisma.anggotaProsesBisnis.create({ data: { prosesBisnisId, penggunaId: memberId } }),
       this.prisma.processAudit.create({
         data: {
-          processId,
+          prosesBisnisId,
           actorId: penggunaId,
-          event: ProcessAuditEvent.MEMBER_ADDED,
+          event: JenisAktivitasProsesBisnis.MEMBER_ADDED,
           targetUserId: memberId,
         },
       }),
@@ -180,31 +180,31 @@ export class ProcessOwnerService {
     return member;
   }
 
-  async removeMember(penggunaId: string, processId: string, memberId: string) {
-    await this.requireOwnedProcess(penggunaId, processId, true);
-    const membership = await this.prisma.processMember.findUnique({
-      where: { processId_penggunaId: { processId, penggunaId: memberId } },
+  async removeMember(penggunaId: string, prosesBisnisId: string, memberId: string) {
+    await this.requireOwnedProsesBisnis(penggunaId, prosesBisnisId, true);
+    const membership = await this.prisma.anggotaProsesBisnis.findUnique({
+      where: { prosesBisnisId_penggunaId: { prosesBisnisId, penggunaId: memberId } },
     });
     if (membership === null) {
-      throw new NotFoundException('Member Process tidak ditemukan');
+      throw new NotFoundException('Member Proses Bisnis tidak ditemukan');
     }
     await this.prisma.$transaction([
-      this.prisma.processMember.delete({
-        where: { processId_penggunaId: { processId, penggunaId: memberId } },
+      this.prisma.anggotaProsesBisnis.delete({
+        where: { prosesBisnisId_penggunaId: { prosesBisnisId, penggunaId: memberId } },
       }),
       this.prisma.processAudit.create({
         data: {
-          processId,
+          prosesBisnisId,
           actorId: penggunaId,
-          event: ProcessAuditEvent.MEMBER_REMOVED,
+          event: JenisAktivitasProsesBisnis.MEMBER_REMOVED,
           targetUserId: memberId,
         },
       }),
     ]);
   }
 
-  async inviteMember(penggunaId: string, processId: string, dto: InviteProcessMemberDto) {
-    await this.requireOwnedProcess(penggunaId, processId, true);
+  async inviteMember(penggunaId: string, prosesBisnisId: string, dto: InviteAnggotaProsesBisnisDto) {
+    await this.requireOwnedProsesBisnis(penggunaId, prosesBisnisId, true);
     const email = dto.email.trim().toLowerCase();
     const nip = dto.nip.trim();
     const existing = await this.prisma.pengguna.findFirst({
@@ -214,16 +214,16 @@ export class ProcessOwnerService {
       if (existing.deletedAt !== null) {
         throw new ConflictException('Akun dengan identitas ini sedang nonaktif');
       }
-      await this.addExistingMember(penggunaId, processId, existing.penggunaId);
+      await this.addExistingMember(penggunaId, prosesBisnisId, existing.penggunaId);
       return {
         kind: 'MEMBER_ADDED' as const,
         member: { penggunaId: existing.penggunaId, nama: existing.nama, email: existing.email },
       };
     }
 
-    const pending = await this.prisma.processInvitation.findFirst({
-      where: { processId, email, status: ProcessInvitationStatus.PENDING },
-      select: { processInvitationId: true, expiresAt: true },
+    const pending = await this.prisma.undanganAnggotaProsesBisnis.findFirst({
+      where: { prosesBisnisId, email, status: StatusUndanganAnggotaProsesBisnis.PENDING },
+      select: { undanganAnggotaProsesBisnisId: true, expiresAt: true },
     });
     if (pending !== null && pending.expiresAt > new Date()) {
       throw new ConflictException('Undangan aktif untuk email ini sudah tersedia');
@@ -235,14 +235,14 @@ export class ProcessOwnerService {
     const nohp = requireIndonesianMobileNumber(dto.nohp);
     const invitation = await this.prisma.$transaction(async (tx) => {
       if (pending !== null) {
-        await tx.processInvitation.update({
-          where: { processInvitationId: pending.processInvitationId },
-          data: { status: ProcessInvitationStatus.EXPIRED },
+        await tx.undanganAnggotaProsesBisnis.update({
+          where: { undanganAnggotaProsesBisnisId: pending.undanganAnggotaProsesBisnisId },
+          data: { status: StatusUndanganAnggotaProsesBisnis.EXPIRED },
         });
       }
-      const row = await tx.processInvitation.create({
+      const row = await tx.undanganAnggotaProsesBisnis.create({
         data: {
-          processId,
+          prosesBisnisId,
           email,
           nama: dto.nama.trim(),
           nip,
@@ -256,10 +256,10 @@ export class ProcessOwnerService {
       });
       await tx.processAudit.create({
         data: {
-          processId,
+          prosesBisnisId,
           actorId: penggunaId,
-          event: ProcessAuditEvent.INVITATION_CREATED,
-          metadata: { email, invitationId: row.processInvitationId, expiresAt: expiresAt.toISOString() },
+          event: JenisAktivitasProsesBisnis.INVITATION_CREATED,
+          metadata: { email, invitationId: row.undanganAnggotaProsesBisnisId, expiresAt: expiresAt.toISOString() },
         },
       });
       return row;
@@ -268,7 +268,7 @@ export class ProcessOwnerService {
     return {
       kind: 'INVITATION_CREATED' as const,
       invitation: {
-        processInvitationId: invitation.processInvitationId,
+        undanganAnggotaProsesBisnisId: invitation.undanganAnggotaProsesBisnisId,
         email: invitation.email,
         expiresAt: invitation.expiresAt,
       },
@@ -279,11 +279,11 @@ export class ProcessOwnerService {
   async previewInvitation(token: string) {
     const invitation = await this.findUsableInvitation(token);
     const process = await this.prisma.process.findUnique({
-      where: { processId: invitation.processId },
-      select: { processId: true, nama: true, scope: true, departmentId: true },
+      where: { prosesBisnisId: invitation.prosesBisnisId },
+      select: { prosesBisnisId: true, nama: true, scope: true, departemenId: true },
     });
     if (process === null) {
-      throw new NotFoundException('Process undangan tidak ditemukan');
+      throw new NotFoundException('Proses Bisnis undangan tidak ditemukan');
     }
     return {
       email: invitation.email,
@@ -293,7 +293,7 @@ export class ProcessOwnerService {
     };
   }
 
-  async acceptInvitation(token: string, dto: AcceptProcessInvitationDto) {
+  async acceptInvitation(token: string, dto: AcceptUndanganAnggotaProsesBisnisDto) {
     const invitation = await this.findUsableInvitation(token);
     const existingIdentity = await this.prisma.pengguna.findFirst({
       where: { OR: [{ email: invitation.email }, { nip: invitation.nip }] },
@@ -301,7 +301,7 @@ export class ProcessOwnerService {
     });
     if (existingIdentity !== null) {
       throw new ConflictException(
-        'Identitas akun sudah tersedia. Minta Process Owner menambahkan akun yang sudah ada.',
+        'Identitas akun sudah tersedia. Minta Penanggung Jawab Proses Bisnis menambahkan akun yang sudah ada.',
       );
     }
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_SALT_ROUNDS);
@@ -322,24 +322,24 @@ export class ProcessOwnerService {
         },
         select: userSelect,
       });
-      await tx.processMember.create({
-        data: { processId: invitation.processId, penggunaId: user.penggunaId },
+      await tx.anggotaProsesBisnis.create({
+        data: { prosesBisnisId: invitation.prosesBisnisId, penggunaId: user.penggunaId },
       });
-      await tx.processInvitation.update({
-        where: { processInvitationId: invitation.processInvitationId },
+      await tx.undanganAnggotaProsesBisnis.update({
+        where: { undanganAnggotaProsesBisnisId: invitation.undanganAnggotaProsesBisnisId },
         data: {
-          status: ProcessInvitationStatus.ACCEPTED,
+          status: StatusUndanganAnggotaProsesBisnis.ACCEPTED,
           acceptedById: user.penggunaId,
           acceptedAt: now,
         },
       });
       await tx.processAudit.create({
         data: {
-          processId: invitation.processId,
+          prosesBisnisId: invitation.prosesBisnisId,
           actorId: user.penggunaId,
-          event: ProcessAuditEvent.INVITATION_ACCEPTED,
+          event: JenisAktivitasProsesBisnis.INVITATION_ACCEPTED,
           targetUserId: user.penggunaId,
-          metadata: { invitationId: invitation.processInvitationId },
+          metadata: { invitationId: invitation.undanganAnggotaProsesBisnisId },
         },
       });
       return user;
@@ -347,48 +347,48 @@ export class ProcessOwnerService {
     return created;
   }
 
-  async archiveProcess(penggunaId: string, processId: string, dto: ArchiveOwnedProcessDto) {
-    await this.requireOwnedProcess(penggunaId, processId, true);
+  async archiveProsesBisnis(penggunaId: string, prosesBisnisId: string, dto: ArchiveOwnedProsesBisnisDto) {
+    await this.requireOwnedProsesBisnis(penggunaId, prosesBisnisId, true);
     const inFlight = await this.prisma.detailSOP.count({
       where: {
-        sop: { processId },
+        sop: { prosesBisnisId },
         status: { notIn: TERMINAL_SOP_STATUSES },
       },
     });
     if (inFlight > 0) {
-      throw new ConflictException('Process masih memiliki SOP aktif/draft; selesaikan lifecycle sebelum arsip');
+      throw new ConflictException('Proses Bisnis masih memiliki SOP aktif/draft; selesaikan lifecycle sebelum arsip');
     }
     const archivedAt = new Date();
     await this.prisma.$transaction([
       this.prisma.processLifecycle.upsert({
-        where: { processId },
+        where: { prosesBisnisId },
         create: {
-          processId,
-          status: ProcessLifecycleStatus.ARCHIVED,
+          prosesBisnisId,
+          status: StatusKeaktifanProsesBisnis.ARCHIVED,
           archivedAt,
           archivedReason: dto.reason.trim(),
         },
         update: {
-          status: ProcessLifecycleStatus.ARCHIVED,
+          status: StatusKeaktifanProsesBisnis.ARCHIVED,
           archivedAt,
           archivedReason: dto.reason.trim(),
         },
       }),
       this.prisma.processAudit.create({
         data: {
-          processId,
+          prosesBisnisId,
           actorId: penggunaId,
-          event: ProcessAuditEvent.PROCESS_ARCHIVED,
+          event: JenisAktivitasProsesBisnis.PROCESS_ARCHIVED,
           metadata: { reason: dto.reason.trim() },
         },
       }),
     ]);
   }
 
-  async listAudit(penggunaId: string, processId: string) {
-    await this.requireOwnedProcess(penggunaId, processId, false);
+  async listAudit(penggunaId: string, prosesBisnisId: string) {
+    await this.requireOwnedProsesBisnis(penggunaId, prosesBisnisId, false);
     return this.prisma.processAudit.findMany({
-      where: { processId },
+      where: { prosesBisnisId },
       orderBy: { createdAt: 'desc' },
       take: 100,
     });
@@ -400,58 +400,58 @@ export class ProcessOwnerService {
       this.prisma.process.count({ where: { ownerId: penggunaId } }),
     ]);
     if (scopeCount === 0 && processCount === 0) {
-      throw new ForbiddenException('Daftar akun hanya tersedia untuk Process Owner');
+      throw new ForbiddenException('Daftar akun hanya tersedia untuk Penanggung Jawab Proses Bisnis');
     }
   }
 
-  private async requireOwnedProcess(penggunaId: string, processId: string, requireActive: boolean) {
+  private async requireOwnedProsesBisnis(penggunaId: string, prosesBisnisId: string, requireActive: boolean) {
     const process = await this.prisma.process.findFirst({
-      where: { processId, ownerId: penggunaId },
+      where: { prosesBisnisId, ownerId: penggunaId },
       include: processInclude,
     });
     if (process === null) {
-      throw new ForbiddenException('Hanya Process Owner yang dapat mengelola Process ini');
+      throw new ForbiddenException('Hanya Penanggung Jawab Proses Bisnis yang dapat mengelola Proses Bisnis ini');
     }
-    if (requireActive && !(await this.isProcessActive(processId))) {
-      throw new ConflictException('Process sudah diarsipkan');
+    if (requireActive && !(await this.isProsesBisnisActive(prosesBisnisId))) {
+      throw new ConflictException('Proses Bisnis sudah diarsipkan');
     }
     return process;
   }
 
-  private async isProcessActive(processId: string): Promise<boolean> {
-    const lifecycle = await this.prisma.processLifecycle.findUnique({ where: { processId } });
-    return lifecycle === null || lifecycle.status === ProcessLifecycleStatus.ACTIVE;
+  private async isProsesBisnisActive(prosesBisnisId: string): Promise<boolean> {
+    const lifecycle = await this.prisma.processLifecycle.findUnique({ where: { prosesBisnisId } });
+    return lifecycle === null || lifecycle.status === StatusKeaktifanProsesBisnis.ACTIVE;
   }
 
   private async assertUniqueIdentity(
     nama: string,
-    scope: import('../../../generated/prisma').OrganizationalScope,
-    departmentId: string | null,
-    exceptProcessId?: string,
+    scope: import('../../../generated/prisma').LingkupOrganisasi,
+    departemenId: string | null,
+    exceptProsesBisnisId?: string,
   ) {
     const duplicate = await this.prisma.process.count({
       where: {
         nama,
         scope,
-        departmentId,
-        ...(exceptProcessId ? { NOT: { processId: exceptProcessId } } : {}),
+        departemenId,
+        ...(exceptProsesBisnisId ? { NOT: { prosesBisnisId: exceptProsesBisnisId } } : {}),
       },
     });
     if (duplicate > 0) {
-      throw new ConflictException('Nama Process sudah digunakan pada scope yang sama');
+      throw new ConflictException('Nama Proses Bisnis sudah digunakan pada scope yang sama');
     }
   }
 
-  private async withLifecycle<T extends { processId: string }>(rows: T[]) {
+  private async withLifecycle<T extends { prosesBisnisId: string }>(rows: T[]) {
     const lifecycleRows = await this.prisma.processLifecycle.findMany({
-      where: { processId: { in: rows.map((row) => row.processId) } },
+      where: { prosesBisnisId: { in: rows.map((row) => row.prosesBisnisId) } },
     });
-    const lifecycleById = new Map(lifecycleRows.map((row) => [row.processId, row]));
+    const lifecycleById = new Map(lifecycleRows.map((row) => [row.prosesBisnisId, row]));
     return rows.map((row) => {
-      const lifecycle = lifecycleById.get(row.processId);
+      const lifecycle = lifecycleById.get(row.prosesBisnisId);
       return {
         ...row,
-        lifecycleStatus: lifecycle?.status ?? ProcessLifecycleStatus.ACTIVE,
+        lifecycleStatus: lifecycle?.status ?? StatusKeaktifanProsesBisnis.ACTIVE,
         archivedAt: lifecycle?.archivedAt ?? null,
         archivedReason: lifecycle?.archivedReason ?? null,
       };
@@ -459,21 +459,21 @@ export class ProcessOwnerService {
   }
 
   private async findUsableInvitation(token: string) {
-    const invitation = await this.prisma.processInvitation.findUnique({
+    const invitation = await this.prisma.undanganAnggotaProsesBisnis.findUnique({
       where: { tokenHash: this.hashToken(token) },
     });
-    if (invitation === null || invitation.status !== ProcessInvitationStatus.PENDING) {
+    if (invitation === null || invitation.status !== StatusUndanganAnggotaProsesBisnis.PENDING) {
       throw new NotFoundException('Undangan tidak ditemukan atau sudah digunakan');
     }
     if (invitation.expiresAt <= new Date()) {
-      await this.prisma.processInvitation.update({
-        where: { processInvitationId: invitation.processInvitationId },
-        data: { status: ProcessInvitationStatus.EXPIRED },
+      await this.prisma.undanganAnggotaProsesBisnis.update({
+        where: { undanganAnggotaProsesBisnisId: invitation.undanganAnggotaProsesBisnisId },
+        data: { status: StatusUndanganAnggotaProsesBisnis.EXPIRED },
       });
       throw new ConflictException('Undangan sudah kedaluwarsa');
     }
-    if (!(await this.isProcessActive(invitation.processId))) {
-      throw new ConflictException('Process pada undangan sudah tidak aktif');
+    if (!(await this.isProsesBisnisActive(invitation.prosesBisnisId))) {
+      throw new ConflictException('Proses Bisnis pada undangan sudah tidak aktif');
     }
     return invitation;
   }

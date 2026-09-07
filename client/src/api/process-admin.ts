@@ -6,59 +6,59 @@ import { useMutationWithToast } from '@/hooks/useMutationWithToast'
 import { STALE_TIME } from '@/utils/constants'
 import type { ApiSuccessResponse } from '@/types/dto/auth.dto'
 import type {
-  DepartmentDto,
-  GrantProcessOwnerAuthorityPayload,
-  ProcessAssignableUserDto,
-  ProcessDto,
-  ProcessOwnerAuthorityDto,
-  ProcessPayload,
+  DepartemenDto,
+  GrantKewenanganPenanggungJawabProsesBisnisPayload,
+  ProsesBisnisAssignableUserDto,
+  ProsesBisnisDto,
+  KewenanganPenanggungJawabProsesBisnisDto,
+  ProsesBisnisPayload,
 } from '@/types/dto/process.dto'
 
 export const processAdminApi = {
-  listDepartments: (): Promise<DepartmentDto[]> =>
-    unwrapApiData(apiClient.get<ApiSuccessResponse<DepartmentDto[]>>('/process-admin/departments')),
+  listDepartemens: (): Promise<DepartemenDto[]> =>
+    unwrapApiData(apiClient.get<ApiSuccessResponse<DepartemenDto[]>>('/administrasi-proses-bisnis/departments')),
 
-  createDepartment: (nama: string): Promise<DepartmentDto> =>
-    unwrapApiData(apiClient.post<ApiSuccessResponse<DepartmentDto>>('/process-admin/departments', { nama })),
+  createDepartemen: (nama: string): Promise<DepartemenDto> =>
+    unwrapApiData(apiClient.post<ApiSuccessResponse<DepartemenDto>>('/administrasi-proses-bisnis/departments', { nama })),
 
-  updateDepartment: (departmentId: string, nama: string): Promise<DepartmentDto> =>
+  updateDepartemen: (departemenId: string, nama: string): Promise<DepartemenDto> =>
     unwrapApiData(
-      apiClient.patch<ApiSuccessResponse<DepartmentDto>>(`/process-admin/departments/${departmentId}`, { nama }),
+      apiClient.patch<ApiSuccessResponse<DepartemenDto>>(`/administrasi-proses-bisnis/departments/${departemenId}`, { nama }),
     ),
 
-  listUsers: (): Promise<ProcessAssignableUserDto[]> =>
-    unwrapApiData(apiClient.get<ApiSuccessResponse<ProcessAssignableUserDto[]>>('/process-admin/users')),
+  listUsers: (): Promise<ProsesBisnisAssignableUserDto[]> =>
+    unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisAssignableUserDto[]>>('/administrasi-proses-bisnis/users')),
 
-  listProcesses: (): Promise<ProcessDto[]> =>
-    unwrapApiData(apiClient.get<ApiSuccessResponse<ProcessDto[]>>('/process-admin/processes')),
+  listProsesBisnises: (): Promise<ProsesBisnisDto[]> =>
+    unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisDto[]>>('/administrasi-proses-bisnis/processes')),
 
   /** Reserved for administrative repair/bootstrap; normal creation belongs to the authorized owner. */
-  createProcess: (payload: ProcessPayload): Promise<ProcessDto> =>
-    unwrapApiData(apiClient.post<ApiSuccessResponse<ProcessDto>>('/process-admin/processes', payload)),
+  createProsesBisnis: (payload: ProsesBisnisPayload): Promise<ProsesBisnisDto> =>
+    unwrapApiData(apiClient.post<ApiSuccessResponse<ProsesBisnisDto>>('/administrasi-proses-bisnis/processes', payload)),
 
-  updateProcess: (processId: string, payload: ProcessPayload): Promise<ProcessDto> =>
+  updateProsesBisnis: (prosesBisnisId: string, payload: ProsesBisnisPayload): Promise<ProsesBisnisDto> =>
     unwrapApiData(
-      apiClient.patch<ApiSuccessResponse<ProcessDto>>(`/process-admin/processes/${processId}`, payload),
+      apiClient.patch<ApiSuccessResponse<ProsesBisnisDto>>(`/administrasi-proses-bisnis/processes/${prosesBisnisId}`, payload),
     ),
 
-  listOwnerAuthorities: (): Promise<ProcessOwnerAuthorityDto[]> =>
+  listOwnerAuthorities: (): Promise<KewenanganPenanggungJawabProsesBisnisDto[]> =>
     unwrapApiData(
-      apiClient.get<ApiSuccessResponse<ProcessOwnerAuthorityDto[]>>('/process-admin/owner-authorities'),
+      apiClient.get<ApiSuccessResponse<KewenanganPenanggungJawabProsesBisnisDto[]>>('/administrasi-proses-bisnis/owner-authorities'),
     ),
 
-  grantOwnerAuthority: (payload: GrantProcessOwnerAuthorityPayload): Promise<ProcessOwnerAuthorityDto> =>
+  grantOwnerAuthority: (payload: GrantKewenanganPenanggungJawabProsesBisnisPayload): Promise<KewenanganPenanggungJawabProsesBisnisDto> =>
     unwrapApiData(
-      apiClient.post<ApiSuccessResponse<ProcessOwnerAuthorityDto>>('/process-admin/owner-authorities', payload),
+      apiClient.post<ApiSuccessResponse<KewenanganPenanggungJawabProsesBisnisDto>>('/administrasi-proses-bisnis/owner-authorities', payload),
     ),
 
   revokeOwnerAuthority: (id: string): Promise<void> =>
-    unwrapApiVoid(apiClient.delete(`/process-admin/owner-authorities/${id}`)),
+    unwrapApiVoid(apiClient.delete(`/administrasi-proses-bisnis/owner-authorities/${id}`)),
 }
 
-export function useProcessAdministration() {
+export function useProsesBisnisAdministration() {
   const departmentsQuery = useQuery({
-    queryKey: queryKeys.processAdminDepartments,
-    queryFn: processAdminApi.listDepartments,
+    queryKey: queryKeys.processAdminDepartemens,
+    queryFn: processAdminApi.listDepartemens,
     staleTime: STALE_TIME.MEDIUM,
   })
   const usersQuery = useQuery({
@@ -67,8 +67,8 @@ export function useProcessAdministration() {
     staleTime: STALE_TIME.MEDIUM,
   })
   const processesQuery = useQuery({
-    queryKey: queryKeys.processAdminProcesses,
-    queryFn: processAdminApi.listProcesses,
+    queryKey: queryKeys.processAdminProsesBisnises,
+    queryFn: processAdminApi.listProsesBisnises,
     staleTime: STALE_TIME.MEDIUM,
   })
   const ownerAuthoritiesQuery = useQuery({
@@ -77,40 +77,40 @@ export function useProcessAdministration() {
     staleTime: STALE_TIME.MEDIUM,
   })
 
-  const createDepartment = useMutationWithToast({
-    mutationFn: (nama: string) => processAdminApi.createDepartment(nama),
-    invalidateKeys: [queryKeys.processAdminDepartments],
+  const createDepartemen = useMutationWithToast({
+    mutationFn: (nama: string) => processAdminApi.createDepartemen(nama),
+    invalidateKeys: [queryKeys.processAdminDepartemens],
     successMessage: 'Departemen berhasil ditambahkan',
     errorMessagePrefix: 'Gagal menambahkan departemen',
   })
 
-  const createProcess = useMutationWithToast({
-    mutationFn: (payload: ProcessPayload) => processAdminApi.createProcess(payload),
-    invalidateKeys: [queryKeys.processAdminProcesses],
-    successMessage: 'Process berhasil dibuat',
-    errorMessagePrefix: 'Gagal membuat Process',
+  const createProsesBisnis = useMutationWithToast({
+    mutationFn: (payload: ProsesBisnisPayload) => processAdminApi.createProsesBisnis(payload),
+    invalidateKeys: [queryKeys.processAdminProsesBisnises],
+    successMessage: 'Proses Bisnis berhasil dibuat',
+    errorMessagePrefix: 'Gagal membuat Proses Bisnis',
   })
 
-  const updateProcess = useMutationWithToast({
-    mutationFn: ({ processId, payload }: { processId: string; payload: ProcessPayload }) =>
-      processAdminApi.updateProcess(processId, payload),
-    invalidateKeys: [queryKeys.processAdminProcesses],
-    successMessage: 'Process berhasil diperbarui',
-    errorMessagePrefix: 'Gagal memperbarui Process',
+  const updateProsesBisnis = useMutationWithToast({
+    mutationFn: ({ prosesBisnisId, payload }: { prosesBisnisId: string; payload: ProsesBisnisPayload }) =>
+      processAdminApi.updateProsesBisnis(prosesBisnisId, payload),
+    invalidateKeys: [queryKeys.processAdminProsesBisnises],
+    successMessage: 'Proses Bisnis berhasil diperbarui',
+    errorMessagePrefix: 'Gagal memperbarui Proses Bisnis',
   })
 
   const grantOwnerAuthority = useMutationWithToast({
     mutationFn: processAdminApi.grantOwnerAuthority,
     invalidateKeys: [queryKeys.processOwnerAuthorities],
-    successMessage: 'Kewenangan Process Owner berhasil diberikan',
-    errorMessagePrefix: 'Gagal memberikan kewenangan Process Owner',
+    successMessage: 'Kewenangan Penanggung Jawab Proses Bisnis berhasil diberikan',
+    errorMessagePrefix: 'Gagal memberikan kewenangan Penanggung Jawab Proses Bisnis',
   })
 
   const revokeOwnerAuthority = useMutationWithToast({
     mutationFn: processAdminApi.revokeOwnerAuthority,
     invalidateKeys: [queryKeys.processOwnerAuthorities],
-    successMessage: 'Kewenangan Process Owner berhasil dicabut',
-    errorMessagePrefix: 'Gagal mencabut kewenangan Process Owner',
+    successMessage: 'Kewenangan Penanggung Jawab Proses Bisnis berhasil dicabut',
+    errorMessagePrefix: 'Gagal mencabut kewenangan Penanggung Jawab Proses Bisnis',
   })
 
   return {
@@ -123,15 +123,15 @@ export function useProcessAdministration() {
       usersQuery.isLoading ||
       processesQuery.isLoading ||
       ownerAuthoritiesQuery.isLoading,
-    createDepartment: createDepartment.mutateAsync,
-    createProcess: createProcess.mutateAsync,
-    updateProcess: updateProcess.mutateAsync,
+    createDepartemen: createDepartemen.mutateAsync,
+    createProsesBisnis: createProsesBisnis.mutateAsync,
+    updateProsesBisnis: updateProsesBisnis.mutateAsync,
     grantOwnerAuthority: grantOwnerAuthority.mutateAsync,
     revokeOwnerAuthority: revokeOwnerAuthority.mutateAsync,
     isSaving:
-      createDepartment.isPending ||
-      createProcess.isPending ||
-      updateProcess.isPending ||
+      createDepartemen.isPending ||
+      createProsesBisnis.isPending ||
+      updateProsesBisnis.isPending ||
       grantOwnerAuthority.isPending ||
       revokeOwnerAuthority.isPending,
   }

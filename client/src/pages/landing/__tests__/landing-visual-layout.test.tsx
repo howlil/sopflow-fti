@@ -32,8 +32,8 @@ const roles: LandingRoleProfile[] = [
   {
     id: 'process-owner',
     label: 'Pemilik Proses',
-    responsibility: 'Mereview SOP dalam Process.',
-    output: 'Keputusan review Process.',
+    responsibility: 'Mereview SOP dalam Proses Bisnis.',
+    output: 'Keputusan review Proses Bisnis.',
   },
   {
     id: 'organizational-authority',

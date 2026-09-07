@@ -3,13 +3,13 @@
 import { ConflictException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import {
-  OrganizationalAuthority,
-  ProcessReviewDecision,
+  PejabatBerwenang,
+  KeputusanPemeriksaanProsesBisnis,
   StatusSOP,
 } from '../../../generated/prisma';
-import type { OrganizationalAuthorityService } from '../../core/process/organizational-authority.service';
+import type { PejabatBerwenangService } from '../../core/process/organizational-authority.service';
 import type { SopCatalogRepository } from '../catalog/sop-catalog.repository';
-import { ProcessFinalApprovalService } from './process-final-approval.service';
+import { PersetujuanAkhirSOPService } from './process-final-approval.service';
 
 jest.mock('../catalog/sop-catalog.mapper', () => ({
   mapWorkbenchPayload: jest.fn(() => ({ detail: { id: 'detail-a' }, langkah: [] })),
@@ -23,12 +23,12 @@ function makeService(
 ) {
   const findAcceptedReview = jest
     .fn()
-    .mockResolvedValue(acceptedReviewId === null ? null : { processReviewId: acceptedReviewId });
+    .mockResolvedValue(acceptedReviewId === null ? null : { pemeriksaanProsesBisnisId: acceptedReviewId });
   const createApproval = jest.fn().mockResolvedValue({
     detailSopId: 'detail-a',
-    processId: 'process-a',
+    prosesBisnisId: 'process-a',
     approvedById: 'dean-1',
-    authority: OrganizationalAuthority.DEAN,
+    authority: PejabatBerwenang.DEAN,
     authorityKey: 'DEAN',
   });
   const tx = {
@@ -36,7 +36,7 @@ function makeService(
       findUnique: jest.fn().mockResolvedValue({ status }),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
-    processReview: {
+    pemeriksaanProsesBisnis: {
       findFirst: findAcceptedReview,
     },
     processFinalApproval: {
@@ -48,9 +48,9 @@ function makeService(
       findFirst: jest.fn().mockResolvedValue({ detailSopId: 'detail-a' }),
     },
     sOP: {
-      findUnique: jest.fn().mockResolvedValue({ processId: 'process-a' }),
+      findUnique: jest.fn().mockResolvedValue({ prosesBisnisId: 'process-a' }),
     },
-    processReview: {
+    pemeriksaanProsesBisnis: {
       findFirst: findAcceptedReview,
     },
     processFinalApproval: {
@@ -60,14 +60,14 @@ function makeService(
   } as unknown as PrismaService;
   const authority = {
     assertCanApprove: jest.fn().mockResolvedValue({
-      authority: OrganizationalAuthority.DEAN,
+      authority: PejabatBerwenang.DEAN,
       authorityKey: 'DEAN',
       holderId: 'dean-1',
       holderName: 'Dekan FTI',
       holderNip: '19800001',
       holderJabatan: 'Dekan',
     }),
-  } as unknown as OrganizationalAuthorityService;
+  } as unknown as PejabatBerwenangService;
   const catalog = {
     findDetailIdByDetailOrSopId: jest.fn().mockResolvedValue({
       detailSopId: 'detail-a',
@@ -80,7 +80,7 @@ function makeService(
     }),
   } as unknown as SopCatalogRepository;
   return {
-    service: new ProcessFinalApprovalService(prisma, authority, catalog),
+    service: new PersetujuanAkhirSOPService(prisma, authority, catalog),
     prisma: prisma as any,
     tx,
     authority: authority as any,
@@ -88,13 +88,13 @@ function makeService(
   };
 }
 
-describe('ProcessFinalApprovalService', () => {
+describe('PersetujuanAkhirSOPService', () => {
   it('persists approval only from the contextual resolved authority', async () => {
     const { service, tx, authority } = makeService();
 
     await expect(service.approve(user, 'detail-a')).resolves.toMatchObject({
       approvedById: 'dean-1',
-      authority: OrganizationalAuthority.DEAN,
+      authority: PejabatBerwenang.DEAN,
     });
     expect(authority.assertCanApprove).toHaveBeenCalledWith('dean-1', 'process-a');
     expect(tx.detailSOP.updateMany).toHaveBeenCalledWith({
@@ -104,42 +104,42 @@ describe('ProcessFinalApprovalService', () => {
     expect(tx.processFinalApproval.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         detailSopId: 'detail-a',
-        processId: 'process-a',
+        prosesBisnisId: 'process-a',
         approvedById: 'dean-1',
-        authority: OrganizationalAuthority.DEAN,
+        authority: PejabatBerwenang.DEAN,
         authorityKey: 'DEAN',
-        processReviewId: 'review-1',
+        pemeriksaanProsesBisnisId: 'review-1',
       }),
     });
   });
 
-  it('links new approval evidence to the latest accepted Process Owner review', async () => {
+  it('links new approval evidence to the latest accepted Penanggung Jawab Proses Bisnis review', async () => {
     const { service, tx } = makeService(StatusSOP.FINAL_APPROVAL, 'review-accepted');
 
     await service.approve(user, 'detail-a');
 
-    expect(tx.processReview.findFirst).toHaveBeenCalledWith({
+    expect(tx.pemeriksaanProsesBisnis.findFirst).toHaveBeenCalledWith({
       where: {
         detailSopId: 'detail-a',
-        processId: 'process-a',
-        decision: ProcessReviewDecision.ACCEPT,
+        prosesBisnisId: 'process-a',
+        decision: KeputusanPemeriksaanProsesBisnis.ACCEPT,
         nextStatus: StatusSOP.FINAL_APPROVAL,
       },
       orderBy: { createdAt: 'desc' },
-      select: { processReviewId: true },
+      select: { pemeriksaanProsesBisnisId: true },
     });
     expect(tx.processFinalApproval.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ processReviewId: 'review-accepted' }),
+      data: expect.objectContaining({ pemeriksaanProsesBisnisId: 'review-accepted' }),
     });
   });
 
-  it('allows the contextual approver to read the frozen SOP document without Process membership', async () => {
+  it('allows the contextual approver to read the frozen SOP document without Proses Bisnis membership', async () => {
     const { service, authority, catalog } = makeService();
 
     await expect(service.getDocumentForCurrentApprover(user, 'detail-a')).resolves.toEqual({
       workbench: { detail: { id: 'detail-a' }, langkah: [] },
       authority: {
-        authority: OrganizationalAuthority.DEAN,
+        authority: PejabatBerwenang.DEAN,
         authorityKey: 'DEAN',
         holderId: 'dean-1',
         holderName: 'Dekan FTI',
@@ -151,7 +151,7 @@ describe('ProcessFinalApprovalService', () => {
     expect(catalog.findWorkbenchPayloadByDetailOrSopId).toHaveBeenCalledWith('detail-a', 0);
   });
 
-  it('rejects document reads outside the final approval/TTE state', async () => {
+  it('rejects document reads outside the persetujuan akhir/TTE state', async () => {
     const { service } = makeService(StatusSOP.PROCESS_REVIEW);
 
     await expect(service.getDocumentForCurrentApprover(user, 'detail-a')).rejects.toBeInstanceOf(
@@ -159,17 +159,17 @@ describe('ProcessFinalApprovalService', () => {
     );
   });
 
-  it('rejects approval before Process Owner accepted the SOP', async () => {
+  it('rejects approval before Penanggung Jawab Proses Bisnis accepted the SOP', async () => {
     const { service } = makeService(StatusSOP.PROCESS_REVIEW, null);
 
     await expect(service.approve(user, 'detail-a')).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('rejects final approval when accepted Process Owner review evidence is missing', async () => {
+  it('rejects persetujuan akhir when accepted Penanggung Jawab Proses Bisnis review evidence is missing', async () => {
     const { service } = makeService(StatusSOP.FINAL_APPROVAL, null);
 
     await expect(service.approve(user, 'detail-a')).rejects.toThrow(
-      'Final approval membutuhkan Process Owner review yang diterima',
+      'Final approval membutuhkan Penanggung Jawab Proses Bisnis review yang diterima',
     );
   });
 

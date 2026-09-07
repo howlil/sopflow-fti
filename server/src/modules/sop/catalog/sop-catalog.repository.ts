@@ -28,7 +28,7 @@ const buildWorkbenchInclude = (logsLimit: number) =>
     sop: {
       select: {
         sopId: true,
-        processId: true,
+        prosesBisnisId: true,
         judul: true,
         createdAt: true,
         updatedAt: true,
@@ -249,20 +249,20 @@ export class SopCatalogRepository {
 
   async findDetailIdByDetailOrSopId(
     detailOrSopId: string,
-  ): Promise<{ detailSopId: string; sopId: string; processId: string | null } | null> {
+  ): Promise<{ detailSopId: string; sopId: string; prosesBisnisId: string | null } | null> {
     const direct = await this.prisma.detailSOP.findUnique({
       where: { detailSopId: detailOrSopId },
       select: {
         detailSopId: true,
         sopId: true,
-        sop: { select: { processId: true } },
+        sop: { select: { prosesBisnisId: true } },
       },
     });
     if (direct !== null) {
       return {
         detailSopId: direct.detailSopId,
         sopId: direct.sopId,
-        processId: direct.sop.processId,
+        prosesBisnisId: direct.sop.prosesBisnisId,
       };
     }
 
@@ -270,7 +270,7 @@ export class SopCatalogRepository {
       where: { sopId: detailOrSopId },
       select: {
         sopId: true,
-        processId: true,
+        prosesBisnisId: true,
         detailSops: {
           orderBy: { versi: 'desc' },
           take: 1,
@@ -280,14 +280,14 @@ export class SopCatalogRepository {
     });
     const latest = header?.detailSops[0]?.detailSopId;
     if (header === null || latest === undefined) return null;
-    return { detailSopId: latest, sopId: header.sopId, processId: header.processId };
+    return { detailSopId: latest, sopId: header.sopId, prosesBisnisId: header.prosesBisnisId };
   }
 
   async findLatestDetailStatusContext(detailOrSopId: string): Promise<{
     detailSopId: string;
     sopId: string;
     status: StatusSOP;
-    processId: string | null;
+    prosesBisnisId: string | null;
   } | null> {
     const resolved = await this.findDetailIdByDetailOrSopId(detailOrSopId);
     if (resolved === null) return null;
@@ -298,7 +298,7 @@ export class SopCatalogRepository {
         detailSopId: true,
         sopId: true,
         status: true,
-        sop: { select: { processId: true } },
+        sop: { select: { prosesBisnisId: true } },
       },
     });
     if (row === null) return null;
@@ -306,7 +306,7 @@ export class SopCatalogRepository {
       detailSopId: row.detailSopId,
       sopId: row.sopId,
       status: row.status,
-      processId: row.sop.processId,
+      prosesBisnisId: row.sop.prosesBisnisId,
     };
   }
 

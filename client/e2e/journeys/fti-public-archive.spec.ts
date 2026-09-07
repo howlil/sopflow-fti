@@ -3,16 +3,16 @@ import { expect, test } from '../fixtures/business-test'
 import { targetUsers } from '../fixtures/users'
 import { apiGet, toApiUrl } from '../support/api'
 import { expectNoAppShellError, waitForAppReady } from '../support/app'
-import type { ReadyProcessSopFixture } from '../support/fti-process-preconditions'
-import { revokeProcessSopViaApi } from '../support/fti-revocation-actions'
-import { seedEffectiveProcessSop } from '../support/fti-revocation-preconditions'
+import type { ReadyProsesBisnisSopFixture } from '../support/fti-process-preconditions'
+import { revokeProsesBisnisSopViaApi } from '../support/fti-revocation-actions'
+import { seedEffectiveProsesBisnisSop } from '../support/fti-revocation-preconditions'
 
-interface PublicProcessPage {
+interface PublicProsesBisnisPage {
   items: Array<{
-    processId: string
+    prosesBisnisId: string
     nama: string
     scope: 'FACULTY' | 'DEPARTMENT'
-    departmentName: string | null
+    namaDepartemen: string | null
     jumlahSopBerlaku: number
   }>
 }
@@ -23,26 +23,26 @@ interface PublicSopPage {
     sopId: string
     judul: string
     nomorSOP: string
-    processId: string | null
-    processName: string | null
+    prosesBisnisId: string | null
+    namaProsesBisnis: string | null
     scope: 'FACULTY' | 'DEPARTMENT' | null
-    departmentName: string | null
+    namaDepartemen: string | null
     pdfUrl: string
   }>
 }
 
-let effectiveSop: ReadyProcessSopFixture | undefined
+let effectiveSop: ReadyProsesBisnisSopFixture | undefined
 
 async function ensureEffectiveSop(
   roleApi: RoleApiFactory,
   roleSession: RoleSessionFactory,
-): Promise<ReadyProcessSopFixture> {
+): Promise<ReadyProsesBisnisSopFixture> {
   if (effectiveSop) return effectiveSop
-  effectiveSop = await seedEffectiveProcessSop(
+  effectiveSop = await seedEffectiveProsesBisnisSop(
     roleApi,
     roleSession,
     'M10-PUBLIC-FTI',
-    { actor: targetUsers.processMember, processName: 'Pengelolaan Akademik FTI' },
+    { actor: targetUsers.anggotaProsesBisnis, namaProsesBisnis: 'Pengelolaan Akademik FTI' },
     targetUsers.dean,
     'Fakultas · Dekan',
   )
@@ -50,63 +50,63 @@ async function ensureEffectiveSop(
 }
 
 test.describe.serial('End-to-End Business Journey — FTI-native public archive', () => {
-  test('J35 Public FTI Catalog — ProcessSopBinding menjadi klasifikasi public Process', async ({
+  test('J35 Public FTI Catalog — ProsesBisnisSopBinding menjadi klasifikasi public Proses Bisnis', async ({
     request,
     roleApi,
     roleSession,
   }) => {
-    const sop = await test.step('Bentuk satu SOP Process sampai resmi BERLAKU', () =>
+    const sop = await test.step('Bentuk satu SOP Proses Bisnis sampai resmi BERLAKU', () =>
       ensureEffectiveSop(roleApi, roleSession),
     )
 
-    await test.step('Public Process catalog menemukan Process dan SOP melalui ProcessSopBinding', async () => {
-      const processPage = await apiGet<PublicProcessPage>(
+    await test.step('Public Proses Bisnis catalog menemukan Proses Bisnis dan SOP melalui ProsesBisnisSopBinding', async () => {
+      const processPage = await apiGet<PublicProsesBisnisPage>(
         request,
-        `/sop/public/fti/processes?search=${encodeURIComponent(sop.processName)}`,
+        `/sop/public/fti/processes?search=${encodeURIComponent(sop.namaProsesBisnis)}`,
       )
-      const process = processPage.items.find((item) => item.processId === sop.processId)
+      const process = processPage.items.find((item) => item.prosesBisnisId === sop.prosesBisnisId)
       expect(process).toEqual(
         expect.objectContaining({
-          processId: sop.processId,
-          nama: sop.processName,
+          prosesBisnisId: sop.prosesBisnisId,
+          nama: sop.namaProsesBisnis,
           scope: 'FACULTY',
         }),
       )
 
       const sopPage = await apiGet<PublicSopPage>(
         request,
-        `/sop/public/fti/processes/${encodeURIComponent(sop.processId)}/sop`,
+        `/sop/public/fti/processes/${encodeURIComponent(sop.prosesBisnisId)}/sop`,
       )
       expect(sopPage.items).toContainEqual(
         expect.objectContaining({
           detailSopId: sop.detailSopId,
-          processId: sop.processId,
-          processName: sop.processName,
+          prosesBisnisId: sop.prosesBisnisId,
+          namaProsesBisnis: sop.namaProsesBisnis,
         }),
       )
     })
   })
 
-  test('J36 Public Process Discovery — visitor menelusuri Process lalu SOP tanpa OPD picker', async ({
+  test('J36 Public Proses Bisnis Discovery — visitor menelusuri Proses Bisnis lalu SOP tanpa OPD picker', async ({
     publicPage,
     roleApi,
     roleSession,
   }) => {
-    const sop = await test.step('Pastikan public Process memiliki SOP resmi', () =>
+    const sop = await test.step('Pastikan public Proses Bisnis memiliki SOP resmi', () =>
       ensureEffectiveSop(roleApi, roleSession),
     )
 
-    await test.step('Visitor memilih Process lalu melihat SOP pada workspace publik', async () => {
+    await test.step('Visitor memilih Proses Bisnis lalu melihat SOP pada workspace publik', async () => {
       await publicPage.goto('/arsip')
       await waitForAppReady(publicPage)
 
-      const process = publicPage.locator(`[data-arsip-process-id="${sop.processId}"]`).first()
+      const process = publicPage.locator(`[data-arsip-process-id="${sop.prosesBisnisId}"]`).first()
       await expect(process).toBeVisible({ timeout: 15_000 })
-      await expect(process).toContainText(sop.processName)
+      await expect(process).toContainText(sop.namaProsesBisnis)
       await process.click()
 
       await publicPage.waitForURL(
-        (url) => url.pathname === '/arsip' && url.searchParams.get('processId') === sop.processId,
+        (url) => url.pathname === '/arsip' && url.searchParams.get('prosesBisnisId') === sop.prosesBisnisId,
         { timeout: 15_000 },
       )
       await expect(publicPage.getByText(sop.title, { exact: true }).first()).toBeVisible({
@@ -117,13 +117,13 @@ test.describe.serial('End-to-End Business Journey — FTI-native public archive'
     })
   })
 
-  test('J37 Official Document Continuity — SOP Process membuka artifact PDF resmi yang sama', async ({
+  test('J37 Official Document Continuity — SOP Proses Bisnis membuka artifact PDF resmi yang sama', async ({
     publicPage,
     request,
     roleApi,
     roleSession,
   }) => {
-    const sop = await test.step('Pastikan SOP Process sudah efektif', () =>
+    const sop = await test.step('Pastikan SOP Proses Bisnis sudah efektif', () =>
       ensureEffectiveSop(roleApi, roleSession),
     )
 
@@ -142,13 +142,13 @@ test.describe.serial('End-to-End Business Journey — FTI-native public archive'
 
     await test.step('Workspace publik membuka official document tanpa jalur OPD', async () => {
       await publicPage.goto(
-        `/arsip?processId=${encodeURIComponent(sop.processId)}&detailSopId=${encodeURIComponent(sop.detailSopId)}`,
+        `/arsip?prosesBisnisId=${encodeURIComponent(sop.prosesBisnisId)}&detailSopId=${encodeURIComponent(sop.detailSopId)}`,
       )
       await waitForAppReady(publicPage)
       await expect(publicPage.getByRole('link', { name: 'Buka', exact: true })).toBeVisible({
         timeout: 15_000,
       })
-      await expect(publicPage.getByText(sop.processName).first()).toBeVisible()
+      await expect(publicPage.getByText(sop.namaProsesBisnis).first()).toBeVisible()
       await expectNoAppShellError(publicPage)
     })
   })
@@ -177,7 +177,7 @@ test.describe.serial('End-to-End Business Journey — FTI-native public archive'
     })
 
     await test.step('Revocation menghapus SOP dari target archive dan menutup PDF current', async () => {
-      await revokeProcessSopViaApi(await roleApi(targetUsers.dean), sop.detailSopId)
+      await revokeProsesBisnisSopViaApi(await roleApi(targetUsers.dean), sop.detailSopId)
 
       const after = await apiGet<PublicSopPage>(
         request,

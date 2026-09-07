@@ -4,35 +4,35 @@ import type { Request } from 'express';
 import { type ApiSuccessResponse, JwtAuthGuard, PlatformAdminGuard } from '../../../common';
 import type { JwtAccessPayload } from '../auth/helpers/auth.shared';
 import { ACCESS_TOKEN_COOKIE_NAME } from '../auth/helpers/auth.shared';
-import { GrantProcessOwnerAuthorityDto } from './dto/process-owner.dto';
-import { ProcessOwnerAuthorityService } from './process-owner-authority.service';
+import { GrantKewenanganPenanggungJawabProsesBisnisDto } from './dto/process-owner.dto';
+import { KewenanganPenanggungJawabProsesBisnisService } from './process-owner-authority.service';
 
-@ApiTags('Process Owner Authority Admin')
+@ApiTags('Penanggung Jawab Proses Bisnis Authority Admin')
 @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
 @Controller('process-admin/owner-authorities')
 @UseGuards(JwtAuthGuard, PlatformAdminGuard)
-export class ProcessOwnerAuthorityController {
-  constructor(private readonly service: ProcessOwnerAuthorityService) {}
+export class KewenanganPenanggungJawabProsesBisnisController {
+  constructor(private readonly service: KewenanganPenanggungJawabProsesBisnisService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Daftar kewenangan aktif untuk menjadi Process Owner' })
+  @ApiOperation({ summary: 'Daftar kewenangan aktif untuk menjadi Penanggung Jawab Proses Bisnis' })
   async list(): Promise<ApiSuccessResponse<unknown>> {
-    return { message: 'Kewenangan Process Owner berhasil diambil', success: true, data: await this.service.listConfiguration() };
+    return { message: 'Kewenangan Penanggung Jawab Proses Bisnis berhasil diambil', success: true, data: await this.service.listConfiguration() };
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Berikan kewenangan Process Owner pada scope Fakultas/Jurusan' })
+  @ApiOperation({ summary: 'Berikan kewenangan Penanggung Jawab Proses Bisnis pada scope Fakultas/Jurusan' })
   async grant(
     @Req() req: Request & { user: JwtAccessPayload },
-    @Body() dto: GrantProcessOwnerAuthorityDto,
+    @Body() dto: GrantKewenanganPenanggungJawabProsesBisnisDto,
   ): Promise<ApiSuccessResponse<unknown>> {
-    return { message: 'Kewenangan Process Owner berhasil diberikan', success: true, data: await this.service.grant(req.user.sub, dto) };
+    return { message: 'Kewenangan Penanggung Jawab Proses Bisnis berhasil diberikan', success: true, data: await this.service.grant(req.user.sub, dto) };
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Cabut kewenangan Process Owner; Process yang sudah dimiliki tetap utuh' })
+  @ApiOperation({ summary: 'Cabut kewenangan Penanggung Jawab Proses Bisnis; Proses Bisnis yang sudah dimiliki tetap utuh' })
   async revoke(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('id', ParseUUIDPipe) id: string,

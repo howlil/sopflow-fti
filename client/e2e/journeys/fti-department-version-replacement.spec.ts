@@ -1,30 +1,30 @@
 import { expect, test } from '../fixtures/business-test'
 import { targetUsers, users } from '../fixtures/users'
 import { toApiUrl } from '../support/api'
-import { signProcessSopViaUi } from '../support/fti-tte-actions'
+import { signProsesBisnisSopViaUi } from '../support/fti-tte-actions'
 import { e2ePin, validPdfBase64 } from '../support/test-data'
 import {
-  getProcessVersionHistory,
+  getProsesBisnisVersionHistory,
   seedReplacementReadyForTte,
 } from '../support/fti-version-preconditions'
 
-test.describe('End-to-End Business Journey — Department Process version replacement', () => {
-  test('J18 Department Version Replacement — relevant Kadep replaces V1 and authority stays isolated', async ({
+test.describe('End-to-End Business Journey — Departemen Proses Bisnis version replacement', () => {
+  test('J18 Departemen Version Replacement — relevant Kadep replaces V1 and authority stays isolated', async ({
     publicPage,
     roleApi,
     roleSession,
   }) => {
     const fixture = await seedReplacementReadyForTte(roleApi, 'J18-DEPT-REPLACE', {
       actor: targetUsers.departmentMember,
-      processName: 'Layanan Akademik Informatika',
+      namaProsesBisnis: 'Layanan Akademik Informatika',
       institutionName: 'Departemen Teknik Informatika',
-      authorityUser: targetUsers.headOfDepartment,
+      authorityUser: targetUsers.headOfDepartemen,
     })
 
-    await test.step('Dean, Kadep Department lain, dan SUPER_ADMIN tidak dapat TTE V2 Department A', async () => {
-      for (const deniedUser of [targetUsers.dean, targetUsers.otherHeadOfDepartment, users.pjEvaluator]) {
+    await test.step('Dean, Kadep Departemen lain, dan SUPER_ADMIN tidak dapat TTE V2 Departemen A', async () => {
+      for (const deniedUser of [targetUsers.dean, targetUsers.otherHeadOfDepartemen, users.pjEvaluator]) {
         const api = await roleApi(deniedUser)
-        const response = await api.post(toApiUrl(`/process-tte/${fixture.v2.id}/sign`), {
+        const response = await api.post(toApiUrl(`/tte-proses-bisnis/${fixture.v2.id}/sign`), {
           data: {
             pin: e2ePin,
             nomorDokumen: fixture.v2.nomorSOP,
@@ -37,12 +37,12 @@ test.describe('End-to-End Business Journey — Department Process version replac
     })
 
     await test.step('Relevant Kadep menandatangani V2 melalui contextual TTE UI', async () => {
-      const head = await roleSession(targetUsers.headOfDepartment)
-      await signProcessSopViaUi(head.page, fixture.v1.title)
+      const head = await roleSession(targetUsers.headOfDepartemen)
+      await signProsesBisnisSopViaUi(head.page, fixture.v1.title)
     })
 
-    await test.step('Department replacement menghasilkan satu current effective version', async () => {
-      const history = await getProcessVersionHistory(
+    await test.step('Departemen replacement menghasilkan satu current effective version', async () => {
+      const history = await getProsesBisnisVersionHistory(
         roleApi,
         targetUsers.departmentMember,
         fixture.v1.sopId,

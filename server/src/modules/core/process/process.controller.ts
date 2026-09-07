@@ -15,56 +15,56 @@ import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { type ApiSuccessResponse, JwtAuthGuard, PlatformAdminGuard } from '../../../common';
 import { ACCESS_TOKEN_COOKIE_NAME } from '../auth/helpers/auth.shared';
 import {
-  CreateDepartmentDto,
-  CreateProcessDto,
-  UpdateDepartmentDto,
-  UpdateProcessDto,
-} from './dto/process-admin.dto';
-import { ProcessService } from './process.service';
+  CreateDepartemenDto,
+  CreateProsesBisnisDto,
+  UpdateDepartemenDto,
+  UpdateProsesBisnisDto,
+} from './dto/administrasi-proses-bisnis.dto';
+import { ProsesBisnisService } from './process.service';
 
-@ApiTags('Process Admin')
+@ApiTags('Proses Bisnis Admin')
 @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
 @Controller('process-admin')
 @UseGuards(JwtAuthGuard, PlatformAdminGuard)
-export class ProcessController {
-  constructor(private readonly processService: ProcessService) {}
+export class ProsesBisnisController {
+  constructor(private readonly processService: ProsesBisnisService) {}
 
   @Get('departments')
-  @ApiOperation({ summary: 'Daftar departemen untuk konteks Process' })
-  async listDepartments(): Promise<ApiSuccessResponse<unknown>> {
+  @ApiOperation({ summary: 'Daftar departemen untuk konteks Proses Bisnis' })
+  async listDepartemens(): Promise<ApiSuccessResponse<unknown>> {
     return {
       message: 'Daftar departemen berhasil diambil',
       success: true,
-      data: await this.processService.listDepartments(),
+      data: await this.processService.listDepartemens(),
     };
   }
 
   @Post('departments')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Tambah departemen' })
-  async createDepartment(@Body() dto: CreateDepartmentDto): Promise<ApiSuccessResponse<unknown>> {
+  async createDepartemen(@Body() dto: CreateDepartemenDto): Promise<ApiSuccessResponse<unknown>> {
     return {
       message: 'Departemen berhasil ditambahkan',
       success: true,
-      data: await this.processService.createDepartment(dto),
+      data: await this.processService.createDepartemen(dto),
     };
   }
 
   @Patch('departments/:id')
   @ApiOperation({ summary: 'Perbarui departemen' })
-  async updateDepartment(
+  async updateDepartemen(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateDepartmentDto,
+    @Body() dto: UpdateDepartemenDto,
   ): Promise<ApiSuccessResponse<unknown>> {
     return {
       message: 'Departemen berhasil diperbarui',
       success: true,
-      data: await this.processService.updateDepartment(id, dto),
+      data: await this.processService.updateDepartemen(id, dto),
     };
   }
 
   @Get('users')
-  @ApiOperation({ summary: 'Daftar pengguna aktif yang dapat ditugaskan ke Process Team' })
+  @ApiOperation({ summary: 'Daftar pengguna aktif yang dapat ditugaskan ke Proses Bisnis Team' })
   async listUsers(@Query('search') search?: string): Promise<ApiSuccessResponse<unknown>> {
     return {
       message: 'Daftar pengguna berhasil diambil',
@@ -74,36 +74,36 @@ export class ProcessController {
   }
 
   @Get('processes')
-  @ApiOperation({ summary: 'Daftar Process beserta owner dan members' })
-  async listProcesses(): Promise<ApiSuccessResponse<unknown>> {
+  @ApiOperation({ summary: 'Daftar Proses Bisnis beserta owner dan members' })
+  async listProsesBisnises(): Promise<ApiSuccessResponse<unknown>> {
     return {
-      message: 'Daftar Process berhasil diambil',
+      message: 'Daftar Proses Bisnis berhasil diambil',
       success: true,
-      data: await this.processService.listProcesses(),
+      data: await this.processService.listProsesBisnises(),
     };
   }
 
   @Post('processes')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Buat Process dan Process Team' })
-  async createProcess(@Body() dto: CreateProcessDto): Promise<ApiSuccessResponse<unknown>> {
+  @ApiOperation({ summary: 'Buat Proses Bisnis dan Proses Bisnis Team' })
+  async createProsesBisnis(@Body() dto: CreateProsesBisnisDto): Promise<ApiSuccessResponse<unknown>> {
     return {
-      message: 'Process berhasil dibuat',
+      message: 'Proses Bisnis berhasil dibuat',
       success: true,
-      data: await this.processService.createProcess(dto),
+      data: await this.processService.createProsesBisnis(dto),
     };
   }
 
   @Patch('processes/:id')
-  @ApiOperation({ summary: 'Perbarui Process dan Process Team' })
-  async updateProcess(
+  @ApiOperation({ summary: 'Perbarui Proses Bisnis dan Proses Bisnis Team' })
+  async updateProsesBisnis(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateProcessDto,
+    @Body() dto: UpdateProsesBisnisDto,
   ): Promise<ApiSuccessResponse<unknown>> {
     return {
-      message: 'Process berhasil diperbarui',
+      message: 'Proses Bisnis berhasil diperbarui',
       success: true,
-      data: await this.processService.updateProcess(id, dto),
+      data: await this.processService.updateProsesBisnis(id, dto),
     };
   }
 }

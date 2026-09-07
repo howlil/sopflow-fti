@@ -5,8 +5,8 @@ import type { RoleApiFactory } from '../fixtures/business-test'
 import { apiGet, apiPatch, apiPost } from './api'
 import { sopFixture } from './test-data'
 
-interface ProcessContextRow {
-  processId: string
+interface ProsesBisnisContextRow {
+  prosesBisnisId: string
   nama: string
   ownerId: string
 }
@@ -35,50 +35,50 @@ interface Workbench {
   }
 }
 
-export interface ReadyProcessSopFixture {
+export interface ReadyProsesBisnisSopFixture {
   title: string
   number: string
   sopId: string
   detailSopId: string
-  processId: string
-  processName: string
+  prosesBisnisId: string
+  namaProsesBisnis: string
 }
 
-export interface ProcessSopSeedOptions {
+export interface ProsesBisnisSopSeedOptions {
   actor?: E2eUser
-  processName?: string
+  namaProsesBisnis?: string
   institutionName?: string
 }
 
-async function resolveProcess(
+async function resolveProsesBisnis(
   context: APIRequestContext,
-  processName: string,
-): Promise<ProcessContextRow> {
-  const processes = await apiGet<ProcessContextRow[]>(context, '/process-context/mine')
-  const process = processes.find((row) => row.nama === processName)
+  namaProsesBisnis: string,
+): Promise<ProsesBisnisContextRow> {
+  const processes = await apiGet<ProsesBisnisContextRow[]>(context, '/konteks-proses-bisnis/mine')
+  const process = processes.find((row) => row.nama === namaProsesBisnis)
   if (!process) {
-    throw new Error(`Target E2E Process tidak tersedia untuk identity ini: ${processName}`)
+    throw new Error(`Target E2E ProsesBisnis tidak tersedia untuk identity ini: ${namaProsesBisnis}`)
   }
   return process
 }
 
 /**
- * Membentuk satu SOP Process yang lengkap tetapi tetap DRAFT.
+ * Membentuk satu SOP ProsesBisnis yang lengkap tetapi tetap DRAFT.
  *
  * Semua mutation di sini adalah PRECONDITION. Aksi workflow yang menjadi objek journey
  * tetap dilakukan melalui browser. Related SOP sengaja memakai compatibility authoring
- * endpoint agar hanya subject Process-bound row yang masuk target work queue.
+ * endpoint agar hanya subject ProsesBisnis-bound row yang masuk target work queue.
  */
-export async function seedReadyProcessSop(
+export async function seedReadyProsesBisnisSop(
   apiFor: RoleApiFactory,
   prefix = 'FTI-PROCESS',
-  options: ProcessSopSeedOptions = {},
-): Promise<ReadyProcessSopFixture> {
-  const actor = options.actor ?? targetUsers.processMember
-  const processName = options.processName ?? 'Pengelolaan Akademik FTI'
+  options: ProsesBisnisSopSeedOptions = {},
+): Promise<ReadyProsesBisnisSopFixture> {
+  const actor = options.actor ?? targetUsers.anggotaProsesBisnis
+  const namaProsesBisnis = options.namaProsesBisnis ?? 'Pengelolaan Akademik FTI'
   const institutionName = options.institutionName ?? 'Fakultas Teknologi Informasi'
   const memberApi = await apiFor(actor)
-  const process = await resolveProcess(memberApi, processName)
+  const process = await resolveProsesBisnis(memberApi, namaProsesBisnis)
   const fixture = sopFixture(prefix)
   const relatedFixture = sopFixture(`${prefix}-REL`)
 
@@ -89,21 +89,21 @@ export async function seedReadyProcessSop(
     namaPeraturan: `Peraturan FTI E2E ${fixture.suffix}`,
     nomor: `FTI-${fixture.suffix}`,
     tahun: 2026,
-    tentang: `Dasar hukum Process E2E ${fixture.suffix}`,
+    tentang: `Dasar hukum ProsesBisnis E2E ${fixture.suffix}`,
   })
   const relatedSop = await apiPost<SopRow>(memberApi, '/sop', {
     judul: relatedFixture.title,
     nomorSop: relatedFixture.number,
     namaLembaga: institutionName,
   })
-  const sop = await apiPost<SopRow>(memberApi, '/process-sop', {
-    processId: process.processId,
+  const sop = await apiPost<SopRow>(memberApi, '/sop-proses-bisnis', {
+    prosesBisnisId: process.prosesBisnisId,
     judul: fixture.title,
     nomorSop: fixture.number,
     namaLembaga: institutionName,
   })
 
-  await apiPatch<Workbench>(memberApi, `/process-sop/header/${sop.detailSopId}`, {
+  await apiPatch<Workbench>(memberApi, `/sop-proses-bisnis/header/${sop.detailSopId}`, {
     namaLembaga: institutionName,
     dasarHukumPeraturanIds: [peraturan.id],
     sopTerkaitDetailIds: [relatedSop.detailSopId],
@@ -156,10 +156,10 @@ export async function seedReadyProcessSop(
 
   const workbench = await apiGet<Workbench>(
     memberApi,
-    `/process-sop/workbench/${sop.detailSopId}`,
+    `/sop-proses-bisnis/workbench/${sop.detailSopId}`,
   )
   if (workbench.detail.status !== 'DRAFT') {
-    throw new Error(`Precondition Process SOP harus tetap DRAFT, ditemukan ${workbench.detail.status}`)
+    throw new Error(`Precondition ProsesBisnis SOP harus tetap DRAFT, ditemukan ${workbench.detail.status}`)
   }
 
   return {
@@ -167,7 +167,7 @@ export async function seedReadyProcessSop(
     number: fixture.number,
     sopId: sop.id,
     detailSopId: sop.detailSopId,
-    processId: process.processId,
-    processName: process.nama,
+    prosesBisnisId: process.prosesBisnisId,
+    namaProsesBisnis: process.nama,
   }
 }

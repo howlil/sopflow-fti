@@ -1,9 +1,9 @@
 import { ForbiddenException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
-import { OrganizationalScope, PlatformRole, ProcessAuditEvent } from '../../../generated/prisma';
-import { ProcessOwnerAuthorityService } from './process-owner-authority.service';
+import { LingkupOrganisasi, PlatformRole, JenisAktivitasProsesBisnis } from '../../../generated/prisma';
+import { KewenanganPenanggungJawabProsesBisnisService } from './process-owner-authority.service';
 
-describe('ProcessOwnerAuthorityService', () => {
+describe('KewenanganPenanggungJawabProsesBisnisService', () => {
   const userId = '11111111-1111-4111-8111-111111111111';
   const adminId = '22222222-2222-4222-8222-222222222222';
 
@@ -34,7 +34,7 @@ describe('ProcessOwnerAuthorityService', () => {
     });
     return {
       prisma,
-      service: new ProcessOwnerAuthorityService(prisma as unknown as PrismaService),
+      service: new KewenanganPenanggungJawabProsesBisnisService(prisma as unknown as PrismaService),
     };
   }
 
@@ -42,10 +42,10 @@ describe('ProcessOwnerAuthorityService', () => {
     const { prisma, service } = makeService();
     prisma.pengguna.findFirst.mockResolvedValue({ platformRole: PlatformRole.USER });
     prisma.processOwnerAuthority.upsert.mockResolvedValue({
-      processOwnerAuthorityId: '33333333-3333-4333-8333-333333333333',
+      kewenanganPenanggungJawabProsesBisnisId: '33333333-3333-4333-8333-333333333333',
       penggunaId: userId,
-      scope: OrganizationalScope.FACULTY,
-      departmentId: null,
+      scope: LingkupOrganisasi.FACULTY,
+      departemenId: null,
       scopeKey: 'FACULTY',
       grantedById: adminId,
       revokedAt: null,
@@ -59,8 +59,8 @@ describe('ProcessOwnerAuthorityService', () => {
 
     await service.grant(adminId, {
       penggunaId: userId,
-      scope: OrganizationalScope.FACULTY,
-      departmentId: null,
+      scope: LingkupOrganisasi.FACULTY,
+      departemenId: null,
     });
 
     expect(prisma.processOwnerAuthority.upsert).toHaveBeenCalledWith(
@@ -71,18 +71,18 @@ describe('ProcessOwnerAuthorityService', () => {
     expect(prisma.processAudit.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         actorId: adminId,
-        event: ProcessAuditEvent.OWNER_AUTHORITY_GRANTED,
+        event: JenisAktivitasProsesBisnis.OWNER_AUTHORITY_GRANTED,
         targetUserId: userId,
       }),
     });
   });
 
-  it('rejects Process creation outside the granted owner scope', async () => {
+  it('rejects Proses Bisnis creation outside the granted owner scope', async () => {
     const { prisma, service } = makeService();
     prisma.processOwnerAuthority.findUnique.mockResolvedValue(null);
 
     await expect(
-      service.assertCanCreate(userId, OrganizationalScope.FACULTY, null),
+      service.assertCanCreate(userId, LingkupOrganisasi.FACULTY, null),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 });

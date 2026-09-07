@@ -3,7 +3,7 @@ import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/config/query-keys";
 import { useMutationWithToast } from "@/hooks/useMutationWithToast";
 import { STALE_TIME } from "@/utils/constants";
-import { sopApi, type CreateProcessSopRequestDto } from "@/api/sop-client";
+import { sopApi, type CreateProsesBisnisSopRequestDto } from "@/api/sop-client";
 import { SOP_WORKFLOW_REFRESH_OPTIONS } from "@/lib/api/cache-invalidation";
 import type { SopDaftarRow, SopListQueryParams } from "@/types/dto/sop.dto";
 /**
@@ -47,7 +47,7 @@ export function useSopSuspense(params?: SopListQueryParams) {
     ...sopListQueryOptions(params),
   });
   const createMutation = useMutationWithToast({
-    mutationFn: (payload: CreateProcessSopRequestDto) => sopApi.create(payload),
+    mutationFn: (payload: CreateProsesBisnisSopRequestDto) => sopApi.create(payload),
     invalidateKeys: [queryKeys.sop],
     successMessage: "SOP berhasil dibuat",
     errorMessagePrefix: "Gagal membuat SOP",
@@ -62,8 +62,8 @@ export function useSopSuspense(params?: SopListQueryParams) {
 }
 
 /**
- * GET `/process-sop/workbench/:detailSopId` — agregat detail + langkah + log.
- * SOP target memakai Process authorization; SOP legacy fallback ke OPD authorization.
+ * GET `/sop-proses-bisnis/workbench/:detailSopId` — agregat detail + langkah + log.
+ * SOP target memakai ProsesBisnis authorization; SOP legacy fallback ke OPD authorization.
  */
 export function usePenyusunWorkbench(detailSopId: string | undefined) {
   return useQuery({

@@ -44,7 +44,7 @@ export class SopProsedurController {
   @Patch(':detailSopId')
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
   @ApiOperation({
-    summary: 'PATCH prosedur SOP Process-bound dengan authorization Process Owner/Member',
+    summary: 'PATCH prosedur SOP Proses Bisnis-bound dengan authorization Penanggung Jawab Proses Bisnis/Member',
   })
   @ApiQuery({
     name: 'logsLimit',

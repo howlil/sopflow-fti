@@ -1,35 +1,35 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { OrganizationalScope } from '../../../generated/prisma';
+import { LingkupOrganisasi } from '../../../generated/prisma';
 import type {
-  CreateDepartmentDto,
-  CreateProcessDto,
-  UpdateDepartmentDto,
-  UpdateProcessDto,
-} from './dto/process-admin.dto';
-import { ProcessRepository } from './process.repository';
+  CreateDepartemenDto,
+  CreateProsesBisnisDto,
+  UpdateDepartemenDto,
+  UpdateProsesBisnisDto,
+} from './dto/administrasi-proses-bisnis.dto';
+import { ProsesBisnisRepository } from './process.repository';
 
 @Injectable()
-export class ProcessService {
-  constructor(private readonly processRepository: ProcessRepository) {}
+export class ProsesBisnisService {
+  constructor(private readonly processRepository: ProsesBisnisRepository) {}
 
-  listDepartments() {
-    return this.processRepository.listDepartments();
+  listDepartemens() {
+    return this.processRepository.listDepartemens();
   }
 
-  async createDepartment(dto: CreateDepartmentDto) {
+  async createDepartemen(dto: CreateDepartemenDto) {
     try {
-      return await this.processRepository.createDepartment(dto.nama.trim());
+      return await this.processRepository.createDepartemen(dto.nama.trim());
     } catch (error) {
       this.rethrowKnownConflict(error, 'Nama departemen sudah digunakan');
     }
   }
 
-  async updateDepartment(departmentId: string, dto: UpdateDepartmentDto) {
+  async updateDepartemen(departemenId: string, dto: UpdateDepartemenDto) {
     if (dto.nama === undefined) {
       throw new BadRequestException('Tidak ada perubahan departemen');
     }
     try {
-      return await this.processRepository.updateDepartment(departmentId, dto.nama.trim());
+      return await this.processRepository.updateDepartemen(departemenId, dto.nama.trim());
     } catch (error) {
       this.rethrowKnownConflict(error, 'Departemen tidak ditemukan atau nama sudah digunakan');
     }
@@ -39,38 +39,38 @@ export class ProcessService {
     return this.processRepository.listAssignableUsers(search);
   }
 
-  listProcesses() {
-    return this.processRepository.listProcesses();
+  listProsesBisnises() {
+    return this.processRepository.listProsesBisnises();
   }
 
-  async createProcess(dto: CreateProcessDto) {
+  async createProsesBisnis(dto: CreateProsesBisnisDto) {
     const memberIds = this.normalizeMemberIds(dto.memberIds);
-    const departmentId = await this.resolveDepartment(dto.scope, dto.departmentId);
+    const departemenId = await this.resolveDepartemen(dto.scope, dto.departemenId);
     await this.assertTeam(dto.ownerId, memberIds);
 
-    return this.processRepository.createProcess({
+    return this.processRepository.createProsesBisnis({
       nama: dto.nama.trim(),
       scope: dto.scope,
-      departmentId,
+      departemenId,
       ownerId: dto.ownerId,
       memberIds,
     });
   }
 
-  async updateProcess(processId: string, dto: UpdateProcessDto) {
-    const current = await this.processRepository.findProcessById(processId);
+  async updateProsesBisnis(prosesBisnisId: string, dto: UpdateProsesBisnisDto) {
+    const current = await this.processRepository.findProsesBisnisById(prosesBisnisId);
     if (current === null) {
-      throw new NotFoundException('Process tidak ditemukan');
+      throw new NotFoundException('Proses Bisnis tidak ditemukan');
     }
 
     const scope = dto.scope ?? current.scope;
-    const requestedDepartment =
-      dto.departmentId !== undefined
-        ? dto.departmentId
-        : dto.scope === OrganizationalScope.FACULTY
+    const requestedDepartemen =
+      dto.departemenId !== undefined
+        ? dto.departemenId
+        : dto.scope === LingkupOrganisasi.FACULTY
           ? null
-          : current.departmentId;
-    const departmentId = await this.resolveDepartment(scope, requestedDepartment);
+          : current.departemenId;
+    const departemenId = await this.resolveDepartemen(scope, requestedDepartemen);
     const ownerId = dto.ownerId ?? current.ownerId;
     const memberIds = this.normalizeMemberIds(
       dto.memberIds ?? current.members.map((member) => member.penggunaId),
@@ -78,10 +78,10 @@ export class ProcessService {
 
     await this.assertTeam(ownerId, memberIds);
 
-    return this.processRepository.updateProcess(processId, {
+    return this.processRepository.updateProsesBisnis(prosesBisnisId, {
       nama: dto.nama?.trim() ?? current.nama,
       scope,
-      departmentId,
+      departemenId,
       ownerId,
       memberIds,
     });
@@ -90,41 +90,41 @@ export class ProcessService {
   private normalizeMemberIds(memberIds: string[]): string[] {
     const unique = [...new Set(memberIds)];
     if (unique.length < 1) {
-      throw new BadRequestException('Process harus memiliki setidaknya satu member');
+      throw new BadRequestException('Proses Bisnis harus memiliki setidaknya satu member');
     }
     return unique;
   }
 
   private async assertTeam(ownerId: string, memberIds: string[]): Promise<void> {
     if (memberIds.includes(ownerId)) {
-      throw new BadRequestException('Process Owner tidak perlu diduplikasi sebagai member');
+      throw new BadRequestException('Penanggung Jawab Proses Bisnis tidak perlu diduplikasi sebagai member');
     }
 
     const required = [ownerId, ...memberIds];
     const active = await this.processRepository.findActiveUsersByIds(required);
     if (active.length !== required.length) {
-      throw new BadRequestException('Process Owner dan seluruh member harus pengguna aktif');
+      throw new BadRequestException('Penanggung Jawab Proses Bisnis dan seluruh member harus pengguna aktif');
     }
   }
 
-  private async resolveDepartment(
-    scope: OrganizationalScope,
-    departmentId: string | null | undefined,
+  private async resolveDepartemen(
+    scope: LingkupOrganisasi,
+    departemenId: string | null | undefined,
   ): Promise<string | null> {
-    if (scope === OrganizationalScope.FACULTY) {
-      if (departmentId !== null && departmentId !== undefined) {
-        throw new BadRequestException('Process scope FACULTY tidak boleh memiliki departmentId');
+    if (scope === LingkupOrganisasi.FACULTY) {
+      if (departemenId !== null && departemenId !== undefined) {
+        throw new BadRequestException('Proses Bisnis scope FACULTY tidak boleh memiliki departemenId');
       }
       return null;
     }
 
-    if (!departmentId) {
-      throw new BadRequestException('Process scope DEPARTMENT wajib memiliki departmentId');
+    if (!departemenId) {
+      throw new BadRequestException('Proses Bisnis scope DEPARTMENT wajib memiliki departemenId');
     }
-    if (!(await this.processRepository.departmentExists(departmentId))) {
-      throw new BadRequestException('Department tidak ditemukan');
+    if (!(await this.processRepository.departmentExists(departemenId))) {
+      throw new BadRequestException('Departemen tidak ditemukan');
     }
-    return departmentId;
+    return departemenId;
   }
 
   private rethrowKnownConflict(error: unknown, message: string): never {

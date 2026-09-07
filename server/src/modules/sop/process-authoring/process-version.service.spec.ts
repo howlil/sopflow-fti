@@ -1,10 +1,10 @@
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import { StatusSOP } from '../../../generated/prisma';
-import type { ProcessContextService } from '../../core/process/process-context.service';
+import type { ProsesBisnisContextService } from '../../core/process/konteks-proses-bisnis.service';
 import type { SopCatalogRepository } from '../catalog/sop-catalog.repository';
 import type { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
-import { ProcessVersionService } from './process-version.service';
+import { ProsesBisnisVersionService } from './process-version.service';
 
 const user = {
   sub: 'member-a',
@@ -12,19 +12,19 @@ const user = {
   sesiTokenVersion: 1,
 } as const;
 
-describe('ProcessVersionService', () => {
-  function setup(binding: { processId: string | null } | null = { processId: 'process-a' }) {
+describe('ProsesBisnisVersionService', () => {
+  function setup(binding: { prosesBisnisId: string | null } | null = { prosesBisnisId: 'process-a' }) {
     const prisma = {
       sOP: { findUnique: jest.fn().mockResolvedValue(binding) },
     } as unknown as PrismaService;
     const processContext = {
-      assertCanAuthor: jest.fn().mockResolvedValue({ processId: 'process-a', nama: 'Process A' }),
-    } as unknown as ProcessContextService;
+      assertCanAuthor: jest.fn().mockResolvedValue({ prosesBisnisId: 'process-a', nama: 'Proses Bisnis A' }),
+    } as unknown as ProsesBisnisContextService;
     const repository = {
       findDetailIdByDetailOrSopId: jest.fn().mockResolvedValue({
         detailSopId: 'detail-v1',
         sopId: 'sop-a',
-        processId: binding?.processId ?? null,
+        prosesBisnisId: binding?.prosesBisnisId ?? null,
       }),
       findLatestDetailStatusContext: jest.fn().mockResolvedValue({ detailSopId: 'detail-v1' }),
       cloneDetailSopFromSource: jest.fn().mockResolvedValue({
@@ -50,14 +50,14 @@ describe('ProcessVersionService', () => {
       }),
     } as unknown as SopWorkbenchReader;
     return {
-      service: new ProcessVersionService(prisma, processContext, repository, workbenchReader),
+      service: new ProsesBisnisVersionService(prisma, processContext, repository, workbenchReader),
       processContext: processContext as any,
       repository: repository as any,
       workbenchReader: workbenchReader as any,
     };
   }
 
-  it('uses Process relationship for a Process-bound version', async () => {
+  it('uses Proses Bisnis relationship for a Proses Bisnis-bound version', async () => {
     const ctx = setup();
     const result = await ctx.service.createVersion(user, 'detail-v1');
 
@@ -67,11 +67,11 @@ describe('ProcessVersionService', () => {
       penggunaId: 'member-a',
     });
     expect(ctx.workbenchReader.getForDetail).toHaveBeenCalledWith('detail-v2', undefined);
-    expect(result.detail.sop).toMatchObject({ processId: 'process-a', processNama: 'Process A' });
+    expect(result.detail.sop).toMatchObject({ prosesBisnisId: 'process-a', processNama: 'Proses Bisnis A' });
   });
 
-  it('rejects an SOP without native Process ownership', async () => {
-    const ctx = setup({ processId: null });
+  it('rejects an SOP without native Penanggung Jawab Proses Bisnisship', async () => {
+    const ctx = setup({ prosesBisnisId: null });
 
     await expect(ctx.service.createVersion(user, 'detail-v1')).rejects.toBeInstanceOf(
       ConflictException,
@@ -80,10 +80,10 @@ describe('ProcessVersionService', () => {
     expect(ctx.repository.cloneDetailSopFromSource).not.toHaveBeenCalled();
   });
 
-  it('denies an unrelated Process actor before cloning', async () => {
+  it('denies an unrelated Proses Bisnis actor before cloning', async () => {
     const ctx = setup();
     ctx.processContext.assertCanAuthor.mockRejectedValueOnce(
-      new ForbiddenException('Akses ditolak: pengguna bukan Process Owner atau Process Member'),
+      new ForbiddenException('Akses ditolak: pengguna bukan Penanggung Jawab Proses Bisnis atau Anggota Proses Bisnis'),
     );
 
     await expect(ctx.service.createVersion(user, 'detail-v1')).rejects.toBeInstanceOf(
@@ -92,7 +92,7 @@ describe('ProcessVersionService', () => {
     expect(ctx.repository.cloneDetailSopFromSource).not.toHaveBeenCalled();
   });
 
-  it('reads native version history through Process authorization', async () => {
+  it('reads native version history through Proses Bisnis authorization', async () => {
     const ctx = setup();
 
     await expect(ctx.service.getVersionHistory(user, 'sop-a')).resolves.toMatchObject([
@@ -106,8 +106,8 @@ describe('ProcessVersionService', () => {
     expect(ctx.repository.findRiwayatVersiBySopId).toHaveBeenCalledWith('sop-a');
   });
 
-  it('rejects version history for an SOP without Process ownership', async () => {
-    const ctx = setup({ processId: null });
+  it('rejects version history for an SOP without Penanggung Jawab Proses Bisnisship', async () => {
+    const ctx = setup({ prosesBisnisId: null });
 
     await expect(ctx.service.getVersionHistory(user, 'sop-a')).rejects.toBeInstanceOf(
       ConflictException,

@@ -3,13 +3,13 @@ import { JenisDokumenTte, Prisma, StatusSOP } from '../../../generated/prisma';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { PdfSignatureMetadataInput } from '../shared/repository/tte.repository';
 
-export type ProcessTteSigningContext = {
+export type ProsesBisnisTteSigningContext = {
   readonly detailSopId: string;
   readonly sopId: string;
   readonly judulSop: string;
   readonly nomorSOP: string;
   readonly versi: number;
-  readonly processId: string;
+  readonly prosesBisnisId: string;
   readonly approval: {
     readonly approvedById: string;
     readonly authority: 'DEAN' | 'HEAD_OF_DEPARTMENT';
@@ -18,7 +18,7 @@ export type ProcessTteSigningContext = {
   };
 };
 
-type ProcessTteContextFailure = {
+type ProsesBisnisTteContextFailure = {
   readonly ok?: false;
   readonly error:
     | 'NOT_FOUND'
@@ -30,27 +30,27 @@ type ProcessTteContextFailure = {
   readonly status?: StatusSOP;
 };
 
-export type ProcessTteContextResult =
-  | { readonly ok: true; readonly context: ProcessTteSigningContext }
-  | ProcessTteContextFailure;
+export type ProsesBisnisTteContextResult =
+  | { readonly ok: true; readonly context: ProsesBisnisTteSigningContext }
+  | ProsesBisnisTteContextFailure;
 
-export type ProcessTtePreparedDocument = ProcessTteSigningContext & {
+export type ProsesBisnisTtePreparedDocument = ProsesBisnisTteSigningContext & {
   readonly dokumenTteId: string;
   readonly hashDokumen: string;
 };
 
-type ProcessTtePrepareFailure =
-  | ProcessTteContextFailure
+type ProsesBisnisTtePrepareFailure =
+  | ProsesBisnisTteContextFailure
   | {
       readonly ok?: false;
       readonly error: 'FORBIDDEN_SIGNER' | 'INVALID_DOC_PARENT' | 'ALREADY_SIGNED';
     };
 
-export type ProcessTtePrepareResult =
-  | { readonly ok: true; readonly item: ProcessTtePreparedDocument }
-  | ProcessTtePrepareFailure;
+export type ProsesBisnisTtePrepareResult =
+  | { readonly ok: true; readonly item: ProsesBisnisTtePreparedDocument }
+  | ProsesBisnisTtePrepareFailure;
 
-export type ProcessTteFinalizeResult =
+export type ProsesBisnisTteFinalizeResult =
   | {
       readonly ok: true;
       readonly detailSopId: string;
@@ -58,21 +58,21 @@ export type ProcessTteFinalizeResult =
       readonly authority: 'DEAN' | 'HEAD_OF_DEPARTMENT';
       readonly authorityKey: string;
     }
-  | ProcessTtePrepareFailure
+  | ProsesBisnisTtePrepareFailure
   | { readonly ok?: false; readonly error: 'SOP_STATUS_DRIFT' };
 
-export type ProcessTteFinalizeSideEffect = (
+export type ProsesBisnisTteFinalizeSideEffect = (
   tx: Prisma.TransactionClient,
-  context: ProcessTteSigningContext,
+  context: ProsesBisnisTteSigningContext,
 ) => Promise<void>;
 
-class ProcessTteStatusDriftError extends Error {}
+class ProsesBisnisTteStatusDriftError extends Error {}
 
 @Injectable()
-export class ProcessTteRepository {
+export class ProsesBisnisTteRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findSigningContext(detailOrSopId: string): Promise<ProcessTteContextResult> {
+  async findSigningContext(detailOrSopId: string): Promise<ProsesBisnisTteContextResult> {
     return this.prisma.$transaction((tx) => this.resolveContext(tx, detailOrSopId));
   }
 
@@ -82,7 +82,7 @@ export class ProcessTteRepository {
     hashDokumen: string;
     nomorDokumen: string;
     judulDokumen: string;
-  }): Promise<ProcessTtePrepareResult> {
+  }): Promise<ProsesBisnisTtePrepareResult> {
     return this.prisma.$transaction(async (tx) => {
       const resolved = await this.resolveContext(tx, params.detailOrSopId);
       if (!resolved.ok) return resolved;
@@ -102,13 +102,13 @@ export class ProcessTteRepository {
             hashDokumen: params.hashDokumen,
             jenisDokumen: JenisDokumenTte.SOP_BERLAKU,
             detailSopId: context.detailSopId,
-            processId: context.processId,
+            prosesBisnisId: context.prosesBisnisId,
           },
         });
       } else {
         if (
           dokumen.detailSopId !== context.detailSopId ||
-          dokumen.processId !== context.processId ||
+          dokumen.prosesBisnisId !== context.prosesBisnisId ||
           dokumen.jenisDokumen !== JenisDokumenTte.SOP_BERLAKU
         ) {
           return { error: 'INVALID_DOC_PARENT' as const };
@@ -126,7 +126,7 @@ export class ProcessTteRepository {
             nomorDokumen: params.nomorDokumen,
             judulDokumen: params.judulDokumen,
             hashDokumen: params.hashDokumen,
-            processId: context.processId,
+            prosesBisnisId: context.prosesBisnisId,
           },
         });
       }
@@ -154,8 +154,8 @@ export class ProcessTteRepository {
       pdfSizeBytes: number;
       signatureMetadata: PdfSignatureMetadataInput;
     },
-    onFinalizeInTransaction?: ProcessTteFinalizeSideEffect,
-  ): Promise<ProcessTteFinalizeResult> {
+    onFinalizeInTransaction?: ProsesBisnisTteFinalizeSideEffect,
+  ): Promise<ProsesBisnisTteFinalizeResult> {
     try {
       return await this.prisma.$transaction(async (tx) => {
         const resolved = await this.resolveContext(tx, params.detailOrSopId);
@@ -172,7 +172,7 @@ export class ProcessTteRepository {
           dokumen === null ||
           dokumen.dokumenTteId !== params.dokumenTteId ||
           dokumen.detailSopId !== context.detailSopId ||
-          dokumen.processId !== context.processId ||
+          dokumen.prosesBisnisId !== context.prosesBisnisId ||
           dokumen.jenisDokumen !== JenisDokumenTte.SOP_BERLAKU
         ) {
           return { error: 'INVALID_DOC_PARENT' as const };
@@ -219,7 +219,7 @@ export class ProcessTteRepository {
           },
         });
         if (promoted.count !== 1) {
-          throw new ProcessTteStatusDriftError();
+          throw new ProsesBisnisTteStatusDriftError();
         }
 
         await tx.riwayatTandaTangan.create({
@@ -264,7 +264,7 @@ export class ProcessTteRepository {
         };
       });
     } catch (error) {
-      if (error instanceof ProcessTteStatusDriftError) {
+      if (error instanceof ProsesBisnisTteStatusDriftError) {
         return { error: 'SOP_STATUS_DRIFT' as const };
       }
       throw error;
@@ -274,7 +274,7 @@ export class ProcessTteRepository {
   private async resolveContext(
     tx: Prisma.TransactionClient,
     detailOrSopId: string,
-  ): Promise<ProcessTteContextResult> {
+  ): Promise<ProsesBisnisTteContextResult> {
     const direct = await tx.detailSOP.findUnique({
       where: { detailSopId: detailOrSopId },
       select: {
@@ -283,7 +283,7 @@ export class ProcessTteRepository {
         nomorSOP: true,
         versi: true,
         status: true,
-        sop: { select: { processId: true, judul: true } },
+        sop: { select: { prosesBisnisId: true, judul: true } },
       },
     });
     const detail =
@@ -297,7 +297,7 @@ export class ProcessTteRepository {
           nomorSOP: true,
           versi: true,
           status: true,
-          sop: { select: { processId: true, judul: true } },
+          sop: { select: { prosesBisnisId: true, judul: true } },
         },
       }));
     if (detail === null) return { error: 'NOT_FOUND' as const };
@@ -311,13 +311,13 @@ export class ProcessTteRepository {
       return { error: 'NOT_LATEST' as const };
     }
 
-    const processId = detail.sop.processId;
-    if (processId === null) return { error: 'UNASSIGNED_ARCHIVE' as const };
+    const prosesBisnisId = detail.sop.prosesBisnisId;
+    if (prosesBisnisId === null) return { error: 'UNASSIGNED_ARCHIVE' as const };
 
     const approval = await tx.processFinalApproval.findUnique({
       where: { detailSopId: detail.detailSopId },
       select: {
-        processId: true,
+        prosesBisnisId: true,
         approvedById: true,
         authority: true,
         authorityKey: true,
@@ -325,7 +325,7 @@ export class ProcessTteRepository {
       },
     });
     if (approval === null) return { error: 'NOT_APPROVED' as const };
-    if (approval.processId !== processId) {
+    if (approval.prosesBisnisId !== prosesBisnisId) {
       return { error: 'APPROVAL_CONTEXT_DRIFT' as const };
     }
     if (detail.status !== StatusSOP.TTE_PENDING) {
@@ -340,7 +340,7 @@ export class ProcessTteRepository {
         judulSop: detail.sop.judul,
         nomorSOP: detail.nomorSOP,
         versi: detail.versi,
-        processId,
+        prosesBisnisId,
         approval: {
           approvedById: approval.approvedById,
           authority: approval.authority,

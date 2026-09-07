@@ -1,5 +1,5 @@
 /**
- * Dialog Buat SOP Baru — Process + judul + nomor SOP; server membuat header + DetailSOP v1 (DRAFT).
+ * Dialog Buat SOP Baru — ProsesBisnis + judul + nomor SOP; server membuat header + DetailSOP v1 (DRAFT).
  */
 import { useState } from "react";
 import { FileText } from "lucide-react";
@@ -15,17 +15,17 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/useToast";
-import { useMyProcesses } from "@/api/process-context";
+import { useMyProsesBisnises } from "@/api/konteks-proses-bisnis";
 
 export interface BuatSOPDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Pemanggilan mutasi create SOP (toast/error di parent). */
-  onCreate: (data: { processId: string; judul: string; nomorSop: string }) => Promise<void>;
+  onCreate: (data: { prosesBisnisId: string; judul: string; nomorSop: string }) => Promise<void>;
 }
 
 const EMPTY_FORM = {
-  processId: "",
+  prosesBisnisId: "",
   judulSOP: "",
   nomorSop: "",
 };
@@ -36,17 +36,17 @@ export function BuatSOPDialog({
   onCreate,
 }: BuatSOPDialogProps) {
   const [formData, setFormData] = useState(EMPTY_FORM);
-  const { data: processes = [], isLoading: isLoadingProcesses } = useMyProcesses();
+  const { data: processes = [], isLoading: isLoadingProsesBisnises } = useMyProsesBisnises();
   const { showToast } = useToast();
 
   const handleSubmit = async () => {
-    if (!formData.processId || !formData.judulSOP?.trim() || !formData.nomorSop?.trim()) {
-      showToast("Mohon pilih Process dan lengkapi Judul serta Nomor SOP", "error");
+    if (!formData.prosesBisnisId || !formData.judulSOP?.trim() || !formData.nomorSop?.trim()) {
+      showToast("Mohon pilih Proses Bisnis dan lengkapi Judul serta Nomor SOP", "error");
       return;
     }
 
     const data = {
-      processId: formData.processId,
+      prosesBisnisId: formData.prosesBisnisId,
       judul: formData.judulSOP.trim(),
       nomorSop: formData.nomorSop.trim(),
     };
@@ -73,31 +73,31 @@ export function BuatSOPDialog({
         <DialogHeader>
           <DialogTitle className="text-sm">Buat SOP Baru</DialogTitle>
           <DialogDescription className="text-xs">
-            SOP harus dibuat di Process tempat Anda menjadi Process Owner atau Member.
+            SOP harus dibuat di ProsesBisnis tempat Anda menjadi ProsesBisnis Owner atau Member.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 pt-1">
-          <FormField label="Process" required>
+          <FormField label="Proses Bisnis" required>
             <select
               className="h-9 w-full rounded-control border border-border bg-surface px-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              value={formData.processId}
-              disabled={isLoadingProcesses}
+              value={formData.prosesBisnisId}
+              disabled={isLoadingProsesBisnises}
               onChange={(event) =>
-                setFormData((prev) => ({ ...prev, processId: event.target.value }))
+                setFormData((prev) => ({ ...prev, prosesBisnisId: event.target.value }))
               }
             >
               <option value="">
-                {isLoadingProcesses ? "Memuat Process..." : "Pilih Process"}
+                {isLoadingProsesBisnises ? "Memuat Proses Bisnis..." : "Pilih Proses Bisnis"}
               </option>
               {processes.map((process) => (
-                <option key={process.processId} value={process.processId}>
-                  {process.nama} · {process.scope === "FACULTY" ? "Faculty" : process.department?.nama ?? "Department"}
+                <option key={process.prosesBisnisId} value={process.prosesBisnisId}>
+                  {process.nama} · {process.scope === "FACULTY" ? "Faculty" : process.department?.nama ?? "Departemen"}
                 </option>
               ))}
             </select>
-            {!isLoadingProcesses && processes.length === 0 ? (
+            {!isLoadingProsesBisnises && processes.length === 0 ? (
               <p className="mt-1 text-xs text-secondary-foreground">
-                Anda belum ditugaskan sebagai Process Owner atau Member.
+                Anda belum ditugaskan sebagai ProsesBisnis Owner atau Member.
               </p>
             ) : null}
           </FormField>

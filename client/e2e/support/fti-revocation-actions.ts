@@ -10,15 +10,15 @@ import {
 export interface RevocationResult {
   detailSopId: string
   sopId: string
-  processId: string
+  prosesBisnisId: string
   status: 'REVOKED'
 }
 
-export async function revokeProcessSopViaApi(
+export async function revokeProsesBisnisSopViaApi(
   api: APIRequestContext,
   detailSopId: string,
 ): Promise<RevocationResult> {
-  return apiPost<RevocationResult>(api, `/process-revocation/${detailSopId}/revoke`)
+  return apiPost<RevocationResult>(api, `/pencabutan-sop/${detailSopId}/revoke`)
 }
 
 export async function expectRevocationRejectedViaApi(
@@ -26,11 +26,11 @@ export async function expectRevocationRejectedViaApi(
   detailSopId: string,
   expectedStatus: number,
 ): Promise<void> {
-  const response = await api.post(toApiUrl(`/process-revocation/${detailSopId}/revoke`))
+  const response = await api.post(toApiUrl(`/pencabutan-sop/${detailSopId}/revoke`))
   expect(response.status()).toBe(expectedStatus)
 }
 
-export async function revokeProcessSopViaUi(
+export async function revokeProsesBisnisSopViaUi(
   page: Page,
   title: string,
   authorityLabel: string,
@@ -57,7 +57,7 @@ export async function revokeProcessSopViaUi(
   await expectNoAppShellError(page)
 }
 
-export async function expectProcessSopAbsentFromPublicArchive(
+export async function expectProsesBisnisSopAbsentFromPublicArchive(
   page: Page,
   title: string,
 ): Promise<void> {

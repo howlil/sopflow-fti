@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { ProcessApprovalPage } from '@/pages/approval/ProcessApprovalPage'
+import { ProsesBisnisApprovalPage } from '@/pages/approval/ProsesBisnisApprovalPage'
 
 export const Route = createFileRoute('/approval/')({
-  component: ProcessApprovalPage,
+  component: ProsesBisnisApprovalPage,
 })

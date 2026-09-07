@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import type { OrganizationalScope } from '../../../generated/prisma';
+import type { LingkupOrganisasi } from '../../../generated/prisma';
 
 const userSelect = {
   penggunaId: true,
@@ -11,24 +11,24 @@ const userSelect = {
 } as const;
 
 @Injectable()
-export class ProcessRepository {
+export class ProsesBisnisRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  listDepartments() {
+  listDepartemens() {
     return this.prisma.department.findMany({ orderBy: { nama: 'asc' } });
   }
 
-  createDepartment(nama: string) {
+  createDepartemen(nama: string) {
     return this.prisma.department.create({ data: { nama } });
   }
 
-  updateDepartment(departmentId: string, nama: string) {
-    return this.prisma.department.update({ where: { departmentId }, data: { nama } });
+  updateDepartemen(departemenId: string, nama: string) {
+    return this.prisma.department.update({ where: { departemenId }, data: { nama } });
   }
 
-  async departmentExists(departmentId: string): Promise<boolean> {
+  async departmentExists(departemenId: string): Promise<boolean> {
     return (
-      (await this.prisma.department.count({ where: { departmentId } })) === 1
+      (await this.prisma.department.count({ where: { departemenId } })) === 1
     );
   }
 
@@ -60,7 +60,7 @@ export class ProcessRepository {
     });
   }
 
-  listProcesses() {
+  listProsesBisnises() {
     return this.prisma.process.findMany({
       include: {
         department: true,
@@ -74,9 +74,9 @@ export class ProcessRepository {
     });
   }
 
-  findProcessById(processId: string) {
+  findProsesBisnisById(prosesBisnisId: string) {
     return this.prisma.process.findUnique({
-      where: { processId },
+      where: { prosesBisnisId },
       include: {
         department: true,
         owner: { select: userSelect },
@@ -88,10 +88,10 @@ export class ProcessRepository {
     });
   }
 
-  createProcess(input: {
+  createProsesBisnis(input: {
     nama: string;
-    scope: OrganizationalScope;
-    departmentId: string | null;
+    scope: LingkupOrganisasi;
+    departemenId: string | null;
     ownerId: string;
     memberIds: string[];
   }) {
@@ -99,7 +99,7 @@ export class ProcessRepository {
       data: {
         nama: input.nama,
         scope: input.scope,
-        departmentId: input.departmentId,
+        departemenId: input.departemenId,
         ownerId: input.ownerId,
         members: { create: input.memberIds.map((penggunaId) => ({ penggunaId })) },
       },
@@ -114,22 +114,22 @@ export class ProcessRepository {
     });
   }
 
-  updateProcess(
-    processId: string,
+  updateProsesBisnis(
+    prosesBisnisId: string,
     input: {
       nama: string;
-      scope: OrganizationalScope;
-      departmentId: string | null;
+      scope: LingkupOrganisasi;
+      departemenId: string | null;
       ownerId: string;
       memberIds: string[];
     },
   ) {
     return this.prisma.process.update({
-      where: { processId },
+      where: { prosesBisnisId },
       data: {
         nama: input.nama,
         scope: input.scope,
-        departmentId: input.departmentId,
+        departemenId: input.departemenId,
         ownerId: input.ownerId,
         members: {
           deleteMany: {},

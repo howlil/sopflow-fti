@@ -21,30 +21,30 @@ import {
   type JwtAccessPayload,
 } from '../../core/auth/helpers/auth.shared';
 import {
-  ProcessNotificationService,
-  type ProcessInAppNotification,
+  NotifikasiProsesBisnisService,
+  type ProsesBisnisInAppNotification,
 } from './process-notification.service';
 import { NotificationEventsService } from '../shared/notification-events.service';
 
 @ApiTags('Notifications')
 @Controller('notifications/process')
 @UseGuards(JwtAuthGuard)
-export class ProcessNotificationController {
+export class NotifikasiProsesBisnisController {
   constructor(
-    private readonly service: ProcessNotificationService,
+    private readonly service: NotifikasiProsesBisnisService,
     private readonly notificationEvents: NotificationEventsService,
   ) {}
 
   @Get()
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
-  @ApiOperation({ summary: 'Daftar notifikasi Process milik sesi saat ini' })
+  @ApiOperation({ summary: 'Daftar notifikasi Proses Bisnis milik sesi saat ini' })
   @ApiResponse({ status: 200 })
   async findMine(
     @Req() req: Request & { user: JwtAccessPayload },
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
-  ): Promise<ApiSuccessResponse<ProcessInAppNotification[]>> {
+  ): Promise<ApiSuccessResponse<ProsesBisnisInAppNotification[]>> {
     return {
-      message: 'Daftar notifikasi Process berhasil diambil',
+      message: 'Daftar notifikasi Proses Bisnis berhasil diambil',
       success: true,
       data: await this.service.findMine(req.user.sub, limit),
     };
@@ -52,12 +52,12 @@ export class ProcessNotificationController {
 
   @Get('summary')
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
-  @ApiOperation({ summary: 'Ringkasan unread notification Process sesi saat ini' })
+  @ApiOperation({ summary: 'Ringkasan unread notification Proses Bisnis sesi saat ini' })
   async summary(
     @Req() req: Request & { user: JwtAccessPayload },
   ): Promise<ApiSuccessResponse<{ unreadCount: number }>> {
     return {
-      message: 'Ringkasan notifikasi Process berhasil diambil',
+      message: 'Ringkasan notifikasi Proses Bisnis berhasil diambil',
       success: true,
       data: await this.service.getSummary(req.user.sub),
     };
@@ -65,7 +65,7 @@ export class ProcessNotificationController {
 
   @Sse('stream')
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
-  @ApiOperation({ summary: 'Stream perubahan notifikasi Process via Server-Sent Events' })
+  @ApiOperation({ summary: 'Stream perubahan notifikasi Proses Bisnis via Server-Sent Events' })
   stream(@Req() req: Request & { user: JwtAccessPayload }): Observable<MessageEvent> {
     const penggunaId = req.user.sub;
     const changed$ = this.notificationEvents.events$.pipe(
@@ -84,28 +84,28 @@ export class ProcessNotificationController {
     return merge(changed$, heartbeat$);
   }
 
-  @Post('items/:processNotificationId/read')
+  @Post('items/:notifikasiProsesBisnisId/read')
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
-  @ApiOperation({ summary: 'Tandai satu notifikasi Process sebagai dibaca' })
+  @ApiOperation({ summary: 'Tandai satu notifikasi Proses Bisnis sebagai dibaca' })
   async markRead(
     @Req() req: Request & { user: JwtAccessPayload },
-    @Param('processNotificationId', ParseUUIDPipe) processNotificationId: string,
+    @Param('notifikasiProsesBisnisId', ParseUUIDPipe) notifikasiProsesBisnisId: string,
   ): Promise<ApiSuccessResponse<{ unreadCount: number }>> {
     return {
-      message: 'Notifikasi Process berhasil ditandai dibaca',
+      message: 'Notifikasi Proses Bisnis berhasil ditandai dibaca',
       success: true,
-      data: await this.service.markRead(req.user.sub, processNotificationId),
+      data: await this.service.markRead(req.user.sub, notifikasiProsesBisnisId),
     };
   }
 
   @Post('read-all')
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
-  @ApiOperation({ summary: 'Tandai semua notifikasi Process sebagai dibaca' })
+  @ApiOperation({ summary: 'Tandai semua notifikasi Proses Bisnis sebagai dibaca' })
   async markAllRead(
     @Req() req: Request & { user: JwtAccessPayload },
   ): Promise<ApiSuccessResponse<{ unreadCount: number; updated: number }>> {
     return {
-      message: 'Semua notifikasi Process berhasil ditandai dibaca',
+      message: 'Semua notifikasi Proses Bisnis berhasil ditandai dibaca',
       success: true,
       data: await this.service.markAllRead(req.user.sub),
     };

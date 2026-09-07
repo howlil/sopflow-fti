@@ -6,13 +6,13 @@ import {
 } from '@nestjs/common';
 import type { JwtAccessPayload } from '../../../common';
 import { JenisLangkahProsedur, StatusSOP } from '../../../generated/prisma';
-import { ProcessContextService } from '../../core/process/process-context.service';
+import { ProsesBisnisContextService } from '../../core/process/konteks-proses-bisnis.service';
 import { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
 import { SopProsedurRepository } from './sop-prosedur.repository';
 import { SopProsedurService } from './sop-prosedur.service';
 
-describe('SopProsedurService Process-native actor policy', () => {
+describe('SopProsedurService Proses Bisnis-native actor policy', () => {
   const repo = {
     findDetailIdByDetailOrSopId: jest.fn(),
     findDetailStatus: jest.fn(),
@@ -27,7 +27,7 @@ describe('SopProsedurService Process-native actor policy', () => {
   };
   const processContext = { assertCanAuthor: jest.fn() };
 
-  const processMember: JwtAccessPayload = {
+  const anggotaProsesBisnis: JwtAccessPayload = {
     sub: 'member-1',
     email: 'member@fti.test',
   };
@@ -43,31 +43,31 @@ describe('SopProsedurService Process-native actor policy', () => {
     service = new SopProsedurService(
       repo as unknown as SopProsedurRepository,
       catalog as unknown as SopWorkbenchReader,
-      processContext as unknown as ProcessContextService,
+      processContext as unknown as ProsesBisnisContextService,
     );
     repo.findDetailIdByDetailOrSopId.mockResolvedValue({
       detailSopId: 'detail-1',
       sopId: 'sop-1',
-      processId: 'process-1',
+      prosesBisnisId: 'process-1',
     });
     repo.findDetailStatus.mockResolvedValue(StatusSOP.DRAFT);
     repo.findGlobalPelaksana.mockResolvedValue(new Map([['actor-1', 'Dosen']]));
     repo.findExistingSwimlanePelaksanaIds.mockResolvedValue(['actor-1']);
     repo.findExistingLangkahPelaksanaIds.mockResolvedValue([]);
     repo.updateProsedurTransaction.mockResolvedValue(undefined);
-    processContext.assertCanAuthor.mockResolvedValue({ processId: 'process-1' });
+    processContext.assertCanAuthor.mockResolvedValue({ prosesBisnisId: 'process-1' });
     catalog.getForDetail.mockResolvedValue(workbench);
   });
 
   it('rejects an unknown SOP before authorization work', async () => {
     repo.findDetailIdByDetailOrSopId.mockResolvedValue(null);
-    await expect(service.updateProsedur(processMember, 'missing', {})).rejects.toBeInstanceOf(
+    await expect(service.updateProsedur(anggotaProsesBisnis, 'missing', {})).rejects.toBeInstanceOf(
       NotFoundException,
     );
   });
 
-  it('allows a Process member based on Process relationship, independent from OPD shadow', async () => {
-    await service.updateProsedur(processMember, 'detail-1', {
+  it('allows a Proses Bisnis member based on Proses Bisnis relationship, independent from OPD shadow', async () => {
+    await service.updateProsedur(anggotaProsesBisnis, 'detail-1', {
       pelaksana: [{ pelaksanaId: 'actor-1' }],
     });
 
@@ -80,11 +80,11 @@ describe('SopProsedurService Process-native actor policy', () => {
     );
   });
 
-  it('propagates Process authorization denial for unrelated users', async () => {
+  it('propagates Proses Bisnis authorization denial for unrelated users', async () => {
     processContext.assertCanAuthor.mockRejectedValue(
-      new ForbiddenException('not a Process member'),
+      new ForbiddenException('not a Proses Bisnis member'),
     );
-    await expect(service.updateProsedur(processMember, 'detail-1', {})).rejects.toBeInstanceOf(
+    await expect(service.updateProsedur(anggotaProsesBisnis, 'detail-1', {})).rejects.toBeInstanceOf(
       ForbiddenException,
     );
   });
@@ -93,9 +93,9 @@ describe('SopProsedurService Process-native actor policy', () => {
     repo.findDetailIdByDetailOrSopId.mockResolvedValue({
       detailSopId: 'detail-1',
       sopId: 'sop-1',
-      processId: null,
+      prosesBisnisId: null,
     });
-    await expect(service.updateProsedur(processMember, 'detail-1', {})).rejects.toBeInstanceOf(
+    await expect(service.updateProsedur(anggotaProsesBisnis, 'detail-1', {})).rejects.toBeInstanceOf(
       ConflictException,
     );
     expect(processContext.assertCanAuthor).not.toHaveBeenCalled();
@@ -105,7 +105,7 @@ describe('SopProsedurService Process-native actor policy', () => {
   it('rejects an actor id that does not exist in the global catalog', async () => {
     repo.findGlobalPelaksana.mockResolvedValue(new Map());
     await expect(
-      service.updateProsedur(processMember, 'detail-1', {
+      service.updateProsedur(anggotaProsesBisnis, 'detail-1', {
         pelaksana: [{ pelaksanaId: 'missing-actor' }],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
@@ -115,7 +115,7 @@ describe('SopProsedurService Process-native actor policy', () => {
     repo.findGlobalPelaksana.mockResolvedValue(new Map([['actor-2', 'Mahasiswa']]));
     repo.findExistingLangkahPelaksanaIds.mockResolvedValue(['actor-1']);
     await expect(
-      service.updateProsedur(processMember, 'detail-1', {
+      service.updateProsedur(anggotaProsesBisnis, 'detail-1', {
         pelaksana: [{ pelaksanaId: 'actor-2' }],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
@@ -123,7 +123,7 @@ describe('SopProsedurService Process-native actor policy', () => {
 
   it('requires every step actor to be selected in the same SOP swimlane', async () => {
     await expect(
-      service.updateProsedur(processMember, 'detail-1', {
+      service.updateProsedur(anggotaProsesBisnis, 'detail-1', {
         langkah: [
           {
             tempId: 'step-1',
@@ -136,10 +136,10 @@ describe('SopProsedurService Process-native actor policy', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('preserves editability rules for Process-bound SOPs', async () => {
+  it('preserves editability rules for Proses Bisnis-bound SOPs', async () => {
     repo.findDetailStatus.mockResolvedValue(StatusSOP.EFFECTIVE);
     await expect(
-      service.updateProsedur(processMember, 'detail-1', {
+      service.updateProsedur(anggotaProsesBisnis, 'detail-1', {
         pelaksana: [{ pelaksanaId: 'actor-1' }],
       }),
     ).rejects.toThrow();

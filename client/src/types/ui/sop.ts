@@ -1,7 +1,7 @@
 export interface SOPDetailMetadata {
   id?: string;
   sopId?: string;
-  processId?: string;
+  prosesBisnisId?: string;
   judul?: string;
   nomor?: string;
   nomorSOP?: string;
@@ -88,7 +88,7 @@ export interface SopEditorRelatedSopOption {
 export interface SopItem {
   id: string;
   judul: string;
-  processId?: string | null;
+  prosesBisnisId?: string | null;
   status: string;
   nomorSOP?: string;
   author?: string;
@@ -111,7 +111,7 @@ export interface PelaksanaRow {
 export interface SOPTemplate {
   id?: string;
   judul: string;
-  processId?: string;
+  prosesBisnisId?: string;
   processNama?: string;
   kode?: string;
   kategori?: string;

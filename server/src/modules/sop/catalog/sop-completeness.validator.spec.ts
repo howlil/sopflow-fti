@@ -19,7 +19,7 @@ function buildMinimalWorkbench(
     namaLembaga: 'Lembaga',
     sop: {
       sopId: 'sop-1',
-      processId: 'process-1',
+      prosesBisnisId: 'process-1',
       judul: 'Judul',
       createdAt: t,
       updatedAt: t,
@@ -99,7 +99,7 @@ describe('Pengujian validator kelengkapan SOP', () => {
       buildMinimalWorkbench({
         sop: {
           sopId: 'sop-1',
-          processId: 'process-1',
+          prosesBisnisId: 'process-1',
           judul: '  ',
           createdAt: new Date(),
           updatedAt: new Date(),

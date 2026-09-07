@@ -4,21 +4,21 @@ The E2E suite models only current FTI actors and journeys.
 
 ## Actors
 - Platform Admin
-- Process Owner
-- Process Member / Penyusun SOP
+- ProsesBisnis Owner
+- ProsesBisnis Member / Penyusun SOP
 - Dean
-- Head of Department
+- Head of Departemen
 
 ## Seed
-Run the server target seed before browser journeys. The seed creates Departments, Processes, owner eligibility, Process membership, organizational authority assignments, Peraturan, and Pelaksana.
+Run the server target seed before browser journeys. The seed creates Departemens, ProsesBisnises, owner eligibility, ProsesBisnis membership, organizational authority assignments, Peraturan, and Pelaksana.
 
 ## Environment
 Use the target E2E identities supplied by `client/e2e/fixtures/target-users.ts` and the configured seed password. Do not add global workflow-role fixtures.
 
 ## Critical journeys
-- Process-scoped SOP authoring
-- Process Owner review and revision
-- Faculty/Department contextual final approval
+- ProsesBisnis-scoped SOP authoring
+- ProsesBisnis Owner review and revision
+- Faculty/Departemen contextual final approval
 - TTE and public verification
 - version integrity / supersede
 - revocation

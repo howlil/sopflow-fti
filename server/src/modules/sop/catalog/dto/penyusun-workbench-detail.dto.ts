@@ -19,8 +19,8 @@ export class PenyusunWorkbenchSopHeaderDto {
   @ApiProperty()
   readonly id!: string;
 
-  @ApiPropertyOptional({ format: 'uuid', nullable: true, description: 'Native Process owner' })
-  readonly processId!: string | null;
+  @ApiPropertyOptional({ format: 'uuid', nullable: true, description: 'Native Penanggung Jawab Proses Bisnis' })
+  readonly prosesBisnisId!: string | null;
 
   @ApiPropertyOptional({ nullable: true, description: 'Nama Proses Bisnis pada projection native' })
   readonly processNama?: string | null;
@@ -120,7 +120,7 @@ export class PenyusunWorkbenchDetailDto {
   @ApiPropertyOptional({
     type: () => SigningAuthorityRingkasDto,
     nullable: true,
-    description: 'Pejabat TTE kontekstual dari lingkup Process (Dekan atau Ketua Jurusan).',
+    description: 'Pejabat TTE kontekstual dari lingkup Proses Bisnis (Dekan atau Ketua Jurusan).',
   })
   readonly signingAuthority?: SigningAuthorityRingkasDto | null;
 

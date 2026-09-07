@@ -4,22 +4,22 @@ import type { Request } from 'express';
 import { type ApiSuccessResponse, JwtAuthGuard } from '../../../common';
 import type { JwtAccessPayload } from '../auth/helpers/auth.shared';
 import { ACCESS_TOKEN_COOKIE_NAME } from '../auth/helpers/auth.shared';
-import { ProcessContextService } from './process-context.service';
+import { ProsesBisnisContextService } from './konteks-proses-bisnis.service';
 
-@ApiTags('Process Context')
+@ApiTags('Proses Bisnis Context')
 @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
 @Controller('process-context')
 @UseGuards(JwtAuthGuard)
-export class ProcessContextController {
-  constructor(private readonly processContextService: ProcessContextService) {}
+export class ProsesBisnisContextController {
+  constructor(private readonly processContextService: ProsesBisnisContextService) {}
 
   @Get('mine')
-  @ApiOperation({ summary: 'Daftar Process tempat pengguna menjadi owner atau member' })
+  @ApiOperation({ summary: 'Daftar Proses Bisnis tempat pengguna menjadi owner atau member' })
   async mine(
     @Req() req: Request & { user: JwtAccessPayload },
   ): Promise<ApiSuccessResponse<unknown>> {
     return {
-      message: 'Process pengguna berhasil diambil',
+      message: 'Proses Bisnis pengguna berhasil diambil',
       success: true,
       data: await this.processContextService.listForUser(req.user.sub),
     };

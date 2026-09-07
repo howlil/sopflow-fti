@@ -1,22 +1,22 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { OrganizationalScope } from '../../../../generated/prisma';
+import { LingkupOrganisasi } from '../../../../generated/prisma';
 
-/** Process FTI yang memiliki minimal satu SOP resmi berstatus BERLAKU. */
-export class PublicProcessItemDto {
+/** ProsesBisnis FTI yang memiliki minimal satu SOP resmi berstatus BERLAKU. */
+export class PublicProsesBisnisItemDto {
   @ApiProperty({ format: 'uuid' })
-  readonly processId!: string;
+  readonly prosesBisnisId!: string;
 
   @ApiProperty()
   readonly nama!: string;
 
-  @ApiProperty({ enum: OrganizationalScope })
-  readonly scope!: OrganizationalScope;
+  @ApiProperty({ enum: LingkupOrganisasi })
+  readonly scope!: LingkupOrganisasi;
 
   @ApiPropertyOptional({ format: 'uuid', nullable: true })
-  readonly departmentId!: string | null;
+  readonly departemenId!: string | null;
 
   @ApiPropertyOptional({ nullable: true })
-  readonly departmentName!: string | null;
+  readonly namaDepartemen!: string | null;
 
   @ApiProperty()
   readonly jumlahSopBerlaku!: number;

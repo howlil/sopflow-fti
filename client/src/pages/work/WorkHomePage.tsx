@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { FileText, ShieldCheck, Workflow, ArrowRight } from "lucide-react";
-import { useMyProcesses } from "@/api/process-context";
-import { useProcessOwnerSelfService } from "@/api/process-owner";
+import { useMyProsesBisnises } from "@/api/konteks-proses-bisnis";
+import { useProsesBisnisOwnerSelfService } from "@/api/process-owner";
 import { useMyOrganizationalAuthorities } from "@/api/organizational-authority";
 import { ListPageLayout } from "@/components/layout/ListPageLayout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useAuthStore } from "@/stores/authStore";
 import { ROUTES } from "@/utils/constants";
-import { ProcessOwnerSelfServicePanel } from "./ProcessOwnerSelfServicePanel";
+import { ProsesBisnisOwnerSelfServicePanel } from "./ProsesBisnisOwnerSelfServicePanel";
 
 function CapabilityCard({
   title,
@@ -50,21 +50,21 @@ function CapabilityCard({
 export function WorkHomePage() {
   useDocumentTitle("Beranda Kerja");
   const user = useAuthStore((state) => state.user);
-  const { data: processes = [], isLoading: isLoadingProcesses } = useMyProcesses();
+  const { data: processes = [], isLoading: isLoadingProsesBisnises } = useMyProsesBisnises();
   const {
     scopes: ownerScopes,
-    processes: ownedProcesses,
+    processes: ownedProsesBisnises,
     isLoading: isLoadingOwnerContext,
-  } = useProcessOwnerSelfService();
+  } = useProsesBisnisOwnerSelfService();
   const { data: authorities = [], isLoading: isLoadingAuthorities } =
     useMyOrganizationalAuthorities();
 
   const ownerCount = user ? processes.filter((process) => process.ownerId === user.id).length : 0;
   const memberCount = Math.max(processes.length - ownerCount, 0);
-  const isLoading = isLoadingProcesses || isLoadingAuthorities || isLoadingOwnerContext;
+  const isLoading = isLoadingProsesBisnises || isLoadingAuthorities || isLoadingOwnerContext;
   const hasContextualCapability =
     processes.length > 0 ||
-    ownedProcesses.length > 0 ||
+    ownedProsesBisnises.length > 0 ||
     ownerScopes.length > 0 ||
     authorities.length > 0 ||
     user?.platformRole === "SUPER_ADMIN";
@@ -76,7 +76,7 @@ export function WorkHomePage() {
           {user?.nama ? `Halo, ${user.nama}` : "Akses kerja FTI"}
         </p>
         <p className="mt-1 max-w-3xl text-sm text-secondary-foreground">
-          Akses kerja mengikuti tanggung jawab Anda pada Process, kewenangan organisasi, dan
+          Akses kerja mengikuti tanggung jawab Anda pada ProsesBisnis, kewenangan organisasi, dan
           administrasi platform.
         </p>
       </section>
@@ -91,7 +91,7 @@ export function WorkHomePage() {
             {processes.length > 0 ? (
               <CapabilityCard
                 title="Pekerjaan SOP"
-                description={`${ownerCount} Process sebagai Owner · ${memberCount} sebagai Member. Draft, revisi, dan review yang memerlukan tindakan Anda tersedia dalam satu daftar kerja.`}
+                description={`${ownerCount} ProsesBisnis sebagai Owner · ${memberCount} sebagai Member. Draft, revisi, dan review yang memerlukan tindakan Anda tersedia dalam satu daftar kerja.`}
                 to={ROUTES.WORK_QUEUE}
                 action="Buka Pekerjaan SOP"
                 icon={FileText}
@@ -111,7 +111,7 @@ export function WorkHomePage() {
             {user?.platformRole === "SUPER_ADMIN" ? (
               <CapabilityCard
                 title="Administrasi FTI"
-                description="Kelola struktur organisasi, eligibility Process Owner, dan penugasan kewenangan organisasi."
+                description="Kelola struktur organisasi, eligibility Penanggung Jawab Proses Bisnis, dan penugasan kewenangan organisasi."
                 to={ROUTES.ADMIN.PROCESSES}
                 action="Buka Administrasi"
                 icon={Workflow}
@@ -120,14 +120,14 @@ export function WorkHomePage() {
 
             {!hasContextualCapability ? (
               <div className="rounded-surface border border-dashed border-border bg-surface p-5 text-sm text-secondary-foreground">
-                Akun ini belum memiliki penugasan Process, kewenangan organisasi, atau administrasi
+                Akun ini belum memiliki penugasan ProsesBisnis, kewenangan organisasi, atau administrasi
                 platform yang dapat digunakan.
               </div>
             ) : null}
           </div>
 
-          {ownerScopes.length > 0 || ownedProcesses.length > 0 ? (
-            <ProcessOwnerSelfServicePanel />
+          {ownerScopes.length > 0 || ownedProsesBisnises.length > 0 ? (
+            <ProsesBisnisOwnerSelfServicePanel />
           ) : null}
         </>
       )}

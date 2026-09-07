@@ -9,29 +9,29 @@ import {
   SimplePanelHeader,
 } from '@/components/ui/collapsible-side-panel'
 import type { PaginationMetaDto } from '@/types/dto/common.dto'
-import type { PublicProcessItem, PublicSopItem } from '@/types/dto/sop-public.dto'
-import { ArsipProcessSidebar } from './arsip-process-sidebar'
+import type { PublicProsesBisnisItem, PublicSopItem } from '@/types/dto/sop-public.dto'
+import { ArsipProsesBisnisSidebar } from './arsip-process-sidebar'
 import { ArsipSopPanel } from './arsip-sop-panel'
 import { ArsipSopPreviewPane } from './arsip-sop-preview-pane'
 
 export interface ArsipBrowseWorkspaceProps {
   isGlobalMode: boolean
-  processId?: string
-  selectedProcessName?: string
+  prosesBisnisId?: string
+  selectedProsesBisnisName?: string
   detailSopId?: string
   selectedSop?: PublicSopItem
   selectedSopContext?: string
-  processItems: PublicProcessItem[]
+  processItems: PublicProsesBisnisItem[]
   processFilter: string
-  onProcessFilterChange: (value: string) => void
-  onSelectProcess: (processId: string) => void
-  onChangeProcess: () => void
+  onProsesBisnisFilterChange: (value: string) => void
+  onSelectProsesBisnis: (prosesBisnisId: string) => void
+  onChangeProsesBisnis: () => void
   processLoading: boolean
   processError: boolean
   processFetching: boolean
   processPagination?: PaginationMetaDto
   processPage: number
-  onProcessPageChange: (page: number) => void
+  onProsesBisnisPageChange: (page: number) => void
   sopPanelTitle: string
   sopPanelSubtitle?: string
   sopItems: PublicSopItem[]
@@ -55,22 +55,22 @@ export interface ArsipBrowseWorkspaceProps {
 export function ArsipBrowseWorkspace(props: ArsipBrowseWorkspaceProps) {
   const {
     isGlobalMode,
-    processId,
-    selectedProcessName,
+    prosesBisnisId,
+    selectedProsesBisnisName,
     detailSopId,
     selectedSop,
     selectedSopContext,
     processItems,
     processFilter,
-    onProcessFilterChange,
-    onSelectProcess,
-    onChangeProcess,
+    onProsesBisnisFilterChange,
+    onSelectProsesBisnis,
+    onChangeProsesBisnis,
     processLoading,
     processError,
     processFetching,
     processPagination,
     processPage,
-    onProcessPageChange,
+    onProsesBisnisPageChange,
     sopPanelTitle,
     sopPanelSubtitle,
     sopItems,
@@ -91,8 +91,8 @@ export function ArsipBrowseWorkspace(props: ArsipBrowseWorkspaceProps) {
     sopEmptyHint,
   } = props
   const [navCollapsed, setNavCollapsed] = useState(false)
-  const showSopList = isGlobalMode || Boolean(processId)
-  const showProcessPicker = !isGlobalMode && !processId
+  const showSopList = isGlobalMode || Boolean(prosesBisnisId)
+  const showProsesBisnisPicker = !isGlobalMode && !prosesBisnisId
 
   return (
     <div
@@ -125,27 +125,27 @@ export function ArsipBrowseWorkspace(props: ArsipBrowseWorkspaceProps) {
               />
             </CollapsibleSidePanelHeader>
             <CollapsibleSidePanelContent className="flex min-h-0 flex-1 flex-col px-0 pb-0 pt-0">
-              {showProcessPicker ? (
-                <ArsipProcessSidebar
+              {showProsesBisnisPicker ? (
+                <ArsipProsesBisnisSidebar
                   embedded
                   compactPagination
                   items={processItems}
-                  selectedProcessId={processId}
+                  selectedProsesBisnisId={prosesBisnisId}
                   processFilter={processFilter}
-                  onProcessFilterChange={onProcessFilterChange}
-                  onSelectProcess={onSelectProcess}
+                  onProsesBisnisFilterChange={onProsesBisnisFilterChange}
+                  onSelectProsesBisnis={onSelectProsesBisnis}
                   isLoading={processLoading}
                   isError={processError}
                   isFetching={processFetching}
                   pagination={processPagination}
                   page={processPage}
-                  onPageChange={onProcessPageChange}
+                  onPageChange={onProsesBisnisPageChange}
                 />
               ) : null}
-              {!isGlobalMode && processId ? (
-                <SelectedProcessStrip
-                  processName={selectedProcessName ?? 'Process terpilih'}
-                  onChangeProcess={onChangeProcess}
+              {!isGlobalMode && prosesBisnisId ? (
+                <SelectedProsesBisnisStrip
+                  namaProsesBisnis={selectedProsesBisnisName ?? 'Proses Bisnis terpilih'}
+                  onChangeProsesBisnis={onChangeProsesBisnis}
                 />
               ) : null}
               <div className="flex min-h-0 flex-1 flex-col">
@@ -173,7 +173,7 @@ export function ArsipBrowseWorkspace(props: ArsipBrowseWorkspaceProps) {
                     onSopSearchChange={onSopSearchChange}
                   />
                 ) : (
-                  <SopListPickProcessHint />
+                  <SopListPickProsesBisnisHint />
                 )}
               </div>
             </CollapsibleSidePanelContent>
@@ -203,27 +203,27 @@ export function ArsipBrowseWorkspace(props: ArsipBrowseWorkspaceProps) {
   )
 }
 
-function SelectedProcessStrip({
-  processName,
-  onChangeProcess,
+function SelectedProsesBisnisStrip({
+  namaProsesBisnis,
+  onChangeProsesBisnis,
 }: {
-  processName: string
-  onChangeProcess: () => void
+  namaProsesBisnis: string
+  onChangeProsesBisnis: () => void
 }) {
   return (
     <div className="flex shrink-0 items-center gap-2 border-b border-border bg-surface-subtle/80 px-2 py-2 sm:px-3">
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
         <Workflow className="h-4 w-4" aria-hidden />
       </span>
-      <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{processName}</span>
+      <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{namaProsesBisnis}</span>
       <Button
         type="button"
         variant="ghost"
         size="sm"
         className="h-8 shrink-0 px-2 text-xs text-blue-700 hover:bg-blue-50"
-        onClick={onChangeProcess}
+        onClick={onChangeProsesBisnis}
       >
-        Ganti Process
+        Ganti ProsesBisnis
       </Button>
     </div>
   )
@@ -238,12 +238,12 @@ function PreviewEmptyState({ showSopList, hasManySops }: { showSopList: boolean;
           ? hasManySops
             ? 'Pilih SOP di daftar kiri, atau gunakan filter di atas daftar.'
             : 'Pilih SOP di panel kiri untuk membaca dokumen di sini.'
-          : 'Pilih Process di panel kiri, lalu pilih SOP untuk membuka pratinjau.'}
+          : 'Pilih Proses Bisnis di panel kiri, lalu pilih SOP untuk membuka pratinjau.'}
       </p>
     </section>
   )
 }
 
-function SopListPickProcessHint() {
-  return <p className="p-4 text-center text-sm text-muted-foreground">Pilih Process untuk menampilkan daftar SOP.</p>
+function SopListPickProsesBisnisHint() {
+  return <p className="p-4 text-center text-sm text-muted-foreground">Pilih ProsesBisnis untuk menampilkan daftar SOP.</p>
 }

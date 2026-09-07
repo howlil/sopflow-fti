@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ClipboardCheck, FileText, Plus } from 'lucide-react'
 import { useSopSuspense } from '@/api/sop'
-import { useMyProcesses } from '@/api/process-context'
+import { useMyProsesBisnises } from '@/api/konteks-proses-bisnis'
 import { ListPageLayout } from '@/components/layout/ListPageLayout'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -10,19 +10,19 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { BuatSOPDialog } from '@/pages/penyusun/sop/components/BuatSOPDialog'
 import { useDocumentTitle } from '@/hooks/use-document-title'
-import type { ProcessSopLifecycleProjection, SopDaftarRow } from '@/types/dto/sop.dto'
+import type { ProsesBisnisSopLifecycleProjection, SopDaftarRow } from '@/types/dto/sop.dto'
 import { ROUTES } from '@/utils/constants'
 
-type ProcessAwareSopRow = SopDaftarRow & {
-  processId?: string | null
+type ProsesBisnisAwareSopRow = SopDaftarRow & {
+  prosesBisnisId?: string | null
   processNama?: string | null
-  lifecycle: ProcessSopLifecycleProjection
+  lifecycle: ProsesBisnisSopLifecycleProjection
 }
 
 function WorkRow({
   row,
 }: {
-  row: ProcessAwareSopRow
+  row: ProsesBisnisAwareSopRow
 }) {
   const { lifecycle } = row
   const action = lifecycle.action
@@ -43,7 +43,7 @@ function WorkRow({
           <Badge variant={isActionable ? 'warning' : 'secondary'}>{lifecycle.stateLabel}</Badge>
         </div>
         <p className="text-xs text-secondary-foreground">
-          Process: <span className="font-medium text-foreground">{row.processNama ?? '—'}</span>
+          ProsesBisnis: <span className="font-medium text-foreground">{row.processNama ?? '—'}</span>
         </p>
       </CardHeader>
       <CardContent className="flex items-center justify-between gap-3 border-t border-border pt-3">
@@ -78,16 +78,16 @@ function WorkRow({
   )
 }
 
-export function ProcessWorkQueuePage() {
+export function ProsesBisnisWorkQueuePage() {
   useDocumentTitle('Pekerjaan SOP')
-  const { data: processes = [] } = useMyProcesses()
+  const { data: processes = [] } = useMyProsesBisnises()
   const { list, create } = useSopSuspense()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   const processRows = useMemo(
     () =>
-      (list as ProcessAwareSopRow[]).filter(
-        (row) => row.processId != null && row.lifecycle != null,
+      (list as ProsesBisnisAwareSopRow[]).filter(
+        (row) => row.prosesBisnisId != null && row.lifecycle != null,
       ),
     [list],
   )
@@ -117,9 +117,9 @@ export function ProcessWorkQueuePage() {
     <ListPageLayout title="Pekerjaan SOP" breadcrumb={null}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-foreground">Daftar kerja Process Anda</p>
+          <p className="text-sm font-medium text-foreground">Daftar kerja ProsesBisnis Anda</p>
           <p className="mt-1 text-xs text-secondary-foreground">
-            Tindakan ditentukan oleh tanggung jawab Anda sebagai Process Owner atau Member.
+            Tindakan ditentukan oleh tanggung jawab Anda sebagai ProsesBisnis Owner atau Member.
           </p>
         </div>
         <Button className="gap-2" onClick={() => setIsCreateOpen(true)} disabled={processes.length === 0}>
@@ -144,7 +144,7 @@ export function ProcessWorkQueuePage() {
           <EmptyState
             icon={<ClipboardCheck />}
             title="Tidak ada tindakan saat ini"
-            description="Draft, revisi, atau review Process Owner yang memerlukan tindakan Anda akan muncul di sini."
+            description="Draft, revisi, atau review Penanggung Jawab Proses Bisnis yang memerlukan tindakan Anda akan muncul di sini."
           />
         )}
       </section>

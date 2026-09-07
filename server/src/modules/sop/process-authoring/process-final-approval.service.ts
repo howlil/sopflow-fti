@@ -3,20 +3,20 @@ import type { JwtAccessPayload } from '../../../common';
 import { isPrismaUniqueConstraintError } from '../../../common/prisma/prisma-error.util';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import {
-  OrganizationalAuthority,
-  OrganizationalScope,
-  ProcessReviewDecision,
+  PejabatBerwenang,
+  LingkupOrganisasi,
+  KeputusanPemeriksaanProsesBisnis,
   StatusSOP,
 } from '../../../generated/prisma';
-import { OrganizationalAuthorityService } from '../../core/process/organizational-authority.service';
+import { PejabatBerwenangService } from '../../core/process/organizational-authority.service';
 import { mapWorkbenchPayload } from '../catalog/sop-catalog.mapper';
 import { SopCatalogRepository } from '../catalog/sop-catalog.repository';
 
 @Injectable()
-export class ProcessFinalApprovalService {
+export class PersetujuanAkhirSOPService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly authorityService: OrganizationalAuthorityService,
+    private readonly authorityService: PejabatBerwenangService,
     private readonly sopCatalogRepository: SopCatalogRepository,
   ) {}
 
@@ -25,47 +25,47 @@ export class ProcessFinalApprovalService {
     if (assignments.length === 0) return [];
 
     const isDean = assignments.some(
-      (assignment) => assignment.authority === OrganizationalAuthority.DEAN,
+      (assignment) => assignment.authority === PejabatBerwenang.DEAN,
     );
-    const departmentIds = assignments
+    const departemenIds = assignments
       .filter(
         (assignment) =>
-          assignment.authority === OrganizationalAuthority.HEAD_OF_DEPARTMENT &&
-          assignment.departmentId !== null,
+          assignment.authority === PejabatBerwenang.HEAD_OF_DEPARTMENT &&
+          assignment.departemenId !== null,
       )
-      .map((assignment) => assignment.departmentId as string);
-    if (!isDean && departmentIds.length === 0) return [];
+      .map((assignment) => assignment.departemenId as string);
+    if (!isDean && departemenIds.length === 0) return [];
 
     const processes = await this.prisma.process.findMany({
       where: {
         OR: [
-          ...(isDean ? [{ scope: OrganizationalScope.FACULTY }] : []),
-          ...(departmentIds.length > 0
-            ? [{ scope: OrganizationalScope.DEPARTMENT, departmentId: { in: departmentIds } }]
+          ...(isDean ? [{ scope: LingkupOrganisasi.FACULTY }] : []),
+          ...(departemenIds.length > 0
+            ? [{ scope: LingkupOrganisasi.DEPARTMENT, departemenId: { in: departemenIds } }]
             : []),
         ],
       },
       select: {
-        processId: true,
+        prosesBisnisId: true,
         nama: true,
         scope: true,
-        departmentId: true,
+        departemenId: true,
         department: { select: { nama: true } },
       },
     });
     if (processes.length === 0) return [];
 
-    const processById = new Map(processes.map((process) => [process.processId, process]));
+    const processById = new Map(processes.map((process) => [process.prosesBisnisId, process]));
     const nativeSops = await this.prisma.sOP.findMany({
-      where: { processId: { in: processes.map((process) => process.processId) } },
-      select: { sopId: true, processId: true },
+      where: { prosesBisnisId: { in: processes.map((process) => process.prosesBisnisId) } },
+      select: { sopId: true, prosesBisnisId: true },
     });
     if (nativeSops.length === 0) return [];
 
     const processBySopId = new Map(
       nativeSops
-        .filter((sop): sop is typeof sop & { processId: string } => sop.processId !== null)
-        .map((sop) => [sop.sopId, sop.processId]),
+        .filter((sop): sop is typeof sop & { prosesBisnisId: string } => sop.prosesBisnisId !== null)
+        .map((sop) => [sop.sopId, sop.prosesBisnisId]),
     );
     const details = await this.prisma.detailSOP.findMany({
       where: { sopId: { in: nativeSops.map((sop) => sop.sopId) } },
@@ -98,11 +98,11 @@ export class ProcessFinalApprovalService {
     const approvalByDetail = new Map(approvals.map((approval) => [approval.detailSopId, approval]));
 
     return approvalLatest.map((detail) => {
-      const processId = processBySopId.get(detail.sopId);
-      if (!processId)
-        throw new Error('Process SOP ownership disappeared while listing approval queue');
-      const process = processById.get(processId);
-      if (!process) throw new Error('Process disappeared while listing approval queue');
+      const prosesBisnisId = processBySopId.get(detail.sopId);
+      if (!prosesBisnisId)
+        throw new Error('Proses Bisnis SOP ownership disappeared while listing approval queue');
+      const process = processById.get(prosesBisnisId);
+      if (!process) throw new Error('Proses Bisnis disappeared while listing approval queue');
       const approval = approvalByDetail.get(detail.detailSopId) ?? null;
       return {
         detailSopId: detail.detailSopId,
@@ -110,10 +110,10 @@ export class ProcessFinalApprovalService {
         judul: detail.sop.judul,
         nomorSOP: detail.nomorSOP,
         versi: detail.versi,
-        processId: process.processId,
+        prosesBisnisId: process.prosesBisnisId,
         processNama: process.nama,
         scope: process.scope,
-        departmentId: process.departmentId,
+        departemenId: process.departemenId,
         departmentNama: process.department?.nama ?? null,
         approval,
         updatedAt: detail.updatedAt,
@@ -123,13 +123,13 @@ export class ProcessFinalApprovalService {
 
   async getContext(user: JwtAccessPayload, detailOrSopId: string) {
     const context = await this.resolveTargetContext(detailOrSopId);
-    const resolved = await this.authorityService.resolveForProcess(context.processId);
+    const resolved = await this.authorityService.resolveForProsesBisnis(context.prosesBisnisId);
     const approval = await this.prisma.processFinalApproval.findUnique({
       where: { detailSopId: context.detailSopId },
     });
     return {
       detailSopId: context.detailSopId,
-      processId: context.processId,
+      prosesBisnisId: context.prosesBisnisId,
       authority: resolved.authority,
       authorityKey: resolved.authorityKey,
       holderId: resolved.holderId,
@@ -143,7 +143,7 @@ export class ProcessFinalApprovalService {
 
   async getDocumentForCurrentApprover(user: JwtAccessPayload, detailOrSopId: string) {
     const context = await this.resolveTargetContext(detailOrSopId);
-    const authority = await this.authorityService.assertCanApprove(user.sub, context.processId);
+    const authority = await this.authorityService.assertCanApprove(user.sub, context.prosesBisnisId);
     const row = await this.sopCatalogRepository.findWorkbenchPayloadByDetailOrSopId(
       context.detailSopId,
       0,
@@ -171,7 +171,7 @@ export class ProcessFinalApprovalService {
 
   async approve(user: JwtAccessPayload, detailOrSopId: string) {
     const context = await this.resolveTargetContext(detailOrSopId);
-    const authority = await this.authorityService.assertCanApprove(user.sub, context.processId);
+    const authority = await this.authorityService.assertCanApprove(user.sub, context.prosesBisnisId);
 
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -188,18 +188,18 @@ export class ProcessFinalApprovalService {
           );
         }
 
-        const acceptedReview = await tx.processReview.findFirst({
+        const acceptedReview = await tx.pemeriksaanProsesBisnis.findFirst({
           where: {
             detailSopId: context.detailSopId,
-            processId: context.processId,
-            decision: ProcessReviewDecision.ACCEPT,
+            prosesBisnisId: context.prosesBisnisId,
+            decision: KeputusanPemeriksaanProsesBisnis.ACCEPT,
             nextStatus: StatusSOP.FINAL_APPROVAL,
           },
           orderBy: { createdAt: 'desc' },
-          select: { processReviewId: true },
+          select: { pemeriksaanProsesBisnisId: true },
         });
         if (acceptedReview === null) {
-          throw new ConflictException('Final approval membutuhkan Process Owner review yang diterima');
+          throw new ConflictException('Final approval membutuhkan Penanggung Jawab Proses Bisnis review yang diterima');
         }
 
         const updated = await tx.detailSOP.updateMany({
@@ -208,16 +208,16 @@ export class ProcessFinalApprovalService {
         });
         if (updated.count !== 1) {
           throw new ConflictException(
-            'Status SOP berubah saat final approval diproses. Muat ulang lalu coba lagi.',
+            'Status SOP berubah saat persetujuan akhir diproses. Muat ulang lalu coba lagi.',
           );
         }
 
         return tx.processFinalApproval.create({
           data: {
             detailSopId: context.detailSopId,
-            processId: context.processId,
+            prosesBisnisId: context.prosesBisnisId,
             approvedById: user.sub,
-            processReviewId: acceptedReview.processReviewId,
+            pemeriksaanProsesBisnisId: acceptedReview.pemeriksaanProsesBisnisId,
             authority: authority.authority,
             authorityKey: authority.authorityKey,
           },
@@ -225,7 +225,7 @@ export class ProcessFinalApprovalService {
       });
     } catch (error) {
       if (isPrismaUniqueConstraintError(error)) {
-        throw new ConflictException('SOP version ini sudah mendapat final approval');
+        throw new ConflictException('SOP version ini sudah mendapat persetujuan akhir');
       }
       throw error;
     }
@@ -233,7 +233,7 @@ export class ProcessFinalApprovalService {
 
   private async resolveTargetContext(detailOrSopId: string): Promise<{
     detailSopId: string;
-    processId: string;
+    prosesBisnisId: string;
   }> {
     const resolved = await this.sopCatalogRepository.findDetailIdByDetailOrSopId(detailOrSopId);
     if (resolved === null) {
@@ -252,11 +252,11 @@ export class ProcessFinalApprovalService {
     }
     const sop = await this.prisma.sOP.findUnique({
       where: { sopId: resolved.sopId },
-      select: { processId: true },
+      select: { prosesBisnisId: true },
     });
-    if (sop?.processId === null || sop === null) {
-      throw new ConflictException('SOP arsip tanpa Process tidak dapat masuk approval FTI');
+    if (sop?.prosesBisnisId === null || sop === null) {
+      throw new ConflictException('SOP arsip tanpa Proses Bisnis tidak dapat masuk approval FTI');
     }
-    return { detailSopId: resolved.detailSopId, processId: sop.processId };
+    return { detailSopId: resolved.detailSopId, prosesBisnisId: sop.prosesBisnisId };
   }
 }

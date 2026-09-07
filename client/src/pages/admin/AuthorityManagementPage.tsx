@@ -1,34 +1,34 @@
 import { useMemo } from 'react'
 import { ShieldCheck } from 'lucide-react'
-import { useOrganizationalAuthorityConfiguration } from '@/api/organizational-authority'
-import { useProcessAdministration } from '@/api/process-admin'
+import { usePejabatBerwenangConfiguration } from '@/api/organizational-authority'
+import { useProsesBisnisAdministration } from '@/api/administrasi-proses-bisnis'
 import { DataSurface } from '@/components/data/data-surface'
 import { ListPageLayout } from '@/components/layout/ListPageLayout'
 
 export function AuthorityManagementPage() {
-  const { departments, users, isLoading: isProcessAdminLoading } = useProcessAdministration()
+  const { departments, users, isLoading: isProsesBisnisAdminLoading } = useProsesBisnisAdministration()
   const {
     configuration,
     isLoading: isAuthorityLoading,
     assignDean,
-    assignDepartmentHead,
+    assignDepartemenHead,
     isSaving,
-  } = useOrganizationalAuthorityConfiguration()
+  } = usePejabatBerwenangConfiguration()
 
   const dean = configuration.find((item) => item.authority === 'DEAN') ?? null
-  const headByDepartmentId = useMemo(
+  const headByDepartemenId = useMemo(
     () =>
       new Map(
         configuration
           .filter(
             (item) =>
-              item.authority === 'HEAD_OF_DEPARTMENT' && item.departmentId !== null,
+              item.authority === 'HEAD_OF_DEPARTMENT' && item.departemenId !== null,
           )
-          .map((item) => [item.departmentId as string, item]),
+          .map((item) => [item.departemenId as string, item]),
       ),
     [configuration],
   )
-  const isLoading = isProcessAdminLoading || isAuthorityLoading
+  const isLoading = isProsesBisnisAdminLoading || isAuthorityLoading
 
   return (
     <ListPageLayout
@@ -44,7 +44,7 @@ export function AuthorityManagementPage() {
                 Dean
               </h2>
               <p className="text-sm text-secondary-foreground">
-                Final approver tunggal untuk semua Process scope Faculty.
+                Final approver tunggal untuk semua ProsesBisnis scope Faculty.
               </p>
             </div>
           </DataSurface.Header>
@@ -79,7 +79,7 @@ export function AuthorityManagementPage() {
             <div className="space-y-0.5">
               <h2 className="text-sm font-semibold text-foreground">Kepala Departemen</h2>
               <p className="text-sm text-secondary-foreground">
-                Setiap Department memiliki final approver sendiri untuk Process scope Department.
+                Setiap Departemen memiliki final approver sendiri untuk ProsesBisnis scope Departemen.
               </p>
             </div>
           </DataSurface.Header>
@@ -87,12 +87,12 @@ export function AuthorityManagementPage() {
             {isLoading ? (
               <p className="p-4 text-sm text-secondary-foreground">Memuat departemen...</p>
             ) : departments.length === 0 ? (
-              <p className="p-4 text-sm text-secondary-foreground">Belum ada Department.</p>
+              <p className="p-4 text-sm text-secondary-foreground">Belum ada Departemen.</p>
             ) : (
               departments.map((department) => {
-                const assignment = headByDepartmentId.get(department.departmentId) ?? null
+                const assignment = headByDepartemenId.get(department.departemenId) ?? null
                 return (
-                  <div key={department.departmentId} className="space-y-2 p-4">
+                  <div key={department.departemenId} className="space-y-2 p-4">
                     <p className="text-sm font-medium text-foreground">{department.nama}</p>
                     <select
                       aria-label={`Kepala Departemen ${department.nama}`}
@@ -101,8 +101,8 @@ export function AuthorityManagementPage() {
                       disabled={isSaving}
                       onChange={(event) => {
                         if (event.target.value) {
-                          void assignDepartmentHead({
-                            departmentId: department.departmentId,
+                          void assignDepartemenHead({
+                            departemenId: department.departemenId,
                             penggunaId: event.target.value,
                           })
                         }

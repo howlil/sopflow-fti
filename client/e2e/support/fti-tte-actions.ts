@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test'
 import { expectNoAppShellError, searchPageIfAvailable, waitForAppReady } from './app'
 import { e2ePin } from './test-data'
 
-export async function signProcessSopViaUi(
+export async function signProsesBisnisSopViaUi(
   page: Page,
   title: string,
 ): Promise<void> {
@@ -34,14 +34,14 @@ export async function signProcessSopViaUi(
   await expectNoAppShellError(page)
 }
 
-export async function signFacultyProcessSopViaUi(
+export async function signFacultyProsesBisnisSopViaUi(
   page: Page,
   title: string,
 ): Promise<void> {
-  await signProcessSopViaUi(page, title)
+  await signProsesBisnisSopViaUi(page, title)
 }
 
-export async function expectProcessSopBerlakuInWorkQueue(
+export async function expectProsesBisnisSopBerlakuInWorkQueue(
   page: Page,
   title: string,
 ): Promise<void> {
@@ -56,7 +56,7 @@ export async function expectProcessSopBerlakuInWorkQueue(
   await expectNoAppShellError(page)
 }
 
-export async function expectProcessSopInPublicArchive(
+export async function expectProsesBisnisSopInPublicArchive(
   page: Page,
   title: string,
 ): Promise<void> {

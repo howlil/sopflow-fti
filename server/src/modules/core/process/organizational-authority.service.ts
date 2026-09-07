@@ -1,22 +1,22 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { OrganizationalAuthority, OrganizationalScope } from '../../../generated/prisma';
+import { PejabatBerwenang, LingkupOrganisasi } from '../../../generated/prisma';
 
-export interface ResolvedOrganizationalAuthority {
+export interface ResolvedPejabatBerwenang {
   authorityKey: string;
-  authority: OrganizationalAuthority;
-  departmentId: string | null;
+  authority: PejabatBerwenang;
+  departemenId: string | null;
   holderId: string;
   holderName: string;
   holderNip: string;
   holderJabatan: string;
-  processId: string;
-  processName: string;
-  scope: OrganizationalScope;
+  prosesBisnisId: string;
+  namaProsesBisnis: string;
+  scope: LingkupOrganisasi;
 }
 
 @Injectable()
-export class OrganizationalAuthorityService {
+export class PejabatBerwenangService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listMine(userId: string) {
@@ -31,23 +31,23 @@ export class OrganizationalAuthorityService {
       orderBy: { authorityKey: 'asc' },
     });
     const holderIds = [...new Set(assignments.map((assignment) => assignment.holderId))];
-    const departmentIds = [...new Set(assignments.flatMap((assignment) => assignment.departmentId ? [assignment.departmentId] : []))];
+    const departemenIds = [...new Set(assignments.flatMap((assignment) => assignment.departemenId ? [assignment.departemenId] : []))];
     const [holders, departments] = await Promise.all([
       this.prisma.pengguna.findMany({
         where: { penggunaId: { in: holderIds } },
         select: { penggunaId: true, nama: true, email: true, deletedAt: true },
       }),
       this.prisma.department.findMany({
-        where: { departmentId: { in: departmentIds } },
-        select: { departmentId: true, nama: true },
+        where: { departemenId: { in: departemenIds } },
+        select: { departemenId: true, nama: true },
       }),
     ]);
     const holderById = new Map(holders.map((holder) => [holder.penggunaId, holder]));
-    const departmentById = new Map(departments.map((department) => [department.departmentId, department]));
+    const departmentById = new Map(departments.map((department) => [department.departemenId, department]));
     return assignments.map((assignment) => ({
       ...assignment,
       holder: holderById.get(assignment.holderId) ?? null,
-      department: assignment.departmentId ? departmentById.get(assignment.departmentId) ?? null : null,
+      department: assignment.departemenId ? departmentById.get(assignment.departemenId) ?? null : null,
     }));
   }
 
@@ -57,103 +57,103 @@ export class OrganizationalAuthorityService {
       where: { authorityKey: this.deanKey() },
       create: {
         authorityKey: this.deanKey(),
-        authority: OrganizationalAuthority.DEAN,
-        departmentId: null,
+        authority: PejabatBerwenang.DEAN,
+        departemenId: null,
         holderId,
       },
       update: {
-        authority: OrganizationalAuthority.DEAN,
-        departmentId: null,
+        authority: PejabatBerwenang.DEAN,
+        departemenId: null,
         holderId,
       },
     });
   }
 
-  async assignDepartmentHead(departmentId: string, holderId: string) {
+  async assignDepartemenHead(departemenId: string, holderId: string) {
     const [department] = await Promise.all([
-      this.prisma.department.findUnique({ where: { departmentId }, select: { departmentId: true } }),
+      this.prisma.department.findUnique({ where: { departemenId }, select: { departemenId: true } }),
       this.assertActiveUser(holderId),
     ]);
     if (department === null) {
-      throw new NotFoundException('Department tidak ditemukan');
+      throw new NotFoundException('Departemen tidak ditemukan');
     }
-    const authorityKey = this.departmentHeadKey(departmentId);
+    const authorityKey = this.departmentHeadKey(departemenId);
     return this.prisma.organizationalAuthorityAssignment.upsert({
       where: { authorityKey },
       create: {
         authorityKey,
-        authority: OrganizationalAuthority.HEAD_OF_DEPARTMENT,
-        departmentId,
+        authority: PejabatBerwenang.HEAD_OF_DEPARTMENT,
+        departemenId,
         holderId,
       },
       update: {
-        authority: OrganizationalAuthority.HEAD_OF_DEPARTMENT,
-        departmentId,
+        authority: PejabatBerwenang.HEAD_OF_DEPARTMENT,
+        departemenId,
         holderId,
       },
     });
   }
 
-  async resolveForProcess(processId: string): Promise<ResolvedOrganizationalAuthority> {
+  async resolveForProsesBisnis(prosesBisnisId: string): Promise<ResolvedPejabatBerwenang> {
     const process = await this.prisma.process.findUnique({
-      where: { processId },
-      select: { processId: true, nama: true, scope: true, departmentId: true },
+      where: { prosesBisnisId },
+      select: { prosesBisnisId: true, nama: true, scope: true, departemenId: true },
     });
     if (process === null) {
-      throw new NotFoundException('Process tidak ditemukan');
+      throw new NotFoundException('Proses Bisnis tidak ditemukan');
     }
 
-    const authority = process.scope === OrganizationalScope.FACULTY
-      ? OrganizationalAuthority.DEAN
-      : OrganizationalAuthority.HEAD_OF_DEPARTMENT;
-    if (process.scope === OrganizationalScope.DEPARTMENT && process.departmentId === null) {
-      throw new ConflictException('Process DEPARTMENT tidak memiliki konteks department');
+    const authority = process.scope === LingkupOrganisasi.FACULTY
+      ? PejabatBerwenang.DEAN
+      : PejabatBerwenang.HEAD_OF_DEPARTMENT;
+    if (process.scope === LingkupOrganisasi.DEPARTMENT && process.departemenId === null) {
+      throw new ConflictException('Proses Bisnis DEPARTMENT tidak memiliki konteks department');
     }
-    const authorityKey = process.scope === OrganizationalScope.FACULTY
+    const authorityKey = process.scope === LingkupOrganisasi.FACULTY
       ? this.deanKey()
-      : this.departmentHeadKey(process.departmentId as string);
+      : this.departmentHeadKey(process.departemenId as string);
 
     const assignment = await this.prisma.organizationalAuthorityAssignment.findUnique({
       where: { authorityKey },
     });
     if (assignment === null) {
       throw new ConflictException(
-        process.scope === OrganizationalScope.FACULTY
+        process.scope === LingkupOrganisasi.FACULTY
           ? 'Dean aktif belum dikonfigurasi'
           : 'Kepala Departemen aktif belum dikonfigurasi',
       );
     }
     if (
       assignment.authority !== authority ||
-      assignment.departmentId !== process.departmentId
+      assignment.departemenId !== process.departemenId
     ) {
-      throw new ConflictException('Konfigurasi organizational authority tidak konsisten');
+      throw new ConflictException('Konfigurasi pejabat berwenang tidak konsisten');
     }
     const holder = await this.prisma.pengguna.findFirst({
       where: { penggunaId: assignment.holderId, deletedAt: null },
       select: { penggunaId: true, nama: true, nip: true, jabatan: true },
     });
     if (holder === null) {
-      throw new ConflictException('Pemegang organizational authority tidak aktif');
+      throw new ConflictException('Pemegang pejabat berwenang tidak aktif');
     }
     return {
       authorityKey,
       authority,
-      departmentId: process.departmentId,
+      departemenId: process.departemenId,
       holderId: holder.penggunaId,
       holderName: holder.nama,
       holderNip: holder.nip,
       holderJabatan: holder.jabatan,
-      processId: process.processId,
-      processName: process.nama,
+      prosesBisnisId: process.prosesBisnisId,
+      namaProsesBisnis: process.nama,
       scope: process.scope,
     };
   }
 
-  async assertCanApprove(userId: string, processId: string): Promise<ResolvedOrganizationalAuthority> {
-    const resolved = await this.resolveForProcess(processId);
+  async assertCanApprove(userId: string, prosesBisnisId: string): Promise<ResolvedPejabatBerwenang> {
+    const resolved = await this.resolveForProsesBisnis(prosesBisnisId);
     if (resolved.holderId !== userId) {
-      throw new ForbiddenException('Anda bukan final approver untuk organizational scope Process ini');
+      throw new ForbiddenException('Anda bukan final approver untuk organizational scope Proses Bisnis ini');
     }
     return resolved;
   }
@@ -162,8 +162,8 @@ export class OrganizationalAuthorityService {
     return 'DEAN';
   }
 
-  departmentHeadKey(departmentId: string): string {
-    return `HEAD_OF_DEPARTMENT:${departmentId}`;
+  departmentHeadKey(departemenId: string): string {
+    return `HEAD_OF_DEPARTMENT:${departemenId}`;
   }
 
   private async assertActiveUser(userId: string): Promise<void> {

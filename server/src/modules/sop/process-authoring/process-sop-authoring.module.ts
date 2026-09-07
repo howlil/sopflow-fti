@@ -1,42 +1,42 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { ProcessModule } from '../../core/process/process.module';
-import { ProcessNotificationModule } from '../../notifications/process/process-notification.module';
+import { ProsesBisnisModule } from '../../core/process/process.module';
+import { NotifikasiProsesBisnisModule } from '../../notifications/process/process-notification.module';
 import { SopWorkbenchModule } from '../catalog/sop-workbench.module';
 import { PelaksanaModule } from '../pelaksana/pelaksana.module';
-import { ProcessBoundSopGuard } from './process-bound-sop.guard';
-import { ProcessFinalApprovalController } from './process-final-approval.controller';
-import { ProcessFinalApprovalService } from './process-final-approval.service';
-import { ProcessOwnerReviewController } from './process-owner-review.controller';
-import { ProcessOwnerReviewService } from './process-owner-review.service';
-import { ProcessSopAuthoringController } from './process-sop-authoring.controller';
-import { ProcessSopAuthoringService } from './process-sop-authoring.service';
-import { ProcessSopRevocationController } from './process-sop-revocation.controller';
-import { ProcessSopRevocationService } from './process-sop-revocation.service';
-import { ProcessVersionService } from './process-version.service';
+import { ProsesBisnisBoundSopGuard } from './process-bound-sop.guard';
+import { PersetujuanAkhirSOPController } from './process-final-approval.controller';
+import { PersetujuanAkhirSOPService } from './process-final-approval.service';
+import { ProsesBisnisOwnerReviewController } from './process-owner-review.controller';
+import { ProsesBisnisOwnerReviewService } from './process-owner-review.service';
+import { ProsesBisnisSopAuthoringController } from './sop-proses-bisnis-authoring.controller';
+import { ProsesBisnisSopAuthoringService } from './sop-proses-bisnis-authoring.service';
+import { ProsesBisnisSopRevocationController } from './sop-proses-bisnis-revocation.controller';
+import { ProsesBisnisSopRevocationService } from './sop-proses-bisnis-revocation.service';
+import { ProsesBisnisVersionService } from './process-version.service';
 
 @Module({
-  imports: [ProcessModule, ProcessNotificationModule, SopWorkbenchModule, PelaksanaModule],
+  imports: [ProsesBisnisModule, NotifikasiProsesBisnisModule, SopWorkbenchModule, PelaksanaModule],
   controllers: [
-    ProcessSopAuthoringController,
-    ProcessOwnerReviewController,
-    ProcessFinalApprovalController,
-    ProcessSopRevocationController,
+    ProsesBisnisSopAuthoringController,
+    ProsesBisnisOwnerReviewController,
+    PersetujuanAkhirSOPController,
+    ProsesBisnisSopRevocationController,
   ],
   providers: [
-    ProcessSopAuthoringService,
-    ProcessVersionService,
-    ProcessOwnerReviewService,
-    ProcessFinalApprovalService,
-    ProcessSopRevocationService,
-    { provide: APP_GUARD, useClass: ProcessBoundSopGuard },
+    ProsesBisnisSopAuthoringService,
+    ProsesBisnisVersionService,
+    ProsesBisnisOwnerReviewService,
+    PersetujuanAkhirSOPService,
+    ProsesBisnisSopRevocationService,
+    { provide: APP_GUARD, useClass: ProsesBisnisBoundSopGuard },
   ],
   exports: [
-    ProcessSopAuthoringService,
-    ProcessVersionService,
-    ProcessOwnerReviewService,
-    ProcessFinalApprovalService,
-    ProcessSopRevocationService,
+    ProsesBisnisSopAuthoringService,
+    ProsesBisnisVersionService,
+    ProsesBisnisOwnerReviewService,
+    PersetujuanAkhirSOPService,
+    ProsesBisnisSopRevocationService,
   ],
 })
-export class ProcessSopAuthoringModule {}
+export class ProsesBisnisSopAuthoringModule {}

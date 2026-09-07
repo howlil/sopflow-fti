@@ -4,8 +4,8 @@ import { unwrapApiData } from '@/lib/api/response'
 import { useMutationWithToast } from '@/hooks/useMutationWithToast'
 import type { ApiSuccessResponse } from '@/types/dto/auth.dto'
 import type {
-  OrganizationalAuthorityAssignmentDto,
-  OrganizationalAuthorityConfigurationDto,
+  PenugasanPejabatBerwenangDto,
+  PejabatBerwenangConfigurationDto,
 } from '@/types/dto/approval.dto'
 
 const authorityKeys = {
@@ -14,21 +14,21 @@ const authorityKeys = {
 }
 
 export const organizationalAuthorityApi = {
-  mine: (): Promise<OrganizationalAuthorityAssignmentDto[]> =>
-    unwrapApiData(apiClient.get<ApiSuccessResponse<OrganizationalAuthorityAssignmentDto[]>>('/organizational-authority/mine')),
-  configuration: (): Promise<OrganizationalAuthorityConfigurationDto[]> =>
-    unwrapApiData(apiClient.get<ApiSuccessResponse<OrganizationalAuthorityConfigurationDto[]>>('/organizational-authority/configuration')),
-  assignDean: (penggunaId: string): Promise<OrganizationalAuthorityAssignmentDto> =>
-    unwrapApiData(apiClient.put<ApiSuccessResponse<OrganizationalAuthorityAssignmentDto>>('/organizational-authority/dean', { penggunaId })),
-  assignDepartmentHead: (departmentId: string, penggunaId: string): Promise<OrganizationalAuthorityAssignmentDto> =>
-    unwrapApiData(apiClient.put<ApiSuccessResponse<OrganizationalAuthorityAssignmentDto>>(`/organizational-authority/departments/${departmentId}/head`, { penggunaId })),
+  mine: (): Promise<PenugasanPejabatBerwenangDto[]> =>
+    unwrapApiData(apiClient.get<ApiSuccessResponse<PenugasanPejabatBerwenangDto[]>>('/organizational-authority/mine')),
+  configuration: (): Promise<PejabatBerwenangConfigurationDto[]> =>
+    unwrapApiData(apiClient.get<ApiSuccessResponse<PejabatBerwenangConfigurationDto[]>>('/organizational-authority/configuration')),
+  assignDean: (penggunaId: string): Promise<PenugasanPejabatBerwenangDto> =>
+    unwrapApiData(apiClient.put<ApiSuccessResponse<PenugasanPejabatBerwenangDto>>('/organizational-authority/dean', { penggunaId })),
+  assignDepartemenHead: (departemenId: string, penggunaId: string): Promise<PenugasanPejabatBerwenangDto> =>
+    unwrapApiData(apiClient.put<ApiSuccessResponse<PenugasanPejabatBerwenangDto>>(`/organizational-authority/departments/${departemenId}/head`, { penggunaId })),
 }
 
 export function useMyOrganizationalAuthorities() {
   return useQuery({ queryKey: authorityKeys.mine, queryFn: organizationalAuthorityApi.mine })
 }
 
-export function useOrganizationalAuthorityConfiguration() {
+export function usePejabatBerwenangConfiguration() {
   const query = useQuery({ queryKey: authorityKeys.configuration, queryFn: organizationalAuthorityApi.configuration })
   const assignDean = useMutationWithToast({
     mutationFn: organizationalAuthorityApi.assignDean,
@@ -36,9 +36,9 @@ export function useOrganizationalAuthorityConfiguration() {
     successMessage: 'Dean aktif berhasil diperbarui',
     errorMessagePrefix: 'Gagal memperbarui Dean',
   })
-  const assignDepartmentHead = useMutationWithToast({
-    mutationFn: ({ departmentId, penggunaId }: { departmentId: string; penggunaId: string }) =>
-      organizationalAuthorityApi.assignDepartmentHead(departmentId, penggunaId),
+  const assignDepartemenHead = useMutationWithToast({
+    mutationFn: ({ departemenId, penggunaId }: { departemenId: string; penggunaId: string }) =>
+      organizationalAuthorityApi.assignDepartemenHead(departemenId, penggunaId),
     invalidateKeys: [authorityKeys.configuration],
     successMessage: 'Kepala Departemen aktif berhasil diperbarui',
     errorMessagePrefix: 'Gagal memperbarui Kepala Departemen',
@@ -47,7 +47,7 @@ export function useOrganizationalAuthorityConfiguration() {
     configuration: query.data ?? [],
     isLoading: query.isLoading,
     assignDean: assignDean.mutateAsync,
-    assignDepartmentHead: assignDepartmentHead.mutateAsync,
-    isSaving: assignDean.isPending || assignDepartmentHead.isPending,
+    assignDepartemenHead: assignDepartemenHead.mutateAsync,
+    isSaving: assignDean.isPending || assignDepartemenHead.isPending,
   }
 }

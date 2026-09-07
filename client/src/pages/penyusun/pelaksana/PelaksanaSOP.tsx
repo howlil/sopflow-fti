@@ -102,7 +102,7 @@ export function PelaksanaSOP() {
     <ListPageLayout
       breadcrumb={[{ label: "Katalog Pelaksana" }]}
       title="Katalog Pelaksana"
-      description="Actor SOP reusable lintas Process dan Departemen. Perubahan master tidak mengubah label pada versi SOP yang sudah tersimpan."
+      description="Actor SOP reusable lintas Proses Bisnis dan Departemen. Perubahan master tidak mengubah label pada versi SOP yang sudah tersimpan."
     >
       <DataSurface.Root>
         <DataSurface.Header>
@@ -200,7 +200,7 @@ export function PelaksanaSOP() {
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         title="Tambah Pelaksana"
-        description="Actor ini tersedia untuk seluruh Process dan SOP."
+        description="Actor ini tersedia untuk seluruh Proses Bisnis dan SOP."
         confirmLabel="Simpan"
         cancelLabel="Batal"
         onConfirm={handleCreate}

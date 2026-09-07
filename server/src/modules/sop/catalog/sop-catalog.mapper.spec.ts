@@ -12,7 +12,7 @@ describe('Pengujian SopCatalogMapper', () => {
     expect(toIso(d)).toBe('2026-03-01T08:00:00.000Z');
   });
 
-  it('seharusnya memetakan workbench Process dengan keputusan langkah', () => {
+  it('seharusnya memetakan workbench Proses Bisnis dengan keputusan langkah', () => {
     const t = new Date('2026-03-02T10:00:00.000Z');
     const row = {
       detailSopId: 'det-1',
@@ -32,7 +32,7 @@ describe('Pengujian SopCatalogMapper', () => {
       updatedAt: t,
       sop: {
         sopId: 'sop-1',
-        processId: 'process-1',
+        prosesBisnisId: 'process-1',
         judul: 'Judul SOP',
         createdAt: t,
         updatedAt: t,
@@ -94,7 +94,7 @@ describe('Pengujian SopCatalogMapper', () => {
     expect(actual.detail.dasarHukumPeraturanIds).toEqual(['per-1']);
     expect(actual.detail.sop).toMatchObject({
       id: 'sop-1',
-      processId: 'process-1',
+      prosesBisnisId: 'process-1',
     });
   });
 

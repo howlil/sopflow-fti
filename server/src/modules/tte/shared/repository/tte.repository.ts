@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { JenisDokumenTte, OrganizationalAuthority } from '../../../../generated/prisma';
+import { JenisDokumenTte, PejabatBerwenang } from '../../../../generated/prisma';
 import { PrismaService } from '../../../../common/prisma/prisma.service';
 
 export type TtePenggunaRingkas = {
@@ -33,7 +33,7 @@ export type PdfSignatureMetadataInput = {
 export type PdfSignatureBindingRow = {
   readonly userId: string;
   readonly dokumenTteId: string;
-  readonly authority: OrganizationalAuthority;
+  readonly authority: PejabatBerwenang;
   readonly ditandatanganiPada: Date;
   readonly signatureValue: string | null;
   readonly certSerialNumber: string | null;
@@ -206,7 +206,7 @@ export class TteRepository {
             hashDokumen: true,
             jenisDokumen: true,
             detailSopId: true,
-            processId: true,
+            prosesBisnisId: true,
           },
         },
         user: { select: { penggunaId: true, nama: true, nip: true, jabatan: true } },

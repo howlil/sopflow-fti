@@ -2,14 +2,14 @@ import { expect, type Page } from '@playwright/test'
 
 import { expectNoAppShellError, waitForAppReady } from './app'
 
-export async function acceptProcessSopViaUi(
+export async function acceptProsesBisnisSopViaUi(
   page: Page,
   detailSopId: string,
 ): Promise<void> {
   await page.goto(`/penyusun/sop/${detailSopId}`)
   await waitForAppReady(page)
 
-  await expect(page.getByText('Dokumen menunggu keputusan Anda sebagai Process Owner.')).toBeVisible()
+  await expect(page.getByText('Dokumen menunggu keputusan Anda sebagai Penanggung Jawab Proses Bisnis.')).toBeVisible()
   const accept = page.getByRole('button', { name: 'Terima', exact: true })
   await expect(accept).toBeVisible()
   await accept.click()
@@ -29,7 +29,7 @@ export async function acceptProcessSopViaUi(
 
 export async function openFinalApprovalFromNotification(
   page: Page,
-  processName: string,
+  namaProsesBisnis: string,
 ): Promise<void> {
   await page.goto('/work')
   await waitForAppReady(page)
@@ -38,14 +38,14 @@ export async function openFinalApprovalFromNotification(
   await expect(bell).toBeVisible({ timeout: 15_000 })
   await bell.click()
 
-  // Process notifications are sorted unread-first by the server. The journey
+  // ProsesBisnis notifications are sorted unread-first by the server. The journey
   // precondition marks prior notifications read and asserts exactly one fresh
   // matching unread notification through the API before this UI interaction.
   const notification = page
     .getByRole('link')
     .filter({ hasText: 'Persetujuan akhir SOP diperlukan' })
     .filter({
-      hasText: `SOP pada Process ${processName} menunggu persetujuan akhir Anda.`,
+      hasText: `SOP pada ProsesBisnis ${namaProsesBisnis} menunggu persetujuan akhir Anda.`,
     })
     .first()
   await expect(notification).toBeVisible()
@@ -57,12 +57,12 @@ export async function openFinalApprovalFromNotification(
 
 export async function openFinalApprovalFromDeanNotification(
   page: Page,
-  processName: string,
+  namaProsesBisnis: string,
 ): Promise<void> {
-  await openFinalApprovalFromNotification(page, processName)
+  await openFinalApprovalFromNotification(page, namaProsesBisnis)
 }
 
-export async function approveProcessSopViaUi(
+export async function approveProsesBisnisSopViaUi(
   page: Page,
   title: string,
   authorityLabel: string,
@@ -100,9 +100,9 @@ export async function approveProcessSopViaUi(
   await expectNoAppShellError(page)
 }
 
-export async function approveFacultyProcessSopViaUi(
+export async function approveFacultyProsesBisnisSopViaUi(
   page: Page,
   title: string,
 ): Promise<void> {
-  await approveProcessSopViaUi(page, title, 'Fakultas · Dekan')
+  await approveProsesBisnisSopViaUi(page, title, 'Fakultas · Dekan')
 }

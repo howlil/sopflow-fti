@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsBase64, IsString, MaxLength, MinLength } from 'class-validator';
 import { PDF_BASE64_MAX_LENGTH } from '../../../../common/http/request-body-limits';
 
-export class TandaTanganiProcessSopDto {
+export class TandaTanganiProsesBisnisSopDto {
   @ApiProperty()
   @IsString()
   @MinLength(4)

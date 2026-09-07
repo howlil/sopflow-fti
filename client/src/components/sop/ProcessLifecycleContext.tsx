@@ -3,29 +3,29 @@ import { Link } from '@tanstack/react-router'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ROUTES } from '@/utils/constants'
-import type { ProcessSopLifecycleProjection } from '@/types/dto/sop.dto'
+import type { ProsesBisnisSopLifecycleProjection } from '@/types/dto/sop.dto'
 
 const LIFECYCLE_STAGES: Array<{
-  key: ProcessSopLifecycleProjection['stage']
+  key: ProsesBisnisSopLifecycleProjection['stage']
   label: string
 }> = [
   { key: 'AUTHORING', label: 'Draft' },
-  { key: 'PROCESS_REVIEW', label: 'Review Process Owner' },
+  { key: 'PROCESS_REVIEW', label: 'Review Penanggung Jawab Proses Bisnis' },
   { key: 'FINAL_APPROVAL', label: 'Persetujuan akhir' },
   { key: 'TTE', label: 'TTE' },
   { key: 'EFFECTIVE', label: 'Berlaku' },
   { key: 'REVOKED', label: 'Dicabut' },
 ]
 
-interface ProcessLifecycleContextProps {
-  lifecycle: ProcessSopLifecycleProjection
-  processName?: string | null
+interface StatusProsesBisnisContextProps {
+  lifecycle: ProsesBisnisSopLifecycleProjection
+  namaProsesBisnis?: string | null
 }
 
-export function ProcessLifecycleContext({
+export function StatusProsesBisnisContext({
   lifecycle,
-  processName,
-}: ProcessLifecycleContextProps) {
+  namaProsesBisnis,
+}: StatusProsesBisnisContextProps) {
   const currentIndex = LIFECYCLE_STAGES.findIndex((stage) => stage.key === lifecycle.stage)
   const actionDestination = lifecycle.action?.destination
   const nextStep = lifecycle.action?.label ??
@@ -37,10 +37,10 @@ export function ProcessLifecycleContext({
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Lifecycle Process
+              Lifecycle ProsesBisnis
             </p>
             <h3 className="text-sm font-semibold text-foreground">
-              {processName ?? 'Process SOP'}
+              {namaProsesBisnis ?? 'Proses Bisnis SOP'}
             </h3>
           </div>
           <span className="text-sm font-medium text-foreground">{lifecycle.stateLabel}</span>

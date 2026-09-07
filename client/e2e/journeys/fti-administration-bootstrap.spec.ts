@@ -1,30 +1,30 @@
 import { expect, test } from '../fixtures/business-test'
 import { targetUsers, users } from '../fixtures/users'
 import {
-  createDepartmentProcessViaAdminUi,
+  createDepartemenProsesBisnisViaAdminUi,
   assignDeanViaAdminUi,
-  assignDepartmentHeadViaAdminUi,
+  assignDepartemenHeadViaAdminUi,
 } from '../support/fti-admin-actions'
 import {
   adminApi,
   adminUserLabel,
   assignDeanViaAdminApi,
-  createDepartmentViaAdminApi,
-  listAdminDepartments,
-  listAdminProcesses,
+  createDepartemenViaAdminApi,
+  listAdminDepartemens,
+  listAdminProsesBisnises,
   listAdminUsers,
   listMyAuthorities,
-  listMyProcesses,
+  listMyProsesBisnises,
   requireAdminUser,
-  requireDepartment,
-  requireProcess,
+  requireDepartemen,
+  requireProsesBisnis,
 } from '../support/fti-admin-preconditions'
 import {
-  expectProcessDraftInMemberQueue,
-  expectProcessReviewInOwnerQueue,
-  submitProcessSopForReviewViaUi,
+  expectProsesBisnisDraftInMemberQueue,
+  expectPemeriksaanProsesBisnisInOwnerQueue,
+  submitProsesBisnisSopForReviewViaUi,
 } from '../support/fti-process-actions'
-import { seedReadyProcessSop } from '../support/fti-process-preconditions'
+import { seedReadyProsesBisnisSop } from '../support/fti-process-preconditions'
 import { toApiUrl } from '../support/api'
 import { waitForAppReady } from '../support/app'
 import { e2eRunId, sopFixture } from '../support/test-data'
@@ -44,16 +44,16 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
       ).toBeVisible()
 
       const api = await adminApi(roleApi)
-      expect((await api.get(toApiUrl('/process-admin/processes'))).status()).toBe(200)
+      expect((await api.get(toApiUrl('/administrasi-proses-bisnis/processes'))).status()).toBe(200)
       expect((await api.get(toApiUrl('/organizational-authority/configuration'))).status()).toBe(200)
     })
 
     await test.step('Identity workflow target tidak mendapat entry atau API administrasi', async () => {
       for (const actor of [
         targetUsers.processOwner,
-        targetUsers.processMember,
+        targetUsers.anggotaProsesBisnis,
         targetUsers.dean,
-        targetUsers.headOfDepartment,
+        targetUsers.headOfDepartemen,
       ]) {
         const session = await roleSession(actor)
         await session.page.goto('/work')
@@ -66,22 +66,22 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
         ).toHaveCount(0)
 
         const api = await roleApi(actor)
-        expect((await api.get(toApiUrl('/process-admin/processes'))).status()).toBe(403)
+        expect((await api.get(toApiUrl('/administrasi-proses-bisnis/processes'))).status()).toBe(403)
         expect((await api.get(toApiUrl('/organizational-authority/configuration'))).status()).toBe(403)
       }
     })
 
-    await test.step('SUPER_ADMIN tanpa Process relationship tetap ditolak dari authoring target', async () => {
-      expect(await listMyProcesses(roleApi, users.pjEvaluator)).toEqual([])
+    await test.step('SUPER_ADMIN tanpa Proses Bisnis relationship tetap ditolak dari authoring target', async () => {
+      expect(await listMyProsesBisnises(roleApi, users.pjEvaluator)).toEqual([])
       expect(await listMyAuthorities(roleApi, users.pjEvaluator)).toEqual([])
 
-      const process = (await listAdminProcesses(roleApi))[0]
+      const process = (await listAdminProsesBisnises(roleApi))[0]
       expect(process).toBeDefined()
       const fixture = sopFixture('J20')
       const api = await adminApi(roleApi)
-      const response = await api.post(toApiUrl('/process-sop'), {
+      const response = await api.post(toApiUrl('/sop-proses-bisnis'), {
         data: {
-          processId: process.processId,
+          prosesBisnisId: process.prosesBisnisId,
           judul: fixture.title,
           nomorSop: fixture.number,
           namaLembaga: 'Fakultas Teknologi Informasi',
@@ -91,34 +91,34 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
     })
   })
 
-  test('J21 Process Configuration Bootstrap — admin UI membuat Department dan Process Team valid', async ({
+  test('J21 Proses Bisnis Configuration Bootstrap — admin UI membuat Departemen dan Proses Bisnis Team valid', async ({
     roleApi,
     roleSession,
   }) => {
     const suffix = e2eRunId('J21')
-    const departmentName = `E2E Department ${suffix}`
-    const processName = `E2E Process ${suffix}`
+    const namaDepartemen = `E2E Departemen ${suffix}`
+    const namaProsesBisnis = `E2E ProsesBisnis ${suffix}`
     const adminUsers = await listAdminUsers(roleApi)
     const owner = requireAdminUser(adminUsers, targetUsers.processOwner.email)
     const member = requireAdminUser(adminUsers, targetUsers.departmentMember.email)
 
-    await test.step('SUPER_ADMIN membuat Department dan Department Process melalui UI target', async () => {
+    await test.step('SUPER_ADMIN membuat Departemen dan Departemen Proses Bisnis melalui UI target', async () => {
       const admin = await roleSession(users.pjEvaluator)
-      await createDepartmentProcessViaAdminUi(admin.page, {
-        departmentName,
-        processName,
+      await createDepartemenProsesBisnisViaAdminUi(admin.page, {
+        namaDepartemen,
+        namaProsesBisnis,
         ownerLabel: adminUserLabel(owner),
         memberLabels: [adminUserLabel(member)],
       })
     })
 
-    await test.step('Persisted scope, Department, Owner, dan Member sama dengan intent UI', async () => {
-      const department = requireDepartment(await listAdminDepartments(roleApi), departmentName)
-      const process = requireProcess(await listAdminProcesses(roleApi), processName)
+    await test.step('Persisted scope, Departemen, Owner, dan Member sama dengan intent UI', async () => {
+      const department = requireDepartemen(await listAdminDepartemens(roleApi), namaDepartemen)
+      const process = requireProsesBisnis(await listAdminProsesBisnises(roleApi), namaProsesBisnis)
 
       expect(process).toMatchObject({
         scope: 'DEPARTMENT',
-        departmentId: department.departmentId,
+        departemenId: department.departemenId,
         ownerId: owner.penggunaId,
       })
       expect(process.owner.penggunaId).toBe(owner.penggunaId)
@@ -126,28 +126,28 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
       expect(process.members.some((row) => row.penggunaId === owner.penggunaId)).toBe(false)
     })
 
-    await test.step('Assignment langsung menjadi Process context hanya bagi Owner dan Member', async () => {
-      const ownerProcesses = await listMyProcesses(roleApi, targetUsers.processOwner)
-      const memberProcesses = await listMyProcesses(roleApi, targetUsers.departmentMember)
-      const unrelatedProcesses = await listMyProcesses(roleApi, targetUsers.otherDepartmentMember)
+    await test.step('Assignment langsung menjadi Proses Bisnis context hanya bagi Owner dan Member', async () => {
+      const ownerProsesBisnises = await listMyProsesBisnises(roleApi, targetUsers.processOwner)
+      const memberProsesBisnises = await listMyProsesBisnises(roleApi, targetUsers.departmentMember)
+      const unrelatedProsesBisnises = await listMyProsesBisnises(roleApi, targetUsers.otherDepartemenMember)
 
-      expect(ownerProcesses.some((row) => row.nama === processName)).toBe(true)
-      expect(memberProcesses.some((row) => row.nama === processName)).toBe(true)
-      expect(unrelatedProcesses.some((row) => row.nama === processName)).toBe(false)
+      expect(ownerProsesBisnises.some((row) => row.nama === namaProsesBisnis)).toBe(true)
+      expect(memberProsesBisnises.some((row) => row.nama === namaProsesBisnis)).toBe(true)
+      expect(unrelatedProsesBisnises.some((row) => row.nama === namaProsesBisnis)).toBe(false)
     })
   })
 
-  test('J22 Organizational Authority Configuration — Dean dan Kadep deterministic serta terisolasi', async ({
+  test('J22 Pejabat Berwenang Configuration — Dean dan Kadep deterministic serta terisolasi', async ({
     roleApi,
     roleSession,
   }) => {
     const suffix = e2eRunId('J22')
-    const departmentName = `E2E Authority ${suffix}`
+    const namaDepartemen = `E2E Authority ${suffix}`
     const adminUsers = await listAdminUsers(roleApi)
     const originalDean = requireAdminUser(adminUsers, targetUsers.dean.email)
-    const temporaryDean = requireAdminUser(adminUsers, targetUsers.otherDepartmentMember.email)
-    const departmentHead = requireAdminUser(adminUsers, targetUsers.otherHeadOfDepartment.email)
-    const department = await createDepartmentViaAdminApi(roleApi, departmentName)
+    const temporaryDean = requireAdminUser(adminUsers, targetUsers.otherDepartemenMember.email)
+    const departmentHead = requireAdminUser(adminUsers, targetUsers.otherHeadOfDepartemen.email)
+    const department = await createDepartemenViaAdminApi(roleApi, namaDepartemen)
     let deanRestored = false
 
     try {
@@ -155,35 +155,35 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
         const admin = await roleSession(users.pjEvaluator)
         await assignDeanViaAdminUi(admin.page, adminUserLabel(temporaryDean))
 
-        const temporaryAuthorities = await listMyAuthorities(roleApi, targetUsers.otherDepartmentMember)
+        const temporaryAuthorities = await listMyAuthorities(roleApi, targetUsers.otherDepartemenMember)
         const originalAuthorities = await listMyAuthorities(roleApi, targetUsers.dean)
         expect(
           temporaryAuthorities.some(
-            (row) => row.authority === 'DEAN' && row.departmentId === null,
+            (row) => row.authority === 'DEAN' && row.departemenId === null,
           ),
         ).toBe(true)
         expect(originalAuthorities.some((row) => row.authority === 'DEAN')).toBe(false)
       })
 
-      await test.step('Admin UI menetapkan satu Kadep untuk Department baru tanpa cross-scope leak', async () => {
+      await test.step('Admin UI menetapkan satu Kadep untuk Departemen baru tanpa cross-scope leak', async () => {
         const admin = await roleSession(users.pjEvaluator)
-        await assignDepartmentHeadViaAdminUi(
+        await assignDepartemenHeadViaAdminUi(
           admin.page,
-          departmentName,
+          namaDepartemen,
           adminUserLabel(departmentHead),
         )
 
-        const holderAuthorities = await listMyAuthorities(roleApi, targetUsers.otherHeadOfDepartment)
-        const unrelatedAuthorities = await listMyAuthorities(roleApi, targetUsers.processMember)
+        const holderAuthorities = await listMyAuthorities(roleApi, targetUsers.otherHeadOfDepartemen)
+        const unrelatedAuthorities = await listMyAuthorities(roleApi, targetUsers.anggotaProsesBisnis)
         expect(
           holderAuthorities.some(
             (row) =>
               row.authority === 'HEAD_OF_DEPARTMENT' &&
-              row.departmentId === department.departmentId,
+              row.departemenId === department.departemenId,
           ),
         ).toBe(true)
         expect(
-          unrelatedAuthorities.some((row) => row.departmentId === department.departmentId),
+          unrelatedAuthorities.some((row) => row.departemenId === department.departemenId),
         ).toBe(false)
       })
 
@@ -191,7 +191,7 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
         await assignDeanViaAdminApi(roleApi, originalDean.penggunaId)
         deanRestored = true
         const restored = await listMyAuthorities(roleApi, targetUsers.dean)
-        expect(restored.some((row) => row.authority === 'DEAN' && row.departmentId === null)).toBe(true)
+        expect(restored.some((row) => row.authority === 'DEAN' && row.departemenId === null)).toBe(true)
       })
     } finally {
       if (!deanRestored) {
@@ -205,51 +205,51 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
     roleSession,
   }) => {
     const suffix = e2eRunId('J23')
-    const departmentName = `E2E Bootstrap ${suffix}`
-    const processName = `E2E Bootstrap Process ${suffix}`
+    const namaDepartemen = `E2E Bootstrap ${suffix}`
+    const namaProsesBisnis = `E2E Bootstrap ProsesBisnis ${suffix}`
     const adminUsers = await listAdminUsers(roleApi)
     const owner = requireAdminUser(adminUsers, targetUsers.processOwner.email)
     const member = requireAdminUser(adminUsers, targetUsers.departmentMember.email)
-    const departmentHead = requireAdminUser(adminUsers, targetUsers.headOfDepartment.email)
+    const departmentHead = requireAdminUser(adminUsers, targetUsers.headOfDepartemen.email)
 
-    await test.step('SUPER_ADMIN bootstrap Department, Process Team, dan Kadep melalui UI administrasi', async () => {
+    await test.step('SUPER_ADMIN bootstrap Departemen, Proses Bisnis Team, dan Kadep melalui UI administrasi', async () => {
       const admin = await roleSession(users.pjEvaluator)
-      await createDepartmentProcessViaAdminUi(admin.page, {
-        departmentName,
-        processName,
+      await createDepartemenProsesBisnisViaAdminUi(admin.page, {
+        namaDepartemen,
+        namaProsesBisnis,
         ownerLabel: adminUserLabel(owner),
         memberLabels: [adminUserLabel(member)],
       })
-      await assignDepartmentHeadViaAdminUi(
+      await assignDepartemenHeadViaAdminUi(
         admin.page,
-        departmentName,
+        namaDepartemen,
         adminUserLabel(departmentHead),
       )
     })
 
-    const sop = await seedReadyProcessSop(roleApi, 'J23-BOOTSTRAP', {
+    const sop = await seedReadyProsesBisnisSop(roleApi, 'J23-BOOTSTRAP', {
       actor: targetUsers.departmentMember,
-      processName,
+      namaProsesBisnis,
       institutionName: 'Fakultas Teknologi Informasi',
     })
 
-    await test.step('Configured Member langsung melihat pekerjaan Process dan mengirim SOP untuk review', async () => {
+    await test.step('Configured Member langsung melihat pekerjaan Proses Bisnis dan mengirim SOP untuk review', async () => {
       const memberSession = await roleSession(targetUsers.departmentMember)
-      await expectProcessDraftInMemberQueue(memberSession.page, sop.title)
-      await submitProcessSopForReviewViaUi(memberSession.page, sop.detailSopId)
+      await expectProsesBisnisDraftInMemberQueue(memberSession.page, sop.title)
+      await submitProsesBisnisSopForReviewViaUi(memberSession.page, sop.detailSopId)
     })
 
-    await test.step('Configured Process Owner langsung menerima owner-review capability', async () => {
+    await test.step('Configured Penanggung Jawab Proses Bisnis langsung menerima owner-review capability', async () => {
       const ownerSession = await roleSession(targetUsers.processOwner)
-      await expectProcessReviewInOwnerQueue(ownerSession.page, sop.title)
+      await expectPemeriksaanProsesBisnisInOwnerQueue(ownerSession.page, sop.title)
     })
 
-    await test.step('Platform admin tetap di luar workflow Process yang baru dibootstrap', async () => {
-      const adminProcesses = await listMyProcesses(roleApi, users.pjEvaluator)
-      expect(adminProcesses.some((row) => row.processId === sop.processId)).toBe(false)
+    await test.step('Platform admin tetap di luar workflow Proses Bisnis yang baru dibootstrap', async () => {
+      const adminProsesBisnises = await listMyProsesBisnises(roleApi, users.pjEvaluator)
+      expect(adminProsesBisnises.some((row) => row.prosesBisnisId === sop.prosesBisnisId)).toBe(false)
 
       const api = await adminApi(roleApi)
-      const response = await api.post(toApiUrl(`/process-sop/${sop.detailSopId}/review`), {
+      const response = await api.post(toApiUrl(`/sop-proses-bisnis/${sop.detailSopId}/review`), {
         data: { decision: 'REVISION' },
       })
       expect(response.status()).toBe(403)

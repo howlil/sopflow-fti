@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
-import { useProcessOwnerSelfService } from '@/api/process-owner'
+import { useProsesBisnisOwnerSelfService } from '@/api/process-owner'
 import { DataSurface } from '@/components/data/data-surface'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import type { InviteProcessMemberPayload } from '@/types/dto/process.dto'
+import type { InviteAnggotaProsesBisnisPayload } from '@/types/dto/process.dto'
 
-const EMPTY_INVITE: InviteProcessMemberPayload = {
+const EMPTY_INVITE: InviteAnggotaProsesBisnisPayload = {
   nama: '',
   nip: '',
   email: '',
@@ -14,23 +14,23 @@ const EMPTY_INVITE: InviteProcessMemberPayload = {
   nohp: '',
 }
 
-export function ProcessOwnerSelfServicePanel() {
+export function ProsesBisnisOwnerSelfServicePanel() {
   const {
     scopes,
     processes,
     users,
     isLoading,
-    createProcess,
-    renameProcess,
+    createProsesBisnis,
+    renameProsesBisnis,
     addMember,
     removeMember,
     inviteMember,
-    archiveProcess,
+    archiveProsesBisnis,
     isSaving,
-  } = useProcessOwnerSelfService()
-  const [processName, setProcessName] = useState('')
+  } = useProsesBisnisOwnerSelfService()
+  const [namaProsesBisnis, setProsesBisnisName] = useState('')
   const [scopeKey, setScopeKey] = useState('')
-  const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null)
+  const [selectedProsesBisnisId, setSelectedProsesBisnisId] = useState<string | null>(null)
   const [memberId, setMemberId] = useState('')
   const [invite, setInvite] = useState(EMPTY_INVITE)
   const [activationPath, setActivationPath] = useState<string | null>(null)
@@ -38,8 +38,8 @@ export function ProcessOwnerSelfServicePanel() {
   const [archiveReason, setArchiveReason] = useState('')
 
   const selected = useMemo(
-    () => processes.find((process) => process.processId === selectedProcessId) ?? null,
-    [processes, selectedProcessId],
+    () => processes.find((process) => process.prosesBisnisId === selectedProsesBisnisId) ?? null,
+    [processes, selectedProsesBisnisId],
   )
   const selectedMemberIds = new Set(selected?.members.map((member) => member.penggunaId) ?? [])
   const availableUsers = users.filter(
@@ -49,7 +49,7 @@ export function ProcessOwnerSelfServicePanel() {
   if (!isLoading && scopes.length === 0 && processes.length === 0) return null
 
   const selectedAuthority = scopes.find((scope) => scope.scopeKey === scopeKey) ?? null
-  const canCreate = processName.trim().length >= 2 && selectedAuthority !== null
+  const canCreate = namaProsesBisnis.trim().length >= 2 && selectedAuthority !== null
   const activationUrl = activationPath
     ? `${typeof window === 'undefined' ? '' : window.location.origin}${activationPath}`
     : null
@@ -58,10 +58,10 @@ export function ProcessOwnerSelfServicePanel() {
     <section className="space-y-4" aria-labelledby="process-owner-self-service-title">
       <div>
         <h2 id="process-owner-self-service-title" className="text-base font-semibold text-foreground">
-          Kelola Process
+          Kelola ProsesBisnis
         </h2>
         <p className="mt-1 text-sm text-secondary-foreground">
-          Buat Process pada scope yang diberikan Admin, lalu kelola Penyusun SOP tanpa tiket administrasi.
+          Buat ProsesBisnis pada scope yang diberikan Admin, lalu kelola Penyusun SOP tanpa tiket administrasi.
         </p>
       </div>
 
@@ -70,13 +70,13 @@ export function ProcessOwnerSelfServicePanel() {
           {scopes.length > 0 ? (
             <DataSurface.Root>
               <DataSurface.Header>
-                <h3 className="text-sm font-semibold text-foreground">Process baru</h3>
+                <h3 className="text-sm font-semibold text-foreground">ProsesBisnis baru</h3>
               </DataSurface.Header>
               <div className="space-y-3 p-4">
                 <Input
-                  value={processName}
-                  onChange={(event) => setProcessName(event.target.value)}
-                  placeholder="Nama Process"
+                  value={namaProsesBisnis}
+                  onChange={(event) => setProsesBisnisName(event.target.value)}
+                  placeholder="Nama Proses Bisnis"
                 />
                 <select
                   className="h-9 w-full rounded-control border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
@@ -85,7 +85,7 @@ export function ProcessOwnerSelfServicePanel() {
                 >
                   <option value="">Pilih scope</option>
                   {scopes.map((scope) => (
-                    <option key={scope.processOwnerAuthorityId} value={scope.scopeKey}>
+                    <option key={scope.kewenanganPenanggungJawabProsesBisnisId} value={scope.scopeKey}>
                       {scope.scope === 'FACULTY' ? 'Fakultas' : scope.department?.nama ?? 'Jurusan'}
                     </option>
                   ))}
@@ -96,19 +96,19 @@ export function ProcessOwnerSelfServicePanel() {
                     onClick={async () => {
                       if (!selectedAuthority) return
                       try {
-                        const created = await createProcess({
-                          nama: processName.trim(),
+                        const created = await createProsesBisnis({
+                          nama: namaProsesBisnis.trim(),
                           scope: selectedAuthority.scope,
-                          departmentId: selectedAuthority.departmentId,
+                          departemenId: selectedAuthority.departemenId,
                         })
-                        setProcessName('')
-                        setSelectedProcessId(created.processId)
+                        setProsesBisnisName('')
+                        setSelectedProsesBisnisId(created.prosesBisnisId)
                       } catch {
                         // Toast owns error reporting.
                       }
                     }}
                   >
-                    Buat Process
+                    Buat ProsesBisnis
                   </Button>
                 </div>
               </div>
@@ -117,21 +117,21 @@ export function ProcessOwnerSelfServicePanel() {
 
           <DataSurface.Root>
             <DataSurface.Header>
-              <h3 className="text-sm font-semibold text-foreground">Process milik Anda</h3>
+              <h3 className="text-sm font-semibold text-foreground">ProsesBisnis milik Anda</h3>
             </DataSurface.Header>
             <div className="divide-y divide-border">
               {isLoading ? (
-                <p className="p-4 text-sm text-secondary-foreground">Memuat Process...</p>
+                <p className="p-4 text-sm text-secondary-foreground">Memuat ProsesBisnis...</p>
               ) : processes.length === 0 ? (
-                <p className="p-4 text-sm text-secondary-foreground">Belum ada Process.</p>
+                <p className="p-4 text-sm text-secondary-foreground">Belum ada ProsesBisnis.</p>
               ) : (
                 processes.map((process) => (
                   <button
                     type="button"
-                    key={process.processId}
+                    key={process.prosesBisnisId}
                     className="flex w-full items-start justify-between gap-3 p-4 text-left hover:bg-surface-muted"
                     onClick={() => {
-                      setSelectedProcessId(process.processId)
+                      setSelectedProsesBisnisId(process.prosesBisnisId)
                       setRenameValue(process.nama)
                       setActivationPath(null)
                     }}
@@ -159,8 +159,8 @@ export function ProcessOwnerSelfServicePanel() {
                 <h3 className="text-sm font-semibold text-foreground">{selected.nama}</h3>
                 <p className="text-sm text-secondary-foreground">
                   {selected.lifecycleStatus === 'ARCHIVED'
-                    ? 'Process read-only. Riwayat dan bukti workflow tetap dipertahankan.'
-                    : 'Kelola identitas Process dan Penyusun SOP yang memiliki akses eksplisit.'}
+                    ? 'Proses Bisnis read-only. Riwayat dan bukti workflow tetap dipertahankan.'
+                    : 'Kelola identitas Proses Bisnis dan Penyusun SOP yang memiliki akses eksplisit.'}
                 </p>
               </div>
             </DataSurface.Header>
@@ -174,7 +174,7 @@ export function ProcessOwnerSelfServicePanel() {
                     <Button
                       variant="outline"
                       disabled={renameValue.trim().length < 2 || renameValue.trim() === selected.nama || isSaving}
-                      onClick={() => renameProcess({ processId: selected.processId, nama: renameValue.trim() })}
+                      onClick={() => renameProsesBisnis({ prosesBisnisId: selected.prosesBisnisId, nama: renameValue.trim() })}
                     >
                       Simpan
                     </Button>
@@ -199,7 +199,7 @@ export function ProcessOwnerSelfServicePanel() {
                             size="sm"
                             variant="ghost"
                             disabled={isSaving}
-                            onClick={() => removeMember({ processId: selected.processId, penggunaId: membership.penggunaId })}
+                            onClick={() => removeMember({ prosesBisnisId: selected.prosesBisnisId, penggunaId: membership.penggunaId })}
                           >
                             Cabut
                           </Button>
@@ -228,7 +228,7 @@ export function ProcessOwnerSelfServicePanel() {
                       disabled={!memberId || isSaving}
                       onClick={async () => {
                         try {
-                          await addMember({ processId: selected.processId, penggunaId: memberId })
+                          await addMember({ prosesBisnisId: selected.prosesBisnisId, penggunaId: memberId })
                           setMemberId('')
                         } catch {
                           // Toast owns error reporting.
@@ -263,7 +263,7 @@ export function ProcessOwnerSelfServicePanel() {
                       disabled={Object.values(invite).some((value) => value.trim() === '') || isSaving}
                       onClick={async () => {
                         try {
-                          const result = await inviteMember({ processId: selected.processId, payload: invite })
+                          const result = await inviteMember({ prosesBisnisId: selected.prosesBisnisId, payload: invite })
                           setInvite(EMPTY_INVITE)
                           setActivationPath(result.kind === 'INVITATION_CREATED' ? result.activationPath : null)
                         } catch {
@@ -292,7 +292,7 @@ export function ProcessOwnerSelfServicePanel() {
 
               {selected.lifecycleStatus !== 'ARCHIVED' ? (
                 <div className="space-y-3 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-secondary-foreground">Arsipkan Process</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-secondary-foreground">Arsipkan ProsesBisnis</p>
                   <p className="text-xs text-secondary-foreground">
                     Hanya dapat diarsipkan jika tidak ada draft atau workflow SOP yang masih berjalan.
                   </p>
@@ -307,7 +307,7 @@ export function ProcessOwnerSelfServicePanel() {
                       disabled={archiveReason.trim().length < 3 || isSaving}
                       onClick={async () => {
                         try {
-                          await archiveProcess({ processId: selected.processId, reason: archiveReason.trim() })
+                          await archiveProsesBisnis({ prosesBisnisId: selected.prosesBisnisId, reason: archiveReason.trim() })
                           setArchiveReason('')
                         } catch {
                           // Toast owns error reporting.
@@ -323,7 +323,7 @@ export function ProcessOwnerSelfServicePanel() {
           </DataSurface.Root>
         ) : (
           <div className="rounded-surface border border-dashed border-border bg-surface p-5 text-sm text-secondary-foreground">
-            Pilih Process untuk mengelola Penyusun SOP.
+            Pilih ProsesBisnis untuk mengelola Penyusun SOP.
           </div>
         )}
       </div>

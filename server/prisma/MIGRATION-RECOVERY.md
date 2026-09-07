@@ -35,7 +35,7 @@ Use the dedicated recovery script when this migration is the unresolved failed r
 bash server/prisma/recovery/20260901163000_add_fti_process_foundation.sh --inspect
 ```
 
-`--inspect` is read-only. It verifies the unresolved migration row and inspects the live partial schema. It fails closed when existing `Department`, `Process`, or `ProcessMember` structures are ambiguous rather than dropping or rewriting them.
+`--inspect` is read-only. It verifies the unresolved migration row and inspects the live partial schema. It fails closed when existing `Departemen`, `ProsesBisnis`, or `AnggotaProsesBisnis` structures are ambiguous rather than dropping or rewriting them.
 
 Before applying recovery, ensure the backend image contains the fixed trigger-based migration. Rebuild/update the backend image when needed; the script also checks this and stops if the image still contains the old failing migration.
 
@@ -49,11 +49,11 @@ The script:
 
 1. verifies the database service is healthy;
 2. verifies exactly one unresolved failed row exists for this migration;
-3. validates any already-applied `Pengguna.platformRole`, `Department`, `Process`, and `ProcessMember` state;
-4. creates only missing Process-foundation objects required by the intended migration end-state;
-5. installs the trigger-based Process scope invariant;
-6. verifies all four Process/ProcessMember foreign keys and both scope triggers;
-7. proves an invalid Process scope INSERT is rejected;
+3. validates any already-applied `Pengguna.platformRole`, `Departemen`, `ProsesBisnis`, and `AnggotaProsesBisnis` state;
+4. creates only missing ProsesBisnis-foundation objects required by the intended migration end-state;
+5. installs the trigger-based ProsesBisnis scope invariant;
+6. verifies all four ProsesBisnis/AnggotaProsesBisnis foreign keys and both scope triggers;
+7. proves an invalid ProsesBisnis scope INSERT is rejected;
 8. runs `prisma migrate resolve --applied 20260901163000_add_fti_process_foundation` only after end-state verification;
 9. runs `prisma migrate status` and resumes `prisma migrate deploy` for remaining migrations.
 

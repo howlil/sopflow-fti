@@ -48,7 +48,7 @@ A higher gate does not replace a cheaper gate when both prove different risks. C
 | `.agents/**`, Markdown, non-executable docs | none | factual consistency check when claims depend on code/runtime |
 | `client/src/**` and client build inputs | Client CI | focused component/integration tests for changed semantics |
 | generic `server/src/**` and server build inputs | Server CI | focused integration when DB/transaction/runtime behavior is not proven by units |
-| FTI Process / contextual authority / Process notification / Process TTE code | Server CI + FTI Domain CI | targeted repository-owned integration for affected cross-owner contracts |
+| FTI ProsesBisnis / contextual authority / ProsesBisnis notification / ProsesBisnis TTE code | Server CI + FTI Domain CI | targeted repository-owned integration for affected cross-owner contracts |
 | Prisma schema/migration/recovery inputs | Server CI when schema/build input applies + Migration Smoke | targeted persistence/integration for affected product behavior |
 | Compose/environment contract | Compose Config | Container Build when production container inputs are affected |
 | Dockerfiles / production container runtime files | Container Build | automated deployment smoke only when release/deploy is explicitly in scope |
@@ -85,7 +85,7 @@ Do not use Server CI as a proxy for Dockerfile, migration SQL, or deployment cor
 
 ### FTI Domain CI
 
-FTI Domain CI is a focused G2 gate for the target FTI workflow boundary. It runs only when Process administration/context, organizational authority, Process-bound authoring/review/approval/revocation, Process notifications, Process TTE, or their persisted Prisma contract changes.
+FTI Domain CI is a focused G2 gate for the target FTI workflow boundary. It runs only when ProsesBisnis administration/context, organizational authority, ProsesBisnis-bound authoring/review/approval/revocation, ProsesBisnis notifications, ProsesBisnis TTE, or their persisted Prisma contract changes.
 
 It protects the target-domain policies that are intentionally outside the broad legacy/core unit baseline. It must not become a universal server gate.
 
@@ -125,9 +125,9 @@ Usually require focused behavior evidence when meaningful plus affected package 
 
 Use component/unit evidence for local interaction and focused repository-owned integration when router, server contract, authentication, persistence, or multi-step workflow integration materially matters. Do not require a browser journey to establish completion.
 
-### Authorization / Process relationship / organizational authority
+### Authorization / ProsesBisnis relationship / organizational authority
 
-Verify both permitted and denied paths. For Process access, include unrelated Process/Process Team denial when relevant.
+Verify both permitted and denied paths. For ProsesBisnis access, include unrelated ProsesBisnis/ProsesBisnis Team denial when relevant.
 
 For final authority resolution:
 
@@ -136,7 +136,7 @@ FACULTY    -> DEAN
 DEPARTMENT -> relevant HEAD_OF_DEPARTMENT
 ```
 
-The same contextual authority boundary applies to Process-bound revocation. `SUPER_ADMIN` is not an implicit workflow bypass.
+The same contextual authority boundary applies to ProsesBisnis-bound revocation. `SUPER_ADMIN` is not an implicit workflow bypass.
 
 ### Workflow transition / concurrency
 
@@ -152,13 +152,13 @@ For a complete cross-owner chain, prefer focused API/domain/persistence integrat
 
 ### Public archive / discovery
 
-When Process-native public discovery changes, protect applicable invariants such as native `SOP.processId` classification, current `BERLAKU` + official `PUBLISHED` artifact filtering, faculty/department context, Process-scoped lists, legacy/unbound compatibility, official persisted artifact resolution, and revocation behavior.
+When ProsesBisnis-native public discovery changes, protect applicable invariants such as native `SOP.prosesBisnisId` classification, current `BERLAKU` + official `PUBLISHED` artifact filtering, faculty/department context, ProsesBisnis-scoped lists, legacy/unbound compatibility, official persisted artifact resolution, and revocation behavior.
 
 Use focused repository-owned integration across SQL/HTTP/projection boundaries when the change spans them. Browser E2E is not a required gate.
 
 ### Notifications
 
-Protect recipient resolution, event mapping, read/unread behavior, action destination, absence of unintended delivery, Process/legacy isolation, duplicate-recipient collapse, and transaction participation when atomic feedback is promised.
+Protect recipient resolution, event mapping, read/unread behavior, action destination, absence of unintended delivery, ProsesBisnis/legacy isolation, duplicate-recipient collapse, and transaction participation when atomic feedback is promised.
 
 Realtime refresh is post-commit presentation behavior and must not be emitted for a rolled-back transition.
 

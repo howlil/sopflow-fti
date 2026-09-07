@@ -1,12 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { ProcessLifecycleContext } from '../ProcessLifecycleContext'
+import { StatusProsesBisnisContext } from '../StatusProsesBisnisContext'
 
-describe('ProcessLifecycleContext', () => {
+describe('StatusProsesBisnisContext', () => {
   it('answers the current stage, responsibility, and blocking reason compactly', () => {
     render(
-      <ProcessLifecycleContext
-        processName="Pengelolaan Akademik"
+      <StatusProsesBisnisContext
+        namaProsesBisnis="Pengelolaan Akademik"
         lifecycle={{
           stage: 'FINAL_APPROVAL',
           stateLabel: 'Menunggu persetujuan akhir',

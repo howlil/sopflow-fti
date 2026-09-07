@@ -4,33 +4,33 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { assertDetailSopEditable } from '../../../common/status/sop-editable.util';
 import {
   BagianSOP,
-  OrganizationalAuthority,
-  ProcessNotificationKind,
-  ProcessReviewDecision as ProcessReviewDecisionDb,
+  PejabatBerwenang,
+  JenisNotifikasiProsesBisnis,
+  KeputusanPemeriksaanProsesBisnis as KeputusanPemeriksaanProsesBisnisDb,
   StatusSOP,
 } from '../../../generated/prisma';
-import { OrganizationalAuthorityService } from '../../core/process/organizational-authority.service';
-import { ProcessContextService } from '../../core/process/process-context.service';
+import { PejabatBerwenangService } from '../../core/process/organizational-authority.service';
+import { ProsesBisnisContextService } from '../../core/process/konteks-proses-bisnis.service';
 import {
-  ProcessNotificationService,
-  type ProcessNotificationCreateInput,
+  NotifikasiProsesBisnisService,
+  type NotifikasiProsesBisnisCreateInput,
 } from '../../notifications/process/process-notification.service';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
 import { assertSopWorkbenchCompleteForSiapDievaluasi } from '../catalog/sop-completeness.validator';
 import { SopCatalogRepository } from '../catalog/sop-catalog.repository';
 import { appendOrCreateLogSession } from '../collaboration/log-edit-session.helper';
-import { ProcessReviewDecision } from './dto/process-review-decision.dto';
-import { ProcessSopAuthoringService } from './process-sop-authoring.service';
+import { KeputusanPemeriksaanProsesBisnis } from './dto/pemeriksaan-proses-bisnis-decision.dto';
+import { ProsesBisnisSopAuthoringService } from './sop-proses-bisnis-authoring.service';
 
 @Injectable()
-export class ProcessOwnerReviewService {
+export class ProsesBisnisOwnerReviewService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly processContextService: ProcessContextService,
-    private readonly organizationalAuthorityService: OrganizationalAuthorityService,
-    private readonly processNotificationService: ProcessNotificationService,
+    private readonly processContextService: ProsesBisnisContextService,
+    private readonly organizationalAuthorityService: PejabatBerwenangService,
+    private readonly notifikasiProsesBisnisService: NotifikasiProsesBisnisService,
     private readonly sopCatalogRepository: SopCatalogRepository,
-    private readonly processSopAuthoringService: ProcessSopAuthoringService,
+    private readonly processSopAuthoringService: ProsesBisnisSopAuthoringService,
   ) {}
 
   async submitForReview(
@@ -39,7 +39,7 @@ export class ProcessOwnerReviewService {
     logsLimit?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
     const context = await this.resolveTargetContext(detailOrSopId);
-    const process = await this.processContextService.assertCanAuthor(user.sub, context.processId);
+    const process = await this.processContextService.assertCanAuthor(user.sub, context.prosesBisnisId);
 
     const statusContext = await this.sopCatalogRepository.findLatestDetailStatusContext(
       context.detailSopId,
@@ -66,10 +66,10 @@ export class ProcessOwnerReviewService {
       notification: {
         detailSopId: context.detailSopId,
         sopId: context.sopId,
-        processId: context.processId,
+        prosesBisnisId: context.prosesBisnisId,
         penggunaId: process.ownerId,
-        kind: ProcessNotificationKind.PROCESS_OWNER_REVIEW_REQUESTED,
-        processName: process.nama,
+        kind: JenisNotifikasiProsesBisnis.PROCESS_OWNER_REVIEW_REQUESTED,
+        namaProsesBisnis: process.nama,
       },
     });
 
@@ -79,13 +79,13 @@ export class ProcessOwnerReviewService {
   async review(
     user: JwtAccessPayload,
     detailOrSopId: string,
-    decision: ProcessReviewDecision,
+    decision: KeputusanPemeriksaanProsesBisnis,
     catatanRaw?: string,
     logsLimit?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
     const catatan = catatanRaw?.trim() || null;
     const context = await this.resolveTargetContext(detailOrSopId);
-    const process = await this.processContextService.assertCanReview(user.sub, context.processId);
+    const process = await this.processContextService.assertCanReview(user.sub, context.prosesBisnisId);
 
     const statusContext = await this.sopCatalogRepository.findLatestDetailStatusContext(
       context.detailSopId,
@@ -95,17 +95,17 @@ export class ProcessOwnerReviewService {
     }
     if (statusContext.status !== StatusSOP.PROCESS_REVIEW) {
       throw new ConflictException(
-        `SOP belum berada pada Process Owner review (status saat ini: ${String(statusContext.status)})`,
+        `SOP belum berada pada ProsesBisnis Owner review (status saat ini: ${String(statusContext.status)})`,
       );
     }
 
     const targetStatus =
-      decision === ProcessReviewDecision.REVISION
+      decision === KeputusanPemeriksaanProsesBisnis.REVISION
         ? StatusSOP.REVISION_REQUIRED
         : StatusSOP.FINAL_APPROVAL;
 
-    let notification: ProcessNotificationCreateInput | undefined;
-    if (decision === ProcessReviewDecision.REVISION) {
+    let notification: NotifikasiProsesBisnisCreateInput | undefined;
+    if (decision === KeputusanPemeriksaanProsesBisnis.REVISION) {
       const detail = await this.prisma.detailSOP.findUnique({
         where: { detailSopId: context.detailSopId },
         select: { dibuatOlehId: true },
@@ -114,28 +114,28 @@ export class ProcessOwnerReviewService {
         throw new NotFoundException('DetailSOP tidak ditemukan');
       }
       if (detail.dibuatOlehId === null) {
-        throw new ConflictException('Author SOP Process tidak tersedia untuk feedback revisi');
+        throw new ConflictException('Author SOP Proses Bisnis tidak tersedia untuk feedback revisi');
       }
       notification = {
         detailSopId: context.detailSopId,
         sopId: context.sopId,
-        processId: context.processId,
+        prosesBisnisId: context.prosesBisnisId,
         penggunaId: detail.dibuatOlehId,
-        kind: ProcessNotificationKind.PROCESS_REVISION_REQUESTED,
-        processName: process.nama,
+        kind: JenisNotifikasiProsesBisnis.PROCESS_REVISION_REQUESTED,
+        namaProsesBisnis: process.nama,
         catatan: catatan ?? undefined,
       };
     } else {
-      const authority = await this.organizationalAuthorityService.resolveForProcess(context.processId);
+      const authority = await this.organizationalAuthorityService.resolveForProsesBisnis(context.prosesBisnisId);
       notification = {
         detailSopId: context.detailSopId,
         sopId: context.sopId,
-        processId: context.processId,
+        prosesBisnisId: context.prosesBisnisId,
         penggunaId: authority.holderId,
-        kind: ProcessNotificationKind.FINAL_APPROVAL_REQUESTED,
-        processName: process.nama,
+        kind: JenisNotifikasiProsesBisnis.FINAL_APPROVAL_REQUESTED,
+        namaProsesBisnis: process.nama,
         authorityLabel:
-          authority.authority === OrganizationalAuthority.DEAN ? 'Dekan' : 'Kepala Departemen',
+          authority.authority === PejabatBerwenang.DEAN ? 'Dekan' : 'Kepala Departemen',
       };
     }
 
@@ -148,12 +148,12 @@ export class ProcessOwnerReviewService {
       reviewEvidence: {
         detailSopId: context.detailSopId,
         sopId: context.sopId,
-        processId: context.processId,
+        prosesBisnisId: context.prosesBisnisId,
         reviewedById: user.sub,
         decision:
-          decision === ProcessReviewDecision.REVISION
-            ? ProcessReviewDecisionDb.REVISION
-            : ProcessReviewDecisionDb.ACCEPT,
+          decision === KeputusanPemeriksaanProsesBisnis.REVISION
+            ? KeputusanPemeriksaanProsesBisnisDb.REVISION
+            : KeputusanPemeriksaanProsesBisnisDb.ACCEPT,
         previousStatus: statusContext.status,
         nextStatus: targetStatus,
         catatan,
@@ -168,13 +168,13 @@ export class ProcessOwnerReviewService {
     expectedStatus: StatusSOP;
     targetStatus: StatusSOP;
     userId: string;
-    notification?: ProcessNotificationCreateInput;
+    notification?: NotifikasiProsesBisnisCreateInput;
     reviewEvidence?: {
       detailSopId: string;
       sopId: string;
-      processId: string;
+      prosesBisnisId: string;
       reviewedById: string;
-      decision: ProcessReviewDecisionDb;
+      decision: KeputusanPemeriksaanProsesBisnisDb;
       previousStatus: StatusSOP;
       nextStatus: StatusSOP;
       catatan?: string | null;
@@ -205,22 +205,22 @@ export class ProcessOwnerReviewService {
         discrete: true,
       });
       if (params.notification !== undefined) {
-        await this.processNotificationService.createInTransaction(tx, params.notification);
+        await this.notifikasiProsesBisnisService.createInTransaction(tx, params.notification);
       }
       if (params.reviewEvidence !== undefined) {
-        await tx.processReview.create({ data: params.reviewEvidence });
+        await tx.pemeriksaanProsesBisnis.create({ data: params.reviewEvidence });
       }
     });
 
     if (params.notification !== undefined) {
-      this.processNotificationService.emitChanged(params.notification.penggunaId);
+      this.notifikasiProsesBisnisService.emitChanged(params.notification.penggunaId);
     }
   }
 
   private async resolveTargetContext(detailOrSopId: string): Promise<{
     detailSopId: string;
     sopId: string;
-    processId: string;
+    prosesBisnisId: string;
   }> {
     const resolved = await this.sopCatalogRepository.findDetailIdByDetailOrSopId(detailOrSopId);
     if (resolved === null) {
@@ -228,15 +228,15 @@ export class ProcessOwnerReviewService {
     }
     const sop = await this.prisma.sOP.findUnique({
       where: { sopId: resolved.sopId },
-      select: { processId: true },
+      select: { prosesBisnisId: true },
     });
-    if (sop?.processId === null || sop === null) {
-      throw new ConflictException('SOP arsip tanpa Process tidak dapat masuk workflow FTI');
+    if (sop?.prosesBisnisId === null || sop === null) {
+      throw new ConflictException('SOP arsip tanpa Proses Bisnis tidak dapat masuk workflow FTI');
     }
     return {
       detailSopId: resolved.detailSopId,
       sopId: resolved.sopId,
-      processId: sop.processId,
+      prosesBisnisId: sop.prosesBisnisId,
     };
   }
 }

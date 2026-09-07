@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Ban, Check, FileSignature, Loader2, ShieldCheck } from 'lucide-react'
-import { processApprovalApi, useProcessApprovalQueue } from '@/api/process-approval'
-import { useProcessRevocationQueue } from '@/api/process-revocation'
-import { useTandaTanganiProcessSop } from '@/api/process-tte'
+import { processApprovalApi, useProsesBisnisApprovalQueue } from '@/api/persetujuan-akhir-sop'
+import { useProsesBisnisRevocationQueue } from '@/api/pencabutan-sop'
+import { useTandaTanganiProsesBisnisSop } from '@/api/tte-proses-bisnis'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { DataSurface } from '@/components/data/data-surface'
@@ -14,15 +14,15 @@ import { useToast } from '@/hooks/useToast'
 import { buildSopArsipPdfBase64FromPreviewProps } from '@/lib/print/pengajuan-print'
 import { mapPenyusunWorkbenchToPreviewProps } from '@/lib/sop/detailSop.mappers'
 
-export function ProcessApprovalPage() {
-  const { rows, isLoading, approve, isApproving } = useProcessApprovalQueue()
+export function ProsesBisnisApprovalPage() {
+  const { rows, isLoading, approve, isApproving } = useProsesBisnisApprovalQueue()
   const {
     rows: revocationRows,
     isLoading: isLoadingRevocations,
     revoke,
     isRevoking,
-  } = useProcessRevocationQueue()
-  const signProcessSop = useTandaTanganiProcessSop({ suppressSetupRequiredToast: true })
+  } = useProsesBisnisRevocationQueue()
+  const signProsesBisnisSop = useTandaTanganiProsesBisnisSop({ suppressSetupRequiredToast: true })
   const {
     tteSetupDialogOpen,
     setTteSetupDialogOpen,
@@ -42,7 +42,7 @@ export function ProcessApprovalPage() {
   }
 
   const handlePinConfirm = async (pin: string): Promise<boolean> => {
-    if (signing === null || signProcessSop.isPending) return false
+    if (signing === null || signProsesBisnisSop.isPending) return false
     let signingRequestStarted = false
     try {
       const document = await processApprovalApi.document(signing.detailSopId)
@@ -60,7 +60,7 @@ export function ProcessApprovalPage() {
       })
 
       signingRequestStarted = true
-      await signProcessSop.mutateAsync({
+      await signProsesBisnisSop.mutateAsync({
         detailSopId: signing.detailSopId,
         payload: {
           pin,
@@ -94,7 +94,7 @@ export function ProcessApprovalPage() {
             <div className="space-y-0.5">
               <h2 className="text-sm font-semibold text-foreground">SOP dalam kewenangan Anda</h2>
               <p className="text-sm text-secondary-foreground">
-                Persetujuan akhir mengikuti lingkup Process: Dekan untuk Process fakultas dan Kepala Departemen untuk Process departemen. Setelah disetujui, pemegang kewenangan yang sama menyelesaikan TTE agar SOP berlaku.
+                Persetujuan akhir mengikuti lingkup ProsesBisnis: Dekan untuk ProsesBisnis fakultas dan Kepala Departemen untuk ProsesBisnis departemen. Setelah disetujui, pemegang kewenangan yang sama menyelesaikan TTE agar SOP berlaku.
               </p>
             </div>
           </DataSurface.Header>
@@ -114,7 +114,7 @@ export function ProcessApprovalPage() {
                       </span>
                     </div>
                     <p className="text-sm text-secondary-foreground">
-                      {row.nomorSOP} · v{row.versi} · Process {row.processNama}
+                      {row.nomorSOP} · v{row.versi} · ProsesBisnis {row.processNama}
                     </p>
                     {row.approval ? (
                       <p className="inline-flex items-center gap-1 text-xs font-medium text-secondary-foreground">
@@ -134,10 +134,10 @@ export function ProcessApprovalPage() {
                     <Button
                       size="sm"
                       className="gap-1.5"
-                      disabled={signProcessSop.isPending}
+                      disabled={signProsesBisnisSop.isPending}
                       onClick={() => handleOpenSigning(row.detailSopId)}
                     >
-                      {signProcessSop.isPending && signingId === row.detailSopId ? (
+                      {signProsesBisnisSop.isPending && signingId === row.detailSopId ? (
                         <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                       ) : (
                         <FileSignature className="h-4 w-4" aria-hidden />
@@ -176,7 +176,7 @@ export function ProcessApprovalPage() {
                       </span>
                     </div>
                     <p className="text-sm text-secondary-foreground">
-                      {row.nomorSOP} · v{row.versi} · Process {row.processNama}
+                      {row.nomorSOP} · v{row.versi} · ProsesBisnis {row.processNama}
                     </p>
                     <p className="text-xs font-medium text-secondary-foreground">Berlaku</p>
                   </div>

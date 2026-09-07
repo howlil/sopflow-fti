@@ -34,7 +34,7 @@ export function LandingProductPreview() {
               <div className="flex flex-col gap-3 border-b border-row-border pb-5 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-foreground">SOP Layanan Akademik</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Process Owner mereview substansi dan kelengkapan dokumen</p>
+                  <p className="mt-1 text-xs text-muted-foreground">ProsesBisnis Owner mereview substansi dan kelengkapan dokumen</p>
                 </div>
                 <span className="w-fit rounded-full bg-warning-subtle px-3 py-1.5 text-[10px] font-semibold text-warning-foreground">
                   Menunggu persetujuan akhir
@@ -47,14 +47,14 @@ export function LandingProductPreview() {
                     <FileCheck2 className="h-3.5 w-3.5 text-primary" aria-hidden />
                     Catatan review
                   </div>
-                  <p className="mt-3 text-xs leading-5 text-secondary-foreground">Catatan perbaikan tetap melekat pada versi SOP dan Process yang direview.</p>
+                  <p className="mt-3 text-xs leading-5 text-secondary-foreground">Catatan perbaikan tetap melekat pada versi SOP dan ProsesBisnis yang direview.</p>
                 </div>
                 <div className="rounded-[16px] border border-slate-200/80 bg-white p-4 shadow-[0_18px_38px_-34px_rgba(15,23,42,0.42)]">
                   <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                     <ShieldCheck className="h-3.5 w-3.5 text-primary" aria-hidden />
                     Kewenangan kontekstual
                   </div>
-                  <p className="mt-3 text-xs leading-5 text-secondary-foreground">Persetujuan akhir dan TTE diarahkan ke Dekan atau Ketua Jurusan sesuai lingkup Process.</p>
+                  <p className="mt-3 text-xs leading-5 text-secondary-foreground">Persetujuan akhir dan TTE diarahkan ke Dekan atau Ketua Jurusan sesuai lingkup ProsesBisnis.</p>
                 </div>
               </div>
             </div>

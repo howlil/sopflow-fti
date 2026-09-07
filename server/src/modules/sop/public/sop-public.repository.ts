@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { JenisDokumenTte, OrganizationalScope, Prisma, StatusSOP } from '../../../generated/prisma';
+import { JenisDokumenTte, LingkupOrganisasi, Prisma, StatusSOP } from '../../../generated/prisma';
 
-export type PublicProcessDbRow = {
-  readonly processId: string;
+export type PublicProsesBisnisDbRow = {
+  readonly prosesBisnisId: string;
   readonly nama: string;
-  readonly scope: OrganizationalScope;
-  readonly departmentId: string | null;
-  readonly departmentName: string | null;
+  readonly scope: LingkupOrganisasi;
+  readonly departemenId: string | null;
+  readonly namaDepartemen: string | null;
   readonly jumlahSopBerlaku: number;
 };
 
@@ -19,11 +19,11 @@ export type PublicFtiSopDbRow = {
   readonly versi: number;
   readonly tanggalEfektif: Date | null;
   readonly pdfPath: string;
-  readonly processId: string;
-  readonly processName: string;
-  readonly scope: OrganizationalScope;
-  readonly departmentId: string | null;
-  readonly departmentName: string | null;
+  readonly prosesBisnisId: string;
+  readonly namaProsesBisnis: string;
+  readonly scope: LingkupOrganisasi;
+  readonly departemenId: string | null;
+  readonly namaDepartemen: string | null;
 };
 
 export type PublicSopPdfDbRow = {
@@ -39,12 +39,12 @@ export type PublicSopPdfDbRow = {
 export class SopPublicRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async countProcessWithBerlakuSop(search?: string): Promise<number> {
+  async countProsesBisnisWithBerlakuSop(search?: string): Promise<number> {
     const rows = await this.prisma.$queryRaw<Array<{ total: bigint | number }>>`
-      SELECT COUNT(DISTINCT p.processId) AS total
-      FROM Process p
-      LEFT JOIN Department dep ON dep.departmentId = p.departmentId
-      JOIN SOP s ON s.processId = p.processId
+      SELECT COUNT(DISTINCT p.prosesBisnisId) AS total
+      FROM ProsesBisnis p
+      LEFT JOIN Departemen dep ON dep.departemenId = p.departemenId
+      JOIN SOP s ON s.prosesBisnisId = p.prosesBisnisId
       JOIN DetailSOP d ON d.sopId = s.sopId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
       WHERE d.status = ${StatusSOP.EFFECTIVE}
@@ -56,24 +56,24 @@ export class SopPublicRepository {
     return this.toCount(rows);
   }
 
-  async findProcessWithBerlakuSop(params: {
+  async findProsesBisnisWithBerlakuSop(params: {
     search?: string;
     skip: number;
     take: number;
-  }): Promise<PublicProcessDbRow[]> {
+  }): Promise<PublicProsesBisnisDbRow[]> {
     const rows = await this.prisma.$queryRaw<
-      Array<Omit<PublicProcessDbRow, 'jumlahSopBerlaku'> & { jumlahSopBerlaku: bigint | number }>
+      Array<Omit<PublicProsesBisnisDbRow, 'jumlahSopBerlaku'> & { jumlahSopBerlaku: bigint | number }>
     >`
       SELECT
-        p.processId,
+        p.prosesBisnisId,
         p.nama,
         p.scope,
-        p.departmentId,
-        dep.nama AS departmentName,
+        p.departemenId,
+        dep.nama AS namaDepartemen,
         COUNT(DISTINCT d.detailSopId) AS jumlahSopBerlaku
-      FROM Process p
-      LEFT JOIN Department dep ON dep.departmentId = p.departmentId
-      JOIN SOP s ON s.processId = p.processId
+      FROM ProsesBisnis p
+      LEFT JOIN Departemen dep ON dep.departemenId = p.departemenId
+      JOIN SOP s ON s.prosesBisnisId = p.prosesBisnisId
       JOIN DetailSOP d ON d.sopId = s.sopId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
       WHERE d.status = ${StatusSOP.EFFECTIVE}
@@ -81,9 +81,9 @@ export class SopPublicRepository {
         AND dt.pdfStatus = ${'PUBLISHED'}
         AND dt.pdfPath IS NOT NULL
         ${this.processCatalogSearchSql(params.search)}
-      GROUP BY p.processId, p.nama, p.scope, p.departmentId, dep.nama
+      GROUP BY p.prosesBisnisId, p.nama, p.scope, p.departemenId, dep.nama
       ORDER BY
-        CASE WHEN p.scope = ${OrganizationalScope.FACULTY} THEN 0 ELSE 1 END,
+        CASE WHEN p.scope = ${LingkupOrganisasi.FACULTY} THEN 0 ELSE 1 END,
         dep.nama ASC,
         p.nama ASC
       LIMIT ${params.take} OFFSET ${params.skip}
@@ -91,42 +91,42 @@ export class SopPublicRepository {
     return rows.map((row) => ({ ...row, jumlahSopBerlaku: Number(row.jumlahSopBerlaku) }));
   }
 
-  async findProcessById(processId: string): Promise<PublicProcessDbRow | null> {
+  async findProsesBisnisById(prosesBisnisId: string): Promise<PublicProsesBisnisDbRow | null> {
     const rows = await this.prisma.$queryRaw<
-      Array<Omit<PublicProcessDbRow, 'jumlahSopBerlaku'> & { jumlahSopBerlaku: bigint | number }>
+      Array<Omit<PublicProsesBisnisDbRow, 'jumlahSopBerlaku'> & { jumlahSopBerlaku: bigint | number }>
     >`
       SELECT
-        p.processId,
+        p.prosesBisnisId,
         p.nama,
         p.scope,
-        p.departmentId,
-        dep.nama AS departmentName,
+        p.departemenId,
+        dep.nama AS namaDepartemen,
         COUNT(DISTINCT d.detailSopId) AS jumlahSopBerlaku
-      FROM Process p
-      LEFT JOIN Department dep ON dep.departmentId = p.departmentId
-      LEFT JOIN SOP s ON s.processId = p.processId
+      FROM ProsesBisnis p
+      LEFT JOIN Departemen dep ON dep.departemenId = p.departemenId
+      LEFT JOIN SOP s ON s.prosesBisnisId = p.prosesBisnisId
       LEFT JOIN DetailSOP d ON d.sopId = s.sopId AND d.status = ${StatusSOP.EFFECTIVE}
       LEFT JOIN DokumenTte dt
         ON dt.detailSopId = d.detailSopId
         AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
         AND dt.pdfStatus = ${'PUBLISHED'}
         AND dt.pdfPath IS NOT NULL
-      WHERE p.processId = ${processId}
-      GROUP BY p.processId, p.nama, p.scope, p.departmentId, dep.nama
+      WHERE p.prosesBisnisId = ${prosesBisnisId}
+      GROUP BY p.prosesBisnisId, p.nama, p.scope, p.departemenId, dep.nama
       LIMIT 1
     `;
     const row = rows[0];
     return row === undefined ? null : { ...row, jumlahSopBerlaku: Number(row.jumlahSopBerlaku) };
   }
 
-  async countBerlakuSopByProcess(processId: string, search?: string): Promise<number> {
+  async countBerlakuSopByProsesBisnis(prosesBisnisId: string, search?: string): Promise<number> {
     const rows = await this.prisma.$queryRaw<Array<{ total: bigint | number }>>`
       SELECT COUNT(DISTINCT d.detailSopId) AS total
       FROM SOP s
-      JOIN Process p ON p.processId = s.processId
+      JOIN ProsesBisnis p ON p.prosesBisnisId = s.prosesBisnisId
       JOIN DetailSOP d ON d.sopId = s.sopId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
-      WHERE p.processId = ${processId}
+      WHERE p.prosesBisnisId = ${prosesBisnisId}
         AND d.status = ${StatusSOP.EFFECTIVE}
         AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
         AND dt.pdfStatus = ${'PUBLISHED'}
@@ -136,14 +136,14 @@ export class SopPublicRepository {
     return this.toCount(rows);
   }
 
-  async findBerlakuSopByProcess(params: {
-    processId: string;
+  async findBerlakuSopByProsesBisnis(params: {
+    prosesBisnisId: string;
     search?: string;
     skip: number;
     take: number;
   }): Promise<PublicFtiSopDbRow[]> {
-    return this.findPublishedProcessSopRows(
-      Prisma.sql`p.processId = ${params.processId}`,
+    return this.findPublishedProsesBisnisSopRows(
+      Prisma.sql`p.prosesBisnisId = ${params.prosesBisnisId}`,
       params.search,
       params.skip,
       params.take,
@@ -154,8 +154,8 @@ export class SopPublicRepository {
     const rows = await this.prisma.$queryRaw<Array<{ total: bigint | number }>>`
       SELECT COUNT(DISTINCT d.detailSopId) AS total
       FROM SOP s
-      JOIN Process p ON p.processId = s.processId
-      LEFT JOIN Department dep ON dep.departmentId = p.departmentId
+      JOIN ProsesBisnis p ON p.prosesBisnisId = s.prosesBisnisId
+      LEFT JOIN Departemen dep ON dep.departemenId = p.departemenId
       JOIN DetailSOP d ON d.sopId = s.sopId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
       WHERE d.status = ${StatusSOP.EFFECTIVE}
@@ -172,7 +172,7 @@ export class SopPublicRepository {
     skip: number;
     take: number;
   }): Promise<PublicFtiSopDbRow[]> {
-    return this.findPublishedProcessSopRows(
+    return this.findPublishedProsesBisnisSopRows(
       Prisma.sql`1 = 1`,
       params.search,
       params.skip,
@@ -185,7 +185,7 @@ export class SopPublicRepository {
       SELECT d.detailSopId, s.judul, d.nomorSOP, d.versi, dt.pdfPath, dt.pdfSha256
       FROM DetailSOP d
       JOIN SOP s ON s.sopId = d.sopId
-      JOIN Process p ON p.processId = s.processId
+      JOIN ProsesBisnis p ON p.prosesBisnisId = s.prosesBisnisId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
       WHERE d.detailSopId = ${detailSopId}
         AND d.status = ${StatusSOP.EFFECTIVE}
@@ -197,7 +197,7 @@ export class SopPublicRepository {
     return rows[0] ?? null;
   }
 
-  private async findPublishedProcessSopRows(
+  private async findPublishedProsesBisnisSopRows(
     extraWhere: Prisma.Sql,
     search: string | undefined,
     skip: number,
@@ -212,14 +212,14 @@ export class SopPublicRepository {
         d.versi,
         d.tanggalEfektif,
         dt.pdfPath,
-        p.processId,
-        p.nama AS processName,
+        p.prosesBisnisId,
+        p.nama AS namaProsesBisnis,
         p.scope,
-        p.departmentId,
-        dep.nama AS departmentName
+        p.departemenId,
+        dep.nama AS namaDepartemen
       FROM SOP s
-      JOIN Process p ON p.processId = s.processId
-      LEFT JOIN Department dep ON dep.departmentId = p.departmentId
+      JOIN ProsesBisnis p ON p.prosesBisnisId = s.prosesBisnisId
+      LEFT JOIN Departemen dep ON dep.departemenId = p.departemenId
       JOIN DetailSOP d ON d.sopId = s.sopId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
       WHERE ${extraWhere}

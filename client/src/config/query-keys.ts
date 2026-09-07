@@ -7,16 +7,16 @@ export const queryKeys = {
   platformAccounts: ['platformAccounts'] as const,
 
   processAdmin: ['processAdmin'] as const,
-  processAdminDepartments: ['processAdmin', 'departments'] as const,
+  processAdminDepartemens: ['processAdmin', 'departments'] as const,
   processAdminUsers: ['processAdmin', 'users'] as const,
-  processAdminProcesses: ['processAdmin', 'processes'] as const,
+  processAdminProsesBisnises: ['processAdmin', 'processes'] as const,
   processOwnerAuthorities: ['processAdmin', 'ownerAuthorities'] as const,
 
   processOwner: ['processOwner'] as const,
   processOwnerScopes: ['processOwner', 'scopes'] as const,
-  processOwnerProcesses: ['processOwner', 'processes'] as const,
+  processOwnerProsesBisnises: ['processOwner', 'processes'] as const,
   processOwnerUsers: ['processOwner', 'users'] as const,
-  processOwnerAudit: (processId: string) => ['processOwner', 'audit', processId] as const,
+  processOwnerAudit: (prosesBisnisId: string) => ['processOwner', 'audit', prosesBisnisId] as const,
 
   peraturan: ['peraturan'] as const,
   peraturanList: ['peraturan', 'list'] as const,
@@ -36,12 +36,12 @@ export const queryKeys = {
     ['tte', 'pengesahan-public', dokumenTteId, userId] as const,
   ttePdfSigningStatus: ['tte', 'pdf-signing-status'] as const,
 
-  sopPublicProcessList: (params?: { page?: number; limit?: number; search?: string }) =>
+  sopPublicProsesBisnisList: (params?: { page?: number; limit?: number; search?: string }) =>
     ['sop', 'public', 'fti', 'processes', params ?? {}] as const,
-  sopPublicProcessSopList: (
-    processId: string,
+  sopPublicProsesBisnisSopList: (
+    prosesBisnisId: string,
     params?: { page?: number; limit?: number; search?: string },
-  ) => ['sop', 'public', 'fti', 'processes', processId, 'sop', params ?? {}] as const,
+  ) => ['sop', 'public', 'fti', 'processes', prosesBisnisId, 'sop', params ?? {}] as const,
   sopPublicFtiSopGlobal: (params?: { page?: number; limit?: number; search?: string }) =>
     ['sop', 'public', 'fti', 'sop', params ?? {}] as const,
   sopPublicDokumen: (detailSopId: string) => ['sop', 'public', 'dokumen', detailSopId] as const,

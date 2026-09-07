@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { OrganizationalScope } from '../../../generated/prisma';
+import { LingkupOrganisasi } from '../../../generated/prisma';
 import { SopCatalogService } from '../catalog/sop-catalog.service';
 import { SopPdfStorageService } from '../pdf/sop-pdf-storage.service';
 import type { PublicArsipQueryDto } from './dto/public-arsip-query.dto';
@@ -10,11 +10,11 @@ import { SopPublicService } from './sop-public.service';
 describe('SopPublicService — FTI-native archive', () => {
   let service: SopPublicService;
   const repo = {
-    countProcessWithBerlakuSop: jest.fn(),
-    findProcessWithBerlakuSop: jest.fn(),
-    findProcessById: jest.fn(),
-    countBerlakuSopByProcess: jest.fn(),
-    findBerlakuSopByProcess: jest.fn(),
+    countProsesBisnisWithBerlakuSop: jest.fn(),
+    findProsesBisnisWithBerlakuSop: jest.fn(),
+    findProsesBisnisById: jest.fn(),
+    countBerlakuSopByProsesBisnis: jest.fn(),
+    findBerlakuSopByProsesBisnis: jest.fn(),
     countFtiSopGlobal: jest.fn(),
     findFtiSopGlobal: jest.fn(),
   };
@@ -32,51 +32,51 @@ describe('SopPublicService — FTI-native archive', () => {
     service = module.get(SopPublicService);
   });
 
-  it('J35 memetakan Process Fakultas/Departemen yang memiliki SOP resmi', async () => {
-    repo.countProcessWithBerlakuSop.mockResolvedValue(2);
-    repo.findProcessWithBerlakuSop.mockResolvedValue([
+  it('J35 memetakan Proses Bisnis Fakultas/Departemen yang memiliki SOP resmi', async () => {
+    repo.countProsesBisnisWithBerlakuSop.mockResolvedValue(2);
+    repo.findProsesBisnisWithBerlakuSop.mockResolvedValue([
       {
-        processId: 'process-faculty',
+        prosesBisnisId: 'process-faculty',
         nama: 'Pengelolaan Akademik FTI',
-        scope: OrganizationalScope.FACULTY,
-        departmentId: null,
-        departmentName: null,
+        scope: LingkupOrganisasi.FACULTY,
+        departemenId: null,
+        namaDepartemen: null,
         jumlahSopBerlaku: 2,
       },
       {
-        processId: 'process-dept',
+        prosesBisnisId: 'process-dept',
         nama: 'Pengelolaan Tugas Akhir',
-        scope: OrganizationalScope.DEPARTMENT,
-        departmentId: 'department-if',
-        departmentName: 'Informatika',
+        scope: LingkupOrganisasi.DEPARTMENT,
+        departemenId: 'department-if',
+        namaDepartemen: 'Informatika',
         jumlahSopBerlaku: 1,
       },
     ]);
 
-    const actual = await service.listProcess({ page: 1, limit: 50 } as PublicArsipQueryDto);
+    const actual = await service.listProsesBisnis({ page: 1, limit: 50 } as PublicArsipQueryDto);
 
     expect(actual.pagination.totalItems).toBe(2);
     expect(actual.items).toEqual([
-      expect.objectContaining({ processId: 'process-faculty', scope: OrganizationalScope.FACULTY }),
+      expect.objectContaining({ prosesBisnisId: 'process-faculty', scope: LingkupOrganisasi.FACULTY }),
       expect.objectContaining({
-        processId: 'process-dept',
-        scope: OrganizationalScope.DEPARTMENT,
-        departmentName: 'Informatika',
+        prosesBisnisId: 'process-dept',
+        scope: LingkupOrganisasi.DEPARTMENT,
+        namaDepartemen: 'Informatika',
       }),
     ]);
   });
 
-  it('J35 menggunakan Process context dan official PDF action pada SOP Process', async () => {
-    repo.findProcessById.mockResolvedValue({
-      processId: 'process-faculty',
+  it('J35 menggunakan Proses Bisnis context dan official PDF action pada SOP Proses Bisnis', async () => {
+    repo.findProsesBisnisById.mockResolvedValue({
+      prosesBisnisId: 'process-faculty',
       nama: 'Pengelolaan Akademik FTI',
-      scope: OrganizationalScope.FACULTY,
-      departmentId: null,
-      departmentName: null,
+      scope: LingkupOrganisasi.FACULTY,
+      departemenId: null,
+      namaDepartemen: null,
       jumlahSopBerlaku: 1,
     });
-    repo.countBerlakuSopByProcess.mockResolvedValue(1);
-    repo.findBerlakuSopByProcess.mockResolvedValue([
+    repo.countBerlakuSopByProsesBisnis.mockResolvedValue(1);
+    repo.findBerlakuSopByProsesBisnis.mockResolvedValue([
       {
         detailSopId: 'detail-1',
         sopId: 'sop-1',
@@ -86,15 +86,15 @@ describe('SopPublicService — FTI-native archive', () => {
         tanggalEfektif: new Date('2026-09-03T00:00:00.000Z'),
         opdNama: 'Legacy OPD',
         pdfPath: 'official.pdf',
-        processId: 'process-faculty',
-        processName: 'Pengelolaan Akademik FTI',
-        scope: OrganizationalScope.FACULTY,
-        departmentId: null,
-        departmentName: null,
+        prosesBisnisId: 'process-faculty',
+        namaProsesBisnis: 'Pengelolaan Akademik FTI',
+        scope: LingkupOrganisasi.FACULTY,
+        departemenId: null,
+        namaDepartemen: null,
       },
     ]);
 
-    const actual = await service.listSopByProcess('process-faculty', {
+    const actual = await service.listSopByProsesBisnis('process-faculty', {
       page: 1,
       limit: 15,
     } as PublicArsipQueryDto);
@@ -102,21 +102,21 @@ describe('SopPublicService — FTI-native archive', () => {
     expect(actual.items[0]).toEqual(
       expect.objectContaining({
         detailSopId: 'detail-1',
-        processId: 'process-faculty',
-        processName: 'Pengelolaan Akademik FTI',
+        prosesBisnisId: 'process-faculty',
+        namaProsesBisnis: 'Pengelolaan Akademik FTI',
         pdfUrl: '/sop/public/pdf/detail-1',
       }),
     );
   });
 
-  it('J35 menolak Process yang tidak ada', async () => {
-    repo.findProcessById.mockResolvedValue(null);
+  it('J35 menolak Proses Bisnis yang tidak ada', async () => {
+    repo.findProsesBisnisById.mockResolvedValue(null);
     await expect(
-      service.listSopByProcess('missing', { page: 1, limit: 15 } as PublicArsipQueryDto),
+      service.listSopByProsesBisnis('missing', { page: 1, limit: 15 } as PublicArsipQueryDto),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('J38 mempertahankan nullable Process context untuk legacy-unbound compatibility result', async () => {
+  it('J38 mempertahankan nullable Proses Bisnis context untuk legacy-unbound compatibility result', async () => {
     repo.countFtiSopGlobal.mockResolvedValue(1);
     repo.findFtiSopGlobal.mockResolvedValue([
       {
@@ -128,11 +128,11 @@ describe('SopPublicService — FTI-native archive', () => {
         tanggalEfektif: null,
         opdNama: 'Legacy OPD',
         pdfPath: 'legacy.pdf',
-        processId: null,
-        processName: null,
+        prosesBisnisId: null,
+        namaProsesBisnis: null,
         scope: null,
-        departmentId: null,
-        departmentName: null,
+        departemenId: null,
+        namaDepartemen: null,
       },
     ]);
 
@@ -146,8 +146,8 @@ describe('SopPublicService — FTI-native archive', () => {
     expect(actual.items[0]).toEqual(
       expect.objectContaining({
         detailSopId: 'legacy-detail',
-        processId: null,
-        processName: null,
+        prosesBisnisId: null,
+        namaProsesBisnis: null,
         opdNama: 'Legacy OPD',
       }),
     );

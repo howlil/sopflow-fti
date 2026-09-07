@@ -1,15 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 
-export enum ProcessReviewDecision {
+export enum KeputusanPemeriksaanProsesBisnis {
   REVISION = 'REVISION',
   ACCEPT = 'ACCEPT',
 }
 
-export class ProcessReviewDecisionDto {
-  @ApiProperty({ enum: ProcessReviewDecision })
-  @IsEnum(ProcessReviewDecision)
-  decision!: ProcessReviewDecision;
+export class KeputusanPemeriksaanProsesBisnisDto {
+  @ApiProperty({ enum: KeputusanPemeriksaanProsesBisnis })
+  @IsEnum(KeputusanPemeriksaanProsesBisnis)
+  decision!: KeputusanPemeriksaanProsesBisnis;
 
   @ApiPropertyOptional({
     description: 'Catatan perbaikan; wajib diisi ketika keputusan REVISION.',

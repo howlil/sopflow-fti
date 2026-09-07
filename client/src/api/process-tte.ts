@@ -1,32 +1,32 @@
 import { apiClient } from '@/lib/api/api-client'
 import { unwrapApiData } from '@/lib/api/response'
 import { useMutationWithToast } from '@/hooks/useMutationWithToast'
-import { approvalQueueKey } from '@/api/process-approval'
+import { approvalQueueKey } from '@/api/persetujuan-akhir-sop'
 import type { ApiSuccessResponse } from '@/types/dto/auth.dto'
 import type {
-  TandaTanganiProcessSopDto,
-  TandaTanganiProcessSopMutationDto,
-  TandaTanganiProcessSopResponse,
+  TandaTanganiProsesBisnisSopDto,
+  TandaTanganiProsesBisnisSopMutationDto,
+  TandaTanganiProsesBisnisSopResponse,
 } from '@/types/dto/tte.dto'
 
 export const processTteApi = {
   sign: (
     detailSopId: string,
-    payload: TandaTanganiProcessSopDto,
-  ): Promise<TandaTanganiProcessSopResponse> =>
+    payload: TandaTanganiProsesBisnisSopDto,
+  ): Promise<TandaTanganiProsesBisnisSopResponse> =>
     unwrapApiData(
-      apiClient.post<ApiSuccessResponse<TandaTanganiProcessSopResponse>>(
-        `/process-tte/${detailSopId}/sign`,
+      apiClient.post<ApiSuccessResponse<TandaTanganiProsesBisnisSopResponse>>(
+        `/tte-proses-bisnis/${detailSopId}/sign`,
         payload,
       ),
     ),
 }
 
-export function useTandaTanganiProcessSop(options?: {
+export function useTandaTanganiProsesBisnisSop(options?: {
   suppressSetupRequiredToast?: boolean
 }) {
   return useMutationWithToast({
-    mutationFn: ({ detailSopId, payload }: TandaTanganiProcessSopMutationDto) =>
+    mutationFn: ({ detailSopId, payload }: TandaTanganiProsesBisnisSopMutationDto) =>
       processTteApi.sign(detailSopId, payload),
     invalidateKeys: [approvalQueueKey],
     successMessage: 'SOP berhasil ditandatangani dan berlaku.',

@@ -6,24 +6,24 @@ import { SOP_WORKFLOW_REFRESH_OPTIONS } from '@/lib/api/cache-invalidation'
 import type { ApiSuccessResponse } from '@/types/dto/auth.dto'
 import type {
   PublicArsipQueryParams,
-  PublicProcessPage,
-  PublicSopByProcessPage,
+  PublicProsesBisnisPage,
+  PublicSopByProsesBisnisPage,
   PublicSopDokumen,
   PublicSopPage,
 } from '@/types/dto/sop-public.dto'
 
 export const sopPublicApi = {
-  listProcess: (params?: PublicArsipQueryParams) =>
-    unwrapApiData<PublicProcessPage>(
-      apiClient.get<ApiSuccessResponse<PublicProcessPage>>(
+  listProsesBisnis: (params?: PublicArsipQueryParams) =>
+    unwrapApiData<PublicProsesBisnisPage>(
+      apiClient.get<ApiSuccessResponse<PublicProsesBisnisPage>>(
         `/sop/public/fti/processes${buildQueryString(params as Record<string, unknown> | undefined)}`,
       ),
     ),
 
-  listSopByProcess: (processId: string, params?: PublicArsipQueryParams) =>
-    unwrapApiData<PublicSopByProcessPage>(
-      apiClient.get<ApiSuccessResponse<PublicSopByProcessPage>>(
-        `/sop/public/fti/processes/${encodeURIComponent(processId)}/sop${buildQueryString(params as Record<string, unknown> | undefined)}`,
+  listSopByProsesBisnis: (prosesBisnisId: string, params?: PublicArsipQueryParams) =>
+    unwrapApiData<PublicSopByProsesBisnisPage>(
+      apiClient.get<ApiSuccessResponse<PublicSopByProsesBisnisPage>>(
+        `/sop/public/fti/processes/${encodeURIComponent(prosesBisnisId)}/sop${buildQueryString(params as Record<string, unknown> | undefined)}`,
       ),
     ),
 
@@ -42,19 +42,19 @@ export const sopPublicApi = {
     ),
 }
 
-export function usePublicProcessList(params: PublicArsipQueryParams) {
+export function usePublicProsesBisnisList(params: PublicArsipQueryParams) {
   return useQuery({
-    queryKey: queryKeys.sopPublicProcessList(params),
-    queryFn: () => sopPublicApi.listProcess(params),
+    queryKey: queryKeys.sopPublicProsesBisnisList(params),
+    queryFn: () => sopPublicApi.listProsesBisnis(params),
     ...SOP_WORKFLOW_REFRESH_OPTIONS,
   })
 }
 
-export function usePublicProcessSopList(processId: string, params: PublicArsipQueryParams) {
+export function usePublicProsesBisnisSopList(prosesBisnisId: string, params: PublicArsipQueryParams) {
   return useQuery({
-    queryKey: queryKeys.sopPublicProcessSopList(processId, params),
-    queryFn: () => sopPublicApi.listSopByProcess(processId, params),
-    enabled: Boolean(processId),
+    queryKey: queryKeys.sopPublicProsesBisnisSopList(prosesBisnisId, params),
+    queryFn: () => sopPublicApi.listSopByProsesBisnis(prosesBisnisId, params),
+    enabled: Boolean(prosesBisnisId),
     ...SOP_WORKFLOW_REFRESH_OPTIONS,
   })
 }

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { processInvitationApi } from '@/api/process-invitations'
+import { undanganAnggotaProsesBisnisApi } from '@/api/undangan-anggota-proses-bisnis'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import type { ProcessInvitationPreviewDto } from '@/types/dto/process.dto'
+import type { UndanganAnggotaProsesBisnisPreviewDto } from '@/types/dto/process.dto'
 
-export function ProcessInvitationActivation({ token }: { token: string }) {
-  const [preview, setPreview] = useState<ProcessInvitationPreviewDto | null>(null)
+export function UndanganAnggotaProsesBisnisActivation({ token }: { token: string }) {
+  const [preview, setPreview] = useState<UndanganAnggotaProsesBisnisPreviewDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [password, setPassword] = useState('')
@@ -17,7 +17,7 @@ export function ProcessInvitationActivation({ token }: { token: string }) {
     let cancelled = false
     setLoading(true)
     setError(null)
-    processInvitationApi
+    undanganAnggotaProsesBisnisApi
       .preview(token)
       .then((data) => {
         if (!cancelled) setPreview(data)
@@ -45,7 +45,7 @@ export function ProcessInvitationActivation({ token }: { token: string }) {
     setSubmitting(true)
     setError(null)
     try {
-      await processInvitationApi.accept(token, password)
+      await undanganAnggotaProsesBisnisApi.accept(token, password)
       setCompleted(true)
     } catch {
       setError('Aktivasi gagal. Periksa kembali undangan atau identitas akun Anda.')
@@ -65,7 +65,7 @@ export function ProcessInvitationActivation({ token }: { token: string }) {
           <p className="text-sm font-medium text-primary">Akun berhasil diaktifkan</p>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Anda sudah menjadi Penyusun SOP</h1>
           <p className="text-sm leading-6 text-secondary-foreground">
-            Akses hanya diberikan ke Process yang mengundang Anda. Masuk dengan email dan kata sandi yang baru dibuat.
+            Akses hanya diberikan ke ProsesBisnis yang mengundang Anda. Masuk dengan email dan kata sandi yang baru dibuat.
           </p>
         </div>
         <Button className="w-full" onClick={() => window.location.assign('/login')}>
@@ -93,7 +93,7 @@ export function ProcessInvitationActivation({ token }: { token: string }) {
         <p className="text-sm font-medium text-primary">Undangan Penyusun SOP</p>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Aktifkan akun Anda</h1>
         <p className="text-sm leading-6 text-secondary-foreground">
-          {preview.nama}, Anda diundang ke Process <span className="font-medium text-foreground">{preview.process.nama}</span>.
+          {preview.nama}, Anda diundang ke ProsesBisnis <span className="font-medium text-foreground">{preview.process.nama}</span>.
           Buat kata sandi Anda sendiri untuk mengaktifkan akses.
         </p>
       </div>

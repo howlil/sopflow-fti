@@ -5,7 +5,7 @@ export const ARSIP_SOP_PAGE_SIZE = 15
 export const ARSIP_AUTO_SELECT_SOP_MAX = 10
 
 export const arsipBrowseSearchSchema = z.object({
-  processId: z.string().optional(),
+  prosesBisnisId: z.string().optional(),
   q: z.string().max(200).optional(),
   detailSopId: z.string().optional(),
   processPage: z.coerce.number().int().min(1).optional(),

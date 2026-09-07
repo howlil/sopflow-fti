@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import { Users, FileText, Menu, X, Workflow, ShieldCheck, House } from "lucide-react";
-import { useMyProcesses } from "@/api/process-context";
+import { useMyProsesBisnises } from "@/api/konteks-proses-bisnis";
 import { useMyOrganizationalAuthorities } from "@/api/organizational-authority";
 import logoSvg from "@/assets/logo.svg";
 import { HeaderBar } from "@/components/layout/HeaderBar";
@@ -24,13 +24,13 @@ export function DashboardLayout() {
   const { pathname } = useLocation();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
-  const { data: myProcesses = [] } = useMyProcesses();
+  const { data: myProsesBisnises = [] } = useMyProsesBisnises();
   const { data: myAuthorities = [] } = useMyOrganizationalAuthorities();
   const isDesktopNavOpen = useUIStore((state) => state.sidebarOpen);
   const setDesktopNavOpen = useUIStore((state) => state.setSidebarOpen);
   const contextualItems: AppSidebarItem[] = [
     { to: ROUTES.WORK, label: "Beranda Kerja", icon: House },
-    ...(myProcesses.length > 0
+    ...(myProsesBisnises.length > 0
       ? [{ to: ROUTES.WORK_QUEUE, label: "Pekerjaan SOP", icon: FileText }]
       : []),
     ...(myAuthorities.length > 0
@@ -45,7 +45,7 @@ export function DashboardLayout() {
       : []),
   ];
 
-  // First-party navigation is owned by Process relationships, organizational authority,
+  // First-party navigation is owned by ProsesBisnis relationships, organizational authority,
   // and platform administration. Legacy role routing is no longer a navigation fallback.
   const sidebarItems = contextualItems;
   const activeItem = sidebarItems.find(({ to }) => isActivePath(pathname, to));

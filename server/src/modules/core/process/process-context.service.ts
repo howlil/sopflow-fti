@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { ProcessLifecycleStatus } from '../../../generated/prisma';
+import { StatusKeaktifanProsesBisnis } from '../../../generated/prisma';
 
 const userSelect = {
   penggunaId: true,
@@ -19,14 +19,14 @@ const processInclude = {
 } as const;
 
 @Injectable()
-export class ProcessContextService {
+export class ProsesBisnisContextService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listForUser(penggunaId: string) {
-    const archivedIds = await this.archivedProcessIds();
+    const archivedIds = await this.archivedProsesBisnisIds();
     return this.prisma.process.findMany({
       where: {
-        ...(archivedIds.length > 0 ? { processId: { notIn: archivedIds } } : {}),
+        ...(archivedIds.length > 0 ? { prosesBisnisId: { notIn: archivedIds } } : {}),
         OR: [{ ownerId: penggunaId }, { members: { some: { penggunaId } } }],
       },
       include: processInclude,
@@ -34,50 +34,50 @@ export class ProcessContextService {
     });
   }
 
-  async assertCanAuthor(penggunaId: string, processId: string) {
-    if (await this.isArchived(processId)) {
-      throw new ForbiddenException('Process sudah diarsipkan dan bersifat read-only');
+  async assertCanAuthor(penggunaId: string, prosesBisnisId: string) {
+    if (await this.isArchived(prosesBisnisId)) {
+      throw new ForbiddenException('Proses Bisnis sudah diarsipkan dan bersifat read-only');
     }
     const process = await this.prisma.process.findFirst({
       where: {
-        processId,
+        prosesBisnisId,
         OR: [{ ownerId: penggunaId }, { members: { some: { penggunaId } } }],
       },
       include: processInclude,
     });
     if (process === null) {
-      throw new ForbiddenException('Akses ditolak: pengguna bukan Process Owner atau Process Member');
+      throw new ForbiddenException('Akses ditolak: pengguna bukan Penanggung Jawab Proses Bisnis atau Anggota Proses Bisnis');
     }
     return process;
   }
 
-  async assertCanReview(penggunaId: string, processId: string) {
-    if (await this.isArchived(processId)) {
-      throw new ForbiddenException('Process sudah diarsipkan dan tidak menerima tindakan workflow baru');
+  async assertCanReview(penggunaId: string, prosesBisnisId: string) {
+    if (await this.isArchived(prosesBisnisId)) {
+      throw new ForbiddenException('Proses Bisnis sudah diarsipkan dan tidak menerima tindakan workflow baru');
     }
     const process = await this.prisma.process.findFirst({
-      where: { processId, ownerId: penggunaId },
+      where: { prosesBisnisId, ownerId: penggunaId },
       include: processInclude,
     });
     if (process === null) {
-      throw new ForbiddenException('Akses ditolak: hanya Process Owner yang dapat melakukan review');
+      throw new ForbiddenException('Akses ditolak: hanya Penanggung Jawab Proses Bisnis yang dapat melakukan review');
     }
     return process;
   }
 
-  private async archivedProcessIds(): Promise<string[]> {
+  private async archivedProsesBisnisIds(): Promise<string[]> {
     const rows = await this.prisma.processLifecycle.findMany({
-      where: { status: ProcessLifecycleStatus.ARCHIVED },
-      select: { processId: true },
+      where: { status: StatusKeaktifanProsesBisnis.ARCHIVED },
+      select: { prosesBisnisId: true },
     });
-    return rows.map((row) => row.processId);
+    return rows.map((row) => row.prosesBisnisId);
   }
 
-  private async isArchived(processId: string): Promise<boolean> {
+  private async isArchived(prosesBisnisId: string): Promise<boolean> {
     const lifecycle = await this.prisma.processLifecycle.findUnique({
-      where: { processId },
+      where: { prosesBisnisId },
       select: { status: true },
     });
-    return lifecycle?.status === ProcessLifecycleStatus.ARCHIVED;
+    return lifecycle?.status === StatusKeaktifanProsesBisnis.ARCHIVED;
   }
 }

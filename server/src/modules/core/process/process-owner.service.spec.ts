@@ -1,16 +1,16 @@
 import { ConflictException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import {
-  OrganizationalScope,
-  ProcessAuditEvent,
-  ProcessLifecycleStatus,
+  LingkupOrganisasi,
+  JenisAktivitasProsesBisnis,
+  StatusKeaktifanProsesBisnis,
 } from '../../../generated/prisma';
-import type { ProcessOwnerAuthorityService } from './process-owner-authority.service';
-import { ProcessOwnerService } from './process-owner.service';
+import type { KewenanganPenanggungJawabProsesBisnisService } from './process-owner-authority.service';
+import { ProsesBisnisOwnerService } from './process-owner.service';
 
-describe('ProcessOwnerService', () => {
+describe('ProsesBisnisOwnerService', () => {
   const ownerId = '11111111-1111-4111-8111-111111111111';
-  const processId = '22222222-2222-4222-8222-222222222222';
+  const prosesBisnisId = '22222222-2222-4222-8222-222222222222';
 
   function makeService() {
     const prisma = {
@@ -29,12 +29,12 @@ describe('ProcessOwnerService', () => {
       processAudit: {
         create: jest.fn(),
       },
-      processMember: {
+      anggotaProsesBisnis: {
         findUnique: jest.fn(),
         create: jest.fn(),
         delete: jest.fn(),
       },
-      processInvitation: {
+      undanganAnggotaProsesBisnis: {
         findFirst: jest.fn(),
       },
       pengguna: {
@@ -57,26 +57,26 @@ describe('ProcessOwnerService', () => {
     return {
       prisma,
       authority,
-      service: new ProcessOwnerService(
+      service: new ProsesBisnisOwnerService(
         prisma as unknown as PrismaService,
-        authority as unknown as ProcessOwnerAuthorityService,
+        authority as unknown as KewenanganPenanggungJawabProsesBisnisService,
       ),
     };
   }
 
-  it('creates Process with the current authorized user as owner and no forced initial member', async () => {
+  it('creates Proses Bisnis with the current authorized user as owner and no forced initial member', async () => {
     const { prisma, authority, service } = makeService();
     authority.assertCanCreate.mockResolvedValue({
-      scope: OrganizationalScope.FACULTY,
-      departmentId: null,
+      scope: LingkupOrganisasi.FACULTY,
+      departemenId: null,
       scopeKey: 'FACULTY',
     });
     prisma.process.count.mockResolvedValue(0);
     prisma.process.create.mockResolvedValue({
-      processId,
+      prosesBisnisId,
       nama: 'Tata Kelola TI',
-      scope: OrganizationalScope.FACULTY,
-      departmentId: null,
+      scope: LingkupOrganisasi.FACULTY,
+      departemenId: null,
       ownerId,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -86,38 +86,38 @@ describe('ProcessOwnerService', () => {
     });
     prisma.processLifecycle.findMany.mockResolvedValue([
       {
-        processId,
-        status: ProcessLifecycleStatus.ACTIVE,
+        prosesBisnisId,
+        status: StatusKeaktifanProsesBisnis.ACTIVE,
         archivedAt: null,
         archivedReason: null,
         updatedAt: new Date(),
       },
     ]);
 
-    const result = await service.createProcess(ownerId, {
+    const result = await service.createProsesBisnis(ownerId, {
       nama: '  Tata Kelola TI  ',
-      scope: OrganizationalScope.FACULTY,
-      departmentId: null,
+      scope: LingkupOrganisasi.FACULTY,
+      departemenId: null,
     });
 
     expect(prisma.process.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: {
           nama: 'Tata Kelola TI',
-          scope: OrganizationalScope.FACULTY,
-          departmentId: null,
+          scope: LingkupOrganisasi.FACULTY,
+          departemenId: null,
           ownerId,
         },
       }),
     );
     expect(prisma.processAudit.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        processId,
+        prosesBisnisId,
         actorId: ownerId,
-        event: ProcessAuditEvent.PROCESS_CREATED,
+        event: JenisAktivitasProsesBisnis.PROCESS_CREATED,
       }),
     });
-    expect(result?.lifecycleStatus).toBe(ProcessLifecycleStatus.ACTIVE);
+    expect(result?.lifecycleStatus).toBe(StatusKeaktifanProsesBisnis.ACTIVE);
   });
 
   it('reuses an active existing identity when NIP already exists even if email differs', async () => {
@@ -132,10 +132,10 @@ describe('ProcessOwnerService', () => {
       deletedAt: null,
     };
     prisma.process.findFirst.mockResolvedValue({
-      processId,
+      prosesBisnisId,
       nama: 'Tata Kelola TI',
-      scope: OrganizationalScope.FACULTY,
-      departmentId: null,
+      scope: LingkupOrganisasi.FACULTY,
+      departemenId: null,
       ownerId,
       department: null,
       owner: { penggunaId: ownerId },
@@ -143,9 +143,9 @@ describe('ProcessOwnerService', () => {
     });
     prisma.processLifecycle.findUnique.mockResolvedValue(null);
     prisma.pengguna.findFirst.mockResolvedValue(existingUser);
-    prisma.processMember.findUnique.mockResolvedValue(null);
+    prisma.anggotaProsesBisnis.findUnique.mockResolvedValue(null);
 
-    const result = await service.inviteMember(ownerId, processId, {
+    const result = await service.inviteMember(ownerId, prosesBisnisId, {
       nama: 'Nama dari form',
       nip: existingUser.nip,
       email: 'email-baru@fti.test',
@@ -162,8 +162,8 @@ describe('ProcessOwnerService', () => {
         ],
       },
     });
-    expect(prisma.processMember.create).toHaveBeenCalledWith({
-      data: { processId, penggunaId: memberId },
+    expect(prisma.anggotaProsesBisnis.create).toHaveBeenCalledWith({
+      data: { prosesBisnisId, penggunaId: memberId },
     });
     expect(result).toEqual({
       kind: 'MEMBER_ADDED',
@@ -175,13 +175,13 @@ describe('ProcessOwnerService', () => {
     });
   });
 
-  it('blocks archive while a Process still has an in-flight SOP lifecycle', async () => {
+  it('blocks archive while a Proses Bisnis still has an in-flight SOP lifecycle', async () => {
     const { prisma, service } = makeService();
     prisma.process.findFirst.mockResolvedValue({
-      processId,
+      prosesBisnisId,
       nama: 'Tata Kelola TI',
-      scope: OrganizationalScope.FACULTY,
-      departmentId: null,
+      scope: LingkupOrganisasi.FACULTY,
+      departemenId: null,
       ownerId,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -190,8 +190,8 @@ describe('ProcessOwnerService', () => {
       members: [],
     });
     prisma.processLifecycle.findUnique.mockResolvedValue({
-      processId,
-      status: ProcessLifecycleStatus.ACTIVE,
+      prosesBisnisId,
+      status: StatusKeaktifanProsesBisnis.ACTIVE,
       archivedAt: null,
       archivedReason: null,
       updatedAt: new Date(),
@@ -199,7 +199,7 @@ describe('ProcessOwnerService', () => {
     prisma.detailSOP.count.mockResolvedValue(1);
 
     await expect(
-      service.archiveProcess(ownerId, processId, { reason: 'Tidak digunakan' }),
+      service.archiveProsesBisnis(ownerId, prosesBisnisId, { reason: 'Tidak digunakan' }),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(prisma.processLifecycle.upsert).not.toHaveBeenCalled();
   });

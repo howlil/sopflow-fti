@@ -20,18 +20,18 @@ export class SopDiagramRepository {
 
   async findDetailIdByDetailOrSopId(
     detailOrSopId: string,
-  ): Promise<{ detailSopId: string; processId: string | null } | null> {
+  ): Promise<{ detailSopId: string; prosesBisnisId: string | null } | null> {
     const direct = await this.prisma.detailSOP.findUnique({
       where: { detailSopId: detailOrSopId },
-      select: { detailSopId: true, sop: { select: { processId: true } } },
+      select: { detailSopId: true, sop: { select: { prosesBisnisId: true } } },
     });
     if (direct !== null) {
-      return { detailSopId: direct.detailSopId, processId: direct.sop.processId };
+      return { detailSopId: direct.detailSopId, prosesBisnisId: direct.sop.prosesBisnisId };
     }
     const header = await this.prisma.sOP.findUnique({
       where: { sopId: detailOrSopId },
       select: {
-        processId: true,
+        prosesBisnisId: true,
         detailSops: {
           orderBy: { versi: 'desc' },
           take: 1,
@@ -41,7 +41,7 @@ export class SopDiagramRepository {
     });
     const latestDetailId = header?.detailSops[0]?.detailSopId;
     if (latestDetailId === undefined || header === null) return null;
-    return { detailSopId: latestDetailId, processId: header.processId };
+    return { detailSopId: latestDetailId, prosesBisnisId: header.prosesBisnisId };
   }
 
   async findDetailStatus(detailSopId: string): Promise<string | null> {

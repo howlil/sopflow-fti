@@ -44,7 +44,7 @@ export const Route = createRootRoute({
 
     // Native target routes are guarded by capability-specific route/API
     // boundaries. Do not reintroduce a global legacy-role gate for the shared
-    // Process editor.
+    // ProsesBisnis editor.
   },
   pendingComponent: () => (
     <div className="min-h-screen flex items-center justify-center bg-surface-subtle">

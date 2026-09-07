@@ -15,7 +15,7 @@ export interface GlobalPelaksana {
   updatedAt: string
 }
 
-// Catalog identity is global; Process/SOP authorization is enforced by the SOP workflow boundary.
+// Catalog identity is global; ProsesBisnis/SOP authorization is enforced by the SOP workflow boundary.
 const pelaksanaApi = {
   list: () => unwrapApiData(apiClient.get<ApiSuccessResponse<GlobalPelaksana[]>>('/pelaksana')),
   create: (namaPelaksana: string) =>

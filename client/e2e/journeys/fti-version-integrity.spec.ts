@@ -3,17 +3,17 @@ import { targetUsers } from '../fixtures/users'
 import { toApiUrl } from '../support/api'
 import { e2ePin, validPdfBase64 } from '../support/test-data'
 import {
-  getProcessVersionHistory,
+  getProsesBisnisVersionHistory,
   seedReplacementReadyForTte,
 } from '../support/fti-version-preconditions'
 
-test.describe('End-to-End Business Journey — Process version historical/public integrity', () => {
+test.describe('End-to-End Business Journey — Proses Bisnis version historical/public integrity', () => {
   test('J19 Historical Public Integrity — failed V2 signing leaves V1 effective and public', async ({
     publicPage,
     roleApi,
   }) => {
     const fixture = await seedReplacementReadyForTte(roleApi, 'J19-INTEGRITY', {
-      actor: targetUsers.processMember,
+      actor: targetUsers.anggotaProsesBisnis,
       authorityUser: targetUsers.dean,
     })
 
@@ -34,7 +34,7 @@ test.describe('End-to-End Business Journey — Process version historical/public
 
     await test.step('Failed V2 signing does not supersede V1 or publish V2', async () => {
       const deanApi = await roleApi(targetUsers.dean)
-      const response = await deanApi.post(toApiUrl(`/process-tte/${fixture.v2.id}/sign`), {
+      const response = await deanApi.post(toApiUrl(`/tte-proses-bisnis/${fixture.v2.id}/sign`), {
         data: {
           pin: `${e2ePin}-wrong`,
           nomorDokumen: fixture.v2.nomorSOP,
@@ -44,9 +44,9 @@ test.describe('End-to-End Business Journey — Process version historical/public
       })
       expect(response.status()).toBe(403)
 
-      const history = await getProcessVersionHistory(
+      const history = await getProsesBisnisVersionHistory(
         roleApi,
-        targetUsers.processMember,
+        targetUsers.anggotaProsesBisnis,
         fixture.v1.sopId,
       )
       expect(history.find((row) => row.detailSopId === fixture.v1.detailSopId)).toMatchObject({

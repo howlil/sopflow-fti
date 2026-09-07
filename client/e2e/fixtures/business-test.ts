@@ -56,7 +56,7 @@ function identityKey(user: E2eUser): string {
  * Satu login dibuat per identity per worker. Browser memakai storage state asli dari
  * host login, sedangkan API precondition/audit memakai Cookie header dari respons
  * login yang sama. Identity key sengaja memakai email, bukan legacy role, karena
- * beberapa identity FTI dapat memiliki role akun yang sama tetapi Process/authority
+ * beberapa identity FTI dapat memiliki role akun yang sama tetapi ProsesBisnis/authority
  * capability yang berbeda.
  */
 export const test = base.extend<BusinessTestFixtures, BusinessWorkerFixtures>({

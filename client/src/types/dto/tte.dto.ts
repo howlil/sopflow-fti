@@ -1,4 +1,4 @@
-/** Profil kredensial TTE. Authority tanda tangan berasal dari Process scope. */
+/** Profil kredensial TTE. Authority tanda tangan berasal dari ProsesBisnis scope. */
 export interface TteProfil {
   id: string;
   userId: string;
@@ -132,19 +132,19 @@ export interface TtePengesahanPublic {
 export interface RegisterTteDto { pin: string; }
 export interface UpdateTtePinDto { pinLama: string; pinBaru: string; }
 
-export interface TandaTanganiProcessSopDto {
+export interface TandaTanganiProsesBisnisSopDto {
   pin: string;
   nomorDokumen: string;
   judulDokumen: string;
   pdfBase64: string;
 }
 
-export interface TandaTanganiProcessSopMutationDto {
+export interface TandaTanganiProsesBisnisSopMutationDto {
   detailSopId: string;
-  payload: TandaTanganiProcessSopDto;
+  payload: TandaTanganiProsesBisnisSopDto;
 }
 
-export interface TandaTanganiProcessSopResponse {
+export interface TandaTanganiProsesBisnisSopResponse {
   detailSopId: string;
   dokumenTteId: string;
   authority: TteAuthority;

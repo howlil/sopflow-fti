@@ -88,20 +88,20 @@ export function useInAppNotifications(limit = 10) {
 
   const markRead = useCallback(async (item: NotificationItem) => {
     if (item.readAt) return
-    await notificationApi.markProcessRead(item.processNotificationId)
+    await notificationApi.markProsesBisnisRead(item.notifikasiProsesBisnisId)
     const readAt = new Date().toISOString()
     setState((current) => ({
       ...current,
       unreadCount: Math.max(0, current.unreadCount - 1),
       items: current.items.map((candidate) => {
-        const matches = candidate.processNotificationId === item.processNotificationId
+        const matches = candidate.notifikasiProsesBisnisId === item.notifikasiProsesBisnisId
         return matches ? { ...candidate, readAt } : candidate
       }),
     }))
   }, [])
 
   const markAllRead = useCallback(async () => {
-    await notificationApi.markAllProcessRead()
+    await notificationApi.markAllProsesBisnisRead()
     const readAt = new Date().toISOString()
     setState((current) => ({
       ...current,

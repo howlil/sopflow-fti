@@ -2,22 +2,22 @@
 
 ## Product
 
-SOPFlow FTI manages the complete SOP lifecycle for Fakultas Teknologi Informasi: authoring, Process review, contextual final approval, electronic signing, publication, public verification, version replacement, and revocation.
+SOPFlow FTI manages the complete SOP lifecycle for Fakultas Teknologi Informasi: authoring, ProsesBisnis review, contextual final approval, electronic signing, publication, public verification, version replacement, and revocation.
 
 ## Actors
 
 - **Platform Admin**: configures accounts, departments, owner eligibility, and organizational authority assignments.
-- **Process Owner**: owns a Process, manages its team, and reviews submitted SOP work.
-- **Process Member / Penyusun SOP**: authors SOPs within Processes they belong to.
-- **Dean**: final approval and TTE authority for Faculty-scoped Processes.
-- **Head of Department**: final approval and TTE authority for that Department's Processes.
+- **ProsesBisnis Owner**: owns a ProsesBisnis, manages its team, and reviews submitted SOP work.
+- **ProsesBisnis Member / Penyusun SOP**: authors SOPs within ProsesBisnises they belong to.
+- **Dean**: final approval and TTE authority for Faculty-scoped ProsesBisnises.
+- **Head of Departemen**: final approval and TTE authority for that Departemen's ProsesBisnises.
 
 ## Core journey
 
 ```text
-Create/choose Process
+Create/choose ProsesBisnis
  -> author SOP
- -> submit for Process review
+ -> submit for ProsesBisnis review
  -> revise or accept
  -> contextual final approval
  -> TTE
@@ -27,11 +27,11 @@ Create/choose Process
 
 ## Product invariants
 
-- Active SOP ownership is direct to `Process`.
+- Active SOP ownership is direct to `ProsesBisnis`.
 - Platform administration is not workflow authority.
-- Review authorization is Process-contextual.
-- Final approval and TTE holder are derived from Process organizational scope.
-- Faculty Process resolves to Dean; Department Process resolves to that Department Head.
+- Review authorization is ProsesBisnis-contextual.
+- Final approval and TTE holder are derived from ProsesBisnis organizational scope.
+- Faculty ProsesBisnis resolves to Dean; Departemen ProsesBisnis resolves to that Departemen Head.
 - Signing evidence stores contextual organizational authority.
 - Peraturan and Pelaksana are reusable global catalogs.
 - Public archive and public signing verification expose current FTI semantics.

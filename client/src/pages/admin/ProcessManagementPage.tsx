@@ -1,31 +1,31 @@
 import { useMemo, useState } from 'react'
-import { useProcessAdministration } from '@/api/process-admin'
+import { useProsesBisnisAdministration } from '@/api/administrasi-proses-bisnis'
 import { DataSurface } from '@/components/data/data-surface'
 import { ListPageLayout } from '@/components/layout/ListPageLayout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import type { GrantProcessOwnerAuthorityPayload, OrganizationalScope } from '@/types/dto/process.dto'
+import type { GrantKewenanganPenanggungJawabProsesBisnisPayload, LingkupOrganisasi } from '@/types/dto/process.dto'
 
-const EMPTY_AUTHORITY: GrantProcessOwnerAuthorityPayload = {
+const EMPTY_AUTHORITY: GrantKewenanganPenanggungJawabProsesBisnisPayload = {
   penggunaId: '',
   scope: 'FACULTY',
-  departmentId: null,
+  departemenId: null,
 }
 
-export function ProcessManagementPage() {
+export function ProsesBisnisManagementPage() {
   const {
     departments,
     users,
     processes,
     ownerAuthorities,
     isLoading,
-    createDepartment,
+    createDepartemen,
     grantOwnerAuthority,
     revokeOwnerAuthority,
     isSaving,
-  } = useProcessAdministration()
-  const [departmentName, setDepartmentName] = useState('')
-  const [authority, setAuthority] = useState<GrantProcessOwnerAuthorityPayload>(EMPTY_AUTHORITY)
+  } = useProsesBisnisAdministration()
+  const [namaDepartemen, setDepartemenName] = useState('')
+  const [authority, setAuthority] = useState<GrantKewenanganPenanggungJawabProsesBisnisPayload>(EMPTY_AUTHORITY)
 
   const eligibleUsers = useMemo(
     () => users.filter((user) => user.platformRole === 'USER'),
@@ -34,29 +34,29 @@ export function ProcessManagementPage() {
 
   const canGrant =
     authority.penggunaId !== '' &&
-    (authority.scope === 'FACULTY' || authority.departmentId !== null)
+    (authority.scope === 'FACULTY' || authority.departemenId !== null)
 
-  const changeScope = (scope: OrganizationalScope) => {
+  const changeScope = (scope: LingkupOrganisasi) => {
     setAuthority((current) => ({
       ...current,
       scope,
-      departmentId: scope === 'FACULTY' ? null : current.departmentId,
+      departemenId: scope === 'FACULTY' ? null : current.departemenId,
     }))
   }
 
   return (
     <ListPageLayout
-      breadcrumb={[{ label: 'Administrasi' }, { label: 'Governance Process' }]}
-      title="Governance Process"
+      breadcrumb={[{ label: 'Administrasi' }, { label: 'Governance Proses Bisnis' }]}
+      title="Governance Proses Bisnis"
     >
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(340px,0.7fr)]">
         <div className="space-y-5">
           <DataSurface.Root>
             <DataSurface.Header>
               <div className="space-y-0.5">
-                <h2 className="text-sm font-semibold text-foreground">Kewenangan Process Owner</h2>
+                <h2 className="text-sm font-semibold text-foreground">Kewenangan ProsesBisnis Owner</h2>
                 <p className="text-sm text-secondary-foreground">
-                  Admin menetapkan scope sekali. Setelah itu Process Owner membuat Process dan mengelola Penyusun SOP sendiri.
+                  Admin menetapkan scope sekali. Setelah itu ProsesBisnis Owner membuat ProsesBisnis dan mengelola Penyusun SOP sendiri.
                 </p>
               </div>
             </DataSurface.Header>
@@ -70,7 +70,7 @@ export function ProcessManagementPage() {
                     setAuthority((current) => ({ ...current, penggunaId: event.target.value }))
                   }
                 >
-                  <option value="">Pilih calon Process Owner</option>
+                  <option value="">Pilih calon ProsesBisnis Owner</option>
                   {eligibleUsers.map((user) => (
                     <option key={user.penggunaId} value={user.penggunaId}>
                       {user.nama} · {user.email}
@@ -84,7 +84,7 @@ export function ProcessManagementPage() {
                 <select
                   className="h-9 w-full rounded-control border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   value={authority.scope}
-                  onChange={(event) => changeScope(event.target.value as OrganizationalScope)}
+                  onChange={(event) => changeScope(event.target.value as LingkupOrganisasi)}
                 >
                   <option value="FACULTY">Fakultas</option>
                   <option value="DEPARTMENT">Jurusan</option>
@@ -96,14 +96,14 @@ export function ProcessManagementPage() {
                   Jurusan
                   <select
                     className="h-9 w-full rounded-control border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    value={authority.departmentId ?? ''}
+                    value={authority.departemenId ?? ''}
                     onChange={(event) =>
-                      setAuthority((current) => ({ ...current, departmentId: event.target.value || null }))
+                      setAuthority((current) => ({ ...current, departemenId: event.target.value || null }))
                     }
                   >
                     <option value="">Pilih jurusan</option>
                     {departments.map((department) => (
-                      <option key={department.departmentId} value={department.departmentId}>
+                      <option key={department.departemenId} value={department.departemenId}>
                         {department.nama}
                       </option>
                     ))}
@@ -129,10 +129,10 @@ export function ProcessManagementPage() {
             </div>
             <div className="divide-y divide-border border-t border-border">
               {ownerAuthorities.length === 0 ? (
-                <p className="p-4 text-sm text-secondary-foreground">Belum ada kewenangan Process Owner.</p>
+                <p className="p-4 text-sm text-secondary-foreground">Belum ada kewenangan ProsesBisnis Owner.</p>
               ) : (
                 ownerAuthorities.map((row) => (
-                  <div key={row.processOwnerAuthorityId} className="flex items-center justify-between gap-4 p-4">
+                  <div key={row.kewenanganPenanggungJawabProsesBisnisId} className="flex items-center justify-between gap-4 p-4">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-foreground">
                         {row.user?.nama ?? 'Pengguna tidak tersedia'}
@@ -145,7 +145,7 @@ export function ProcessManagementPage() {
                       size="sm"
                       variant="outline"
                       disabled={isSaving}
-                      onClick={() => revokeOwnerAuthority(row.processOwnerAuthorityId)}
+                      onClick={() => revokeOwnerAuthority(row.kewenanganPenanggungJawabProsesBisnisId)}
                     >
                       Cabut
                     </Button>
@@ -158,20 +158,20 @@ export function ProcessManagementPage() {
           <DataSurface.Root>
             <DataSurface.Header>
               <div className="space-y-0.5">
-                <h2 className="text-sm font-semibold text-foreground">Oversight Process</h2>
+                <h2 className="text-sm font-semibold text-foreground">Oversight ProsesBisnis</h2>
                 <p className="text-sm text-secondary-foreground">
-                  Daftar ini untuk governance dan recovery. Operasi normal dilakukan oleh Process Owner.
+                  Daftar ini untuk governance dan recovery. Operasi normal dilakukan oleh ProsesBisnis Owner.
                 </p>
               </div>
             </DataSurface.Header>
             <div className="divide-y divide-border">
               {isLoading ? (
-                <p className="p-4 text-sm text-secondary-foreground">Memuat Process...</p>
+                <p className="p-4 text-sm text-secondary-foreground">Memuat ProsesBisnis...</p>
               ) : processes.length === 0 ? (
-                <p className="p-4 text-sm text-secondary-foreground">Belum ada Process.</p>
+                <p className="p-4 text-sm text-secondary-foreground">Belum ada ProsesBisnis.</p>
               ) : (
                 processes.map((process) => (
-                  <div key={process.processId} className="p-4">
+                  <div key={process.prosesBisnisId} className="p-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-sm font-medium text-foreground">{process.nama}</h3>
                       <span className="rounded-full border border-border px-2 py-0.5 text-xs text-secondary-foreground">
@@ -193,24 +193,24 @@ export function ProcessManagementPage() {
             <div className="space-y-0.5">
               <h2 className="text-sm font-semibold text-foreground">Struktur Jurusan</h2>
               <p className="text-sm text-secondary-foreground">
-                Master data organisasi disiapkan Admin sebelum scope diberikan kepada Process Owner.
+                Master data organisasi disiapkan Admin sebelum scope diberikan kepada ProsesBisnis Owner.
               </p>
             </div>
           </DataSurface.Header>
           <div className="space-y-3 p-4">
             <div className="flex gap-2">
               <Input
-                value={departmentName}
-                onChange={(event) => setDepartmentName(event.target.value)}
+                value={namaDepartemen}
+                onChange={(event) => setDepartemenName(event.target.value)}
                 placeholder="Nama jurusan"
               />
               <Button
                 variant="outline"
-                disabled={departmentName.trim().length < 2 || isSaving}
+                disabled={namaDepartemen.trim().length < 2 || isSaving}
                 onClick={async () => {
                   try {
-                    await createDepartment(departmentName.trim())
-                    setDepartmentName('')
+                    await createDepartemen(namaDepartemen.trim())
+                    setDepartemenName('')
                   } catch {
                     // Toast already reports the error.
                   }
@@ -222,7 +222,7 @@ export function ProcessManagementPage() {
             <div className="flex flex-wrap gap-2">
               {departments.map((department) => (
                 <span
-                  key={department.departmentId}
+                  key={department.departemenId}
                   className="rounded-full border border-border px-2.5 py-1 text-xs text-secondary-foreground"
                 >
                   {department.nama}

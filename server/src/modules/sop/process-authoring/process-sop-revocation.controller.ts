@@ -13,14 +13,14 @@ import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { type ApiSuccessResponse, JwtAuthGuard } from '../../../common';
 import { ACCESS_TOKEN_COOKIE_NAME, type JwtAccessPayload } from '../../core/auth/helpers/auth.shared';
-import { ProcessSopRevocationService } from './process-sop-revocation.service';
+import { ProsesBisnisSopRevocationService } from './sop-proses-bisnis-revocation.service';
 
-@ApiTags('Process SOP Revocation')
+@ApiTags('Proses Bisnis SOP Revocation')
 @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
 @Controller('process-revocation')
 @UseGuards(JwtAuthGuard)
-export class ProcessSopRevocationController {
-  constructor(private readonly service: ProcessSopRevocationService) {}
+export class ProsesBisnisSopRevocationController {
+  constructor(private readonly service: ProsesBisnisSopRevocationService) {}
 
   @Get()
   @ApiOperation({ summary: 'Daftar SOP berlaku yang dapat dicabut oleh authority saat ini' })
@@ -34,7 +34,7 @@ export class ProcessSopRevocationController {
 
   @Post(':detailOrSopId/revoke')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Cabut SOP berlaku oleh Dean/Kepala Departemen sesuai Process scope' })
+  @ApiOperation({ summary: 'Cabut SOP berlaku oleh Dean/Kepala Departemen sesuai Proses Bisnis scope' })
   async revoke(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,

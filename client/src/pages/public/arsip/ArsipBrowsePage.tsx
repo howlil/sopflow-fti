@@ -9,7 +9,7 @@ import {
   ArsipSopShell,
 } from './components/arsip-chrome'
 import { ArsipBrowseWorkspace } from './components/arsip-browse-workspace'
-import { ArsipProcessSidebar } from './components/arsip-process-sidebar'
+import { ArsipProsesBisnisSidebar } from './components/arsip-process-sidebar'
 import { ArsipSopPanel } from './components/arsip-sop-panel'
 import { ArsipSopPreviewPane } from './components/arsip-sop-preview-pane'
 import { useArsipBrowse } from './hooks/use-arsip-browse'
@@ -41,19 +41,19 @@ export function ArsipBrowsePage() {
       {browse.showBreadcrumb ? <ArsipBreadcrumb items={browse.breadcrumbItems} /> : null}
       <ArsipBrowseWorkspace {...workspaceProps} />
       <div className={cn('mt-4 space-y-4 lg:hidden', browse.mobile.showPreview && 'hidden')}>
-        {browse.mobile.showProcess ? (
-          <ArsipProcessSidebar
+        {browse.mobile.showProsesBisnis ? (
+          <ArsipProsesBisnisSidebar
             items={workspaceProps.processItems}
-            selectedProcessId={workspaceProps.processId}
+            selectedProsesBisnisId={workspaceProps.prosesBisnisId}
             processFilter={workspaceProps.processFilter}
-            onProcessFilterChange={workspaceProps.onProcessFilterChange}
-            onSelectProcess={browse.handleSelectProcess}
+            onProsesBisnisFilterChange={workspaceProps.onProsesBisnisFilterChange}
+            onSelectProsesBisnis={browse.handleSelectProsesBisnis}
             isLoading={workspaceProps.processLoading}
             isError={workspaceProps.processError}
             isFetching={workspaceProps.processFetching}
             pagination={workspaceProps.processPagination}
             page={workspaceProps.processPage}
-            onPageChange={browse.handleProcessPageChange}
+            onPageChange={browse.handleProsesBisnisPageChange}
           />
         ) : null}
         {browse.mobile.showSopList ? (
@@ -64,10 +64,10 @@ export function ArsipBrowsePage() {
                 variant="ghost"
                 size="sm"
                 className="gap-1.5 px-0 text-blue-700 hover:bg-transparent hover:underline"
-                onClick={browse.handleMobileBackToProcess}
+                onClick={browse.handleMobileBackToProsesBisnis}
               >
                 <ArrowLeft className="h-4 w-4" aria-hidden />
-                Kembali ke daftar Process
+                Kembali ke daftar ProsesBisnis
               </Button>
             ) : null}
             <ArsipSopPanel
@@ -85,7 +85,7 @@ export function ArsipBrowsePage() {
               onSelectSop={browse.handleSelectSop}
               emptyTitle={browse.sopEmptyTitle}
               emptyHint={browse.sopEmptyHint}
-              showSopSearchFilter={Boolean(browse.processId) && !browse.isGlobalMode}
+              showSopSearchFilter={Boolean(browse.prosesBisnisId) && !browse.isGlobalMode}
               sopSearch={browse.sopFilterInput}
               onSopSearchChange={browse.handleSopSearchChange}
             />

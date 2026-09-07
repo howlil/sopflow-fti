@@ -8,7 +8,7 @@ import { createServer } from 'node:net';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { createDefaultValidationPipe } from './common';
-import { installFatalProcessErrorHandlers } from './common/bootstrap/process-error-handlers';
+import { installFatalProsesBisnisErrorHandlers } from './common/bootstrap/process-error-handlers';
 import { buildCorsOptions } from './common/http/cors-options';
 import { JSON_BODY_LIMIT, URLENCODED_BODY_LIMIT } from './common/http/request-body-limits';
 import { WinstonLoggerConfig } from './common/logger/winston.config';
@@ -58,7 +58,7 @@ async function bootstrap() {
     app.get(SecurityRateLimiterService),
     shouldApplySecurityRateLimit(nodeEnv, e2eCritical),
   );
-  installFatalProcessErrorHandlers(logger);
+  installFatalProsesBisnisErrorHandlers(logger);
 
   app.setGlobalPrefix('api');
   app.enableVersioning({
@@ -78,8 +78,8 @@ async function bootstrap() {
       .addCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
       .addCookieAuth(REFRESH_TOKEN_COOKIE_NAME)
       .addTag('Auth', 'Authentication endpoints')
-      .addTag('Process', 'Proses Bisnis dan membership kontekstual')
-      .addTag('Organizational Authority', 'Kewenangan Dekan dan Ketua Jurusan')
+      .addTag('Proses Bisnis', 'Proses Bisnis dan membership kontekstual')
+      .addTag('Pejabat Berwenang', 'Kewenangan Dekan dan Ketua Jurusan')
       .addTag('SOP', 'Authoring dan lifecycle SOP berbasis Proses Bisnis')
       .addTag('TTE', 'Tanda tangan elektronik kontekstual')
       .addTag('Users', 'Platform account management')

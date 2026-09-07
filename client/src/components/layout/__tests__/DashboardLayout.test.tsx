@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-let mockProcesses: Array<{ processId: string }> = [];
+let mockProsesBisnises: Array<{ prosesBisnisId: string }> = [];
 let mockAuthorities: Array<{ authorityKey: string }> = [];
 
 vi.mock("@tanstack/react-router", () => ({
@@ -13,7 +13,7 @@ vi.mock("@tanstack/react-router", () => ({
   useLocation: () => ({ pathname: "/work" }),
 }));
 
-vi.mock("@/api/process-context", () => ({ useMyProcesses: () => ({ data: mockProcesses }) }));
+vi.mock("@/api/konteks-proses-bisnis", () => ({ useMyProsesBisnises: () => ({ data: mockProsesBisnises }) }));
 vi.mock("@/api/organizational-authority", () => ({
   useMyOrganizationalAuthorities: () => ({ data: mockAuthorities }),
 }));
@@ -40,7 +40,7 @@ describe("DashboardLayout desktop sidebar", () => {
   beforeEach(() => {
     window.localStorage.clear();
     useUIStore.setState({ sidebarOpen: true });
-    mockProcesses = [];
+    mockProsesBisnises = [];
     mockAuthorities = [];
   });
 
@@ -60,8 +60,8 @@ describe("DashboardLayout desktop sidebar", () => {
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe("false");
   });
 
-  it("menampilkan pekerjaan SOP hanya dari hubungan Process", () => {
-    mockProcesses = [{ processId: "process-1" }];
+  it("menampilkan pekerjaan SOP hanya dari hubungan Proses Bisnis", () => {
+    mockProsesBisnises = [{ prosesBisnisId: "process-1" }];
     render(<DashboardLayout />);
     expect(screen.getAllByRole("link", { name: "Pekerjaan SOP" })).not.toHaveLength(0);
   });

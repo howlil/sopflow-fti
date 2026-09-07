@@ -1,81 +1,81 @@
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { OrganizationalScope } from '../../../generated/prisma';
-import { ProcessRepository } from './process.repository';
-import { ProcessService } from './process.service';
+import { LingkupOrganisasi } from '../../../generated/prisma';
+import { ProsesBisnisRepository } from './process.repository';
+import { ProsesBisnisService } from './process.service';
 
-describe('ProcessService', () => {
-  let service: ProcessService;
+describe('ProsesBisnisService', () => {
+  let service: ProsesBisnisService;
   let repository: jest.Mocked<
     Pick<
-      ProcessRepository,
-      | 'listDepartments'
-      | 'createDepartment'
-      | 'updateDepartment'
+      ProsesBisnisRepository,
+      | 'listDepartemens'
+      | 'createDepartemen'
+      | 'updateDepartemen'
       | 'departmentExists'
       | 'listAssignableUsers'
       | 'findActiveUsersByIds'
-      | 'listProcesses'
-      | 'findProcessById'
-      | 'createProcess'
-      | 'updateProcess'
+      | 'listProsesBisnises'
+      | 'findProsesBisnisById'
+      | 'createProsesBisnis'
+      | 'updateProsesBisnis'
     >
   >;
 
   beforeEach(async () => {
     repository = {
-      listDepartments: jest.fn(),
-      createDepartment: jest.fn(),
-      updateDepartment: jest.fn(),
+      listDepartemens: jest.fn(),
+      createDepartemen: jest.fn(),
+      updateDepartemen: jest.fn(),
       departmentExists: jest.fn(),
       listAssignableUsers: jest.fn(),
       findActiveUsersByIds: jest.fn(),
-      listProcesses: jest.fn(),
-      findProcessById: jest.fn(),
-      createProcess: jest.fn(),
-      updateProcess: jest.fn(),
+      listProsesBisnises: jest.fn(),
+      findProsesBisnisById: jest.fn(),
+      createProsesBisnis: jest.fn(),
+      updateProsesBisnis: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        ProcessService,
-        { provide: ProcessRepository, useValue: repository },
+        ProsesBisnisService,
+        { provide: ProsesBisnisRepository, useValue: repository },
       ],
     }).compile();
 
-    service = module.get(ProcessService);
+    service = module.get(ProsesBisnisService);
   });
 
-  it('menolak FACULTY Process yang membawa departmentId', async () => {
+  it('menolak FACULTY Proses Bisnis yang membawa departemenId', async () => {
     await expect(
-      service.createProcess({
+      service.createProsesBisnis({
         nama: 'Layanan TI',
-        scope: OrganizationalScope.FACULTY,
-        departmentId: '11111111-1111-4111-8111-111111111111',
+        scope: LingkupOrganisasi.FACULTY,
+        departemenId: '11111111-1111-4111-8111-111111111111',
         ownerId: '22222222-2222-4222-8222-222222222222',
         memberIds: ['33333333-3333-4333-8333-333333333333'],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('menolak DEPARTMENT Process tanpa departmentId', async () => {
+  it('menolak DEPARTMENT Proses Bisnis tanpa departemenId', async () => {
     await expect(
-      service.createProcess({
+      service.createProsesBisnis({
         nama: 'Tugas Akhir',
-        scope: OrganizationalScope.DEPARTMENT,
+        scope: LingkupOrganisasi.DEPARTMENT,
         ownerId: '22222222-2222-4222-8222-222222222222',
         memberIds: ['33333333-3333-4333-8333-333333333333'],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('menolak Process Owner yang juga diduplikasi sebagai member', async () => {
+  it('menolak Penanggung Jawab Proses Bisnis yang juga diduplikasi sebagai member', async () => {
     const ownerId = '22222222-2222-4222-8222-222222222222';
 
     await expect(
-      service.createProcess({
+      service.createProsesBisnis({
         nama: 'Layanan TI',
-        scope: OrganizationalScope.FACULTY,
+        scope: LingkupOrganisasi.FACULTY,
         ownerId,
         memberIds: [ownerId],
       }),
@@ -88,17 +88,17 @@ describe('ProcessService', () => {
     ]);
 
     await expect(
-      service.createProcess({
+      service.createProsesBisnis({
         nama: 'Layanan TI',
-        scope: OrganizationalScope.FACULTY,
+        scope: LingkupOrganisasi.FACULTY,
         ownerId: '22222222-2222-4222-8222-222222222222',
         memberIds: ['33333333-3333-4333-8333-333333333333'],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('membuat DEPARTMENT Process dengan tepat satu owner dan member contextual', async () => {
-    const departmentId = '11111111-1111-4111-8111-111111111111';
+  it('membuat DEPARTMENT Proses Bisnis dengan tepat satu owner dan member contextual', async () => {
+    const departemenId = '11111111-1111-4111-8111-111111111111';
     const ownerId = '22222222-2222-4222-8222-222222222222';
     const memberId = '33333333-3333-4333-8333-333333333333';
     repository.departmentExists.mockResolvedValue(true);
@@ -106,20 +106,20 @@ describe('ProcessService', () => {
       { penggunaId: ownerId },
       { penggunaId: memberId },
     ]);
-    repository.createProcess.mockResolvedValue({} as never);
+    repository.createProsesBisnis.mockResolvedValue({} as never);
 
-    await service.createProcess({
+    await service.createProsesBisnis({
       nama: '  Tugas Akhir  ',
-      scope: OrganizationalScope.DEPARTMENT,
-      departmentId,
+      scope: LingkupOrganisasi.DEPARTMENT,
+      departemenId,
       ownerId,
       memberIds: [memberId],
     });
 
-    expect(repository.createProcess).toHaveBeenCalledWith({
+    expect(repository.createProsesBisnis).toHaveBeenCalledWith({
       nama: 'Tugas Akhir',
-      scope: OrganizationalScope.DEPARTMENT,
-      departmentId,
+      scope: LingkupOrganisasi.DEPARTMENT,
+      departemenId,
       ownerId,
       memberIds: [memberId],
     });

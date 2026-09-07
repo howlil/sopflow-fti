@@ -31,7 +31,7 @@ export interface SopDaftarVersiSlice {
 
 export interface SopDaftarRow {
   id: string;
-  processId?: string | null;
+  prosesBisnisId?: string | null;
   processNama?: string | null;
   detailSopId: string | null;
   judul: string;
@@ -47,10 +47,10 @@ export interface SopDaftarRow {
   versiBerlaku?: SopDaftarVersiSlice | null;
   canBuatVersiBaru?: boolean;
   canCabutSop?: boolean;
-  lifecycle?: ProcessSopLifecycleProjection;
+  lifecycle?: ProsesBisnisSopLifecycleProjection;
 }
 
-export type ProcessSopLifecycleStage =
+export type ProsesBisnisSopLifecycleStage =
   | 'AUTHORING'
   | 'PROCESS_REVIEW'
   | 'FINAL_APPROVAL'
@@ -58,29 +58,29 @@ export type ProcessSopLifecycleStage =
   | 'EFFECTIVE'
   | 'REVOKED';
 
-export type ProcessSopLifecycleResponsibilityType =
+export type ProsesBisnisSopLifecycleResponsibilityType =
   | 'CURRENT_USER'
   | 'PROCESS_OWNER'
   | 'DEAN'
   | 'HEAD_OF_DEPARTMENT'
   | 'NONE';
 
-export type ProcessSopLifecycleActionType =
+export type ProsesBisnisSopLifecycleActionType =
   | 'CONTINUE_AUTHORING'
   | 'REVIEW_PROCESS'
   | 'APPROVE_FINAL'
   | 'SIGN_TTE'
   | 'OPEN';
 
-export interface ProcessSopLifecycleProjection {
-  stage: ProcessSopLifecycleStage;
+export interface ProsesBisnisSopLifecycleProjection {
+  stage: ProsesBisnisSopLifecycleStage;
   stateLabel: string;
   responsibility: {
-    type: ProcessSopLifecycleResponsibilityType;
+    type: ProsesBisnisSopLifecycleResponsibilityType;
     name: string | null;
   };
   action: {
-    type: ProcessSopLifecycleActionType;
+    type: ProsesBisnisSopLifecycleActionType;
     label: string;
     destination: 'SOP_DETAIL' | 'APPROVAL_INBOX';
   } | null;
@@ -102,7 +102,7 @@ export interface SopRiwayatVersiRow {
 
 export interface Sop {
   id: string;
-  processId?: string | null;
+  prosesBisnisId?: string | null;
   processNama?: string | null;
   judul: string;
   createdAt: string;
@@ -190,7 +190,7 @@ export interface PenyusunWorkbenchLogEdit {
 
 /** Respons GET `/sop/penyusun-workbench/:detailSopId`. */
 export interface PenyusunWorkbenchData {
-  lifecycle?: ProcessSopLifecycleProjection;
+  lifecycle?: ProsesBisnisSopLifecycleProjection;
   detail: SopDetail;
   langkah: LangkahSOP[];
   logEdit: PenyusunWorkbenchLogEdit[];
@@ -295,7 +295,7 @@ export interface Pelaksana {
 }
 
 export interface SopListQueryParams {
-  processId?: string;
+  prosesBisnisId?: string;
   /** Status DetailSOP terbaru (bukan `all`). */
   status?: string;
   /** Batas bawah tanggal `updatedAt` (YYYY-MM-DD, UTC). */

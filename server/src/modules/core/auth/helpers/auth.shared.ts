@@ -169,7 +169,7 @@ export type PublicPenggunaTteStatus = {
 
 /**
  * First-party FTI identity contract. Workflow authority is resolved contextually
- * from Process relationships and Organizational Authority, never from legacy OPD/role fields.
+ * from ProsesBisnis relationships and Organizational Authority, never from legacy OPD/role fields.
  */
 export type PublicPengguna = {
   readonly penggunaId: string;

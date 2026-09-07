@@ -4,26 +4,26 @@ import { unwrapApiData } from '@/lib/api/response'
 import { useMutationWithToast } from '@/hooks/useMutationWithToast'
 import type { ApiSuccessResponse } from '@/types/dto/auth.dto'
 import type {
-  ProcessRevocationQueueRowDto,
-  ProcessRevocationResultDto,
+  ProsesBisnisRevocationQueueRowDto,
+  ProsesBisnisRevocationResultDto,
 } from '@/types/dto/approval.dto'
 
 export const revocationQueueKey = ['process-revocation'] as const
 
 export const processRevocationApi = {
-  list: (): Promise<ProcessRevocationQueueRowDto[]> =>
+  list: (): Promise<ProsesBisnisRevocationQueueRowDto[]> =>
     unwrapApiData(
-      apiClient.get<ApiSuccessResponse<ProcessRevocationQueueRowDto[]>>('/process-revocation'),
+      apiClient.get<ApiSuccessResponse<ProsesBisnisRevocationQueueRowDto[]>>('/pencabutan-sop'),
     ),
-  revoke: (detailSopId: string): Promise<ProcessRevocationResultDto> =>
+  revoke: (detailSopId: string): Promise<ProsesBisnisRevocationResultDto> =>
     unwrapApiData(
-      apiClient.post<ApiSuccessResponse<ProcessRevocationResultDto>>(
-        `/process-revocation/${detailSopId}/revoke`,
+      apiClient.post<ApiSuccessResponse<ProsesBisnisRevocationResultDto>>(
+        `/pencabutan-sop/${detailSopId}/revoke`,
       ),
     ),
 }
 
-export function useProcessRevocationQueue() {
+export function useProsesBisnisRevocationQueue() {
   const query = useQuery({ queryKey: revocationQueueKey, queryFn: processRevocationApi.list })
   const revoke = useMutationWithToast({
     mutationFn: processRevocationApi.revoke,

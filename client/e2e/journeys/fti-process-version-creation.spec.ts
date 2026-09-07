@@ -3,21 +3,21 @@ import { targetUsers, users } from '../fixtures/users'
 import { toApiUrl } from '../support/api'
 import { expectNoAppShellError, waitForAppReady } from '../support/app'
 import {
-  getProcessVersionHistory,
-  seedPublishedProcessSop,
+  getProsesBisnisVersionHistory,
+  seedPublishedProsesBisnisSop,
 } from '../support/fti-version-preconditions'
 
-test.describe('End-to-End Business Journey — Process version creation', () => {
-  test('J16 Contextual Version Creation — Process relationship owns version creation and concurrency', async ({
+test.describe('End-to-End Business Journey — Proses Bisnis version creation', () => {
+  test('J16 Contextual Version Creation — Proses Bisnis relationship owns version creation and concurrency', async ({
     roleApi,
     roleSession,
   }) => {
-    const v1 = await seedPublishedProcessSop(roleApi, 'J16-VERSION', {
-      actor: targetUsers.processMember,
+    const v1 = await seedPublishedProsesBisnisSop(roleApi, 'J16-VERSION', {
+      actor: targetUsers.anggotaProsesBisnis,
     })
 
-    await test.step('Process Member membuat V2 dari V1 BERLAKU melalui existing version UI', async () => {
-      const member = await roleSession(targetUsers.processMember)
+    await test.step('Anggota Proses Bisnis membuat V2 dari V1 BERLAKU melalui existing version UI', async () => {
+      const member = await roleSession(targetUsers.anggotaProsesBisnis)
       await member.page.goto(`/penyusun/sop/${v1.detailSopId}`)
       await waitForAppReady(member.page)
       await member.page.locator('button[title="Versi"]').click()
@@ -32,7 +32,7 @@ test.describe('End-to-End Business Journey — Process version creation', () => 
     })
 
     await test.step('V1 tetap BERLAKU dan tepat satu V2 DRAFT menyimpan lineage', async () => {
-      const history = await getProcessVersionHistory(roleApi, targetUsers.processMember, v1.sopId)
+      const history = await getProsesBisnisVersionHistory(roleApi, targetUsers.anggotaProsesBisnis, v1.sopId)
       expect(history).toHaveLength(2)
       expect(history[0]).toMatchObject({
         detailSopId: v1.detailSopId,
@@ -46,27 +46,27 @@ test.describe('End-to-End Business Journey — Process version creation', () => 
       })
     })
 
-    await test.step('Actor tanpa Process relationship tidak dapat membuat versi target', async () => {
+    await test.step('Actor tanpa Proses Bisnis relationship tidak dapat membuat versi target', async () => {
       for (const deniedUser of [targetUsers.dean, targetUsers.departmentMember, users.pjEvaluator]) {
         const api = await roleApi(deniedUser)
-        const response = await api.post(toApiUrl(`/process-sop/${v1.detailSopId}/version`))
+        const response = await api.post(toApiUrl(`/sop-proses-bisnis/${v1.detailSopId}/version`))
         expect(response.status()).toBe(403)
       }
     })
 
     await test.step('Dua request serentak pada SOP lain tetap menghasilkan satu DRAFT', async () => {
-      const raceV1 = await seedPublishedProcessSop(roleApi, 'J16-RACE', {
-        actor: targetUsers.processMember,
+      const raceV1 = await seedPublishedProsesBisnisSop(roleApi, 'J16-RACE', {
+        actor: targetUsers.anggotaProsesBisnis,
       })
-      const memberApi = await roleApi(targetUsers.processMember)
+      const memberApi = await roleApi(targetUsers.anggotaProsesBisnis)
       const ownerApi = await roleApi(targetUsers.processOwner)
-      const endpoint = toApiUrl(`/process-sop/${raceV1.detailSopId}/version`)
+      const endpoint = toApiUrl(`/sop-proses-bisnis/${raceV1.detailSopId}/version`)
       const responses = await Promise.all([memberApi.post(endpoint), ownerApi.post(endpoint)])
       expect(responses.map((response) => response.status()).sort()).toEqual([201, 409])
 
-      const history = await getProcessVersionHistory(
+      const history = await getProsesBisnisVersionHistory(
         roleApi,
-        targetUsers.processMember,
+        targetUsers.anggotaProsesBisnis,
         raceV1.sopId,
       )
       expect(history.filter((row) => row.versi === 2 && row.status === 'DRAFT')).toHaveLength(1)

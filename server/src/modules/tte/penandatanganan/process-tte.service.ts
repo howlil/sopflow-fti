@@ -9,34 +9,34 @@ import * as bcrypt from 'bcrypt';
 import type { Request } from 'express';
 import type { JwtAccessPayload } from '../../../common';
 import { toWibDateOnly } from '../../../common/date/wib-date.util';
-import { JenisDokumenTte, ProcessNotificationKind, StatusSOP } from '../../../generated/prisma';
-import { ProcessNotificationService } from '../../notifications/process/process-notification.service';
+import { JenisDokumenTte, JenisNotifikasiProsesBisnis, StatusSOP } from '../../../generated/prisma';
+import { NotifikasiProsesBisnisService } from '../../notifications/process/process-notification.service';
 import { SopOfficialPdfService } from '../../sop/pdf/sop-official-pdf.service';
 import { SopPdfStorageService } from '../../sop/pdf/sop-pdf-storage.service';
-import { TandaTanganiProcessSopDto } from '../shared/dto/tanda-tangani-process-sop.dto';
+import { TandaTanganiProsesBisnisSopDto } from '../shared/dto/tanda-tangani-process-sop.dto';
 import { TteRepository } from '../shared/repository/tte.repository';
 import { buildTteQrPayload } from '../shared/utils/tte-verifikasi-qr.util';
 import { TtePublicUrlResolver } from '../shared/utils/tte-public-url.resolver';
 import { hashDokumenKanonik, runTteRepositoryMutation } from '../shared/utils/tte-support';
-import { ProcessTteRepository } from './process-tte.repository';
+import { ProsesBisnisTteRepository } from './tte-proses-bisnis.repository';
 import { TtePdfSigningService } from './tte-pdf-signing.service';
 
 @Injectable()
-export class ProcessTteService {
+export class ProsesBisnisTteService {
   constructor(
-    private readonly processTteRepository: ProcessTteRepository,
+    private readonly processTteRepository: ProsesBisnisTteRepository,
     private readonly tteRepository: TteRepository,
     private readonly publicUrlResolver: TtePublicUrlResolver,
     private readonly sopOfficialPdfService: SopOfficialPdfService,
     private readonly sopPdfStorageService: SopPdfStorageService,
     private readonly ttePdfSigningService: TtePdfSigningService,
-    private readonly processNotificationService: ProcessNotificationService,
+    private readonly notifikasiProsesBisnisService: NotifikasiProsesBisnisService,
   ) {}
 
   async sign(
     user: JwtAccessPayload,
     detailOrSopId: string,
-    dto: TandaTanganiProcessSopDto,
+    dto: TandaTanganiProsesBisnisSopDto,
     req?: Pick<Request, 'headers'>,
   ) {
     const contextResult = await this.processTteRepository.findSigningContext(detailOrSopId);
@@ -44,7 +44,7 @@ export class ProcessTteService {
     const context = contextResult.context;
     if (context.approval.approvedById !== user.sub) {
       throw new ForbiddenException(
-        'TTE hanya dapat dilakukan oleh Dekan/Kepala Departemen yang memberi final approval',
+        'TTE hanya dapat dilakukan oleh Dekan/Kepala Departemen yang memberi persetujuan akhir',
       );
     }
 
@@ -94,7 +94,7 @@ export class ProcessTteService {
       signerName: pengguna.nama,
     });
     const relativePath = this.sopPdfStorageService.buildRelativePath({
-      processId: prepared.item.processId,
+      prosesBisnisId: prepared.item.prosesBisnisId,
       sopId: prepared.item.sopId,
       detailSopId: prepared.item.detailSopId,
       versi: prepared.item.versi,
@@ -119,7 +119,7 @@ export class ProcessTteService {
           async (tx, finalizedContext) => {
             const [process, detail] = await Promise.all([
               tx.process.findUnique({
-                where: { processId: finalizedContext.processId },
+                where: { prosesBisnisId: finalizedContext.prosesBisnisId },
                 select: { ownerId: true, nama: true },
               }),
               tx.detailSOP.findUnique({
@@ -128,36 +128,36 @@ export class ProcessTteService {
               }),
             ]);
             if (process === null || detail === null) {
-              throw new ConflictException('Context feedback Process SOP tidak ditemukan');
+              throw new ConflictException('Context feedback Proses Bisnis SOP tidak ditemukan');
             }
             const authorId = detail.dibuatOlehId;
             if (authorId === null) {
-              throw new ConflictException('Author SOP Process tidak tersedia untuk feedback efektif');
+              throw new ConflictException('Author SOP Proses Bisnis tidak tersedia untuk feedback efektif');
             }
 
-            notifiedRecipients = await this.processNotificationService.createManyInTransaction(tx, [
+            notifiedRecipients = await this.notifikasiProsesBisnisService.createManyInTransaction(tx, [
               {
                 detailSopId: finalizedContext.detailSopId,
                 sopId: finalizedContext.sopId,
-                processId: finalizedContext.processId,
+                prosesBisnisId: finalizedContext.prosesBisnisId,
                 penggunaId: authorId,
-                kind: ProcessNotificationKind.PROCESS_SOP_EFFECTIVE,
-                processName: process.nama,
+                kind: JenisNotifikasiProsesBisnis.PROCESS_SOP_EFFECTIVE,
+                namaProsesBisnis: process.nama,
               },
               {
                 detailSopId: finalizedContext.detailSopId,
                 sopId: finalizedContext.sopId,
-                processId: finalizedContext.processId,
+                prosesBisnisId: finalizedContext.prosesBisnisId,
                 penggunaId: process.ownerId,
-                kind: ProcessNotificationKind.PROCESS_SOP_EFFECTIVE,
-                processName: process.nama,
+                kind: JenisNotifikasiProsesBisnis.PROCESS_SOP_EFFECTIVE,
+                namaProsesBisnis: process.nama,
               },
             ]);
           },
         ),
       );
       if (!finalized.ok) this.throwFinalizeError(finalized);
-      this.processNotificationService.emitChangedMany(notifiedRecipients);
+      this.notifikasiProsesBisnisService.emitChangedMany(notifiedRecipients);
       return {
         detailSopId: finalized.detailSopId,
         dokumenTteId: finalized.dokumenTteId,
@@ -189,13 +189,13 @@ export class ProcessTteService {
       throw new ConflictException('TTE hanya dapat dilakukan pada versi SOP terbaru');
     }
     if (result.error === 'UNASSIGNED_ARCHIVE') {
-      throw new ConflictException('SOP arsip tanpa Process tidak dapat masuk TTE FTI');
+      throw new ConflictException('SOP arsip tanpa Proses Bisnis tidak dapat masuk TTE FTI');
     }
     if (result.error === 'NOT_APPROVED') {
-      throw new ConflictException('SOP belum mendapat final approval');
+      throw new ConflictException('SOP belum mendapat persetujuan akhir');
     }
     if (result.error === 'APPROVAL_CONTEXT_DRIFT') {
-      throw new ConflictException('Context final approval tidak cocok dengan Process SOP');
+      throw new ConflictException('Context persetujuan akhir tidak cocok dengan Proses Bisnis SOP');
     }
     if (result.error === 'BAD_STATUS') {
       throw new ConflictException(`SOP tidak siap TTE pada status ${String(result.status)}`);

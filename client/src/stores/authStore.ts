@@ -11,7 +11,7 @@ import { ROUTES } from "@/utils/constants";
 
 /**
  * First-party FTI identity only. Workflow capability is intentionally absent:
- * Process relationship and Organizational Authority are resolved by their APIs.
+ * ProsesBisnis relationship and Organizational Authority are resolved by their APIs.
  */
 export type AuthUser = {
   id: string;

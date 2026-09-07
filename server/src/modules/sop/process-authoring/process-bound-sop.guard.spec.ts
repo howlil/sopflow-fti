@@ -2,8 +2,8 @@ import type { ExecutionContext } from '@nestjs/common';
 import type { JwtAccessPayload } from '../../../common';
 import type { JwtAuthGuard } from '../../../common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
-import type { ProcessContextService } from '../../core/process/process-context.service';
-import { ProcessBoundSopGuard } from './process-bound-sop.guard';
+import type { ProsesBisnisContextService } from '../../core/process/konteks-proses-bisnis.service';
+import { ProsesBisnisBoundSopGuard } from './process-bound-sop.guard';
 
 function contextFor(request: Record<string, unknown>): ExecutionContext {
   return {
@@ -11,15 +11,15 @@ function contextFor(request: Record<string, unknown>): ExecutionContext {
   } as unknown as ExecutionContext;
 }
 
-describe('ProcessBoundSopGuard', () => {
+describe('ProsesBisnisBoundSopGuard', () => {
   it('is a no-op outside legacy /sop routes', async () => {
     const jwt = { canActivate: jest.fn() } as unknown as JwtAuthGuard;
     const prisma = {} as PrismaService;
-    const processContext = {} as ProcessContextService;
-    const guard = new ProcessBoundSopGuard(jwt, prisma, processContext);
+    const processContext = {} as ProsesBisnisContextService;
+    const guard = new ProsesBisnisBoundSopGuard(jwt, prisma, processContext);
 
     await expect(
-      guard.canActivate(contextFor({ path: '/api/process-sop/workbench/x', params: { id: 'x' } })),
+      guard.canActivate(contextFor({ path: '/api/sop-proses-bisnis/workbench/x', params: { id: 'x' } })),
     ).resolves.toBe(true);
     expect((jwt.canActivate as jest.Mock)).not.toHaveBeenCalled();
   });
@@ -27,8 +27,8 @@ describe('ProcessBoundSopGuard', () => {
   it('is a no-op for public SOP routes', async () => {
     const jwt = { canActivate: jest.fn() } as unknown as JwtAuthGuard;
     const prisma = {} as PrismaService;
-    const processContext = {} as ProcessContextService;
-    const guard = new ProcessBoundSopGuard(jwt, prisma, processContext);
+    const processContext = {} as ProsesBisnisContextService;
+    const guard = new ProsesBisnisBoundSopGuard(jwt, prisma, processContext);
 
     await expect(
       guard.canActivate(
@@ -38,7 +38,7 @@ describe('ProcessBoundSopGuard', () => {
     expect((jwt.canActivate as jest.Mock)).not.toHaveBeenCalled();
   });
 
-  it('requires Process authoring access when a legacy penyusun touches a bound SOP', async () => {
+  it('requires Proses Bisnis authoring access when a legacy penyusun touches a bound SOP', async () => {
     const request: {
       path: string;
       params: Record<string, string>;
@@ -62,14 +62,14 @@ describe('ProcessBoundSopGuard', () => {
       sOP: {
         findUnique: jest.fn()
           .mockResolvedValueOnce(null)
-          .mockResolvedValueOnce({ processId: 'process-1' }),
+          .mockResolvedValueOnce({ prosesBisnisId: 'process-1' }),
       },
       detailSOP: { findUnique: jest.fn().mockResolvedValue({ sopId: 'sop-1' }) },
     } as unknown as PrismaService;
     const processContext = {
-      assertCanAuthor: jest.fn().mockResolvedValue({ processId: 'process-1' }),
-    } as unknown as ProcessContextService;
-    const guard = new ProcessBoundSopGuard(jwt, prisma, processContext);
+      assertCanAuthor: jest.fn().mockResolvedValue({ prosesBisnisId: 'process-1' }),
+    } as unknown as ProsesBisnisContextService;
+    const guard = new ProsesBisnisBoundSopGuard(jwt, prisma, processContext);
 
     await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
     expect(processContext.assertCanAuthor).toHaveBeenCalledWith('user-1', 'process-1');

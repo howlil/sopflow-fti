@@ -27,7 +27,7 @@ async function expectWorkQueueRow(
   await expectNoAppShellError(page)
 }
 
-export async function expectProcessDraftInMemberQueue(
+export async function expectProsesBisnisDraftInMemberQueue(
   page: Page,
   title: string,
 ): Promise<void> {
@@ -38,7 +38,7 @@ export async function expectProcessDraftInMemberQueue(
   })
 }
 
-export async function submitProcessSopForReviewViaUi(
+export async function submitProsesBisnisSopForReviewViaUi(
   page: Page,
   detailSopId: string,
 ): Promise<void> {
@@ -54,34 +54,34 @@ export async function submitProcessSopForReviewViaUi(
   await dialog.getByRole('button', { name: 'Ya, kirim untuk review', exact: true }).click()
   await expect(dialog).toBeHidden({ timeout: 15_000 })
 
-  await expect(page.getByText('Review Process Owner', { exact: true })).toBeVisible({
+  await expect(page.getByText('Review Penanggung Jawab Proses Bisnis', { exact: true })).toBeVisible({
     timeout: 15_000,
   })
   await expect(
-    page.getByText('Dokumen sedang direview oleh Process Owner dan untuk sementara bersifat read-only.'),
+    page.getByText('Dokumen sedang direview oleh Penanggung Jawab Proses Bisnis dan untuk sementara bersifat read-only.'),
   ).toBeVisible()
   await expectNoAppShellError(page)
 }
 
-export async function expectProcessReviewInOwnerQueue(
+export async function expectPemeriksaanProsesBisnisInOwnerQueue(
   page: Page,
   title: string,
 ): Promise<void> {
   await expectWorkQueueRow(page, {
     title,
-    statusLabel: 'Menunggu review Process Owner',
+    statusLabel: 'Menunggu review Penanggung Jawab Proses Bisnis',
     actionLabel: 'Review SOP',
   })
 }
 
-export async function requestProcessRevisionViaUi(
+export async function requestProsesBisnisRevisionViaUi(
   page: Page,
   detailSopId: string,
 ): Promise<void> {
   await page.goto(`/penyusun/sop/${detailSopId}`)
   await waitForAppReady(page)
 
-  await expect(page.getByText('Dokumen menunggu keputusan Anda sebagai Process Owner.')).toBeVisible()
+  await expect(page.getByText('Dokumen menunggu keputusan Anda sebagai Penanggung Jawab Proses Bisnis.')).toBeVisible()
   const revision = page.getByRole('button', { name: 'Minta revisi', exact: true })
   await expect(revision).toBeVisible()
   await revision.click()
@@ -92,11 +92,11 @@ export async function requestProcessRevisionViaUi(
   await expect(dialog).toBeHidden({ timeout: 15_000 })
 
   await expect(page.getByText('Perlu revisi', { exact: true }).first()).toBeVisible({ timeout: 15_000 })
-  await expect(page.getByText('SOP dikembalikan oleh Process Owner.', { exact: false })).toBeVisible()
+  await expect(page.getByText('SOP dikembalikan oleh Penanggung Jawab Proses Bisnis.', { exact: false })).toBeVisible()
   await expectNoAppShellError(page)
 }
 
-export async function expectProcessRevisionInMemberQueue(
+export async function expectProsesBisnisRevisionInMemberQueue(
   page: Page,
   title: string,
 ): Promise<void> {

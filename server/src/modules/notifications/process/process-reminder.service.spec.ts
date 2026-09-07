@@ -1,8 +1,8 @@
-import { Prisma, ProcessNotificationKind, ProcessReminderKind } from '../../../generated/prisma';
-import { ProcessReminderService } from './process-reminder.service';
+import { Prisma, JenisNotifikasiProsesBisnis, JenisPengingatProsesBisnis } from '../../../generated/prisma';
+import { PengingatProsesBisnisService } from './process-reminder.service';
 
 type TransactionMock = {
-  processReminder: {
+  pengingatProsesBisnis: {
     deleteMany: jest.MockedFunction<
       (args: { where: { detailSopId: string } }) => Promise<{ count: number }>
     >;
@@ -15,18 +15,18 @@ type TransactionMock = {
 
 type ReminderCreateData = {
   detailSopId: string;
-  processId: string;
+  prosesBisnisId: string;
   penggunaId: string;
-  kind: ProcessReminderKind;
+  kind: JenisPengingatProsesBisnis;
   destinationPhone: string;
   nextSendAt: Date;
 };
 
 function createService() {
-  const prisma = { processReminder: { findMany: jest.fn() } } as unknown as ConstructorParameters<
-    typeof ProcessReminderService
+  const prisma = { pengingatProsesBisnis: { findMany: jest.fn() } } as unknown as ConstructorParameters<
+    typeof PengingatProsesBisnisService
   >[0];
-  return new ProcessReminderService(prisma);
+  return new PengingatProsesBisnisService(prisma);
 }
 
 function createTransaction(
@@ -34,12 +34,12 @@ function createTransaction(
 ): TransactionMock {
   const deleteMany = jest
     .fn()
-    .mockResolvedValue({ count: 1 }) as unknown as TransactionMock['processReminder']['deleteMany'];
+    .mockResolvedValue({ count: 1 }) as unknown as TransactionMock['pengingatProsesBisnis']['deleteMany'];
   const create = jest
     .fn()
-    .mockResolvedValue(undefined) as unknown as TransactionMock['processReminder']['create'];
+    .mockResolvedValue(undefined) as unknown as TransactionMock['pengingatProsesBisnis']['create'];
   return {
-    processReminder: {
+    pengingatProsesBisnis: {
       deleteMany,
       create,
     },
@@ -50,13 +50,13 @@ function createTransaction(
 const input = {
   detailSopId: 'detail-1',
   sopId: 'sop-1',
-  processId: 'process-1',
+  prosesBisnisId: 'process-1',
   penggunaId: 'owner-1',
-  kind: ProcessNotificationKind.PROCESS_OWNER_REVIEW_REQUESTED,
-  processName: 'Process Akademik',
+  kind: JenisNotifikasiProsesBisnis.PROCESS_OWNER_REVIEW_REQUESTED,
+  namaProsesBisnis: 'Proses Bisnis Akademik',
 } as const;
 
-describe('ProcessReminderService', () => {
+describe('PengingatProsesBisnisService', () => {
   it('mengganti state reminder aktif sesuai actor native dan menyimpan nomor tujuannya', async () => {
     const service = createService();
     const tx = createTransaction();
@@ -66,18 +66,18 @@ describe('ProcessReminderService', () => {
       input,
     );
 
-    expect(tx.processReminder.deleteMany).toHaveBeenCalledWith({
+    expect(tx.pengingatProsesBisnis.deleteMany).toHaveBeenCalledWith({
       where: { detailSopId: 'detail-1' },
     });
-    const createCall = tx.processReminder.create.mock.calls[0]?.[0] as
+    const createCall = tx.pengingatProsesBisnis.create.mock.calls[0]?.[0] as
       | { data: ReminderCreateData }
       | undefined;
     expect(createCall?.data).toEqual(
       expect.objectContaining({
         detailSopId: 'detail-1',
-        processId: 'process-1',
+        prosesBisnisId: 'process-1',
         penggunaId: 'owner-1',
-        kind: ProcessReminderKind.PROCESS_OWNER_REVIEW,
+        kind: JenisPengingatProsesBisnis.PROCESS_OWNER_REVIEW,
         destinationPhone: '081234567890',
       }),
     );
@@ -90,28 +90,28 @@ describe('ProcessReminderService', () => {
 
     await service.syncForNotificationInTransaction(tx as unknown as Prisma.TransactionClient, {
       ...input,
-      kind: ProcessNotificationKind.PROCESS_SOP_EFFECTIVE,
+      kind: JenisNotifikasiProsesBisnis.PROCESS_SOP_EFFECTIVE,
     });
 
-    expect(tx.processReminder.deleteMany).toHaveBeenCalledWith({
+    expect(tx.pengingatProsesBisnis.deleteMany).toHaveBeenCalledWith({
       where: { detailSopId: 'detail-1' },
     });
-    expect(tx.processReminder.create).not.toHaveBeenCalled();
+    expect(tx.pengingatProsesBisnis.create).not.toHaveBeenCalled();
   });
 
   it('memetakan revisi dan approval ke kind reminder native yang terpisah', async () => {
     const service = createService();
 
     for (const [notificationKind, reminderKind] of [
-      [ProcessNotificationKind.PROCESS_REVISION_REQUESTED, ProcessReminderKind.PROCESS_REVISION],
-      [ProcessNotificationKind.FINAL_APPROVAL_REQUESTED, ProcessReminderKind.FINAL_APPROVAL],
+      [JenisNotifikasiProsesBisnis.PROCESS_REVISION_REQUESTED, JenisPengingatProsesBisnis.PROCESS_REVISION],
+      [JenisNotifikasiProsesBisnis.FINAL_APPROVAL_REQUESTED, JenisPengingatProsesBisnis.FINAL_APPROVAL],
     ] as const) {
       const tx = createTransaction();
       await service.syncForNotificationInTransaction(tx as unknown as Prisma.TransactionClient, {
         ...input,
         kind: notificationKind,
       });
-      const createCall = tx.processReminder.create.mock.calls[0]?.[0] as
+      const createCall = tx.pengingatProsesBisnis.create.mock.calls[0]?.[0] as
         | { data: ReminderCreateData }
         | undefined;
       expect(createCall?.data.kind).toBe(reminderKind);

@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
-import { JenisDokumenTte, OrganizationalAuthority } from '../../../generated/prisma';
+import { JenisDokumenTte, PejabatBerwenang } from '../../../generated/prisma';
 import { verifyPdfWithP12 } from '../shared/utils/pdf-signature-verification.util';
 import { TtePdfSigningService } from './tte-pdf-signing.service';
 import { TteRepository } from '../shared/repository/tte.repository';
@@ -89,7 +89,7 @@ describe('TtePdfSigningService', () => {
     repository.findRiwayatForPdfSigning.mockResolvedValue({
       userId,
       dokumenTteId,
-      authority: OrganizationalAuthority.DEAN,
+      authority: PejabatBerwenang.DEAN,
       ditandatanganiPada: new Date('2026-05-01T00:00:00.000Z'),
       dokumenTte: {
         dokumenTteId,
@@ -130,7 +130,7 @@ describe('TtePdfSigningService', () => {
     repository.findRiwayatForPdfSigning.mockResolvedValue({
       userId,
       dokumenTteId,
-      authority: OrganizationalAuthority.DEAN,
+      authority: PejabatBerwenang.DEAN,
       ditandatanganiPada: new Date('2026-05-01T00:00:00.000Z'),
       dokumenTte: {
         dokumenTteId,

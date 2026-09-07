@@ -3,10 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import type { Prisma } from '../../generated/prisma';
 import {
-  OrganizationalAuthority,
-  OrganizationalScope,
+  PejabatBerwenang,
+  LingkupOrganisasi,
   PlatformRole,
-  ProcessLifecycleStatus,
+  StatusKeaktifanProsesBisnis,
 } from '../../generated/prisma';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
@@ -150,71 +150,71 @@ export class SeedService {
 
     await this.prisma.$transaction(async (tx) => {
       const users = await this.seedUsers(tx, hashedPassword);
-      const deptIf = await this.ensureDepartment(tx, 'Informatika');
-      const deptSi = await this.ensureDepartment(tx, 'Sistem Informasi');
+      const deptIf = await this.ensureDepartemen(tx, 'Informatika');
+      const deptSi = await this.ensureDepartemen(tx, 'Sistem Informasi');
       const ownerId = users['process.owner@gmail.com'].penggunaId;
       const adminId = users['admin.fti@gmail.com'].penggunaId;
 
-      await this.ensureProcessOwnerAuthority(tx, ownerId, adminId, OrganizationalScope.FACULTY, null);
-      await this.ensureProcessOwnerAuthority(
+      await this.ensureKewenanganPenanggungJawabProsesBisnis(tx, ownerId, adminId, LingkupOrganisasi.FACULTY, null);
+      await this.ensureKewenanganPenanggungJawabProsesBisnis(
         tx,
         ownerId,
         adminId,
-        OrganizationalScope.DEPARTMENT,
-        deptIf.departmentId,
+        LingkupOrganisasi.DEPARTMENT,
+        deptIf.departemenId,
       );
-      await this.ensureProcessOwnerAuthority(
+      await this.ensureKewenanganPenanggungJawabProsesBisnis(
         tx,
         ownerId,
         adminId,
-        OrganizationalScope.DEPARTMENT,
-        deptSi.departmentId,
+        LingkupOrganisasi.DEPARTMENT,
+        deptSi.departemenId,
       );
 
-      const processFaculty = await this.ensureProcess(
+      const processFaculty = await this.ensureProsesBisnis(
         tx,
         'Pengelolaan Akademik FTI',
-        OrganizationalScope.FACULTY,
+        LingkupOrganisasi.FACULTY,
         ownerId,
         null,
       );
-      const processIf = await this.ensureProcess(
+      const processIf = await this.ensureProsesBisnis(
         tx,
         'Layanan Akademik Informatika',
-        OrganizationalScope.DEPARTMENT,
+        LingkupOrganisasi.DEPARTMENT,
         ownerId,
-        deptIf.departmentId,
+        deptIf.departemenId,
       );
-      const processSi = await this.ensureProcess(
+      const processSi = await this.ensureProsesBisnis(
         tx,
         'Layanan Akademik Sistem Informasi',
-        OrganizationalScope.DEPARTMENT,
+        LingkupOrganisasi.DEPARTMENT,
         ownerId,
-        deptSi.departmentId,
+        deptSi.departemenId,
       );
 
-      await this.ensureProcessMember(
+      await this.ensureAnggotaProsesBisnis(
         tx,
-        processFaculty.processId,
+        processFaculty.prosesBisnisId,
         users['process.member@gmail.com'].penggunaId,
       );
-      await this.ensureProcessMember(
+      await this.ensureAnggotaProsesBisnis(
         tx,
-        processIf.processId,
+        processIf.prosesBisnisId,
         users['process.member.if@gmail.com'].penggunaId,
       );
-      await this.ensureProcessMember(
+      await this.ensureAnggotaProsesBisnis(
         tx,
-        processSi.processId,
+        processSi.prosesBisnisId,
         users['process.member.si@gmail.com'].penggunaId,
       );
 
-      await this.seedOrganizationalAuthority(tx, {
+      await this.seedPejabatBerwenang(tx, {
         deanId: users['dean.fti@gmail.com'].penggunaId,
         kadepIfId: users['kadep.if@gmail.com'].penggunaId,
         kadepSiId: users['kadep.si@gmail.com'].penggunaId,
-        deptIfId: deptIf.departmentId,
-        deptSiId: deptSi.departmentId,
+        deptIfId: deptIf.departemenId,
+        deptSiId: deptSi.departemenId,
       });
 
       await this.seedPeraturan(tx, adminId);
@@ -222,7 +222,7 @@ export class SeedService {
     });
 
     this.logger.log(
-      'Seed FTI native selesai: identity netral, Departemen, Process, owner eligibility, membership, Dean/HOD authority, Peraturan global, dan Pelaksana global.',
+      'Seed FTI native selesai: identity netral, Departemen, Proses Bisnis, owner eligibility, membership, Dean/HOD authority, Peraturan global, dan Pelaksana global.',
     );
     this.logger.warn(
       `Login seed menggunakan SEED_DEFAULT_PASSWORD (default ${DEFAULT_SEED_PASSWORD}).`,
@@ -264,82 +264,82 @@ export class SeedService {
     return result;
   }
 
-  private async ensureDepartment(
+  private async ensureDepartemen(
     tx: Prisma.TransactionClient,
     nama: string,
-  ): Promise<{ departmentId: string; nama: string }> {
+  ): Promise<{ departemenId: string; nama: string }> {
     const existing = await tx.department.findUnique({
       where: { nama },
-      select: { departmentId: true, nama: true },
+      select: { departemenId: true, nama: true },
     });
     return (
       existing ??
       tx.department.create({
         data: { nama },
-        select: { departmentId: true, nama: true },
+        select: { departemenId: true, nama: true },
       })
     );
   }
 
-  private async ensureProcessOwnerAuthority(
+  private async ensureKewenanganPenanggungJawabProsesBisnis(
     tx: Prisma.TransactionClient,
     penggunaId: string,
     grantedById: string,
-    scope: OrganizationalScope,
-    departmentId: string | null,
+    scope: LingkupOrganisasi,
+    departemenId: string | null,
   ): Promise<void> {
-    const scopeKey = scope === OrganizationalScope.FACULTY ? 'FACULTY' : `DEPARTMENT:${departmentId}`;
+    const scopeKey = scope === LingkupOrganisasi.FACULTY ? 'FACULTY' : `DEPARTMENT:${departemenId}`;
     await tx.processOwnerAuthority.upsert({
       where: { penggunaId_scopeKey: { penggunaId, scopeKey } },
-      create: { penggunaId, scope, departmentId, scopeKey, grantedById },
-      update: { scope, departmentId, grantedById, revokedAt: null },
+      create: { penggunaId, scope, departemenId, scopeKey, grantedById },
+      update: { scope, departemenId, grantedById, revokedAt: null },
     });
   }
 
-  private async ensureProcess(
+  private async ensureProsesBisnis(
     tx: Prisma.TransactionClient,
     nama: string,
-    scope: OrganizationalScope,
+    scope: LingkupOrganisasi,
     ownerId: string,
-    departmentId: string | null,
-  ): Promise<{ processId: string; nama: string }> {
+    departemenId: string | null,
+  ): Promise<{ prosesBisnisId: string; nama: string }> {
     const existing = await tx.process.findFirst({
       where: { nama },
-      select: { processId: true, nama: true },
+      select: { prosesBisnisId: true, nama: true },
     });
     const process =
       existing === null
         ? await tx.process.create({
-            data: { nama, scope, ownerId, departmentId },
-            select: { processId: true, nama: true },
+            data: { nama, scope, ownerId, departemenId },
+            select: { prosesBisnisId: true, nama: true },
           })
         : await tx.process.update({
-            where: { processId: existing.processId },
-            data: { scope, ownerId, departmentId },
-            select: { processId: true, nama: true },
+            where: { prosesBisnisId: existing.prosesBisnisId },
+            data: { scope, ownerId, departemenId },
+            select: { prosesBisnisId: true, nama: true },
           });
 
     await tx.processLifecycle.upsert({
-      where: { processId: process.processId },
-      create: { processId: process.processId, status: ProcessLifecycleStatus.ACTIVE },
-      update: { status: ProcessLifecycleStatus.ACTIVE, archivedAt: null, archivedReason: null },
+      where: { prosesBisnisId: process.prosesBisnisId },
+      create: { prosesBisnisId: process.prosesBisnisId, status: StatusKeaktifanProsesBisnis.ACTIVE },
+      update: { status: StatusKeaktifanProsesBisnis.ACTIVE, archivedAt: null, archivedReason: null },
     });
     return process;
   }
 
-  private async ensureProcessMember(
+  private async ensureAnggotaProsesBisnis(
     tx: Prisma.TransactionClient,
-    processId: string,
+    prosesBisnisId: string,
     penggunaId: string,
   ): Promise<void> {
-    await tx.processMember.upsert({
-      where: { processId_penggunaId: { processId, penggunaId } },
-      create: { processId, penggunaId },
+    await tx.anggotaProsesBisnis.upsert({
+      where: { prosesBisnisId_penggunaId: { prosesBisnisId, penggunaId } },
+      create: { prosesBisnisId, penggunaId },
       update: {},
     });
   }
 
-  private async seedOrganizationalAuthority(
+  private async seedPejabatBerwenang(
     tx: Prisma.TransactionClient,
     params: {
       deanId: string;
@@ -352,20 +352,20 @@ export class SeedService {
     const assignments = [
       {
         authorityKey: 'DEAN',
-        authority: OrganizationalAuthority.DEAN,
-        departmentId: null,
+        authority: PejabatBerwenang.DEAN,
+        departemenId: null,
         holderId: params.deanId,
       },
       {
         authorityKey: `HEAD_OF_DEPARTMENT:${params.deptIfId}`,
-        authority: OrganizationalAuthority.HEAD_OF_DEPARTMENT,
-        departmentId: params.deptIfId,
+        authority: PejabatBerwenang.HEAD_OF_DEPARTMENT,
+        departemenId: params.deptIfId,
         holderId: params.kadepIfId,
       },
       {
         authorityKey: `HEAD_OF_DEPARTMENT:${params.deptSiId}`,
-        authority: OrganizationalAuthority.HEAD_OF_DEPARTMENT,
-        departmentId: params.deptSiId,
+        authority: PejabatBerwenang.HEAD_OF_DEPARTMENT,
+        departemenId: params.deptSiId,
         holderId: params.kadepSiId,
       },
     ];
@@ -376,7 +376,7 @@ export class SeedService {
         create: assignment,
         update: {
           authority: assignment.authority,
-          departmentId: assignment.departmentId,
+          departemenId: assignment.departemenId,
           holderId: assignment.holderId,
         },
       });

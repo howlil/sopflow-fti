@@ -2,14 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 
 @Injectable()
-export class ProcessTteVerificationRepository {
+export class ProsesBisnisTteVerificationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findApprovalForSignedDetail(detailSopId: string, signerId: string, processId: string) {
+  async findApprovalForSignedDetail(detailSopId: string, signerId: string, prosesBisnisId: string) {
     return this.prisma.processFinalApproval.findFirst({
       where: {
         detailSopId,
-        processId,
+        prosesBisnisId,
         approvedById: signerId,
       },
       select: {

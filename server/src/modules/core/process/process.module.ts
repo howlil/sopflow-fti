@@ -1,41 +1,41 @@
 import { Module } from '@nestjs/common';
-import { OrganizationalAuthorityController } from './organizational-authority.controller';
-import { OrganizationalAuthorityService } from './organizational-authority.service';
-import { ProcessContextController } from './process-context.controller';
-import { ProcessContextService } from './process-context.service';
-import { ProcessController } from './process.controller';
-import { ProcessInvitationController } from './process-invitation.controller';
-import { ProcessOwnerAuthorityController } from './process-owner-authority.controller';
-import { ProcessOwnerAuthorityService } from './process-owner-authority.service';
-import { ProcessOwnerController } from './process-owner.controller';
-import { ProcessOwnerService } from './process-owner.service';
-import { ProcessRepository } from './process.repository';
-import { ProcessService } from './process.service';
+import { PejabatBerwenangController } from './organizational-authority.controller';
+import { PejabatBerwenangService } from './organizational-authority.service';
+import { ProsesBisnisContextController } from './konteks-proses-bisnis.controller';
+import { ProsesBisnisContextService } from './konteks-proses-bisnis.service';
+import { ProsesBisnisController } from './process.controller';
+import { UndanganAnggotaProsesBisnisController } from './process-invitation.controller';
+import { KewenanganPenanggungJawabProsesBisnisController } from './process-owner-authority.controller';
+import { KewenanganPenanggungJawabProsesBisnisService } from './process-owner-authority.service';
+import { ProsesBisnisOwnerController } from './process-owner.controller';
+import { ProsesBisnisOwnerService } from './process-owner.service';
+import { ProsesBisnisRepository } from './process.repository';
+import { ProsesBisnisService } from './process.service';
 
 @Module({
   controllers: [
-    ProcessController,
-    ProcessContextController,
-    OrganizationalAuthorityController,
-    ProcessOwnerAuthorityController,
-    ProcessOwnerController,
-    ProcessInvitationController,
+    ProsesBisnisController,
+    ProsesBisnisContextController,
+    PejabatBerwenangController,
+    KewenanganPenanggungJawabProsesBisnisController,
+    ProsesBisnisOwnerController,
+    UndanganAnggotaProsesBisnisController,
   ],
   providers: [
-    ProcessRepository,
-    ProcessService,
-    ProcessContextService,
-    OrganizationalAuthorityService,
-    ProcessOwnerAuthorityService,
-    ProcessOwnerService,
+    ProsesBisnisRepository,
+    ProsesBisnisService,
+    ProsesBisnisContextService,
+    PejabatBerwenangService,
+    KewenanganPenanggungJawabProsesBisnisService,
+    ProsesBisnisOwnerService,
   ],
   exports: [
-    ProcessRepository,
-    ProcessService,
-    ProcessContextService,
-    OrganizationalAuthorityService,
-    ProcessOwnerAuthorityService,
-    ProcessOwnerService,
+    ProsesBisnisRepository,
+    ProsesBisnisService,
+    ProsesBisnisContextService,
+    PejabatBerwenangService,
+    KewenanganPenanggungJawabProsesBisnisService,
+    ProsesBisnisOwnerService,
   ],
 })
-export class ProcessModule {}
+export class ProsesBisnisModule {}

@@ -100,7 +100,7 @@ function laneLayoutsGeometrySignature(
     .join("||");
 }
 
-export interface ProcessedBpmnStep extends SOPStep {
+export interface ProsesBisnisedBpmnStep extends SOPStep {
   id_step: string;
   seq_number: number;
 }
@@ -134,7 +134,7 @@ function SwimlaneActorNameCell(props: { laneHeightPx: number; label: string | un
 export interface BpmnPageProps {
   pageIndex: number;
   isLastPage: boolean;
-  processedSteps: ProcessedBpmnStep[];
+  processedSteps: ProsesBisnisedBpmnStep[];
   pageConnections: FlowchartConnection[];
   name?: string;
   implementers: Implementer[];

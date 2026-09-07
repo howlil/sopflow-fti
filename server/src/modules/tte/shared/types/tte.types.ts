@@ -1,4 +1,4 @@
-import type { OrganizationalAuthority } from '../../../../generated/prisma';
+import type { PejabatBerwenang } from '../../../../generated/prisma';
 
 export type {
   PdfSigningStatusResponse,
@@ -27,7 +27,7 @@ export type TtePengesahanPublicResponse = {
   readonly userId: string;
   readonly dokumenTteId: string;
   readonly ditandatanganiPada: string;
-  readonly authority: OrganizationalAuthority;
+  readonly authority: PejabatBerwenang;
   readonly authorityLabel: 'Dekan' | 'Kepala Departemen';
   readonly penandatangan: {
     readonly nama: string;

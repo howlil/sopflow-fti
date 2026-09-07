@@ -26,7 +26,7 @@ import type { SOPDetailMetadata } from '@/types/ui/sop'
 import type { PenyusunWorkbenchData, StatusSOP } from '@/types/dto/sop.dto'
 import type { SopHeaderAutosaveStatus } from '@/pages/penyusun/sop/hooks/use-sop-header-autosave'
 import { usePenyusunWorkbench } from '@/api/sop'
-import { processReviewApi, type ProcessReviewDecision } from '@/api/process-review'
+import { pemeriksaanProsesBisnisApi, type KeputusanPemeriksaanProsesBisnis } from '@/api/pemeriksaan-proses-bisnis'
 import { queryKeys } from '@/config/query-keys'
 import { useSopEditor } from '../SopEditorContext'
 import { useToast } from '@/hooks/useToast'
@@ -52,8 +52,8 @@ interface AutosaveAppearance {
   className: string
 }
 
-type ProcessAwareWorkbenchSop = NonNullable<PenyusunWorkbenchData['detail']['sop']> & {
-  processId?: string | null
+type ProsesBisnisAwareWorkbenchSop = NonNullable<PenyusunWorkbenchData['detail']['sop']> & {
+  prosesBisnisId?: string | null
   processNama?: string | null
 }
 
@@ -91,16 +91,16 @@ export function DetailSOPPenyusunHeader({
   const { showToast } = useToast()
   const [isPrinting, setIsPrinting] = useState(false)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
-  const [reviewDecision, setReviewDecision] = useState<ProcessReviewDecision | null>(null)
-  const [isProcessActionPending, setIsProcessActionPending] = useState(false)
+  const [reviewDecision, setReviewDecision] = useState<KeputusanPemeriksaanProsesBisnis | null>(null)
+  const [isProsesBisnisActionPending, setIsProsesBisnisActionPending] = useState(false)
 
-  const processSop = workbench?.detail.sop as ProcessAwareWorkbenchSop | undefined
-  const processId = processSop?.processId ?? null
-  const isProcessWorkflow = processId !== null
-  const lifecycle = isProcessWorkflow ? workbench?.lifecycle : undefined
-  const isProcessOwner = lifecycle?.stage === 'PROCESS_REVIEW' && lifecycle.responsibility.type === 'CURRENT_USER'
-  const isWaitingForProcessReview = lifecycle?.stage === 'PROCESS_REVIEW'
-  const isProcessRevision = lifecycle?.stage === 'AUTHORING' && lifecycle.stateLabel === 'Perlu revisi'
+  const processSop = workbench?.detail.sop as ProsesBisnisAwareWorkbenchSop | undefined
+  const prosesBisnisId = processSop?.prosesBisnisId ?? null
+  const isProsesBisnisWorkflow = prosesBisnisId !== null
+  const lifecycle = isProsesBisnisWorkflow ? workbench?.lifecycle : undefined
+  const isProsesBisnisOwner = lifecycle?.stage === 'PROCESS_REVIEW' && lifecycle.responsibility.type === 'CURRENT_USER'
+  const isWaitingForPemeriksaanProsesBisnis = lifecycle?.stage === 'PROCESS_REVIEW'
+  const isProsesBisnisRevision = lifecycle?.stage === 'AUTHORING' && lifecycle.stateLabel === 'Perlu revisi'
   const displayedStatusLabel = lifecycle?.stateLabel ?? currentSopStatusLabel
 
   const updateWorkbenchCache = (nextWorkbench: PenyusunWorkbenchData) => {
@@ -135,44 +135,44 @@ export function DetailSOPPenyusunHeader({
     }
   }
 
-  const submitProcessReview = async () => {
+  const submitPemeriksaanProsesBisnis = async () => {
     if (!sopDetailId) {
       showToast('Detail SOP belum tersedia.', 'error')
       return
     }
-    setIsProcessActionPending(true)
+    setIsProsesBisnisActionPending(true)
     try {
       await Promise.all([flushHeaderAutosave(), flushProsedurAutosave()])
-      const nextWorkbench = await processReviewApi.submit(sopDetailId)
+      const nextWorkbench = await pemeriksaanProsesBisnisApi.submit(sopDetailId)
       updateWorkbenchCache(nextWorkbench)
-      showToast('SOP berhasil dikirim ke Process Owner untuk review.')
+      showToast('SOP berhasil dikirim ke Penanggung Jawab Proses Bisnis untuk review.')
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Gagal mengirim SOP untuk review'
       showToast(message, 'error')
     } finally {
-      setIsProcessActionPending(false)
+      setIsProsesBisnisActionPending(false)
     }
   }
 
-  const decideProcessReview = async (decision: ProcessReviewDecision) => {
+  const decidePemeriksaanProsesBisnis = async (decision: KeputusanPemeriksaanProsesBisnis) => {
     if (!sopDetailId) {
       showToast('Detail SOP belum tersedia.', 'error')
       return
     }
-    setIsProcessActionPending(true)
+    setIsProsesBisnisActionPending(true)
     try {
-      const nextWorkbench = await processReviewApi.decide(sopDetailId, decision)
+      const nextWorkbench = await pemeriksaanProsesBisnisApi.decide(sopDetailId, decision)
       updateWorkbenchCache(nextWorkbench)
       showToast(
         decision === 'ACCEPT'
           ? 'SOP diterima dan siap menuju persetujuan akhir.'
-          : 'SOP dikembalikan ke Process Team untuk revisi.',
+          : 'SOP dikembalikan ke Proses Bisnis Team untuk revisi.',
       )
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Gagal menyimpan keputusan review'
       showToast(message, 'error')
     } finally {
-      setIsProcessActionPending(false)
+      setIsProsesBisnisActionPending(false)
       setReviewDecision(null)
     }
   }
@@ -183,23 +183,23 @@ export function DetailSOPPenyusunHeader({
   const hasSecondaryActions = hasPrintAction || hasVersionAction
   const documentTitle = metadata.nama ?? metadata.judul ?? 'SOP'
 
-  const confirmTitle = isProcessRevision ? 'Kirim revisi untuk review?' : 'Kirim SOP untuk review?'
-  const confirmDescription = isProcessWorkflow
-    ? isProcessRevision
-      ? 'Dokumen akan dikirim kembali ke Process Owner. Pastikan semua perubahan sudah tersimpan.'
-      : 'Dokumen akan dikunci sementara dan masuk ke review Process Owner. Pastikan semua perubahan sudah tersimpan.'
+  const confirmTitle = isProsesBisnisRevision ? 'Kirim revisi untuk review?' : 'Kirim SOP untuk review?'
+  const confirmDescription = isProsesBisnisWorkflow
+    ? isProsesBisnisRevision
+      ? 'Dokumen akan dikirim kembali ke Penanggung Jawab Proses Bisnis. Pastikan semua perubahan sudah tersimpan.'
+      : 'Dokumen akan dikunci sementara dan masuk ke review Penanggung Jawab Proses Bisnis. Pastikan semua perubahan sudah tersimpan.'
     : ''
-  const confirmLabel = isProcessWorkflow
+  const confirmLabel = isProsesBisnisWorkflow
     ? 'Ya, kirim untuk review'
     : 'Ya, kirim untuk review'
 
   const handleConfirmComplete = () => {
     setIsConfirmOpen(false)
-    if (isProcessWorkflow) {
-      void submitProcessReview()
+    if (isProsesBisnisWorkflow) {
+      void submitPemeriksaanProsesBisnis()
       return
     }
-    void submitProcessReview()
+    void submitPemeriksaanProsesBisnis()
   }
 
   return (
@@ -248,30 +248,30 @@ export function DetailSOPPenyusunHeader({
             </Button>
           ) : null}
 
-          {!isReadOnly && isProcessWorkflow ? (
+          {!isReadOnly && isProsesBisnisWorkflow ? (
             <Button
               size="sm"
               className="h-8 gap-1.5 px-3 text-xs"
               onClick={() => setIsConfirmOpen(true)}
               disabled={
-                isProcessActionPending
+                isProsesBisnisActionPending
               }
             >
               <Check className="h-3.5 w-3.5" aria-hidden />
-              {isProcessActionPending
+              {isProsesBisnisActionPending
                 ? 'Mengirim…'
                 : 'Kirim untuk review'}
             </Button>
           ) : null}
 
-          {isWaitingForProcessReview && isProcessOwner ? (
+          {isWaitingForPemeriksaanProsesBisnis && isProsesBisnisOwner ? (
             <>
               <Button
                 size="sm"
                 variant="outline"
                 className="h-8 gap-1.5 px-3 text-xs"
                 onClick={() => setReviewDecision('REVISION')}
-                disabled={isProcessActionPending}
+                disabled={isProsesBisnisActionPending}
               >
                 <RotateCcw className="h-3.5 w-3.5" aria-hidden />
                 Minta revisi
@@ -280,7 +280,7 @@ export function DetailSOPPenyusunHeader({
                 size="sm"
                 className="h-8 gap-1.5 px-3 text-xs"
                 onClick={() => setReviewDecision('ACCEPT')}
-                disabled={isProcessActionPending}
+                disabled={isProsesBisnisActionPending}
               >
                 <Check className="h-3.5 w-3.5" aria-hidden />
                 Terima
@@ -318,17 +318,17 @@ export function DetailSOPPenyusunHeader({
         </div>
       </div>
 
-      {isWaitingForProcessReview ? (
+      {isWaitingForPemeriksaanProsesBisnis ? (
         <div className="mt-2 border-t border-border pt-2 text-xs text-secondary-foreground">
-          {isProcessOwner
-            ? 'Dokumen menunggu keputusan Anda sebagai Process Owner.'
-            : 'Dokumen sedang direview oleh Process Owner dan untuk sementara bersifat read-only.'}
+          {isProsesBisnisOwner
+            ? 'Dokumen menunggu keputusan Anda sebagai Penanggung Jawab Proses Bisnis.'
+            : 'Dokumen sedang direview oleh Penanggung Jawab Proses Bisnis dan untuk sementara bersifat read-only.'}
         </div>
-      ) : isProcessRevision && !isReadOnly ? (
+      ) : isProsesBisnisRevision && !isReadOnly ? (
         <div className="mt-2 flex gap-2 border-t border-border pt-2 text-xs text-secondary-foreground">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700" aria-hidden />
           <p>
-            <>SOP dikembalikan oleh Process Owner. Selesaikan revisi lalu klik <span className="font-semibold">Kirim untuk review</span>.</>
+            <>SOP dikembalikan oleh ProsesBisnis Owner. Selesaikan revisi lalu klik <span className="font-semibold">Kirim untuk review</span>.</>
           </p>
         </div>
       ) : null}
@@ -352,12 +352,12 @@ export function DetailSOPPenyusunHeader({
         description={
           reviewDecision === 'ACCEPT'
             ? 'SOP akan ditandai siap menuju persetujuan akhir. Tahap persetujuan Dean/Kadep belum dijalankan pada aksi ini.'
-            : 'SOP akan kembali dapat diedit oleh Process Team untuk memperbaiki dokumen.'
+            : 'SOP akan kembali dapat diedit oleh Proses Bisnis Team untuk memperbaiki dokumen.'
         }
         confirmLabel={reviewDecision === 'ACCEPT' ? 'Ya, terima' : 'Ya, minta revisi'}
         cancelLabel="Batal"
         onConfirm={() => {
-          if (reviewDecision !== null) void decideProcessReview(reviewDecision)
+          if (reviewDecision !== null) void decidePemeriksaanProsesBisnis(reviewDecision)
         }}
       />
     </>

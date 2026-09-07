@@ -36,7 +36,7 @@ export function getUserFriendlyMessage(error: unknown): string {
       case ErrorCodes.USER_NIP_EXISTS:
         return 'NIP sudah terdaftar. Gunakan NIP lain atau periksa kembali.';
       case ErrorCodes.TIM_ALREADY_EXISTS:
-        return 'User sudah menjadi anggota Process ini.';
+        return 'User sudah menjadi anggota Proses Bisnis ini.';
       case ErrorCodes.VALIDATION_ERROR:
         return 'Data yang Anda masukkan tidak valid. Periksa kembali form.';
       case ErrorCodes.FORBIDDEN:

@@ -41,7 +41,7 @@ describe('PenggunaRepository native platform accounts', () => {
       email: 'native@example.test',
       nama: 'Native User',
       nip: '199001010000000001',
-      jabatan: 'Process Member',
+      jabatan: 'Anggota Proses Bisnis',
       pangkat: 'IV/a',
       nohp: '6281234567890',
       kataSandi: 'hash',

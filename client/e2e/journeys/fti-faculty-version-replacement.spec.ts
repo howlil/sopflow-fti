@@ -1,32 +1,32 @@
 import { expect, test } from '../fixtures/business-test'
 import { targetUsers } from '../fixtures/users'
 import { toApiUrl } from '../support/api'
-import { signProcessSopViaUi } from '../support/fti-tte-actions'
+import { signProsesBisnisSopViaUi } from '../support/fti-tte-actions'
 import {
-  getProcessVersionHistory,
+  getProsesBisnisVersionHistory,
   seedReplacementReadyForTte,
 } from '../support/fti-version-preconditions'
 
-test.describe('End-to-End Business Journey — Faculty Process version replacement', () => {
+test.describe('End-to-End Business Journey — Faculty Proses Bisnis version replacement', () => {
   test('J17 Faculty Version Replacement — Dean TTE atomically replaces V1 with V2', async ({
     publicPage,
     roleApi,
     roleSession,
   }) => {
     const fixture = await seedReplacementReadyForTte(roleApi, 'J17-FACULTY-REPLACE', {
-      actor: targetUsers.processMember,
+      actor: targetUsers.anggotaProsesBisnis,
       authorityUser: targetUsers.dean,
     })
 
     await test.step('Dean menandatangani V2 melalui contextual TTE UI', async () => {
       const dean = await roleSession(targetUsers.dean)
-      await signProcessSopViaUi(dean.page, fixture.v1.title)
+      await signProsesBisnisSopViaUi(dean.page, fixture.v1.title)
     })
 
     await test.step('Replacement meninggalkan tepat satu versi BERLAKU', async () => {
-      const history = await getProcessVersionHistory(
+      const history = await getProsesBisnisVersionHistory(
         roleApi,
-        targetUsers.processMember,
+        targetUsers.anggotaProsesBisnis,
         fixture.v1.sopId,
       )
       expect(history).toHaveLength(2)

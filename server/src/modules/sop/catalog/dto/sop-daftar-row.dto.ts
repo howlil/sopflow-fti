@@ -1,9 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type { ProcessSopLifecycleProjection } from '../../process-authoring/process-sop-lifecycle.projection';
+import type { ProsesBisnisSopLifecycleProjection } from '../../process-authoring/sop-proses-bisnis-lifecycle.projection';
 import { SopDaftarVersiSliceDto } from './sop-daftar-versi-slice.dto';
 import { TerakhirDieditDto } from './terakhir-diedit.dto';
 
-/** Satu baris daftar SOP Process-native (header + versi DetailSOP terbaru). */
+/** Satu baris daftar SOP ProsesBisnis-native (header + versi DetailSOP terbaru). */
 export class SopDaftarRowDto {
   @ApiProperty({ description: 'ID header SOP (sopId)' })
   readonly id!: string;
@@ -54,8 +54,8 @@ export class SopDaftarRowDto {
   readonly canHapusSopDraft!: boolean;
 
   @ApiPropertyOptional({
-    description: 'Canonical lifecycle projection for native Process SOP work queues',
+    description: 'Canonical lifecycle projection for native Proses Bisnis SOP work queues',
     nullable: true,
   })
-  readonly lifecycle?: ProcessSopLifecycleProjection;
+  readonly lifecycle?: ProsesBisnisSopLifecycleProjection;
 }

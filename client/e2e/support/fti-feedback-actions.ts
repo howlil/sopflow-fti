@@ -3,13 +3,13 @@ import { expect, type APIRequestContext, type Page } from '@playwright/test'
 import { apiGet, apiPost } from './api'
 import { expectNoAppShellError, waitForAppReady } from './app'
 
-export type ProcessFeedbackKind =
+export type ProsesBisnisFeedbackKind =
   | 'PROCESS_REVISION_REQUESTED'
   | 'PROCESS_SOP_EFFECTIVE'
   | 'PROCESS_SOP_REVOKED'
 
-export interface ProcessFeedbackNotification {
-  processNotificationId: string
+export interface ProsesBisnisFeedbackNotification {
+  notifikasiProsesBisnisId: string
   kind: string
   title: string
   preview: string
@@ -19,39 +19,39 @@ export interface ProcessFeedbackNotification {
   createdAt: string
 }
 
-export async function markAllProcessNotificationsRead(api: APIRequestContext): Promise<void> {
+export async function markAllNotifikasiProsesBisnissRead(api: APIRequestContext): Promise<void> {
   await apiPost(api, '/notifications/process/read-all')
 }
 
-export async function requestProcessRevisionViaApi(
+export async function requestProsesBisnisRevisionViaApi(
   ownerApi: APIRequestContext,
   detailSopId: string,
   catatan?: string,
 ): Promise<void> {
-  await apiPost(ownerApi, `/process-sop/${detailSopId}/review`, {
+  await apiPost(ownerApi, `/sop-proses-bisnis/${detailSopId}/review`, {
     decision: 'REVISION',
     ...(catatan !== undefined ? { catatan } : {}),
   })
 }
 
-export async function findProcessFeedback(
+export async function findProsesBisnisFeedback(
   api: APIRequestContext,
-  kind: ProcessFeedbackKind,
-): Promise<ProcessFeedbackNotification[]> {
-  const notifications = await apiGet<ProcessFeedbackNotification[]>(api, '/notifications/process?limit=50')
+  kind: ProsesBisnisFeedbackKind,
+): Promise<ProsesBisnisFeedbackNotification[]> {
+  const notifications = await apiGet<ProsesBisnisFeedbackNotification[]>(api, '/notifications/process?limit=50')
   return notifications.filter((item) => item.kind === kind)
 }
 
-export async function expectSingleProcessFeedback(
+export async function expectSingleProsesBisnisFeedback(
   api: APIRequestContext,
-  kind: ProcessFeedbackKind,
+  kind: ProsesBisnisFeedbackKind,
   expected: {
     title: string
     preview: string
     actionHref?: string
   },
-): Promise<ProcessFeedbackNotification> {
-  const matches = await findProcessFeedback(api, kind)
+): Promise<ProsesBisnisFeedbackNotification> {
+  const matches = await findProsesBisnisFeedback(api, kind)
   expect(matches).toHaveLength(1)
   const item = matches[0]
   expect(item).toEqual(
@@ -65,10 +65,10 @@ export async function expectSingleProcessFeedback(
   return item
 }
 
-export async function openProcessFeedbackFromNotification(
+export async function openProsesBisnisFeedbackFromNotification(
   page: Page,
   expected: { title: string; preview: string },
-  processNotificationId?: string,
+  notifikasiProsesBisnisId?: string,
 ): Promise<void> {
   await page.goto('/work')
   await waitForAppReady(page)
@@ -77,8 +77,8 @@ export async function openProcessFeedbackFromNotification(
   await expect(bell).toBeVisible({ timeout: 15_000 })
   await bell.click()
 
-  const notification = processNotificationId
-    ? page.locator(`[data-process-notification-id="${processNotificationId}"]`)
+  const notification = notifikasiProsesBisnisId
+    ? page.locator(`[data-process-notification-id="${notifikasiProsesBisnisId}"]`)
     : page
         .getByRole('link')
         .filter({ hasText: expected.title })
@@ -89,12 +89,12 @@ export async function openProcessFeedbackFromNotification(
   await expect(notification).toContainText(expected.title)
   await expect(notification).toContainText(expected.preview)
 
-  const readResponsePromise = processNotificationId
+  const readResponsePromise = notifikasiProsesBisnisId
     ? page.waitForResponse(
         (response) =>
           response.request().method() === 'POST' &&
           response.url().includes(
-            `/notifications/process/items/${encodeURIComponent(processNotificationId)}/read`,
+            `/notifications/process/items/${encodeURIComponent(notifikasiProsesBisnisId)}/read`,
           ),
         { timeout: 15_000 },
       )
@@ -106,7 +106,7 @@ export async function openProcessFeedbackFromNotification(
     const readResponse = await readResponsePromise
     expect(
       readResponse.ok(),
-      `Process notification read request failed with HTTP ${readResponse.status()}`,
+      `ProsesBisnis notification read request failed with HTTP ${readResponse.status()}`,
     ).toBe(true)
   }
 

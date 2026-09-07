@@ -29,7 +29,7 @@ export function mapWorkbenchPayload(row: SopWorkbenchDbPayload): PenyusunWorkben
   const detailId = row.detailSopId;
   const sopHeader = {
     id: row.sop.sopId,
-    processId: row.sop.processId,
+    prosesBisnisId: row.sop.prosesBisnisId,
     judul: row.sop.judul,
     createdAt: toIso(row.sop.createdAt),
     updatedAt: toIso(row.sop.updatedAt),

@@ -2,12 +2,12 @@ type ErrorLogger = Readonly<{
   error: (message: string, error: unknown) => void;
 }>;
 
-type ProcessTerminator = (code: number) => void;
+type ProsesBisnisTerminator = (code: number) => void;
 
 /** Membuat handler fatal yang selalu log lalu menghentikan proses dengan exit code non-zero. */
-export function createFatalProcessErrorHandler(
+export function createFatalProsesBisnisErrorHandler(
   logger: ErrorLogger,
-  terminate: ProcessTerminator,
+  terminate: ProsesBisnisTerminator,
   label: string,
 ): (error: unknown) => void {
   return (error: unknown): void => {
@@ -17,16 +17,16 @@ export function createFatalProcessErrorHandler(
 }
 
 /** Memasang handler process-level untuk kegagalan yang tidak aman untuk dilanjutkan. */
-export function installFatalProcessErrorHandlers(
+export function installFatalProsesBisnisErrorHandlers(
   logger: ErrorLogger,
-  terminate: ProcessTerminator = (code) => process.exit(code),
+  terminate: ProsesBisnisTerminator = (code) => process.exit(code),
 ): void {
   process.on(
     'uncaughtException',
-    createFatalProcessErrorHandler(logger, terminate, 'Uncaught Exception:'),
+    createFatalProsesBisnisErrorHandler(logger, terminate, 'Uncaught Exception:'),
   );
   process.on(
     'unhandledRejection',
-    createFatalProcessErrorHandler(logger, terminate, 'Unhandled Rejection:'),
+    createFatalProsesBisnisErrorHandler(logger, terminate, 'Unhandled Rejection:'),
   );
 }

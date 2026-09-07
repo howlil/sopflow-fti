@@ -1,15 +1,15 @@
 import { ConflictException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import {
-  OrganizationalAuthority,
-  OrganizationalScope,
-  ProcessNotificationKind,
+  PejabatBerwenang,
+  LingkupOrganisasi,
+  JenisNotifikasiProsesBisnis,
   StatusSOP,
 } from '../../../generated/prisma';
-import type { OrganizationalAuthorityService } from '../../core/process/organizational-authority.service';
-import type { ProcessNotificationService } from '../../notifications/process/process-notification.service';
+import type { PejabatBerwenangService } from '../../core/process/organizational-authority.service';
+import type { NotifikasiProsesBisnisService } from '../../notifications/process/process-notification.service';
 import type { SopCatalogRepository } from '../catalog/sop-catalog.repository';
-import { ProcessSopRevocationService } from './process-sop-revocation.service';
+import { ProsesBisnisSopRevocationService } from './sop-proses-bisnis-revocation.service';
 
 const user = { sub: 'dean-1', email: 'dean@example.test' } as const;
 
@@ -27,18 +27,18 @@ function makeService(options?: { transitionCount?: number }) {
     process: {
       findMany: jest.fn().mockResolvedValue([
         {
-          processId: 'process-a',
-          nama: 'Process Fakultas',
-          scope: OrganizationalScope.FACULTY,
-          departmentId: null,
+          prosesBisnisId: 'process-a',
+          nama: 'Proses Bisnis Fakultas',
+          scope: LingkupOrganisasi.FACULTY,
+          departemenId: null,
           department: null,
         },
       ]),
-      findUnique: jest.fn().mockResolvedValue({ ownerId: 'owner-1', nama: 'Process Fakultas' }),
+      findUnique: jest.fn().mockResolvedValue({ ownerId: 'owner-1', nama: 'Proses Bisnis Fakultas' }),
     },
     sOP: {
-      findMany: jest.fn().mockResolvedValue([{ sopId: 'sop-a', processId: 'process-a' }]),
-      findUnique: jest.fn().mockResolvedValue({ processId: 'process-a' }),
+      findMany: jest.fn().mockResolvedValue([{ sopId: 'sop-a', prosesBisnisId: 'process-a' }]),
+      findUnique: jest.fn().mockResolvedValue({ prosesBisnisId: 'process-a' }),
     },
     detailSOP: {
       findMany: jest.fn().mockResolvedValue([
@@ -60,21 +60,21 @@ function makeService(options?: { transitionCount?: number }) {
     listMine: jest.fn().mockResolvedValue([
       {
         authorityKey: 'DEAN',
-        authority: OrganizationalAuthority.DEAN,
-        departmentId: null,
+        authority: PejabatBerwenang.DEAN,
+        departemenId: null,
         holderId: 'dean-1',
       },
     ]),
     assertCanApprove: jest.fn().mockResolvedValue({
-      authority: OrganizationalAuthority.DEAN,
+      authority: PejabatBerwenang.DEAN,
       authorityKey: 'DEAN',
       holderId: 'dean-1',
     }),
-  } as unknown as OrganizationalAuthorityService;
-  const processNotifications = {
+  } as unknown as PejabatBerwenangService;
+  const notifikasiProsesBisnis = {
     createManyInTransaction: jest.fn().mockResolvedValue(['author-1', 'owner-1']),
     emitChangedMany: jest.fn(),
-  } as unknown as ProcessNotificationService;
+  } as unknown as NotifikasiProsesBisnisService;
   const catalog = {
     findDetailIdByDetailOrSopId: jest.fn().mockResolvedValue({
       detailSopId: 'detail-a',
@@ -85,36 +85,36 @@ function makeService(options?: { transitionCount?: number }) {
     ]),
   } as unknown as SopCatalogRepository;
   return {
-    service: new ProcessSopRevocationService(prisma, authority, processNotifications, catalog),
+    service: new ProsesBisnisSopRevocationService(prisma, authority, notifikasiProsesBisnis, catalog),
     prisma,
     authority,
-    processNotifications,
+    notifikasiProsesBisnis,
     catalog,
     tx,
   };
 }
 
-describe('ProcessSopRevocationService', () => {
-  it('lists only effective Process SOPs in the current organizational authority scope', async () => {
+describe('ProsesBisnisSopRevocationService', () => {
+  it('lists only effective Proses Bisnis SOPs in the current pejabat berwenang scope', async () => {
     const { service } = makeService();
 
     await expect(service.listForCurrentAuthority(user)).resolves.toEqual([
       expect.objectContaining({
         detailSopId: 'detail-a',
-        processId: 'process-a',
-        scope: OrganizationalScope.FACULTY,
+        prosesBisnisId: 'process-a',
+        scope: LingkupOrganisasi.FACULTY,
         judul: 'SOP Fakultas',
       }),
     ]);
   });
 
-  it('revokes BERLAKU and persists author/Process Owner feedback inside the same transaction', async () => {
-    const { service, authority, processNotifications, tx } = makeService();
+  it('revokes BERLAKU and persists author/Penanggung Jawab Proses Bisnis feedback inside the same transaction', async () => {
+    const { service, authority, notifikasiProsesBisnis, tx } = makeService();
 
     await expect(service.revoke(user, 'detail-a')).resolves.toEqual({
       detailSopId: 'detail-a',
       sopId: 'sop-a',
-      processId: 'process-a',
+      prosesBisnisId: 'process-a',
       status: StatusSOP.REVOKED,
     });
     expect(authority.assertCanApprove).toHaveBeenCalledWith('dean-1', 'process-a');
@@ -124,51 +124,51 @@ describe('ProcessSopRevocationService', () => {
     });
     expect(tx.logEditSOP.create).toHaveBeenCalled();
     expect(tx.$executeRaw).toHaveBeenCalled();
-    expect(processNotifications.createManyInTransaction).toHaveBeenCalledWith(
+    expect(notifikasiProsesBisnis.createManyInTransaction).toHaveBeenCalledWith(
       tx,
       expect.arrayContaining([
         expect.objectContaining({
           penggunaId: 'author-1',
-          kind: ProcessNotificationKind.PROCESS_SOP_REVOKED,
-          processName: 'Process Fakultas',
+          kind: JenisNotifikasiProsesBisnis.PROCESS_SOP_REVOKED,
+          namaProsesBisnis: 'Proses Bisnis Fakultas',
         }),
         expect.objectContaining({
           penggunaId: 'owner-1',
-          kind: ProcessNotificationKind.PROCESS_SOP_REVOKED,
+          kind: JenisNotifikasiProsesBisnis.PROCESS_SOP_REVOKED,
         }),
       ]),
     );
-    expect(processNotifications.emitChangedMany).toHaveBeenCalledWith(['author-1', 'owner-1']);
+    expect(notifikasiProsesBisnis.emitChangedMany).toHaveBeenCalledWith(['author-1', 'owner-1']);
   });
 
   it('rolls back feedback path when the effective status changed concurrently', async () => {
-    const { service, processNotifications, tx } = makeService({ transitionCount: 0 });
+    const { service, notifikasiProsesBisnis, tx } = makeService({ transitionCount: 0 });
 
     await expect(service.revoke(user, 'detail-a')).rejects.toBeInstanceOf(ConflictException);
     expect(tx.logEditSOP.create).not.toHaveBeenCalled();
-    expect(processNotifications.createManyInTransaction).not.toHaveBeenCalled();
-    expect(processNotifications.emitChangedMany).not.toHaveBeenCalled();
+    expect(notifikasiProsesBisnis.createManyInTransaction).not.toHaveBeenCalled();
+    expect(notifikasiProsesBisnis.emitChangedMany).not.toHaveBeenCalled();
   });
 
   it('rejects revocation while a newer revision is still in flight', async () => {
-    const { service, catalog, processNotifications } = makeService();
+    const { service, catalog, notifikasiProsesBisnis } = makeService();
     (catalog.findRiwayatVersiBySopId as jest.Mock).mockResolvedValue([
       { detailSopId: 'detail-a', status: StatusSOP.EFFECTIVE },
       { detailSopId: 'detail-b', status: StatusSOP.DRAFT },
     ]);
 
     await expect(service.revoke(user, 'detail-a')).rejects.toBeInstanceOf(ConflictException);
-    expect(processNotifications.createManyInTransaction).not.toHaveBeenCalled();
+    expect(notifikasiProsesBisnis.createManyInTransaction).not.toHaveBeenCalled();
   });
 
   it('rejects an unbound SOP because it is historical-only', async () => {
-    const { service, prisma, authority, processNotifications } = makeService();
-    (prisma.sOP.findUnique as jest.Mock).mockResolvedValue({ processId: null });
+    const { service, prisma, authority, notifikasiProsesBisnis } = makeService();
+    (prisma.sOP.findUnique as jest.Mock).mockResolvedValue({ prosesBisnisId: null });
 
     await expect(service.revoke(user, 'detail-a')).rejects.toThrow(
-      'SOP tanpa Process hanya tersedia sebagai riwayat compatibility dan tidak dapat dicabut dari runtime FTI',
+      'SOP tanpa Proses Bisnis hanya tersedia sebagai riwayat compatibility dan tidak dapat dicabut dari runtime FTI',
     );
     expect(authority.assertCanApprove).not.toHaveBeenCalled();
-    expect(processNotifications.createManyInTransaction).not.toHaveBeenCalled();
+    expect(notifikasiProsesBisnis.createManyInTransaction).not.toHaveBeenCalled();
   });
 });

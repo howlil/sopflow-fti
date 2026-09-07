@@ -7,7 +7,7 @@ import {
 import { assertDetailSopEditable } from '../../../common/status/sop-editable.util';
 import type { JwtAccessPayload } from '../../../common';
 import { StatusSOP } from '../../../generated/prisma';
-import { ProcessContextService } from '../../core/process/process-context.service';
+import { ProsesBisnisContextService } from '../../core/process/konteks-proses-bisnis.service';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
 import { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
 import type { UpdateSopDiagramDto } from './dto/diagram-path-overrides.dto';
@@ -19,7 +19,7 @@ export class SopDiagramService {
   constructor(
     private readonly sopDiagramRepository: SopDiagramRepository,
     private readonly sopWorkbenchReader: SopWorkbenchReader,
-    private readonly processContextService: ProcessContextService,
+    private readonly processContextService: ProsesBisnisContextService,
   ) {}
 
   async updateDiagram(
@@ -32,12 +32,12 @@ export class SopDiagramService {
     if (resolved === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
-    if (resolved.processId === null) {
+    if (resolved.prosesBisnisId === null) {
       throw new ConflictException(
-        'SOP belum memiliki Process ownership dan tidak tersedia pada endpoint native',
+        'SOP belum memiliki Penanggung Jawab Proses Bisnisship dan tidak tersedia pada endpoint native',
       );
     }
-    await this.processContextService.assertCanAuthor(user.sub, resolved.processId);
+    await this.processContextService.assertCanAuthor(user.sub, resolved.prosesBisnisId);
     const detailStatus = await this.sopDiagramRepository.findDetailStatus(resolved.detailSopId);
     if (detailStatus === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');

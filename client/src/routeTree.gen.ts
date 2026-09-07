@@ -25,7 +25,7 @@ import { Route as PenyusunSopIndexRouteImport } from './routes/penyusun/sop/inde
 import { Route as PenyusunPeraturanIndexRouteImport } from './routes/penyusun/peraturan/index'
 import { Route as PenyusunPelaksanaIndexRouteImport } from './routes/penyusun/pelaksana/index'
 import { Route as PenyusunMeIndexRouteImport } from './routes/penyusun/me/index'
-import { Route as AdminProcessesIndexRouteImport } from './routes/admin/processes/index'
+import { Route as AdminProsesBisnisesIndexRouteImport } from './routes/admin/processes/index'
 import { Route as AdminAuthoritiesIndexRouteImport } from './routes/admin/authorities/index'
 import { Route as AdminAccountsIndexRouteImport } from './routes/admin/accounts/index'
 import { Route as PenyusunSopIdRouteImport } from './routes/penyusun/sop/$id'
@@ -111,7 +111,7 @@ const PenyusunMeIndexRoute = PenyusunMeIndexRouteImport.update({
   path: '/me/',
   getParentRoute: () => PenyusunRouteRoute,
 } as any)
-const AdminProcessesIndexRoute = AdminProcessesIndexRouteImport.update({
+const AdminProsesBisnisesIndexRoute = AdminProsesBisnisesIndexRouteImport.update({
   id: '/processes/',
   path: '/processes/',
   getParentRoute: () => AdminRouteRoute,
@@ -153,7 +153,7 @@ export interface FileRoutesByFullPath {
   '/penyusun/sop/$id': typeof PenyusunSopIdRoute
   '/admin/accounts/': typeof AdminAccountsIndexRoute
   '/admin/authorities/': typeof AdminAuthoritiesIndexRoute
-  '/admin/processes/': typeof AdminProcessesIndexRoute
+  '/admin/processes/': typeof AdminProsesBisnisesIndexRoute
   '/penyusun/me/': typeof PenyusunMeIndexRoute
   '/penyusun/pelaksana/': typeof PenyusunPelaksanaIndexRoute
   '/penyusun/peraturan/': typeof PenyusunPeraturanIndexRoute
@@ -173,7 +173,7 @@ export interface FileRoutesByTo {
   '/penyusun/sop/$id': typeof PenyusunSopIdRoute
   '/admin/accounts': typeof AdminAccountsIndexRoute
   '/admin/authorities': typeof AdminAuthoritiesIndexRoute
-  '/admin/processes': typeof AdminProcessesIndexRoute
+  '/admin/processes': typeof AdminProsesBisnisesIndexRoute
   '/penyusun/me': typeof PenyusunMeIndexRoute
   '/penyusun/pelaksana': typeof PenyusunPelaksanaIndexRoute
   '/penyusun/peraturan': typeof PenyusunPeraturanIndexRoute
@@ -197,7 +197,7 @@ export interface FileRoutesById {
   '/penyusun/sop/$id': typeof PenyusunSopIdRoute
   '/admin/accounts/': typeof AdminAccountsIndexRoute
   '/admin/authorities/': typeof AdminAuthoritiesIndexRoute
-  '/admin/processes/': typeof AdminProcessesIndexRoute
+  '/admin/processes/': typeof AdminProsesBisnisesIndexRoute
   '/penyusun/me/': typeof PenyusunMeIndexRoute
   '/penyusun/pelaksana/': typeof PenyusunPelaksanaIndexRoute
   '/penyusun/peraturan/': typeof PenyusunPeraturanIndexRoute
@@ -404,7 +404,7 @@ declare module '@tanstack/react-router' {
       id: '/admin/processes/'
       path: '/processes'
       fullPath: '/admin/processes/'
-      preLoaderRoute: typeof AdminProcessesIndexRouteImport
+      preLoaderRoute: typeof AdminProsesBisnisesIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/admin/authorities/': {
@@ -441,13 +441,13 @@ declare module '@tanstack/react-router' {
 interface AdminRouteRouteChildren {
   AdminAccountsIndexRoute: typeof AdminAccountsIndexRoute
   AdminAuthoritiesIndexRoute: typeof AdminAuthoritiesIndexRoute
-  AdminProcessesIndexRoute: typeof AdminProcessesIndexRoute
+  AdminProsesBisnisesIndexRoute: typeof AdminProsesBisnisesIndexRoute
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminAccountsIndexRoute: AdminAccountsIndexRoute,
   AdminAuthoritiesIndexRoute: AdminAuthoritiesIndexRoute,
-  AdminProcessesIndexRoute: AdminProcessesIndexRoute,
+  AdminProsesBisnisesIndexRoute: AdminProsesBisnisesIndexRoute,
 }
 
 const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(

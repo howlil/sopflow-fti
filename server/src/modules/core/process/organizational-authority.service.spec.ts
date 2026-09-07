@@ -1,24 +1,24 @@
 import { ForbiddenException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
-import { OrganizationalAuthority, OrganizationalScope } from '../../../generated/prisma';
-import { OrganizationalAuthorityService } from './organizational-authority.service';
+import { PejabatBerwenang, LingkupOrganisasi } from '../../../generated/prisma';
+import { PejabatBerwenangService } from './organizational-authority.service';
 
-describe('OrganizationalAuthorityService', () => {
+describe('PejabatBerwenangService', () => {
   it('resolves faculty scope to the active Dean assignment', async () => {
     const prisma = {
       process: {
         findUnique: jest.fn().mockResolvedValue({
-          processId: 'process-a',
+          prosesBisnisId: 'process-a',
           nama: 'Keuangan',
-          scope: OrganizationalScope.FACULTY,
-          departmentId: null,
+          scope: LingkupOrganisasi.FACULTY,
+          departemenId: null,
         }),
       },
       organizationalAuthorityAssignment: {
         findUnique: jest.fn().mockResolvedValue({
           authorityKey: 'DEAN',
-          authority: OrganizationalAuthority.DEAN,
-          departmentId: null,
+          authority: PejabatBerwenang.DEAN,
+          departemenId: null,
           holderId: 'dean-1',
         }),
       },
@@ -26,12 +26,12 @@ describe('OrganizationalAuthorityService', () => {
         findFirst: jest.fn().mockResolvedValue({ penggunaId: 'dean-1', nama: 'Dean FTI' }),
       },
     } as unknown as PrismaService;
-    const service = new OrganizationalAuthorityService(prisma);
+    const service = new PejabatBerwenangService(prisma);
 
-    await expect(service.resolveForProcess('process-a')).resolves.toMatchObject({
-      authority: OrganizationalAuthority.DEAN,
+    await expect(service.resolveForProsesBisnis('process-a')).resolves.toMatchObject({
+      authority: PejabatBerwenang.DEAN,
       holderId: 'dean-1',
-      scope: OrganizationalScope.FACULTY,
+      scope: LingkupOrganisasi.FACULTY,
     });
   });
 
@@ -39,17 +39,17 @@ describe('OrganizationalAuthorityService', () => {
     const prisma = {
       process: {
         findUnique: jest.fn().mockResolvedValue({
-          processId: 'process-ti',
+          prosesBisnisId: 'process-ti',
           nama: 'Tugas Akhir',
-          scope: OrganizationalScope.DEPARTMENT,
-          departmentId: 'dept-ti',
+          scope: LingkupOrganisasi.DEPARTMENT,
+          departemenId: 'dept-ti',
         }),
       },
       organizationalAuthorityAssignment: {
         findUnique: jest.fn().mockResolvedValue({
           authorityKey: 'HEAD_OF_DEPARTMENT:dept-ti',
-          authority: OrganizationalAuthority.HEAD_OF_DEPARTMENT,
-          departmentId: 'dept-ti',
+          authority: PejabatBerwenang.HEAD_OF_DEPARTMENT,
+          departemenId: 'dept-ti',
           holderId: 'kadep-ti',
         }),
       },
@@ -57,11 +57,11 @@ describe('OrganizationalAuthorityService', () => {
         findFirst: jest.fn().mockResolvedValue({ penggunaId: 'kadep-ti', nama: 'Kadep TI' }),
       },
     } as unknown as PrismaService;
-    const service = new OrganizationalAuthorityService(prisma);
+    const service = new PejabatBerwenangService(prisma);
 
-    await expect(service.resolveForProcess('process-ti')).resolves.toMatchObject({
-      authority: OrganizationalAuthority.HEAD_OF_DEPARTMENT,
-      departmentId: 'dept-ti',
+    await expect(service.resolveForProsesBisnis('process-ti')).resolves.toMatchObject({
+      authority: PejabatBerwenang.HEAD_OF_DEPARTMENT,
+      departemenId: 'dept-ti',
       holderId: 'kadep-ti',
     });
   });
@@ -70,17 +70,17 @@ describe('OrganizationalAuthorityService', () => {
     const prisma = {
       process: {
         findUnique: jest.fn().mockResolvedValue({
-          processId: 'process-a',
+          prosesBisnisId: 'process-a',
           nama: 'Keuangan',
-          scope: OrganizationalScope.FACULTY,
-          departmentId: null,
+          scope: LingkupOrganisasi.FACULTY,
+          departemenId: null,
         }),
       },
       organizationalAuthorityAssignment: {
         findUnique: jest.fn().mockResolvedValue({
           authorityKey: 'DEAN',
-          authority: OrganizationalAuthority.DEAN,
-          departmentId: null,
+          authority: PejabatBerwenang.DEAN,
+          departemenId: null,
           holderId: 'dean-1',
         }),
       },
@@ -88,7 +88,7 @@ describe('OrganizationalAuthorityService', () => {
         findFirst: jest.fn().mockResolvedValue({ penggunaId: 'dean-1', nama: 'Dean FTI' }),
       },
     } as unknown as PrismaService;
-    const service = new OrganizationalAuthorityService(prisma);
+    const service = new PejabatBerwenangService(prisma);
 
     await expect(service.assertCanApprove('admin-1', 'process-a')).rejects.toBeInstanceOf(
       ForbiddenException,

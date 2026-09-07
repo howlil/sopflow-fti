@@ -1,18 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Request } from 'express';
-import { OrganizationalAuthority } from '../../../generated/prisma';
+import { PejabatBerwenang } from '../../../generated/prisma';
 import { TteRepository } from '../shared/repository/tte.repository';
 import type { TtePengesahanPublicResponse } from '../shared/types/tte.types';
 import { buildTteQrPayload } from '../shared/utils/tte-verifikasi-qr.util';
 import { TtePublicUrlResolver } from '../shared/utils/tte-public-url.resolver';
-import { ProcessTteVerificationRepository } from './process-tte-verification.repository';
+import { ProsesBisnisTteVerificationRepository } from './tte-proses-bisnis-verification.repository';
 
 @Injectable()
 export class TteVerifikasiService {
   constructor(
     private readonly tteRepository: TteRepository,
     private readonly publicUrlResolver: TtePublicUrlResolver,
-    private readonly processVerificationRepository: ProcessTteVerificationRepository,
+    private readonly processVerificationRepository: ProsesBisnisTteVerificationRepository,
   ) {}
 
   async getPengesahanPublic(
@@ -28,22 +28,22 @@ export class TteVerifikasiService {
       throw new NotFoundException('Data pengesahan tidak ditemukan');
     }
 
-    const { detailSopId, processId } = row.dokumenTte;
-    if (detailSopId === null || processId === null) {
+    const { detailSopId, prosesBisnisId } = row.dokumenTte;
+    if (detailSopId === null || prosesBisnisId === null) {
       throw new NotFoundException('Dokumen TTE bukan artefak SOP FTI yang aktif');
     }
 
     const approval = await this.processVerificationRepository.findApprovalForSignedDetail(
       detailSopId,
       row.userId,
-      processId,
+      prosesBisnisId,
     );
     if (approval === null || approval.authority !== row.authority) {
       throw new NotFoundException('Evidence authority pengesahan tidak valid');
     }
 
     const authorityLabel =
-      row.authority === OrganizationalAuthority.DEAN ? ('Dekan' as const) : ('Kepala Departemen' as const);
+      row.authority === PejabatBerwenang.DEAN ? ('Dekan' as const) : ('Kepala Departemen' as const);
     const qr = buildTteQrPayload({
       publicVerifyBaseUrl: this.publicUrlResolver.resolveDocumentVerifyBaseUrl(req),
       dokumenTteId: row.dokumenTte.dokumenTteId,

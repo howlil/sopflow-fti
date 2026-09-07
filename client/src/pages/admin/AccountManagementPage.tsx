@@ -73,7 +73,7 @@ export function AccountManagementPage() {
             <div className="space-y-0.5">
               <h2 className="text-sm font-semibold text-foreground">Akun aktif</h2>
               <p className="text-sm text-secondary-foreground">
-                Akun tidak memperoleh Process atau kewenangan organisasi sampai ditugaskan secara eksplisit.
+                Akun tidak memperoleh ProsesBisnis atau kewenangan organisasi sampai ditugaskan secara eksplisit.
               </p>
             </div>
           </DataSurface.Header>

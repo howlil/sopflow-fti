@@ -9,8 +9,8 @@ import { extractDbInvariantMessage } from '../../../common/prisma/prisma-db-inva
 import { isPrismaUniqueConstraintError } from '../../../common/prisma/prisma-error.util';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { assertDetailSopEditable } from '../../../common/status/sop-editable.util';
-import { OrganizationalAuthority, OrganizationalScope, StatusSOP } from '../../../generated/prisma';
-import { ProcessContextService } from '../../core/process/process-context.service';
+import { PejabatBerwenang, LingkupOrganisasi, StatusSOP } from '../../../generated/prisma';
+import { ProsesBisnisContextService } from '../../core/process/konteks-proses-bisnis.service';
 import type { ListSopQueryDto } from '../catalog/dto/list-sop-query.dto';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
 import type { SopDaftarRowDto } from '../catalog/dto/sop-daftar-row.dto';
@@ -23,31 +23,31 @@ import {
 } from '../catalog/sop-catalog.repository';
 import { assertSopCatalogRepoOk } from '../catalog/sop-catalog-repo-error.util';
 import { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
-import type { CreateProcessSopDto } from './dto/create-process-sop.dto';
+import type { CreateProsesBisnisSopDto } from './dto/create-process-sop.dto';
 import {
-  projectProcessSopLifecycle,
-  type ProcessSopLifecycleProjection,
-} from './process-sop-lifecycle.projection';
+  projectProsesBisnisSopLifecycle,
+  type ProsesBisnisSopLifecycleProjection,
+} from './sop-proses-bisnis-lifecycle.projection';
 
-type ProcessAwareSopRow = SopDaftarRowDto & {
-  processId: string | null;
+type ProsesBisnisAwareSopRow = SopDaftarRowDto & {
+  prosesBisnisId: string | null;
   processNama: string | null;
-  lifecycle: ProcessSopLifecycleProjection;
+  lifecycle: ProsesBisnisSopLifecycleProjection;
 };
 
 type FinalApprovalReference = { detailSopId: string };
 type AuthorityAssignmentReference = {
   authorityKey: string;
-  authority: OrganizationalAuthority;
-  departmentId: string | null;
+  authority: PejabatBerwenang;
+  departemenId: string | null;
   holderId: string;
 };
 
 @Injectable()
-export class ProcessSopAuthoringService {
+export class ProsesBisnisSopAuthoringService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly processContextService: ProcessContextService,
+    private readonly processContextService: ProsesBisnisContextService,
     private readonly sopCatalogRepository: SopCatalogRepository,
     private readonly sopWorkbenchReader: SopWorkbenchReader,
   ) {}
@@ -55,32 +55,32 @@ export class ProcessSopAuthoringService {
   async listForCurrentUser(
     user: JwtAccessPayload,
     query?: ListSopQueryDto,
-  ): Promise<ProcessAwareSopRow[]> {
+  ): Promise<ProsesBisnisAwareSopRow[]> {
     const filters = this.normalizeFilters(query);
-    const [myProcesses, allNativeSops, allRows] = await Promise.all([
+    const [myProsesBisnises, allNativeSops, allRows] = await Promise.all([
       this.processContextService.listForUser(user.sub),
-      this.prisma.sOP.findMany({ select: { sopId: true, processId: true } }),
+      this.prisma.sOP.findMany({ select: { sopId: true, prosesBisnisId: true } }),
       this.sopCatalogRepository.findDaftarAll(filters),
     ]);
 
-    const processById = new Map(myProcesses.map((process) => [process.processId, process]));
+    const processById = new Map(myProsesBisnises.map((process) => [process.prosesBisnisId, process]));
     const processBySop = new Map(
       allNativeSops
-        .filter((sop): sop is typeof sop & { processId: string } => sop.processId !== null)
-        .map((sop) => [sop.sopId, sop.processId]),
+        .filter((sop): sop is typeof sop & { prosesBisnisId: string } => sop.prosesBisnisId !== null)
+        .map((sop) => [sop.sopId, sop.prosesBisnisId]),
     );
     const accessibleTargetSopIds = new Set(
       allNativeSops
-        .filter((sop) => sop.processId !== null && processById.has(sop.processId))
+        .filter((sop) => sop.prosesBisnisId !== null && processById.has(sop.prosesBisnisId))
         .map((sop) => sop.sopId),
     );
 
     const accessibleRows = allRows
       .filter((row) => accessibleTargetSopIds.has(row.sopId))
-      .map((row) => ({ row, processId: processBySop.get(row.sopId) }))
+      .map((row) => ({ row, prosesBisnisId: processBySop.get(row.sopId) }))
       .filter(
-        (entry): entry is { row: (typeof allRows)[number]; processId: string } =>
-          entry.processId !== undefined && processById.has(entry.processId),
+        (entry): entry is { row: (typeof allRows)[number]; prosesBisnisId: string } =>
+          entry.prosesBisnisId !== undefined && processById.has(entry.prosesBisnisId),
       );
 
     if (accessibleRows.length === 0) return [];
@@ -90,15 +90,15 @@ export class ProcessSopAuthoringService {
       .filter((detailId): detailId is string => detailId !== undefined);
     const authorityKeys = [
       ...new Set(
-        accessibleRows.flatMap(({ processId }) => {
-          const process = processById.get(processId);
+        accessibleRows.flatMap(({ prosesBisnisId }) => {
+          const process = processById.get(prosesBisnisId);
           if (process === undefined) return [];
           return [
-            process.scope === OrganizationalScope.FACULTY
+            process.scope === LingkupOrganisasi.FACULTY
               ? 'DEAN'
-              : process.departmentId === null
+              : process.departemenId === null
                 ? null
-                : `HEAD_OF_DEPARTMENT:${process.departmentId}`,
+                : `HEAD_OF_DEPARTMENT:${process.departemenId}`,
           ].filter((key): key is string => key !== null);
         }),
       ),
@@ -115,7 +115,7 @@ export class ProcessSopAuthoringService {
           ? []
           : this.prisma.organizationalAuthorityAssignment.findMany({
               where: { authorityKey: { in: authorityKeys } },
-              select: { authorityKey: true, authority: true, departmentId: true, holderId: true },
+              select: { authorityKey: true, authority: true, departemenId: true, holderId: true },
             }),
       ]);
     const approvalIds = new Set(approvals.map((approval) => approval.detailSopId));
@@ -135,34 +135,34 @@ export class ProcessSopAuthoringService {
           });
     const holderById = new Map(holders.map((holder) => [holder.penggunaId, holder]));
 
-    const additionalTargetRows: ProcessAwareSopRow[] = accessibleRows.map(({ row, processId }) => {
-      const process = processById.get(processId);
+    const additionalTargetRows: ProsesBisnisAwareSopRow[] = accessibleRows.map(({ row, prosesBisnisId }) => {
+      const process = processById.get(prosesBisnisId);
       if (process === undefined) {
-        throw new Error('Process disappeared while projecting Process SOP lifecycle');
+        throw new Error('Proses Bisnis disappeared while projecting Proses Bisnis SOP lifecycle');
       }
       const mapped = mapDaftarRow(row);
       const detailSopId = mapped.detailSopId ?? mapped.id;
       const authorityKey =
-        process.scope === OrganizationalScope.FACULTY
+        process.scope === LingkupOrganisasi.FACULTY
           ? 'DEAN'
-          : process.departmentId === null
+          : process.departemenId === null
             ? null
-            : `HEAD_OF_DEPARTMENT:${process.departmentId}`;
+            : `HEAD_OF_DEPARTMENT:${process.departemenId}`;
       const assignment = authorityKey === null ? undefined : assignmentByKey.get(authorityKey);
       const expectedAuthority =
-        process.scope === OrganizationalScope.FACULTY
-          ? OrganizationalAuthority.DEAN
-          : OrganizationalAuthority.HEAD_OF_DEPARTMENT;
+        process.scope === LingkupOrganisasi.FACULTY
+          ? PejabatBerwenang.DEAN
+          : PejabatBerwenang.HEAD_OF_DEPARTMENT;
       const isConsistentAuthority =
         assignment !== undefined &&
         assignment.authority === expectedAuthority &&
-        assignment.departmentId === process.departmentId;
+        assignment.departemenId === process.departemenId;
       const holder = assignment === undefined ? undefined : holderById.get(assignment.holderId);
       return {
         ...mapped,
-        processId: process.processId,
+        prosesBisnisId: process.prosesBisnisId,
         processNama: process.nama,
-        lifecycle: projectProcessSopLifecycle({
+        lifecycle: projectProsesBisnisSopLifecycle({
           status: mapped.status,
           approvalExists: approvalIds.has(detailSopId),
           currentUserId: user.sub,
@@ -171,7 +171,7 @@ export class ProcessSopAuthoringService {
             scope: process.scope,
             ownerId: process.ownerId,
             ownerName: process.owner?.nama ?? null,
-            departmentName: process.department?.nama ?? null,
+            namaDepartemen: process.department?.nama ?? null,
           },
           authority: !isConsistentAuthority
             ? null
@@ -187,8 +187,8 @@ export class ProcessSopAuthoringService {
     });
   }
 
-  async create(user: JwtAccessPayload, dto: CreateProcessSopDto): Promise<ProcessAwareSopRow> {
-    const process = await this.processContextService.assertCanAuthor(user.sub, dto.processId);
+  async create(user: JwtAccessPayload, dto: CreateProsesBisnisSopDto): Promise<ProsesBisnisAwareSopRow> {
+    const process = await this.processContextService.assertCanAuthor(user.sub, dto.prosesBisnisId);
 
     const namaLembaga = dto.namaLembaga?.trim() ?? '';
     let sopId: string;
@@ -197,7 +197,7 @@ export class ProcessSopAuthoringService {
         const sop = await tx.sOP.create({
           data: {
             judul: dto.judul.trim(),
-            processId: process.processId,
+            prosesBisnisId: process.prosesBisnisId,
           },
           select: { sopId: true },
         });
@@ -228,9 +228,9 @@ export class ProcessSopAuthoringService {
     }
     return {
       ...mapDaftarRow(row),
-      processId: process.processId,
+      prosesBisnisId: process.prosesBisnisId,
       processNama: process.nama,
-      lifecycle: projectProcessSopLifecycle({
+      lifecycle: projectProsesBisnisSopLifecycle({
         status: row.detail?.status ?? StatusSOP.DRAFT,
         approvalExists: false,
         currentUserId: user.sub,
@@ -239,7 +239,7 @@ export class ProcessSopAuthoringService {
           scope: process.scope,
           ownerId: process.ownerId,
           ownerName: process.owner?.nama ?? null,
-          departmentName: process.department?.nama ?? null,
+          namaDepartemen: process.department?.nama ?? null,
         },
         authority: null,
       }),
@@ -251,20 +251,20 @@ export class ProcessSopAuthoringService {
     detailOrSopId: string,
     logsLimit?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
-    const context = await this.resolveProcessContext(detailOrSopId);
-    if (context.processId === null) {
+    const context = await this.resolveProsesBisnisContext(detailOrSopId);
+    if (context.prosesBisnisId === null) {
       throw new ConflictException(
-        'SOP belum memiliki Process ownership dan tidak tersedia pada endpoint native',
+        'SOP belum memiliki Penanggung Jawab Proses Bisnisship dan tidak tersedia pada endpoint native',
       );
     }
-    const process = await this.processContextService.assertCanAuthor(user.sub, context.processId);
+    const process = await this.processContextService.assertCanAuthor(user.sub, context.prosesBisnisId);
     const workbench = await this.sopWorkbenchReader.getForDetail(
       context.resolved.detailSopId,
       logsLimit,
     );
-    return this.withProcessContext(
-      await this.withProcessLifecycle(user, workbench, process),
-      process.processId,
+    return this.withProsesBisnisContext(
+      await this.withStatusProsesBisnis(user, workbench, process),
+      process.prosesBisnisId,
       process.nama,
     );
   }
@@ -275,13 +275,13 @@ export class ProcessSopAuthoringService {
     dto: UpdateSopHeaderDto,
     logsLimit?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
-    const context = await this.resolveProcessContext(detailOrSopId);
-    if (context.processId === null) {
+    const context = await this.resolveProsesBisnisContext(detailOrSopId);
+    if (context.prosesBisnisId === null) {
       throw new ConflictException(
-        'SOP belum memiliki Process ownership dan tidak tersedia pada endpoint native',
+        'SOP belum memiliki Penanggung Jawab Proses Bisnisship dan tidak tersedia pada endpoint native',
       );
     }
-    const process = await this.processContextService.assertCanAuthor(user.sub, context.processId);
+    const process = await this.processContextService.assertCanAuthor(user.sub, context.prosesBisnisId);
     const statusContext = await this.sopCatalogRepository.findLatestDetailStatusContext(
       context.resolved.detailSopId,
     );
@@ -318,54 +318,54 @@ export class ProcessSopAuthoringService {
       context.resolved.detailSopId,
       logsLimit,
     );
-    return this.withProcessContext(
-      await this.withProcessLifecycle(user, refreshed, process),
-      process.processId,
+    return this.withProsesBisnisContext(
+      await this.withStatusProsesBisnis(user, refreshed, process),
+      process.prosesBisnisId,
       process.nama,
     );
   }
 
   async deleteVersionDraft(user: JwtAccessPayload, detailSopId: string): Promise<void> {
-    const context = await this.resolveProcessContext(detailSopId);
-    if (context.processId === null) {
+    const context = await this.resolveProsesBisnisContext(detailSopId);
+    if (context.prosesBisnisId === null) {
       throw new ConflictException(
-        'SOP belum memiliki Process ownership dan tidak tersedia pada endpoint native',
+        'SOP belum memiliki Penanggung Jawab Proses Bisnisship dan tidak tersedia pada endpoint native',
       );
     }
-    await this.processContextService.assertCanAuthor(user.sub, context.processId);
+    await this.processContextService.assertCanAuthor(user.sub, context.prosesBisnisId);
     assertSopCatalogRepoOk(
       await this.sopCatalogRepository.deleteVersiDraft(context.resolved.detailSopId),
     );
   }
 
   async deleteInitialDraft(user: JwtAccessPayload, detailSopId: string): Promise<void> {
-    const context = await this.resolveProcessContext(detailSopId);
-    if (context.processId === null) {
+    const context = await this.resolveProsesBisnisContext(detailSopId);
+    if (context.prosesBisnisId === null) {
       throw new ConflictException(
-        'SOP belum memiliki Process ownership dan tidak tersedia pada endpoint native',
+        'SOP belum memiliki Penanggung Jawab Proses Bisnisship dan tidak tersedia pada endpoint native',
       );
     }
-    await this.processContextService.assertCanAuthor(user.sub, context.processId);
+    await this.processContextService.assertCanAuthor(user.sub, context.prosesBisnisId);
     assertSopCatalogRepoOk(
       await this.sopCatalogRepository.deleteSopDraftAwal(context.resolved.detailSopId),
     );
   }
 
-  private async resolveProcessContext(detailOrSopId: string) {
+  private async resolveProsesBisnisContext(detailOrSopId: string) {
     const resolved = await this.sopCatalogRepository.findDetailIdByDetailOrSopId(detailOrSopId);
     if (resolved === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
     const sop = await this.prisma.sOP.findUnique({
       where: { sopId: resolved.sopId },
-      select: { processId: true },
+      select: { prosesBisnisId: true },
     });
-    return { resolved, processId: sop?.processId ?? null };
+    return { resolved, prosesBisnisId: sop?.prosesBisnisId ?? null };
   }
 
-  private withProcessContext(
+  private withProsesBisnisContext(
     workbench: PenyusunWorkbenchDataDto,
-    processId: string,
+    prosesBisnisId: string,
     processNama: string,
   ): PenyusunWorkbenchDataDto {
     return {
@@ -373,16 +373,16 @@ export class ProcessSopAuthoringService {
       detail: {
         ...workbench.detail,
         sop: workbench.detail.sop
-          ? ({ ...workbench.detail.sop, processId, processNama } as typeof workbench.detail.sop)
+          ? ({ ...workbench.detail.sop, prosesBisnisId, processNama } as typeof workbench.detail.sop)
           : workbench.detail.sop,
       },
     };
   }
 
-  private async withProcessLifecycle(
+  private async withStatusProsesBisnis(
     user: JwtAccessPayload,
     workbench: PenyusunWorkbenchDataDto,
-    process: Awaited<ReturnType<ProcessContextService['assertCanAuthor']>>,
+    process: Awaited<ReturnType<ProsesBisnisContextService['assertCanAuthor']>>,
   ): Promise<PenyusunWorkbenchDataDto> {
     const detailSopId = workbench.detail.id;
     const approval = await this.prisma.processFinalApproval.findFirst({
@@ -391,25 +391,25 @@ export class ProcessSopAuthoringService {
     });
 
     const authorityKey =
-      process.scope === OrganizationalScope.FACULTY
+      process.scope === LingkupOrganisasi.FACULTY
         ? 'DEAN'
-        : process.departmentId === null
+        : process.departemenId === null
           ? null
-          : `HEAD_OF_DEPARTMENT:${process.departmentId}`;
+          : `HEAD_OF_DEPARTMENT:${process.departemenId}`;
     let authority: { holderId: string; holderName: string | null } | null = null;
     if (authorityKey !== null) {
       const assignment = await this.prisma.organizationalAuthorityAssignment.findFirst({
         where: { authorityKey },
-        select: { authority: true, departmentId: true, holderId: true },
+        select: { authority: true, departemenId: true, holderId: true },
       });
       const expectedAuthority =
-        process.scope === OrganizationalScope.FACULTY
-          ? OrganizationalAuthority.DEAN
-          : OrganizationalAuthority.HEAD_OF_DEPARTMENT;
+        process.scope === LingkupOrganisasi.FACULTY
+          ? PejabatBerwenang.DEAN
+          : PejabatBerwenang.HEAD_OF_DEPARTMENT;
       if (
         assignment !== null &&
         assignment.authority === expectedAuthority &&
-        assignment.departmentId === process.departmentId
+        assignment.departemenId === process.departemenId
       ) {
         const holder = await this.prisma.pengguna.findFirst({
           where: { penggunaId: assignment.holderId, deletedAt: null },
@@ -423,7 +423,7 @@ export class ProcessSopAuthoringService {
 
     return {
       ...workbench,
-      lifecycle: projectProcessSopLifecycle({
+      lifecycle: projectProsesBisnisSopLifecycle({
         status: workbench.detail.status,
         approvalExists: approval !== null,
         currentUserId: user.sub,
@@ -432,7 +432,7 @@ export class ProcessSopAuthoringService {
           scope: process.scope,
           ownerId: process.ownerId,
           ownerName: process.owner?.nama ?? null,
-          departmentName: process.department?.nama ?? null,
+          namaDepartemen: process.department?.nama ?? null,
         },
         authority,
       }),

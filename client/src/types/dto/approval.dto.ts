@@ -1,55 +1,55 @@
-import type { OrganizationalScope } from './process.dto'
+import type { LingkupOrganisasi } from './process.dto'
 import type { PenyusunWorkbenchData } from './sop.dto'
 
-export type OrganizationalAuthority = 'DEAN' | 'HEAD_OF_DEPARTMENT'
+export type PejabatBerwenang = 'DEAN' | 'HEAD_OF_DEPARTMENT'
 
-export interface OrganizationalAuthorityAssignmentDto {
+export interface PenugasanPejabatBerwenangDto {
   authorityKey: string
-  authority: OrganizationalAuthority
-  departmentId: string | null
+  authority: PejabatBerwenang
+  departemenId: string | null
   holderId: string
   createdAt: string
   updatedAt: string
 }
 
-export interface OrganizationalAuthorityConfigurationDto extends OrganizationalAuthorityAssignmentDto {
+export interface PejabatBerwenangConfigurationDto extends PenugasanPejabatBerwenangDto {
   holder: {
     penggunaId: string
     nama: string
     email: string
     deletedAt: string | null
   } | null
-  department: { departmentId: string; nama: string } | null
+  department: { departemenId: string; nama: string } | null
 }
 
-export interface ProcessFinalApprovalDto {
+export interface PersetujuanAkhirSOPDto {
   detailSopId: string
-  processId: string
+  prosesBisnisId: string
   approvedById: string
-  authority: OrganizationalAuthority
+  authority: PejabatBerwenang
   authorityKey: string
   approvedAt: string
 }
 
-export interface ProcessApprovalQueueRowDto {
+export interface ProsesBisnisApprovalQueueRowDto {
   detailSopId: string
   sopId: string
   judul: string
   nomorSOP: string
   versi: number
-  processId: string
+  prosesBisnisId: string
   processNama: string
-  scope: OrganizationalScope
-  departmentId: string | null
+  scope: LingkupOrganisasi
+  departemenId: string | null
   departmentNama: string | null
-  approval: ProcessFinalApprovalDto | null
+  approval: PersetujuanAkhirSOPDto | null
   updatedAt: string
 }
 
-export interface ProcessApprovalDocumentDto {
+export interface ProsesBisnisApprovalDocumentDto {
   workbench: PenyusunWorkbenchData
   authority: {
-    authority: OrganizationalAuthority
+    authority: PejabatBerwenang
     authorityKey: string
     holderId: string
     holderName: string
@@ -58,23 +58,23 @@ export interface ProcessApprovalDocumentDto {
   }
 }
 
-export interface ProcessRevocationQueueRowDto {
+export interface ProsesBisnisRevocationQueueRowDto {
   detailSopId: string
   sopId: string
   judul: string
   nomorSOP: string
   versi: number
-  processId: string
+  prosesBisnisId: string
   processNama: string
-  scope: OrganizationalScope
-  departmentId: string | null
+  scope: LingkupOrganisasi
+  departemenId: string | null
   departmentNama: string | null
   updatedAt: string
 }
 
-export interface ProcessRevocationResultDto {
+export interface ProsesBisnisRevocationResultDto {
   detailSopId: string
   sopId: string
-  processId: string
+  prosesBisnisId: string
   status: 'DICABUT'
 }

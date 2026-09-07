@@ -1,33 +1,33 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, ProcessNotificationKind, ProcessReminderKind } from '../../../generated/prisma';
+import { Prisma, JenisNotifikasiProsesBisnis, JenisPengingatProsesBisnis } from '../../../generated/prisma';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import type { ProcessNotificationCreateInput } from './process-notification.service';
+import type { NotifikasiProsesBisnisCreateInput } from './process-notification.service';
 
 const REMINDER_KIND_BY_NOTIFICATION: Readonly<
-  Partial<Record<ProcessNotificationKind, ProcessReminderKind>>
+  Partial<Record<JenisNotifikasiProsesBisnis, JenisPengingatProsesBisnis>>
 > = {
-  [ProcessNotificationKind.PROCESS_OWNER_REVIEW_REQUESTED]:
-    ProcessReminderKind.PROCESS_OWNER_REVIEW,
-  [ProcessNotificationKind.PROCESS_REVISION_REQUESTED]: ProcessReminderKind.PROCESS_REVISION,
-  [ProcessNotificationKind.FINAL_APPROVAL_REQUESTED]: ProcessReminderKind.FINAL_APPROVAL,
+  [JenisNotifikasiProsesBisnis.PROCESS_OWNER_REVIEW_REQUESTED]:
+    JenisPengingatProsesBisnis.PROCESS_OWNER_REVIEW,
+  [JenisNotifikasiProsesBisnis.PROCESS_REVISION_REQUESTED]: JenisPengingatProsesBisnis.PROCESS_REVISION,
+  [JenisNotifikasiProsesBisnis.FINAL_APPROVAL_REQUESTED]: JenisPengingatProsesBisnis.FINAL_APPROVAL,
 };
 
 /**
- * Owns mutable reminder state for the native Process workflow.
+ * Owns mutable reminder state for the native ProsesBisnis workflow.
  *
- * ProcessNotification remains the event/read model. Every new actionable
- * Process event replaces the active reminder set for that SOP version, making
+ * NotifikasiProsesBisnis remains the event/read model. Every new actionable
+ * ProsesBisnis event replaces the active reminder set for that SOP version, making
  * actor transitions idempotent without touching archived legacy reminder rows.
  */
 @Injectable()
-export class ProcessReminderService {
+export class PengingatProsesBisnisService {
   constructor(private readonly prisma: PrismaService) {}
 
   async syncForNotificationInTransaction(
     tx: Prisma.TransactionClient,
-    input: ProcessNotificationCreateInput,
+    input: NotifikasiProsesBisnisCreateInput,
   ): Promise<void> {
-    await tx.processReminder.deleteMany({ where: { detailSopId: input.detailSopId } });
+    await tx.pengingatProsesBisnis.deleteMany({ where: { detailSopId: input.detailSopId } });
 
     const kind = REMINDER_KIND_BY_NOTIFICATION[input.kind];
     if (kind === undefined) return;
@@ -38,11 +38,11 @@ export class ProcessReminderService {
     });
     if (recipient === null) return;
 
-    await tx.processReminder.create({
+    await tx.pengingatProsesBisnis.create({
       data: {
         detailSopId: input.detailSopId,
         sopId: input.sopId,
-        processId: input.processId,
+        prosesBisnisId: input.prosesBisnisId,
         penggunaId: input.penggunaId,
         kind,
         destinationPhone: recipient.nohp,
@@ -52,7 +52,7 @@ export class ProcessReminderService {
   }
 
   async findDue(now: Date, take: number) {
-    return this.prisma.processReminder.findMany({
+    return this.prisma.pengingatProsesBisnis.findMany({
       where: {
         nextSendAt: { lte: now },
         OR: [{ lockedUntil: null }, { lockedUntil: { lt: now } }],

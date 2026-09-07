@@ -2,17 +2,17 @@ import { BadRequestException, ConflictException, NotFoundException } from '@nest
 import { JenisDiagram, StatusSOP } from '../../../generated/prisma';
 import { SopDiagramService } from './sop-diagram.service';
 
-describe('SopDiagramService Process authorization', () => {
+describe('SopDiagramService Proses Bisnis authorization', () => {
   const user = {
     sub: 'user-1',
     email: 'member@fti.example.test',
   } as never;
 
   function createService(overrides?: {
-    resolved?: { detailSopId: string; processId: string | null } | null;
+    resolved?: { detailSopId: string; prosesBisnisId: string | null } | null;
     status?: string | null;
   }) {
-    const defaultResolved = { detailSopId: 'det-1', processId: 'process-1' };
+    const defaultResolved = { detailSopId: 'det-1', prosesBisnisId: 'process-1' };
     const resolved =
       overrides !== undefined && 'resolved' in overrides ? overrides.resolved : defaultResolved;
     const sopDiagramRepository = {
@@ -30,7 +30,7 @@ describe('SopDiagramService Process authorization', () => {
         .mockResolvedValue({ detail: { id: 'det-1' }, langkah: [], logEdit: [] }),
     };
     const processContextService = {
-      assertCanAuthor: jest.fn().mockResolvedValue({ processId: 'process-1' }),
+      assertCanAuthor: jest.fn().mockResolvedValue({ prosesBisnisId: 'process-1' }),
     };
     const service = new SopDiagramService(
       sopDiagramRepository as never,
@@ -52,7 +52,7 @@ describe('SopDiagramService Process authorization', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('authorizes a Process member and returns the updated workbench', async () => {
+  it('authorizes a Proses Bisnis member and returns the updated workbench', async () => {
     const { service, processContextService, sopDiagramRepository, sopWorkbenchReader } =
       createService();
 
@@ -72,9 +72,9 @@ describe('SopDiagramService Process authorization', () => {
     expect(actual.detail.id).toBe('det-1');
   });
 
-  it('rejects an SOP without Process ownership', async () => {
+  it('rejects an SOP without Penanggung Jawab Proses Bisnisship', async () => {
     const { service, processContextService } = createService({
-      resolved: { detailSopId: 'det-1', processId: null },
+      resolved: { detailSopId: 'det-1', prosesBisnisId: null },
     });
 
     await expect(

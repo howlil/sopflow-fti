@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { OrganizationalScope } from '../../../../generated/prisma';
+import { LingkupOrganisasi } from '../../../../generated/prisma';
 
 /** Satu SOP resmi pada arsip publik target-native. */
 export class PublicSopItemDto {
@@ -22,19 +22,19 @@ export class PublicSopItemDto {
   readonly tanggalEfektif!: string | null;
 
   @ApiProperty({ format: 'uuid' })
-  readonly processId!: string;
+  readonly prosesBisnisId!: string;
 
   @ApiProperty()
-  readonly processName!: string;
+  readonly namaProsesBisnis!: string;
 
-  @ApiProperty({ enum: OrganizationalScope })
-  readonly scope!: OrganizationalScope;
+  @ApiProperty({ enum: LingkupOrganisasi })
+  readonly scope!: LingkupOrganisasi;
 
   @ApiPropertyOptional({ format: 'uuid', nullable: true })
-  readonly departmentId!: string | null;
+  readonly departemenId!: string | null;
 
   @ApiPropertyOptional({ nullable: true })
-  readonly departmentName!: string | null;
+  readonly namaDepartemen!: string | null;
 
   @ApiProperty({ description: 'URL PDF resmi yang divalidasi server setiap request' })
   readonly pdfUrl!: string;

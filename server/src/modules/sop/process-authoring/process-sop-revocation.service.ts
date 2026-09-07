@@ -5,78 +5,78 @@ import { hasRevisiInFlight } from '../../../common/status/sop-editable.util';
 import {
   BagianSOP,
   JenisDokumenTte,
-  OrganizationalAuthority,
-  OrganizationalScope,
-  ProcessNotificationKind,
+  PejabatBerwenang,
+  LingkupOrganisasi,
+  JenisNotifikasiProsesBisnis,
   StatusSOP,
 } from '../../../generated/prisma';
-import { OrganizationalAuthorityService } from '../../core/process/organizational-authority.service';
-import { ProcessNotificationService } from '../../notifications/process/process-notification.service';
+import { PejabatBerwenangService } from '../../core/process/organizational-authority.service';
+import { NotifikasiProsesBisnisService } from '../../notifications/process/process-notification.service';
 import { SopCatalogRepository } from '../catalog/sop-catalog.repository';
 import { appendOrCreateLogSession } from '../collaboration/log-edit-session.helper';
 
-type ProcessRevocationQueueRow = {
+type ProsesBisnisRevocationQueueRow = {
   detailSopId: string;
   sopId: string;
   judul: string;
   nomorSOP: string;
   versi: number;
-  processId: string;
+  prosesBisnisId: string;
   processNama: string;
-  scope: OrganizationalScope;
-  departmentId: string | null;
+  scope: LingkupOrganisasi;
+  departemenId: string | null;
   departmentNama: string | null;
   updatedAt: Date;
 };
 
 @Injectable()
-export class ProcessSopRevocationService {
+export class ProsesBisnisSopRevocationService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly authorityService: OrganizationalAuthorityService,
-    private readonly processNotificationService: ProcessNotificationService,
+    private readonly authorityService: PejabatBerwenangService,
+    private readonly notifikasiProsesBisnisService: NotifikasiProsesBisnisService,
     private readonly sopCatalogRepository: SopCatalogRepository,
   ) {}
 
-  async listForCurrentAuthority(user: JwtAccessPayload): Promise<ProcessRevocationQueueRow[]> {
+  async listForCurrentAuthority(user: JwtAccessPayload): Promise<ProsesBisnisRevocationQueueRow[]> {
     const assignments = await this.authorityService.listMine(user.sub);
     if (assignments.length === 0) return [];
 
     const isDean = assignments.some(
-      (assignment) => assignment.authority === OrganizationalAuthority.DEAN,
+      (assignment) => assignment.authority === PejabatBerwenang.DEAN,
     );
-    const departmentIds = assignments
+    const departemenIds = assignments
       .filter(
         (assignment) =>
-          assignment.authority === OrganizationalAuthority.HEAD_OF_DEPARTMENT &&
-          assignment.departmentId !== null,
+          assignment.authority === PejabatBerwenang.HEAD_OF_DEPARTMENT &&
+          assignment.departemenId !== null,
       )
-      .map((assignment) => assignment.departmentId as string);
-    if (!isDean && departmentIds.length === 0) return [];
+      .map((assignment) => assignment.departemenId as string);
+    if (!isDean && departemenIds.length === 0) return [];
 
     const processes = await this.prisma.process.findMany({
       where: {
         OR: [
-          ...(isDean ? [{ scope: OrganizationalScope.FACULTY }] : []),
-          ...(departmentIds.length > 0
-            ? [{ scope: OrganizationalScope.DEPARTMENT, departmentId: { in: departmentIds } }]
+          ...(isDean ? [{ scope: LingkupOrganisasi.FACULTY }] : []),
+          ...(departemenIds.length > 0
+            ? [{ scope: LingkupOrganisasi.DEPARTMENT, departemenId: { in: departemenIds } }]
             : []),
         ],
       },
       select: {
-        processId: true,
+        prosesBisnisId: true,
         nama: true,
         scope: true,
-        departmentId: true,
+        departemenId: true,
         department: { select: { nama: true } },
       },
     });
     if (processes.length === 0) return [];
 
-    const processById = new Map(processes.map((process) => [process.processId, process]));
+    const processById = new Map(processes.map((process) => [process.prosesBisnisId, process]));
     const nativeSops = await this.prisma.sOP.findMany({
-      where: { processId: { in: processes.map((process) => process.processId) } },
-      select: { sopId: true, processId: true },
+      where: { prosesBisnisId: { in: processes.map((process) => process.prosesBisnisId) } },
+      select: { sopId: true, prosesBisnisId: true },
     });
     if (nativeSops.length === 0) return [];
 
@@ -101,10 +101,10 @@ export class ProcessSopRevocationService {
       detailsBySopId.set(detail.sopId, rows);
     }
 
-    const rows: ProcessRevocationQueueRow[] = [];
+    const rows: ProsesBisnisRevocationQueueRow[] = [];
     for (const sop of nativeSops) {
-      if (sop.processId === null) continue;
-      const process = processById.get(sop.processId);
+      if (sop.prosesBisnisId === null) continue;
+      const process = processById.get(sop.prosesBisnisId);
       const sopDetails = detailsBySopId.get(sop.sopId) ?? [];
       if (!process || sopDetails.length === 0) continue;
       if (hasRevisiInFlight(sopDetails.map((detail) => detail.status))) continue;
@@ -116,10 +116,10 @@ export class ProcessSopRevocationService {
         judul: effective.sop.judul,
         nomorSOP: effective.nomorSOP,
         versi: effective.versi,
-        processId: process.processId,
+        prosesBisnisId: process.prosesBisnisId,
         processNama: process.nama,
         scope: process.scope,
-        departmentId: process.departmentId,
+        departemenId: process.departemenId,
         departmentNama: process.department?.nama ?? null,
         updatedAt: effective.updatedAt,
       });
@@ -135,16 +135,16 @@ export class ProcessSopRevocationService {
 
     const sop = await this.prisma.sOP.findUnique({
       where: { sopId: resolved.sopId },
-      select: { processId: true },
+      select: { prosesBisnisId: true },
     });
-    if (sop?.processId == null) {
+    if (sop?.prosesBisnisId == null) {
       throw new ConflictException(
-        'SOP tanpa Process hanya tersedia sebagai riwayat compatibility dan tidak dapat dicabut dari runtime FTI',
+        'SOP tanpa Proses Bisnis hanya tersedia sebagai riwayat compatibility dan tidak dapat dicabut dari runtime FTI',
       );
     }
-    const processId = sop.processId;
+    const prosesBisnisId = sop.prosesBisnisId;
 
-    await this.authorityService.assertCanApprove(user.sub, processId);
+    await this.authorityService.assertCanApprove(user.sub, prosesBisnisId);
 
     const history = await this.sopCatalogRepository.findRiwayatVersiBySopId(resolved.sopId);
     if (hasRevisiInFlight(history.map((row) => row.status))) {
@@ -159,7 +159,7 @@ export class ProcessSopRevocationService {
 
     const [process, detail] = await Promise.all([
       this.prisma.process.findUnique({
-        where: { processId },
+        where: { prosesBisnisId },
         select: { ownerId: true, nama: true },
       }),
       this.prisma.detailSOP.findUnique({
@@ -168,11 +168,11 @@ export class ProcessSopRevocationService {
       }),
     ]);
     if (process === null || detail === null) {
-      throw new NotFoundException('Context Process SOP tidak ditemukan');
+      throw new NotFoundException('Context Proses Bisnis SOP tidak ditemukan');
     }
     const authorId = detail.dibuatOlehId;
     if (authorId === null) {
-      throw new ConflictException('Author SOP Process tidak tersedia untuk feedback pencabutan');
+      throw new ConflictException('Author SOP Proses Bisnis tidak tersedia untuk feedback pencabutan');
     }
 
     const revokedAt = new Date();
@@ -210,31 +210,31 @@ export class ProcessSopRevocationService {
           AND jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
       `;
 
-      notifiedRecipients = await this.processNotificationService.createManyInTransaction(tx, [
+      notifiedRecipients = await this.notifikasiProsesBisnisService.createManyInTransaction(tx, [
         {
           detailSopId: effective.detailSopId,
           sopId: resolved.sopId,
-          processId,
+          prosesBisnisId,
           penggunaId: authorId,
-          kind: ProcessNotificationKind.PROCESS_SOP_REVOKED,
-          processName: process.nama,
+          kind: JenisNotifikasiProsesBisnis.PROCESS_SOP_REVOKED,
+          namaProsesBisnis: process.nama,
         },
         {
           detailSopId: effective.detailSopId,
           sopId: resolved.sopId,
-          processId,
+          prosesBisnisId,
           penggunaId: process.ownerId,
-          kind: ProcessNotificationKind.PROCESS_SOP_REVOKED,
-          processName: process.nama,
+          kind: JenisNotifikasiProsesBisnis.PROCESS_SOP_REVOKED,
+          namaProsesBisnis: process.nama,
         },
       ]);
     });
-    this.processNotificationService.emitChangedMany(notifiedRecipients);
+    this.notifikasiProsesBisnisService.emitChangedMany(notifiedRecipients);
 
     return {
       detailSopId: effective.detailSopId,
       sopId: resolved.sopId,
-      processId,
+      prosesBisnisId,
       status: StatusSOP.REVOKED,
     };
   }

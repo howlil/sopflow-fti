@@ -1,19 +1,19 @@
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import {
-  OrganizationalAuthority,
-  ProcessNotificationKind,
+  PejabatBerwenang,
+  JenisNotifikasiProsesBisnis,
   StatusSOP,
 } from '../../../generated/prisma';
 import type { JwtAccessPayload } from '../../../common';
-import type { ProcessNotificationService } from '../../notifications/process/process-notification.service';
+import type { NotifikasiProsesBisnisService } from '../../notifications/process/process-notification.service';
 import type { SopOfficialPdfService } from '../../sop/pdf/sop-official-pdf.service';
 import type { SopPdfStorageService } from '../../sop/pdf/sop-pdf-storage.service';
 import type { TteRepository } from '../shared/repository/tte.repository';
 import type { TtePublicUrlResolver } from '../shared/utils/tte-public-url.resolver';
-import type { ProcessTteRepository, ProcessTteSigningContext } from './process-tte.repository';
+import type { ProsesBisnisTteRepository, ProsesBisnisTteSigningContext } from './tte-proses-bisnis.repository';
 import type { TtePdfSigningService } from './tte-pdf-signing.service';
-import { ProcessTteService } from './process-tte.service';
+import { ProsesBisnisTteService } from './tte-proses-bisnis.service';
 
 jest.mock('bcrypt', () => ({ compare: jest.fn() }));
 
@@ -22,16 +22,16 @@ const user: JwtAccessPayload = {
   email: 'dean@example.test',
 };
 
-const context: ProcessTteSigningContext = {
+const context: ProsesBisnisTteSigningContext = {
   detailSopId: '00000000-0000-4000-8000-000000000010',
   sopId: '00000000-0000-4000-8000-000000000011',
-  processId: '00000000-0000-4000-8000-000000000012',
+  prosesBisnisId: '00000000-0000-4000-8000-000000000012',
   judulSop: 'SOP Akademik',
   nomorSOP: 'SOP-01',
   versi: 2,
   approval: {
     approvedById: user.sub,
-    authority: OrganizationalAuthority.DEAN,
+    authority: PejabatBerwenang.DEAN,
     authorityKey: 'DEAN',
     approvedAt: new Date('2026-09-01T00:00:00Z'),
   },
@@ -39,7 +39,7 @@ const context: ProcessTteSigningContext = {
 
 function createService(overrides?: {
   contextResult?: unknown;
-  context?: ProcessTteSigningContext;
+  context?: ProsesBisnisTteSigningContext;
   finalizeResult?: unknown;
   processOwnerId?: string;
   authorId?: string;
@@ -78,7 +78,7 @@ function createService(overrides?: {
       }
       return finalizeResult;
     }),
-  } as unknown as jest.Mocked<ProcessTteRepository>;
+  } as unknown as jest.Mocked<ProsesBisnisTteRepository>;
   const tteRepo = {
     findPenggunaAktif: jest.fn().mockResolvedValue({
       penggunaId: user.sub,
@@ -122,22 +122,22 @@ function createService(overrides?: {
       },
     }),
   } as unknown as jest.Mocked<TtePdfSigningService>;
-  const processNotifications = {
+  const notifikasiProsesBisnis = {
     createManyInTransaction: jest.fn().mockImplementation(async (_transaction, inputs) => [
       ...new Set((inputs as { penggunaId: string }[]).map((input) => input.penggunaId)),
     ]),
     emitChangedMany: jest.fn(),
-  } as unknown as ProcessNotificationService;
-  const service = new ProcessTteService(
+  } as unknown as NotifikasiProsesBisnisService;
+  const service = new ProsesBisnisTteService(
     processRepo,
     tteRepo,
     publicUrl,
     officialPdf,
     storage,
     signer,
-    processNotifications,
+    notifikasiProsesBisnis,
   );
-  return { service, processRepo, storage, signer, processNotifications, tx };
+  return { service, processRepo, storage, signer, notifikasiProsesBisnis, tx };
 }
 
 const dto = {
@@ -147,14 +147,14 @@ const dto = {
   pdfBase64: Buffer.from('%PDF-source').toString('base64'),
 };
 
-describe('ProcessTteService', () => {
+describe('ProsesBisnisTteService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (bcrypt.compare as jest.Mock).mockResolvedValue(true);
   });
 
-  it('menolak signer yang bukan pengguna yang memberi final approval, tanpa melihat legacy role', async () => {
-    const otherContext: ProcessTteSigningContext = {
+  it('menolak signer yang bukan pengguna yang memberi persetujuan akhir, tanpa melihat legacy role', async () => {
+    const otherContext: ProsesBisnisTteSigningContext = {
       ...context,
       approval: { ...context.approval, approvedById: '00000000-0000-4000-8000-000000000099' },
     };
@@ -164,13 +164,13 @@ describe('ProcessTteService', () => {
     expect(processRepo.prepareDocument).not.toHaveBeenCalled();
   });
 
-  it('menolak SOP yang belum mendapat contextual final approval', async () => {
+  it('menolak SOP yang belum mendapat contextual persetujuan akhir', async () => {
     const { service } = createService({ contextResult: { error: 'NOT_APPROVED' } });
     await expect(service.sign(user, context.detailSopId, dto)).rejects.toThrow(ConflictException);
   });
 
-  it('menandatangani Faculty Process SOP, membuat effective feedback atomically, dan menyimpan contextual signing authority', async () => {
-    const { service, processRepo, signer, processNotifications, tx } = createService();
+  it('menandatangani Faculty Proses Bisnis SOP, membuat effective feedback atomically, dan menyimpan contextual signing authority', async () => {
+    const { service, processRepo, signer, notifikasiProsesBisnis, tx } = createService();
     const result = await service.sign(user, context.detailSopId, dto);
 
     expect(signer.signOfficialSopPdfWithUserCertificate).toHaveBeenCalledWith(
@@ -180,45 +180,45 @@ describe('ProcessTteService', () => {
       expect.objectContaining({ userId: user.sub }),
       expect.any(Function),
     );
-    expect(processNotifications.createManyInTransaction).toHaveBeenCalledWith(
+    expect(notifikasiProsesBisnis.createManyInTransaction).toHaveBeenCalledWith(
       tx,
       expect.arrayContaining([
         expect.objectContaining({
           penggunaId: 'author-1',
-          kind: ProcessNotificationKind.PROCESS_SOP_EFFECTIVE,
-          processName: 'Akademik',
+          kind: JenisNotifikasiProsesBisnis.PROCESS_SOP_EFFECTIVE,
+          namaProsesBisnis: 'Akademik',
         }),
         expect.objectContaining({
           penggunaId: 'owner-1',
-          kind: ProcessNotificationKind.PROCESS_SOP_EFFECTIVE,
+          kind: JenisNotifikasiProsesBisnis.PROCESS_SOP_EFFECTIVE,
         }),
       ]),
     );
-    expect(processNotifications.emitChangedMany).toHaveBeenCalledWith(['author-1', 'owner-1']);
+    expect(notifikasiProsesBisnis.emitChangedMany).toHaveBeenCalledWith(['author-1', 'owner-1']);
     expect(result).toEqual(expect.objectContaining({
       detailSopId: context.detailSopId,
-      authority: OrganizationalAuthority.DEAN,
+      authority: PejabatBerwenang.DEAN,
       status: StatusSOP.EFFECTIVE,
     }));
   });
 
-  it('deduplicates effective feedback when original author is also Process Owner', async () => {
-    const { service, processNotifications } = createService({
+  it('deduplicates effective feedback when original author is also Penanggung Jawab Proses Bisnis', async () => {
+    const { service, notifikasiProsesBisnis } = createService({
       authorId: 'owner-author-1',
       processOwnerId: 'owner-author-1',
     });
 
     await service.sign(user, context.detailSopId, dto);
 
-    expect(processNotifications.emitChangedMany).toHaveBeenCalledWith(['owner-author-1']);
+    expect(notifikasiProsesBisnis.emitChangedMany).toHaveBeenCalledWith(['owner-author-1']);
   });
 
-  it('menandatangani Department Process SOP dengan Head of Department authority snapshot', async () => {
-    const departmentContext: ProcessTteSigningContext = {
+  it('menandatangani Departemen Proses Bisnis SOP dengan Head of Departemen authority snapshot', async () => {
+    const departmentContext: ProsesBisnisTteSigningContext = {
       ...context,
       approval: {
         ...context.approval,
-        authority: OrganizationalAuthority.HEAD_OF_DEPARTMENT,
+        authority: PejabatBerwenang.HEAD_OF_DEPARTMENT,
         authorityKey: 'HEAD_OF_DEPARTMENT:00000000-0000-4000-8000-000000000020',
       },
     };
@@ -237,18 +237,18 @@ describe('ProcessTteService', () => {
       expect.any(Function),
     );
     expect(result).toEqual(expect.objectContaining({
-      authority: OrganizationalAuthority.HEAD_OF_DEPARTMENT,
+      authority: PejabatBerwenang.HEAD_OF_DEPARTMENT,
       authorityKey: departmentContext.approval.authorityKey,
       status: StatusSOP.EFFECTIVE,
     }));
   });
 
   it('menghapus artefak file jika finalisasi database gagal dan tidak emits feedback', async () => {
-    const { service, storage, processNotifications } = createService({
+    const { service, storage, notifikasiProsesBisnis } = createService({
       finalizeResult: { error: 'SOP_STATUS_DRIFT' },
     });
     await expect(service.sign(user, context.detailSopId, dto)).rejects.toThrow(/Status SOP berubah/);
     expect(storage.deleteStoredPdf).toHaveBeenCalledWith('process/sop/v2.pdf');
-    expect(processNotifications.emitChangedMany).not.toHaveBeenCalled();
+    expect(notifikasiProsesBisnis.emitChangedMany).not.toHaveBeenCalled();
   });
 });

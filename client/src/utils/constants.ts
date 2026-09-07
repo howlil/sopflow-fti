@@ -36,7 +36,7 @@ export const ROUTES = {
   APPROVAL: {
     INBOX: "/approval",
   },
-  /** Existing authoring route names are retained; access is Process-native. */
+  /** Existing authoring route names are retained; access is ProsesBisnis-native. */
   PENYUSUN: {
     ME: "/penyusun/me",
     SOP: "/penyusun/sop",

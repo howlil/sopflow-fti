@@ -9,11 +9,11 @@ import { SopPublicService } from './sop-public.service';
 describe('SopPublicService', () => {
   let service: SopPublicService;
   const repoMock = {
-    countProcessWithBerlakuSop: jest.fn(),
-    findProcessWithBerlakuSop: jest.fn(),
-    findProcessById: jest.fn(),
-    countBerlakuSopByProcess: jest.fn(),
-    findBerlakuSopByProcess: jest.fn(),
+    countProsesBisnisWithBerlakuSop: jest.fn(),
+    findProsesBisnisWithBerlakuSop: jest.fn(),
+    findProsesBisnisById: jest.fn(),
+    countBerlakuSopByProsesBisnis: jest.fn(),
+    findBerlakuSopByProsesBisnis: jest.fn(),
     countFtiSopGlobal: jest.fn(),
     findFtiSopGlobal: jest.fn(),
     findPublishedPdfByDetailSopId: jest.fn(),
@@ -39,11 +39,11 @@ describe('SopPublicService', () => {
   });
 
   const processRow = {
-    processId: 'process-1',
+    prosesBisnisId: 'process-1',
     nama: 'Akademik',
     scope: 'FACULTY',
-    departmentId: null,
-    departmentName: null,
+    departemenId: null,
+    namaDepartemen: null,
     jumlahSopBerlaku: 2,
   } as const;
 
@@ -54,45 +54,45 @@ describe('SopPublicService', () => {
     nomorSOP: 'SOP-001',
     versi: 1,
     tanggalEfektif: new Date('2026-09-01T00:00:00.000Z'),
-    processId: 'process-1',
-    processName: 'Akademik',
+    prosesBisnisId: 'process-1',
+    namaProsesBisnis: 'Akademik',
     scope: 'FACULTY',
-    departmentId: null,
-    departmentName: null,
+    departemenId: null,
+    namaDepartemen: null,
   } as const;
 
-  it('lists only Process-first public groups', async () => {
-    repoMock.countProcessWithBerlakuSop.mockResolvedValue(1);
-    repoMock.findProcessWithBerlakuSop.mockResolvedValue([processRow]);
+  it('lists only Proses Bisnis-first public groups', async () => {
+    repoMock.countProsesBisnisWithBerlakuSop.mockResolvedValue(1);
+    repoMock.findProsesBisnisWithBerlakuSop.mockResolvedValue([processRow]);
 
-    const result = await service.listProcess({ page: 1, limit: 10 } as PublicArsipQueryDto);
+    const result = await service.listProsesBisnis({ page: 1, limit: 10 } as PublicArsipQueryDto);
 
     expect(result.items).toEqual([processRow]);
     expect(result.pagination.totalItems).toBe(1);
   });
 
-  it('rejects an unknown Process', async () => {
-    repoMock.findProcessById.mockResolvedValue(null);
+  it('rejects an unknown Proses Bisnis', async () => {
+    repoMock.findProsesBisnisById.mockResolvedValue(null);
 
     await expect(
-      service.listSopByProcess('missing', { page: 1, limit: 10 } as PublicArsipQueryDto),
+      service.listSopByProsesBisnis('missing', { page: 1, limit: 10 } as PublicArsipQueryDto),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('lists effective SOPs inside one Process', async () => {
-    repoMock.findProcessById.mockResolvedValue(processRow);
-    repoMock.countBerlakuSopByProcess.mockResolvedValue(1);
-    repoMock.findBerlakuSopByProcess.mockResolvedValue([sopRow]);
+  it('lists effective SOPs inside one Proses Bisnis', async () => {
+    repoMock.findProsesBisnisById.mockResolvedValue(processRow);
+    repoMock.countBerlakuSopByProsesBisnis.mockResolvedValue(1);
+    repoMock.findBerlakuSopByProsesBisnis.mockResolvedValue([sopRow]);
 
-    const result = await service.listSopByProcess('process-1', {
+    const result = await service.listSopByProsesBisnis('process-1', {
       page: 1,
       limit: 10,
     } as PublicArsipQueryDto);
 
-    expect(result.process.processId).toBe('process-1');
+    expect(result.process.prosesBisnisId).toBe('process-1');
     expect(result.items[0]).toMatchObject({
       detailSopId: 'detail-1',
-      processId: 'process-1',
+      prosesBisnisId: 'process-1',
       pdfUrl: '/sop/public/pdf/detail-1',
     });
   });
@@ -104,8 +104,8 @@ describe('SopPublicService', () => {
     const result = await service.listFtiSopGlobal({ page: 1, limit: 10 } as PublicArsipQueryDto);
 
     expect(result.items[0]).toMatchObject({
-      processId: 'process-1',
-      processName: 'Akademik',
+      prosesBisnisId: 'process-1',
+      namaProsesBisnis: 'Akademik',
       tanggalEfektif: '2026-09-01T00:00:00.000Z',
     });
     expect(result.items[0]).not.toHaveProperty('opdId');

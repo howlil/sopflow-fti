@@ -6,58 +6,58 @@ import { apiClient } from '@/lib/api/api-client'
 import { unwrapApiData, unwrapApiVoid } from '@/lib/api/response'
 import type { ApiSuccessResponse } from '@/types/dto/auth.dto'
 import type {
-  CreateOwnedProcessPayload,
-  InviteProcessMemberPayload,
-  ProcessAuditDto,
-  ProcessAssignableUserDto,
-  ProcessDto,
-  ProcessMemberOnboardingResult,
-  ProcessOwnerAuthorityDto,
+  CreateOwnedProsesBisnisPayload,
+  InviteAnggotaProsesBisnisPayload,
+  RiwayatAktivitasProsesBisnisDto,
+  ProsesBisnisAssignableUserDto,
+  ProsesBisnisDto,
+  AnggotaProsesBisnisOnboardingResult,
+  KewenanganPenanggungJawabProsesBisnisDto,
 } from '@/types/dto/process.dto'
 import { STALE_TIME } from '@/utils/constants'
 
 export const processOwnerApi = {
-  scopes: (): Promise<ProcessOwnerAuthorityDto[]> =>
-    unwrapApiData(apiClient.get<ApiSuccessResponse<ProcessOwnerAuthorityDto[]>>('/process-owner/scopes')),
-  processes: (): Promise<ProcessDto[]> =>
-    unwrapApiData(apiClient.get<ApiSuccessResponse<ProcessDto[]>>('/process-owner/processes')),
-  users: (): Promise<ProcessAssignableUserDto[]> =>
-    unwrapApiData(apiClient.get<ApiSuccessResponse<ProcessAssignableUserDto[]>>('/process-owner/users')),
-  createProcess: (payload: CreateOwnedProcessPayload): Promise<ProcessDto> =>
-    unwrapApiData(apiClient.post<ApiSuccessResponse<ProcessDto>>('/process-owner/processes', payload)),
-  renameProcess: (processId: string, nama: string): Promise<ProcessDto> =>
-    unwrapApiData(apiClient.patch<ApiSuccessResponse<ProcessDto>>(`/process-owner/processes/${processId}`, { nama })),
-  addMember: (processId: string, penggunaId: string): Promise<ProcessAssignableUserDto> =>
+  scopes: (): Promise<KewenanganPenanggungJawabProsesBisnisDto[]> =>
+    unwrapApiData(apiClient.get<ApiSuccessResponse<KewenanganPenanggungJawabProsesBisnisDto[]>>('/process-owner/scopes')),
+  processes: (): Promise<ProsesBisnisDto[]> =>
+    unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisDto[]>>('/process-owner/processes')),
+  users: (): Promise<ProsesBisnisAssignableUserDto[]> =>
+    unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisAssignableUserDto[]>>('/process-owner/users')),
+  createProsesBisnis: (payload: CreateOwnedProsesBisnisPayload): Promise<ProsesBisnisDto> =>
+    unwrapApiData(apiClient.post<ApiSuccessResponse<ProsesBisnisDto>>('/process-owner/processes', payload)),
+  renameProsesBisnis: (prosesBisnisId: string, nama: string): Promise<ProsesBisnisDto> =>
+    unwrapApiData(apiClient.patch<ApiSuccessResponse<ProsesBisnisDto>>(`/process-owner/processes/${prosesBisnisId}`, { nama })),
+  addMember: (prosesBisnisId: string, penggunaId: string): Promise<ProsesBisnisAssignableUserDto> =>
     unwrapApiData(
-      apiClient.post<ApiSuccessResponse<ProcessAssignableUserDto>>(`/process-owner/processes/${processId}/members`, {
+      apiClient.post<ApiSuccessResponse<ProsesBisnisAssignableUserDto>>(`/process-owner/processes/${prosesBisnisId}/members`, {
         penggunaId,
       }),
     ),
-  removeMember: (processId: string, penggunaId: string): Promise<void> =>
-    unwrapApiVoid(apiClient.delete(`/process-owner/processes/${processId}/members/${penggunaId}`)),
-  inviteMember: (processId: string, payload: InviteProcessMemberPayload): Promise<ProcessMemberOnboardingResult> =>
+  removeMember: (prosesBisnisId: string, penggunaId: string): Promise<void> =>
+    unwrapApiVoid(apiClient.delete(`/process-owner/processes/${prosesBisnisId}/members/${penggunaId}`)),
+  inviteMember: (prosesBisnisId: string, payload: InviteAnggotaProsesBisnisPayload): Promise<AnggotaProsesBisnisOnboardingResult> =>
     unwrapApiData(
-      apiClient.post<ApiSuccessResponse<ProcessMemberOnboardingResult>>(
-        `/process-owner/processes/${processId}/invitations`,
+      apiClient.post<ApiSuccessResponse<AnggotaProsesBisnisOnboardingResult>>(
+        `/process-owner/processes/${prosesBisnisId}/invitations`,
         payload,
       ),
     ),
-  archiveProcess: (processId: string, reason: string): Promise<null> =>
+  archiveProsesBisnis: (prosesBisnisId: string, reason: string): Promise<null> =>
     unwrapApiData(
-      apiClient.post<ApiSuccessResponse<null>>(`/process-owner/processes/${processId}/archive`, { reason }),
+      apiClient.post<ApiSuccessResponse<null>>(`/process-owner/processes/${prosesBisnisId}/archive`, { reason }),
     ),
-  audit: (processId: string): Promise<ProcessAuditDto[]> =>
-    unwrapApiData(apiClient.get<ApiSuccessResponse<ProcessAuditDto[]>>(`/process-owner/processes/${processId}/audit`)),
+  audit: (prosesBisnisId: string): Promise<RiwayatAktivitasProsesBisnisDto[]> =>
+    unwrapApiData(apiClient.get<ApiSuccessResponse<RiwayatAktivitasProsesBisnisDto[]>>(`/process-owner/processes/${prosesBisnisId}/audit`)),
 }
 
-export function useProcessOwnerSelfService() {
+export function useProsesBisnisOwnerSelfService() {
   const scopesQuery = useQuery({
     queryKey: queryKeys.processOwnerScopes,
     queryFn: processOwnerApi.scopes,
     staleTime: STALE_TIME.MEDIUM,
   })
   const processesQuery = useQuery({
-    queryKey: queryKeys.processOwnerProcesses,
+    queryKey: queryKeys.processOwnerProsesBisnises,
     queryFn: processOwnerApi.processes,
     staleTime: STALE_TIME.SHORT,
   })
@@ -70,47 +70,47 @@ export function useProcessOwnerSelfService() {
     enabled: hasOwnerCapability,
   })
 
-  const commonInvalidation = [queryKeys.processOwnerProcesses, processQueryKeys.mine]
-  const createProcess = useMutationWithToast({
-    mutationFn: processOwnerApi.createProcess,
+  const commonInvalidation = [queryKeys.processOwnerProsesBisnises, processQueryKeys.mine]
+  const createProsesBisnis = useMutationWithToast({
+    mutationFn: processOwnerApi.createProsesBisnis,
     invalidateKeys: commonInvalidation,
-    successMessage: 'Process berhasil dibuat',
-    errorMessagePrefix: 'Gagal membuat Process',
+    successMessage: 'Proses Bisnis berhasil dibuat',
+    errorMessagePrefix: 'Gagal membuat Proses Bisnis',
   })
-  const renameProcess = useMutationWithToast({
-    mutationFn: ({ processId, nama }: { processId: string; nama: string }) =>
-      processOwnerApi.renameProcess(processId, nama),
+  const renameProsesBisnis = useMutationWithToast({
+    mutationFn: ({ prosesBisnisId, nama }: { prosesBisnisId: string; nama: string }) =>
+      processOwnerApi.renameProsesBisnis(prosesBisnisId, nama),
     invalidateKeys: commonInvalidation,
-    successMessage: 'Nama Process berhasil diperbarui',
-    errorMessagePrefix: 'Gagal memperbarui Process',
+    successMessage: 'Nama Proses Bisnis berhasil diperbarui',
+    errorMessagePrefix: 'Gagal memperbarui Proses Bisnis',
   })
   const addMember = useMutationWithToast({
-    mutationFn: ({ processId, penggunaId }: { processId: string; penggunaId: string }) =>
-      processOwnerApi.addMember(processId, penggunaId),
+    mutationFn: ({ prosesBisnisId, penggunaId }: { prosesBisnisId: string; penggunaId: string }) =>
+      processOwnerApi.addMember(prosesBisnisId, penggunaId),
     invalidateKeys: commonInvalidation,
     successMessage: 'Penyusun SOP berhasil ditambahkan',
     errorMessagePrefix: 'Gagal menambahkan Penyusun SOP',
   })
   const removeMember = useMutationWithToast({
-    mutationFn: ({ processId, penggunaId }: { processId: string; penggunaId: string }) =>
-      processOwnerApi.removeMember(processId, penggunaId),
+    mutationFn: ({ prosesBisnisId, penggunaId }: { prosesBisnisId: string; penggunaId: string }) =>
+      processOwnerApi.removeMember(prosesBisnisId, penggunaId),
     invalidateKeys: commonInvalidation,
     successMessage: 'Akses Penyusun SOP berhasil dicabut',
     errorMessagePrefix: 'Gagal mencabut akses Penyusun SOP',
   })
   const inviteMember = useMutationWithToast({
-    mutationFn: ({ processId, payload }: { processId: string; payload: InviteProcessMemberPayload }) =>
-      processOwnerApi.inviteMember(processId, payload),
+    mutationFn: ({ prosesBisnisId, payload }: { prosesBisnisId: string; payload: InviteAnggotaProsesBisnisPayload }) =>
+      processOwnerApi.inviteMember(prosesBisnisId, payload),
     invalidateKeys: commonInvalidation,
     successMessage: 'Onboarding Penyusun SOP berhasil diproses',
     errorMessagePrefix: 'Gagal membuat onboarding Penyusun SOP',
   })
-  const archiveProcess = useMutationWithToast({
-    mutationFn: ({ processId, reason }: { processId: string; reason: string }) =>
-      processOwnerApi.archiveProcess(processId, reason),
+  const archiveProsesBisnis = useMutationWithToast({
+    mutationFn: ({ prosesBisnisId, reason }: { prosesBisnisId: string; reason: string }) =>
+      processOwnerApi.archiveProsesBisnis(prosesBisnisId, reason),
     invalidateKeys: commonInvalidation,
-    successMessage: 'Process berhasil diarsipkan',
-    errorMessagePrefix: 'Gagal mengarsipkan Process',
+    successMessage: 'Proses Bisnis berhasil diarsipkan',
+    errorMessagePrefix: 'Gagal mengarsipkan Proses Bisnis',
   })
 
   return {
@@ -121,18 +121,18 @@ export function useProcessOwnerSelfService() {
       scopesQuery.isLoading ||
       processesQuery.isLoading ||
       (hasOwnerCapability && usersQuery.isLoading),
-    createProcess: createProcess.mutateAsync,
-    renameProcess: renameProcess.mutateAsync,
+    createProsesBisnis: createProsesBisnis.mutateAsync,
+    renameProsesBisnis: renameProsesBisnis.mutateAsync,
     addMember: addMember.mutateAsync,
     removeMember: removeMember.mutateAsync,
     inviteMember: inviteMember.mutateAsync,
-    archiveProcess: archiveProcess.mutateAsync,
+    archiveProsesBisnis: archiveProsesBisnis.mutateAsync,
     isSaving:
-      createProcess.isPending ||
-      renameProcess.isPending ||
+      createProsesBisnis.isPending ||
+      renameProsesBisnis.isPending ||
       addMember.isPending ||
       removeMember.isPending ||
       inviteMember.isPending ||
-      archiveProcess.isPending,
+      archiveProsesBisnis.isPending,
   }
 }

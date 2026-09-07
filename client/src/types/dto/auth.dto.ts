@@ -17,7 +17,7 @@ export interface PublicPenggunaTteStatus {
   pinSetAt?: string;
 }
 
-/** Payload `data` dari auth first-party FTI. Workflow capability berasal dari Process/Authority API. */
+/** Payload `data` dari auth first-party FTI. Workflow capability berasal dari ProsesBisnis/Authority API. */
 export interface PublicPenggunaLoginData {
   penggunaId: string;
   email: string;

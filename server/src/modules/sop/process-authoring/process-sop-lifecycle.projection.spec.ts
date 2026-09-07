@@ -1,26 +1,26 @@
-import { OrganizationalScope, StatusSOP } from '../../../generated/prisma';
+import { LingkupOrganisasi, StatusSOP } from '../../../generated/prisma';
 import {
-  projectProcessSopLifecycle,
-  type ProcessSopLifecycleProjectionInput,
-} from './process-sop-lifecycle.projection';
+  projectProsesBisnisSopLifecycle,
+  type ProsesBisnisSopLifecycleProjectionInput,
+} from './sop-proses-bisnis-lifecycle.projection';
 
-const baseInput: ProcessSopLifecycleProjectionInput = {
+const baseInput: ProsesBisnisSopLifecycleProjectionInput = {
   status: StatusSOP.DRAFT,
   approvalExists: false,
   currentUserId: 'member-1',
   detailSopId: 'detail-1',
   process: {
-    scope: OrganizationalScope.FACULTY,
+    scope: LingkupOrganisasi.FACULTY,
     ownerId: 'owner-1',
-    ownerName: 'Process Owner FTI',
-    departmentName: null,
+    ownerName: 'Penanggung Jawab Proses Bisnis FTI',
+    namaDepartemen: null,
   },
   authority: { holderId: 'dean-1', holderName: 'Dekan FTI' },
 };
 
-describe('projectProcessSopLifecycle', () => {
+describe('projectProsesBisnisSopLifecycle', () => {
   it('projects authoring as an actionable current-user stage', () => {
-    expect(projectProcessSopLifecycle(baseInput)).toEqual({
+    expect(projectProsesBisnisSopLifecycle(baseInput)).toEqual({
       stage: 'AUTHORING',
       stateLabel: 'Draft',
       responsibility: { type: 'CURRENT_USER', name: 'Anda' },
@@ -33,24 +33,24 @@ describe('projectProcessSopLifecycle', () => {
     });
   });
 
-  it('projects Process Owner review as waiting on the contextual owner', () => {
+  it('projects Penanggung Jawab Proses Bisnis review as waiting on the contextual owner', () => {
     expect(
-      projectProcessSopLifecycle({
+      projectProsesBisnisSopLifecycle({
         ...baseInput,
         status: StatusSOP.PROCESS_REVIEW,
       }),
     ).toMatchObject({
       stage: 'PROCESS_REVIEW',
-      stateLabel: 'Menunggu review Process Owner',
-      responsibility: { type: 'PROCESS_OWNER', name: 'Process Owner FTI' },
+      stateLabel: 'Menunggu review Penanggung Jawab Proses Bisnis',
+      responsibility: { type: 'PROCESS_OWNER', name: 'Penanggung Jawab Proses Bisnis FTI' },
       action: null,
-      blockingReason: 'Menunggu review Process Owner FTI.',
+      blockingReason: 'Menunggu review Penanggung Jawab Proses Bisnis FTI.',
     });
   });
 
-  it('projects the owner review action for the current Process Owner', () => {
+  it('projects the owner review action for the current Penanggung Jawab Proses Bisnis', () => {
     expect(
-      projectProcessSopLifecycle({
+      projectProsesBisnisSopLifecycle({
         ...baseInput,
         currentUserId: 'owner-1',
         status: StatusSOP.PROCESS_REVIEW,
@@ -66,12 +66,12 @@ describe('projectProcessSopLifecycle', () => {
     });
   });
 
-  it('distinguishes final approval from TTE for the same authority', () => {
-    const finalApproval = projectProcessSopLifecycle({
+  it('distinguishes persetujuan akhir from TTE for the same authority', () => {
+    const finalApproval = projectProsesBisnisSopLifecycle({
       ...baseInput,
       status: StatusSOP.TTE_PENDING,
     });
-    const tte = projectProcessSopLifecycle({
+    const tte = projectProsesBisnisSopLifecycle({
       ...baseInput,
       status: StatusSOP.TTE_PENDING,
       approvalExists: true,
@@ -97,13 +97,13 @@ describe('projectProcessSopLifecycle', () => {
   });
 
   it('keeps effective and revoked states out of actionable responsibility', () => {
-    expect(projectProcessSopLifecycle({ ...baseInput, status: StatusSOP.EFFECTIVE })).toMatchObject({
+    expect(projectProsesBisnisSopLifecycle({ ...baseInput, status: StatusSOP.EFFECTIVE })).toMatchObject({
       stage: 'EFFECTIVE',
       stateLabel: 'Berlaku',
       responsibility: { type: 'NONE', name: null },
       action: { type: 'OPEN', label: 'Buka SOP' },
     });
-    expect(projectProcessSopLifecycle({ ...baseInput, status: StatusSOP.REVOKED })).toMatchObject({
+    expect(projectProsesBisnisSopLifecycle({ ...baseInput, status: StatusSOP.REVOKED })).toMatchObject({
       stage: 'REVOKED',
       stateLabel: 'Dicabut',
       responsibility: { type: 'NONE', name: null },
@@ -111,14 +111,14 @@ describe('projectProcessSopLifecycle', () => {
     });
   });
 
-  it('projects a department Process to its contextual Head of Department', () => {
+  it('projects a department Proses Bisnis to its contextual Head of Departemen', () => {
     expect(
-      projectProcessSopLifecycle({
+      projectProsesBisnisSopLifecycle({
         ...baseInput,
         process: {
           ...baseInput.process,
-          scope: OrganizationalScope.DEPARTMENT,
-          departmentName: 'Teknik Informatika',
+          scope: LingkupOrganisasi.DEPARTMENT,
+          namaDepartemen: 'Teknik Informatika',
         },
         status: StatusSOP.TTE_PENDING,
         authority: { holderId: 'head-1', holderName: 'Kepala TI' },

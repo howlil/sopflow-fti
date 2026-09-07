@@ -11,40 +11,40 @@ export interface AdminUserRow {
   platformRole: string
 }
 
-export interface DepartmentRow {
-  departmentId: string
+export interface DepartemenRow {
+  departemenId: string
   nama: string
 }
 
-export interface ProcessMemberRow {
+export interface AnggotaProsesBisnisRow {
   penggunaId: string
   pengguna: AdminUserRow
 }
 
-export interface ProcessAdminRow {
-  processId: string
+export interface ProsesBisnisAdminRow {
+  prosesBisnisId: string
   nama: string
   scope: 'FACULTY' | 'DEPARTMENT'
-  departmentId: string | null
+  departemenId: string | null
   ownerId: string
-  department: DepartmentRow | null
+  department: DepartemenRow | null
   owner: AdminUserRow
-  members: ProcessMemberRow[]
+  members: AnggotaProsesBisnisRow[]
 }
 
-export interface ProcessContextRow {
-  processId: string
+export interface ProsesBisnisContextRow {
+  prosesBisnisId: string
   nama: string
   scope: 'FACULTY' | 'DEPARTMENT'
-  departmentId: string | null
+  departemenId: string | null
   ownerId: string
-  department?: DepartmentRow | null
+  department?: DepartemenRow | null
 }
 
 export interface AuthorityRow {
   authorityKey: string
   authority: 'DEAN' | 'HEAD_OF_DEPARTMENT'
-  departmentId: string | null
+  departemenId: string | null
   holderId: string
 }
 
@@ -57,22 +57,22 @@ export async function adminApi(apiFor: RoleApiFactory): Promise<APIRequestContex
 }
 
 export async function listAdminUsers(apiFor: RoleApiFactory): Promise<AdminUserRow[]> {
-  return apiGet<AdminUserRow[]>(await adminApi(apiFor), '/process-admin/users')
+  return apiGet<AdminUserRow[]>(await adminApi(apiFor), '/administrasi-proses-bisnis/users')
 }
 
-export async function listAdminDepartments(apiFor: RoleApiFactory): Promise<DepartmentRow[]> {
-  return apiGet<DepartmentRow[]>(await adminApi(apiFor), '/process-admin/departments')
+export async function listAdminDepartemens(apiFor: RoleApiFactory): Promise<DepartemenRow[]> {
+  return apiGet<DepartemenRow[]>(await adminApi(apiFor), '/administrasi-proses-bisnis/departments')
 }
 
-export async function listAdminProcesses(apiFor: RoleApiFactory): Promise<ProcessAdminRow[]> {
-  return apiGet<ProcessAdminRow[]>(await adminApi(apiFor), '/process-admin/processes')
+export async function listAdminProsesBisnises(apiFor: RoleApiFactory): Promise<ProsesBisnisAdminRow[]> {
+  return apiGet<ProsesBisnisAdminRow[]>(await adminApi(apiFor), '/administrasi-proses-bisnis/processes')
 }
 
-export async function listMyProcesses(
+export async function listMyProsesBisnises(
   apiFor: RoleApiFactory,
   actor: E2eUser,
-): Promise<ProcessContextRow[]> {
-  return apiGet<ProcessContextRow[]>(await apiFor(actor), '/process-context/mine')
+): Promise<ProsesBisnisContextRow[]> {
+  return apiGet<ProsesBisnisContextRow[]>(await apiFor(actor), '/konteks-proses-bisnis/mine')
 }
 
 export async function listMyAuthorities(
@@ -82,11 +82,11 @@ export async function listMyAuthorities(
   return apiGet<AuthorityRow[]>(await apiFor(actor), '/organizational-authority/mine')
 }
 
-export async function createDepartmentViaAdminApi(
+export async function createDepartemenViaAdminApi(
   apiFor: RoleApiFactory,
   name: string,
-): Promise<DepartmentRow> {
-  return apiPost<DepartmentRow>(await adminApi(apiFor), '/process-admin/departments', { nama: name })
+): Promise<DepartemenRow> {
+  return apiPost<DepartemenRow>(await adminApi(apiFor), '/administrasi-proses-bisnis/departments', { nama: name })
 }
 
 export async function assignDeanViaAdminApi(
@@ -101,14 +101,14 @@ export async function assignDeanViaAdminApi(
   return unwrapApiData<AuthorityRow>(await response.json())
 }
 
-export async function assignDepartmentHeadViaAdminApi(
+export async function assignDepartemenHeadViaAdminApi(
   apiFor: RoleApiFactory,
-  departmentId: string,
+  departemenId: string,
   holderId: string,
 ): Promise<AuthorityRow> {
   const context = await adminApi(apiFor)
   const response = await context.put(
-    toApiUrl(`/organizational-authority/departments/${departmentId}/head`),
+    toApiUrl(`/organizational-authority/departments/${departemenId}/head`),
     { data: { penggunaId: holderId } },
   )
   await expect(response, 'PUT organizational-authority department head').toBeOK()
@@ -121,14 +121,14 @@ export function requireAdminUser(usersList: AdminUserRow[], email: string): Admi
   return user
 }
 
-export function requireDepartment(departments: DepartmentRow[], name: string): DepartmentRow {
+export function requireDepartemen(departments: DepartemenRow[], name: string): DepartemenRow {
   const department = departments.find((candidate) => candidate.nama === name)
-  if (!department) throw new Error(`Department E2E tidak ditemukan: ${name}`)
+  if (!department) throw new Error(`Departemen E2E tidak ditemukan: ${name}`)
   return department
 }
 
-export function requireProcess(processes: ProcessAdminRow[], name: string): ProcessAdminRow {
+export function requireProsesBisnis(processes: ProsesBisnisAdminRow[], name: string): ProsesBisnisAdminRow {
   const process = processes.find((candidate) => candidate.nama === name)
-  if (!process) throw new Error(`Process E2E tidak ditemukan: ${name}`)
+  if (!process) throw new Error(`ProsesBisnis E2E tidak ditemukan: ${name}`)
   return process
 }

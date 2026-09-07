@@ -11,12 +11,12 @@ import {
   Length,
   ValidateIf,
 } from 'class-validator';
-import { OrganizationalScope } from '../../../../generated/prisma';
+import { LingkupOrganisasi } from '../../../../generated/prisma';
 
 const trimString = ({ value }: { value: unknown }): unknown =>
   typeof value === 'string' ? value.trim() : value;
 
-export class CreateDepartmentDto {
+export class CreateDepartemenDto {
   @ApiProperty({ example: 'Departemen Teknologi Informasi' })
   @Transform(trimString)
   @IsString()
@@ -24,29 +24,29 @@ export class CreateDepartmentDto {
   nama!: string;
 }
 
-export class UpdateDepartmentDto extends PartialType(CreateDepartmentDto) {}
+export class UpdateDepartemenDto extends PartialType(CreateDepartemenDto) {}
 
-export class CreateProcessDto {
+export class CreateProsesBisnisDto {
   @ApiProperty({ example: 'Tugas Akhir' })
   @Transform(trimString)
   @IsString()
   @Length(2, 120)
   nama!: string;
 
-  @ApiProperty({ enum: OrganizationalScope })
-  @IsEnum(OrganizationalScope)
-  scope!: OrganizationalScope;
+  @ApiProperty({ enum: LingkupOrganisasi })
+  @IsEnum(LingkupOrganisasi)
+  scope!: LingkupOrganisasi;
 
   @ApiPropertyOptional({ format: 'uuid', nullable: true })
   @ValidateIf((_object, value) => value !== null && value !== undefined)
   @IsUUID()
-  departmentId?: string | null;
+  departemenId?: string | null;
 
   @ApiProperty({ format: 'uuid' })
   @IsUUID()
   ownerId!: string;
 
-  @ApiProperty({ type: [String], minItems: 1, description: 'Anggota selain Process Owner' })
+  @ApiProperty({ type: [String], minItems: 1, description: 'Anggota selain Penanggung Jawab Proses Bisnis' })
   @IsArray()
   @ArrayMinSize(1)
   @ArrayUnique()
@@ -54,7 +54,7 @@ export class CreateProcessDto {
   memberIds!: string[];
 }
 
-export class UpdateProcessDto {
+export class UpdateProsesBisnisDto {
   @ApiPropertyOptional({ example: 'Tugas Akhir' })
   @IsOptional()
   @Transform(trimString)
@@ -62,22 +62,22 @@ export class UpdateProcessDto {
   @Length(2, 120)
   nama?: string;
 
-  @ApiPropertyOptional({ enum: OrganizationalScope })
+  @ApiPropertyOptional({ enum: LingkupOrganisasi })
   @IsOptional()
-  @IsEnum(OrganizationalScope)
-  scope?: OrganizationalScope;
+  @IsEnum(LingkupOrganisasi)
+  scope?: LingkupOrganisasi;
 
   @ApiPropertyOptional({ format: 'uuid', nullable: true })
   @ValidateIf((_object, value) => value !== null && value !== undefined)
   @IsUUID()
-  departmentId?: string | null;
+  departemenId?: string | null;
 
   @ApiPropertyOptional({ format: 'uuid' })
   @IsOptional()
   @IsUUID()
   ownerId?: string;
 
-  @ApiPropertyOptional({ type: [String], minItems: 1, description: 'Anggota selain Process Owner' })
+  @ApiPropertyOptional({ type: [String], minItems: 1, description: 'Anggota selain Penanggung Jawab Proses Bisnis' })
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1)

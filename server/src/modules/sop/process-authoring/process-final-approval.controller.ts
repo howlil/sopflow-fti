@@ -14,15 +14,15 @@ import type { Request } from 'express';
 import { type ApiSuccessResponse, JwtAuthGuard } from '../../../common';
 import { ACCESS_TOKEN_COOKIE_NAME, type JwtAccessPayload } from '../../core/auth/helpers/auth.shared';
 import { PelaksanaSnapshotService } from '../pelaksana/pelaksana-snapshot.service';
-import { ProcessFinalApprovalService } from './process-final-approval.service';
+import { PersetujuanAkhirSOPService } from './process-final-approval.service';
 
-@ApiTags('Process Final Approval')
+@ApiTags('Proses Bisnis Persetujuan Akhir')
 @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
 @Controller('process-approval')
 @UseGuards(JwtAuthGuard)
-export class ProcessFinalApprovalController {
+export class PersetujuanAkhirSOPController {
   constructor(
-    private readonly service: ProcessFinalApprovalService,
+    private readonly service: PersetujuanAkhirSOPService,
     private readonly pelaksanaSnapshotService: PelaksanaSnapshotService,
   ) {}
 
@@ -30,21 +30,21 @@ export class ProcessFinalApprovalController {
   @ApiOperation({ summary: 'Daftar SOP yang berada pada approval scope pengguna saat ini' })
   async list(@Req() req: Request & { user: JwtAccessPayload }): Promise<ApiSuccessResponse<unknown>> {
     return {
-      message: 'Daftar final approval berhasil diambil',
+      message: 'Daftar persetujuan akhir berhasil diambil',
       success: true,
       data: await this.service.listForCurrentApprover(req.user),
     };
   }
 
   @Get(':detailOrSopId/document')
-  @ApiOperation({ summary: 'Dokumen SOP read-only untuk final approval dan contextual TTE' })
+  @ApiOperation({ summary: 'Dokumen SOP read-only untuk persetujuan akhir dan contextual TTE' })
   async document(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,
   ): Promise<ApiSuccessResponse<unknown>> {
     const document = await this.service.getDocumentForCurrentApprover(req.user, detailOrSopId);
     return {
-      message: 'Dokumen final approval berhasil diambil',
+      message: 'Dokumen persetujuan akhir berhasil diambil',
       success: true,
       data: {
         ...document,
@@ -54,13 +54,13 @@ export class ProcessFinalApprovalController {
   }
 
   @Get(':detailOrSopId')
-  @ApiOperation({ summary: 'Context final approver untuk Process-bound SOP' })
+  @ApiOperation({ summary: 'Context final approver untuk Proses Bisnis-bound SOP' })
   async context(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,
   ): Promise<ApiSuccessResponse<unknown>> {
     return {
-      message: 'Context final approval berhasil diambil',
+      message: 'Context persetujuan akhir berhasil diambil',
       success: true,
       data: await this.service.getContext(req.user, detailOrSopId),
     };
@@ -68,7 +68,7 @@ export class ProcessFinalApprovalController {
 
   @Post(':detailOrSopId/approve')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Final approval oleh Dean/Kepala Departemen sesuai Process scope' })
+  @ApiOperation({ summary: 'Final approval oleh Dean/Kepala Departemen sesuai Proses Bisnis scope' })
   async approve(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,

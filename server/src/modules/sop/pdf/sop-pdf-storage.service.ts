@@ -22,13 +22,13 @@ export class SopPdfStorageService {
   }
 
   buildRelativePath(params: {
-    processId: string;
+    prosesBisnisId: string;
     sopId: string;
     detailSopId: string;
     versi: number;
   }): string {
     return [
-      this.segment(params.processId),
+      this.segment(params.prosesBisnisId),
       this.segment(params.sopId),
       `v${params.versi}-${this.segment(params.detailSopId)}.pdf`,
     ].join('/');

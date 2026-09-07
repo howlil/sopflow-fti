@@ -1,15 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import {
-  OrganizationalAuthority,
-  OrganizationalScope,
+  PejabatBerwenang,
+  LingkupOrganisasi,
 } from '../../../generated/prisma';
 import type { PenyusunWorkbenchDataDto } from './dto/penyusun-workbench-data.dto';
 import { mapWorkbenchPayload } from './sop-catalog.mapper';
 import { SopCatalogRepository } from './sop-catalog.repository';
 
 /**
- * Compatibility-neutral workbench projection shared by native Process paths.
+ * Compatibility-neutral workbench projection shared by native ProsesBisnis paths.
  * Authorization remains owned by the caller; this reader enriches document
  * metadata with the current contextual signing authority only.
  */
@@ -34,34 +34,34 @@ export class SopWorkbenchReader {
     }
 
     const mapped = mapWorkbenchPayload(row);
-    if (row.sop.processId === null) return mapped;
+    if (row.sop.prosesBisnisId === null) return mapped;
 
     const process = await this.prisma.process.findUnique({
-      where: { processId: row.sop.processId },
-      select: { scope: true, departmentId: true },
+      where: { prosesBisnisId: row.sop.prosesBisnisId },
+      select: { scope: true, departemenId: true },
     });
     if (process === null) return mapped;
 
     const expectedAuthority =
-      process.scope === OrganizationalScope.FACULTY
-        ? OrganizationalAuthority.DEAN
-        : OrganizationalAuthority.HEAD_OF_DEPARTMENT;
+      process.scope === LingkupOrganisasi.FACULTY
+        ? PejabatBerwenang.DEAN
+        : PejabatBerwenang.HEAD_OF_DEPARTMENT;
     const authorityKey =
-      process.scope === OrganizationalScope.FACULTY
+      process.scope === LingkupOrganisasi.FACULTY
         ? 'DEAN'
-        : process.departmentId === null
+        : process.departemenId === null
           ? null
-          : `HEAD_OF_DEPARTMENT:${process.departmentId}`;
+          : `HEAD_OF_DEPARTMENT:${process.departemenId}`;
     if (authorityKey === null) return mapped;
 
     const assignment = await this.prisma.organizationalAuthorityAssignment.findUnique({
       where: { authorityKey },
-      select: { authority: true, departmentId: true, holderId: true },
+      select: { authority: true, departemenId: true, holderId: true },
     });
     if (
       assignment === null ||
       assignment.authority !== expectedAuthority ||
-      assignment.departmentId !== process.departmentId
+      assignment.departemenId !== process.departemenId
     ) {
       return mapped;
     }

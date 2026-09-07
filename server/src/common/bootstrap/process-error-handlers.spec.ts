@@ -1,10 +1,10 @@
-import { createFatalProcessErrorHandler } from './process-error-handlers';
+import { createFatalProsesBisnisErrorHandler } from './process-error-handlers';
 
-describe('createFatalProcessErrorHandler', () => {
+describe('createFatalProsesBisnisErrorHandler', () => {
   it('mencatat error lalu menghentikan proses dengan exit code 1', () => {
     const logger = { error: jest.fn() };
     const terminate = jest.fn();
-    const handler = createFatalProcessErrorHandler(logger, terminate, 'Uncaught Exception:');
+    const handler = createFatalProsesBisnisErrorHandler(logger, terminate, 'Uncaught Exception:');
     const error = new Error('boom');
 
     handler(error);

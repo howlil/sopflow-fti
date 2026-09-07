@@ -62,19 +62,19 @@ Controllers own transport, not business policy.
 Existing shape:
 
 ```ts
-@ApiTags('Process Owner Review')
+@ApiTags('ProsesBisnis Owner Review')
 @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
 @Controller('process-sop')
 @UseGuards(JwtAuthGuard)
-export class ProcessOwnerReviewController {
-  constructor(private readonly service: ProcessOwnerReviewService) {}
+export class ProsesBisnisOwnerReviewController {
+  constructor(private readonly service: ProsesBisnisOwnerReviewService) {}
 
   @Post(':detailOrSopId/review')
   @HttpCode(HttpStatus.OK)
   async review(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,
-    @Body() dto: ProcessReviewDecisionDto,
+    @Body() dto: KeputusanPemeriksaanProsesBisnisDto,
   ): Promise<ApiSuccessResponse<unknown>> {
     const data = await this.service.review(req.user, detailOrSopId, dto.decision)
     return { success: true, message: '...', data }
@@ -94,7 +94,7 @@ Controller responsibilities:
 
 Do not place these in controllers:
 
-- Process authorization policy;
+- ProsesBisnis authorization policy;
 - workflow state machine rules;
 - final-authority resolution;
 - transaction orchestration;
@@ -132,26 +132,26 @@ Do not use a broad generic error when the API contract distinguishes missing, fo
 
 Authorization must answer the capability being exercised.
 
-For Process-bound SOP work, use Process relationship rather than legacy global role identity.
+For ProsesBisnis-bound SOP work, use ProsesBisnis relationship rather than legacy global role identity.
 
 Existing pattern:
 
 ```ts
-await processContextService.assertCanAuthor(user.sub, processId)
-await processContextService.assertCanReview(user.sub, processId)
+await processContextService.assertCanAuthor(user.sub, prosesBisnisId)
+await processContextService.assertCanReview(user.sub, prosesBisnisId)
 ```
 
 Semantics:
 
 ```text
 author
-  -> Process Owner OR Process Member for this Process
+  -> ProsesBisnis Owner OR ProsesBisnis Member for this ProsesBisnis
 
 review
-  -> Process Owner for this Process
+  -> ProsesBisnis Owner for this ProsesBisnis
 
 final approval / TTE
-  -> resolved organizational authority for this Process scope
+  -> resolved organizational authority for this ProsesBisnis scope
 
 platform administration
   -> platformRole capability
@@ -161,7 +161,7 @@ platform administration
 
 Always include negative authorization behavior when changing these boundaries.
 
-## Process Context Pattern
+## ProsesBisnis Context Pattern
 
 Prefer authorization queries that encode the relevant relationship directly and return the context needed by the use case.
 
@@ -170,7 +170,7 @@ Existing style:
 ```ts
 const process = await prisma.process.findFirst({
   where: {
-    processId,
+    prosesBisnisId,
     OR: [
       { ownerId: penggunaId },
       { members: { some: { penggunaId } } },
@@ -184,7 +184,7 @@ if (process === null) {
 }
 ```
 
-Do not load an unrelated global role and infer Process access from it.
+Do not load an unrelated global role and infer ProsesBisnis access from it.
 
 Keep frequently reused selects/includes explicit and typed with `as const` where that is already the local pattern.
 
@@ -232,7 +232,7 @@ Keep generated Prisma types at persistence/domain implementation boundaries; do 
 
 For state-changing workflow operations:
 
-1. resolve the target SOP/detail and Process binding;
+1. resolve the target SOP/detail and ProsesBisnis binding;
 2. reject legacy/unbound targets when the target-native endpoint does not own them;
 3. assert contextual authorization;
 4. read current state;
@@ -282,7 +282,7 @@ Good candidates:
 - final approval state + evidence that must not diverge;
 - TTE/signing state transitions where database evidence must match the operation;
 - version replacement/effective-version invariants;
-- Process ownership/team mutations that must stay internally consistent.
+- ProsesBisnis ownership/team mutations that must stay internally consistent.
 
 Do not wrap unrelated network calls, long computations, or unrelated reads in broad database transactions unless the invariant requires it.
 
@@ -290,21 +290,21 @@ For external/expensive work that cannot safely occur inside the transaction, des
 
 ## Notification Pattern
 
-Process notifications use target-native persistence, separate from legacy evaluation notification history.
+ProsesBisnis notifications use target-native persistence, separate from legacy evaluation notification history.
 
 For a workflow event:
 
 ```text
-resolve intended recipient from Process/authority context
+resolve intended recipient from ProsesBisnis/authority context
 -> include durable notification insert in the same transaction as the transition when orphan delivery would be invalid
 -> emit in-app change signal after commit
 ```
 
-Do not force new Process events into archived legacy `retired evaluation persistence` / `JenisPengingatWhatsApp` persistence. The UI bell reads only the Process-native notification source.
+Do not force new ProsesBisnis events into archived legacy `retired evaluation persistence` / `JenisPengingatWhatsApp` persistence. The UI bell reads only the ProsesBisnis-native notification source.
 
 ## Organizational Authority Pattern
 
-Final approval resolves from Process organizational scope:
+Final approval resolves from ProsesBisnis organizational scope:
 
 ```text
 FACULTY
@@ -364,14 +364,14 @@ If migration recovery is required, follow `server/prisma/MIGRATION-RECOVERY.md`;
 Target-domain code should use FTI concepts:
 
 ```text
-Process
-ProcessTeam
-ProcessOwner
-ProcessMember
-OrganizationalAuthority
+ProsesBisnis
+ProsesBisnisTeam
+ProsesBisnisOwner
+AnggotaProsesBisnis
+PejabatBerwenang
 Dean
-HeadOfDepartment
-ProcessReview
+HeadOfDepartemen
+PemeriksaanProsesBisnis
 FinalApproval
 ```
 
@@ -391,7 +391,7 @@ Examples of good message intent:
 resource not found
 access denied because contextual relationship is missing
 state has changed; reload/retry
-legacy entity is not bound to Process and remains on compatibility workflow
+legacy entity is not bound to ProsesBisnis and remains on compatibility workflow
 ```
 
 Avoid leaking internal stack/database details.
@@ -415,7 +415,7 @@ construct service with focused mocked collaborators
 For workflow changes, cover:
 
 - happy path;
-- wrong actor/Process denial;
+- wrong actor/ProsesBisnis denial;
 - wrong state;
 - stale concurrent transition where relevant;
 - correct recipient/authority;
@@ -464,7 +464,7 @@ For a backend task:
 ## Do Not
 
 - put core business policy in controllers;
-- infer Process authorization from legacy global roles;
+- infer ProsesBisnis authorization from legacy global roles;
 - use `SUPER_ADMIN` as a workflow bypass;
 - duplicate final-authority resolution in multiple services;
 - move service policy into repositories for convenience;

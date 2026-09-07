@@ -17,7 +17,7 @@ export function InstitutionalClosing({ institutionName, productName }: Instituti
             Lanjutkan pekerjaan pada Proses Bisnis Anda.
           </h2>
           <p className="mt-6 max-w-xl text-base leading-7 text-slate-200">
-            Masuk untuk menyusun, mereview, menyetujui, atau menandatangani SOP sesuai hubungan Process dan kewenangan organisasi Anda.
+            Masuk untuk menyusun, mereview, menyetujui, atau menandatangani SOP sesuai hubungan ProsesBisnis dan kewenangan organisasi Anda.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-4">
             <Link

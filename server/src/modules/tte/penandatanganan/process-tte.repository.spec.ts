@@ -2,15 +2,15 @@
 
 import {
   JenisDokumenTte,
-  OrganizationalAuthority,
+  PejabatBerwenang,
   StatusSOP,
 } from '../../../generated/prisma';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
-import { ProcessTteRepository } from './process-tte.repository';
+import { ProsesBisnisTteRepository } from './tte-proses-bisnis.repository';
 
 const detailSopId = '00000000-0000-4000-8000-000000000010';
 const sopId = '00000000-0000-4000-8000-000000000011';
-const processId = '00000000-0000-4000-8000-000000000012';
+const prosesBisnisId = '00000000-0000-4000-8000-000000000012';
 const userId = '00000000-0000-4000-8000-000000000013';
 const dokumenTteId = '00000000-0000-4000-8000-000000000014';
 
@@ -23,7 +23,7 @@ function signingContextTx() {
         nomorSOP: 'SOP-01',
         versi: 2,
         status: StatusSOP.TTE_PENDING,
-        sop: { processId, judul: 'SOP Akademik' },
+        sop: { prosesBisnisId, judul: 'SOP Akademik' },
       }),
       findFirst: jest.fn().mockResolvedValue({ detailSopId }),
       findMany: jest.fn().mockResolvedValue([{ detailSopId: 'detail-old' }]),
@@ -31,9 +31,9 @@ function signingContextTx() {
     },
     processFinalApproval: {
       findUnique: jest.fn().mockResolvedValue({
-        processId,
+        prosesBisnisId,
         approvedById: userId,
-        authority: OrganizationalAuthority.DEAN,
+        authority: PejabatBerwenang.DEAN,
         authorityKey: 'DEAN',
         approvedAt: new Date('2026-09-01T00:00:00Z'),
       }),
@@ -42,13 +42,13 @@ function signingContextTx() {
       findUnique: jest.fn().mockResolvedValue({
         dokumenTteId,
         detailSopId,
-        processId,
+        prosesBisnisId,
         jenisDokumen: JenisDokumenTte.SOP_BERLAKU,
       }),
       update: jest.fn().mockResolvedValue({
         dokumenTteId,
         detailSopId,
-        processId,
+        prosesBisnisId,
         jenisDokumen: JenisDokumenTte.SOP_BERLAKU,
       }),
       create: jest.fn(),
@@ -73,7 +73,7 @@ const signatureMetadata = {
   certValidTo: new Date('2027-01-01T00:00:00Z'),
 };
 
-describe('ProcessTteRepository effective-state integrity', () => {
+describe('ProsesBisnisTteRepository effective-state integrity', () => {
   it('propagates target status drift through the transaction boundary so prior supersede is rolled back', async () => {
     const tx = signingContextTx();
     let transactionRolledBack = false;
@@ -87,7 +87,7 @@ describe('ProcessTteRepository effective-state integrity', () => {
         }
       }),
     } as unknown as PrismaService;
-    const repository = new ProcessTteRepository(prisma);
+    const repository = new ProsesBisnisTteRepository(prisma);
 
     const result = await repository.finalizeWithArtifact({
       detailOrSopId: detailSopId,
@@ -120,13 +120,13 @@ describe('ProcessTteRepository effective-state integrity', () => {
     expect(tx.riwayatTandaTangan.create).not.toHaveBeenCalled();
   });
 
-  it('does not mutate document metadata when the Process SOP version is already signed', async () => {
+  it('does not mutate document metadata when the Proses Bisnis SOP version is already signed', async () => {
     const tx = signingContextTx();
     tx.riwayatTandaTangan.findFirst.mockResolvedValue({ userId } as never);
     const prisma = {
       $transaction: jest.fn((callback: (transaction: typeof tx) => unknown) => callback(tx)),
     } as unknown as PrismaService;
-    const repository = new ProcessTteRepository(prisma);
+    const repository = new ProsesBisnisTteRepository(prisma);
 
     const result = await repository.prepareDocument({
       detailOrSopId: detailSopId,
@@ -140,18 +140,18 @@ describe('ProcessTteRepository effective-state integrity', () => {
     expect(tx.dokumenTte.update).not.toHaveBeenCalled();
   });
 
-  it('rejects a TTE document without explicit Process ownership', async () => {
+  it('rejects a TTE document without explicit Penanggung Jawab Proses Bisnisship', async () => {
     const tx = signingContextTx();
     tx.dokumenTte.findUnique.mockResolvedValue({
       dokumenTteId,
       detailSopId,
-      processId: null,
+      prosesBisnisId: null,
       jenisDokumen: JenisDokumenTte.SOP_BERLAKU,
     });
     const prisma = {
       $transaction: jest.fn((callback: (transaction: typeof tx) => unknown) => callback(tx)),
     } as unknown as PrismaService;
-    const repository = new ProcessTteRepository(prisma);
+    const repository = new ProsesBisnisTteRepository(prisma);
 
     await expect(
       repository.prepareDocument({
@@ -166,18 +166,18 @@ describe('ProcessTteRepository effective-state integrity', () => {
     expect(tx.dokumenTte.update).not.toHaveBeenCalled();
   });
 
-  it('rejects a TTE document whose explicit Process ownership drifts from the SOP', async () => {
+  it('rejects a TTE document whose explicit Penanggung Jawab Proses Bisnisship drifts from the SOP', async () => {
     const tx = signingContextTx();
     tx.dokumenTte.findUnique.mockResolvedValue({
       dokumenTteId,
       detailSopId,
-      processId: '00000000-0000-4000-8000-000000000099',
+      prosesBisnisId: '00000000-0000-4000-8000-000000000099',
       jenisDokumen: JenisDokumenTte.SOP_BERLAKU,
     });
     const prisma = {
       $transaction: jest.fn((callback: (transaction: typeof tx) => unknown) => callback(tx)),
     } as unknown as PrismaService;
-    const repository = new ProcessTteRepository(prisma);
+    const repository = new ProsesBisnisTteRepository(prisma);
 
     await expect(
       repository.prepareDocument({

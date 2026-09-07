@@ -1,16 +1,16 @@
 import type { PlatformRole } from '@/types/dto/access.dto'
 
-export type OrganizationalScope = 'FACULTY' | 'DEPARTMENT'
-export type ProcessLifecycleStatus = 'ACTIVE' | 'ARCHIVED'
+export type LingkupOrganisasi = 'FACULTY' | 'DEPARTMENT'
+export type StatusKeaktifanProsesBisnis = 'ACTIVE' | 'ARCHIVED'
 
-export interface DepartmentDto {
-  departmentId: string
+export interface DepartemenDto {
+  departemenId: string
   nama: string
   createdAt: string
   updatedAt: string
 }
 
-export interface ProcessAssignableUserDto {
+export interface ProsesBisnisAssignableUserDto {
   penggunaId: string
   nama: string
   email: string
@@ -18,43 +18,43 @@ export interface ProcessAssignableUserDto {
   platformRole: PlatformRole
 }
 
-export interface ProcessMemberDto {
-  processId: string
+export interface AnggotaProsesBisnisDto {
+  prosesBisnisId: string
   penggunaId: string
   createdAt: string
-  pengguna: ProcessAssignableUserDto
+  pengguna: ProsesBisnisAssignableUserDto
 }
 
-export interface ProcessDto {
-  processId: string
+export interface ProsesBisnisDto {
+  prosesBisnisId: string
   nama: string
-  scope: OrganizationalScope
-  departmentId: string | null
+  scope: LingkupOrganisasi
+  departemenId: string | null
   ownerId: string
   createdAt: string
   updatedAt: string
-  department: DepartmentDto | null
-  owner: ProcessAssignableUserDto
-  members: ProcessMemberDto[]
-  lifecycleStatus?: ProcessLifecycleStatus
+  department: DepartemenDto | null
+  owner: ProsesBisnisAssignableUserDto
+  members: AnggotaProsesBisnisDto[]
+  lifecycleStatus?: StatusKeaktifanProsesBisnis
   archivedAt?: string | null
   archivedReason?: string | null
 }
 
-/** Administrative repair/bootstrap payload. Normal Process creation is owner self-service. */
-export interface ProcessPayload {
+/** Administrative repair/bootstrap payload. Normal ProsesBisnis creation is owner self-service. */
+export interface ProsesBisnisPayload {
   nama: string
-  scope: OrganizationalScope
-  departmentId: string | null
+  scope: LingkupOrganisasi
+  departemenId: string | null
   ownerId: string
   memberIds: string[]
 }
 
-export interface ProcessOwnerAuthorityDto {
-  processOwnerAuthorityId: string
+export interface KewenanganPenanggungJawabProsesBisnisDto {
+  kewenanganPenanggungJawabProsesBisnisId: string
   penggunaId: string
-  scope: OrganizationalScope
-  departmentId: string | null
+  scope: LingkupOrganisasi
+  departemenId: string | null
   scopeKey: string
   revokedAt: string | null
   createdAt: string
@@ -66,22 +66,22 @@ export interface ProcessOwnerAuthorityDto {
     nip: string
     deletedAt: string | null
   } | null
-  department: Pick<DepartmentDto, 'departmentId' | 'nama'> | null
+  department: Pick<DepartemenDto, 'departemenId' | 'nama'> | null
 }
 
-export interface GrantProcessOwnerAuthorityPayload {
+export interface GrantKewenanganPenanggungJawabProsesBisnisPayload {
   penggunaId: string
-  scope: OrganizationalScope
-  departmentId: string | null
+  scope: LingkupOrganisasi
+  departemenId: string | null
 }
 
-export interface CreateOwnedProcessPayload {
+export interface CreateOwnedProsesBisnisPayload {
   nama: string
-  scope: OrganizationalScope
-  departmentId: string | null
+  scope: LingkupOrganisasi
+  departemenId: string | null
 }
 
-export interface InviteProcessMemberPayload {
+export interface InviteAnggotaProsesBisnisPayload {
   nama: string
   nip: string
   email: string
@@ -90,32 +90,32 @@ export interface InviteProcessMemberPayload {
   nohp: string
 }
 
-export type ProcessMemberOnboardingResult =
+export type AnggotaProsesBisnisOnboardingResult =
   | {
       kind: 'MEMBER_ADDED'
       member: { penggunaId: string; nama: string; email: string }
     }
   | {
       kind: 'INVITATION_CREATED'
-      invitation: { processInvitationId: string; email: string; expiresAt: string }
+      invitation: { undanganAnggotaProsesBisnisId: string; email: string; expiresAt: string }
       activationPath: string
     }
 
-export interface ProcessInvitationPreviewDto {
+export interface UndanganAnggotaProsesBisnisPreviewDto {
   email: string
   nama: string
   expiresAt: string
   process: {
-    processId: string
+    prosesBisnisId: string
     nama: string
-    scope: OrganizationalScope
-    departmentId: string | null
+    scope: LingkupOrganisasi
+    departemenId: string | null
   }
 }
 
-export interface ProcessAuditDto {
-  processAuditId: string
-  processId: string | null
+export interface RiwayatAktivitasProsesBisnisDto {
+  riwayatAktivitasProsesBisnisId: string
+  prosesBisnisId: string | null
   actorId: string
   event: string
   targetUserId: string | null

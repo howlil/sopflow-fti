@@ -2,9 +2,9 @@ import { targetUsers } from '../fixtures/users'
 import type { RoleApiFactory } from '../fixtures/business-test'
 import { apiGet, apiPost } from './api'
 import {
-  seedReadyProcessSop,
-  type ProcessSopSeedOptions,
-  type ReadyProcessSopFixture,
+  seedReadyProsesBisnisSop,
+  type ProsesBisnisSopSeedOptions,
+  type ReadyProsesBisnisSopFixture,
 } from './fti-process-preconditions'
 
 interface Workbench {
@@ -17,24 +17,24 @@ interface Workbench {
  * Submit lewat API adalah precondition untuk journey yang fokus pada Owner ACCEPT /
  * contextual final approval. Browser submit sendiri sudah dibuktikan oleh J09/J13.
  */
-export async function seedProcessSopAwaitingOwnerReview(
+export async function seedProsesBisnisSopAwaitingOwnerReview(
   apiFor: RoleApiFactory,
   prefix = 'FTI-APPROVAL',
-  options: ProcessSopSeedOptions = {},
-): Promise<ReadyProcessSopFixture> {
-  const actor = options.actor ?? targetUsers.processMember
-  const sop = await seedReadyProcessSop(apiFor, prefix, options)
+  options: ProsesBisnisSopSeedOptions = {},
+): Promise<ReadyProsesBisnisSopFixture> {
+  const actor = options.actor ?? targetUsers.anggotaProsesBisnis
+  const sop = await seedReadyProsesBisnisSop(apiFor, prefix, options)
   const memberApi = await apiFor(actor)
 
-  await apiPost(memberApi, `/process-sop/${sop.detailSopId}/submit-review`)
+  await apiPost(memberApi, `/sop-proses-bisnis/${sop.detailSopId}/submit-review`)
 
   const workbench = await apiGet<Workbench>(
     memberApi,
-    `/process-sop/workbench/${sop.detailSopId}`,
+    `/sop-proses-bisnis/workbench/${sop.detailSopId}`,
   )
   if (workbench.detail.status !== 'PROCESS_REVIEW') {
     throw new Error(
-      `Precondition harus menunggu Process Owner review, ditemukan ${workbench.detail.status}`,
+      `Precondition harus menunggu ProsesBisnis Owner review, ditemukan ${workbench.detail.status}`,
     )
   }
 

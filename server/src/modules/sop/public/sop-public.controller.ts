@@ -4,8 +4,8 @@ import type { ApiSuccessResponse } from '../../../common';
 import type { PaginatedData } from '../../../common/utils/pagination.util';
 import type { Response } from 'express';
 import { PublicArsipQueryDto } from './dto/public-arsip-query.dto';
-import { PublicProcessItemDto } from './dto/public-process-item.dto';
-import { PublicSopByProcessPageDto } from './dto/public-sop-by-process-page.dto';
+import { PublicProsesBisnisItemDto } from './dto/public-process-item.dto';
+import { PublicSopByProsesBisnisPageDto } from './dto/public-sop-by-process-page.dto';
 import { PublicSopDokumenDto } from './dto/public-sop-dokumen.dto';
 import { PublicSopItemDto } from './dto/public-sop-item.dto';
 import { SopPublicService } from './sop-public.service';
@@ -17,40 +17,40 @@ export class SopPublicController {
 
   @Get('fti/processes')
   @ApiOperation({
-    summary: 'Daftar Process FTI dengan SOP resmi berlaku',
-    description: 'Target-native public discovery melalui SOP.processId.',
+    summary: 'Daftar Proses Bisnis FTI dengan SOP resmi berlaku',
+    description: 'Target-native public discovery melalui SOP.prosesBisnisId.',
   })
-  async listProcess(
+  async listProsesBisnis(
     @Query() query: PublicArsipQueryDto,
-  ): Promise<ApiSuccessResponse<PaginatedData<PublicProcessItemDto>>> {
+  ): Promise<ApiSuccessResponse<PaginatedData<PublicProsesBisnisItemDto>>> {
     return {
-      message: 'Daftar Process arsip SOP berhasil diambil',
+      message: 'Daftar Proses Bisnis arsip SOP berhasil diambil',
       success: true,
-      data: await this.sopPublicService.listProcess(query),
+      data: await this.sopPublicService.listProsesBisnis(query),
     };
   }
 
-  @Get('fti/processes/:processId/sop')
+  @Get('fti/processes/:prosesBisnisId/sop')
   @ApiOperation({
-    summary: 'Daftar SOP resmi berlaku per Process FTI',
-    description: 'Klasifikasi hanya melalui SOP.processId.',
+    summary: 'Daftar SOP resmi berlaku per Proses Bisnis FTI',
+    description: 'Klasifikasi hanya melalui SOP.prosesBisnisId.',
   })
-  @ApiNotFoundResponse({ description: 'Process tidak ditemukan' })
-  async listSopByProcess(
-    @Param('processId', ParseUUIDPipe) processId: string,
+  @ApiNotFoundResponse({ description: 'Proses Bisnis tidak ditemukan' })
+  async listSopByProsesBisnis(
+    @Param('prosesBisnisId', ParseUUIDPipe) prosesBisnisId: string,
     @Query() query: PublicArsipQueryDto,
-  ): Promise<ApiSuccessResponse<PublicSopByProcessPageDto>> {
+  ): Promise<ApiSuccessResponse<PublicSopByProsesBisnisPageDto>> {
     return {
-      message: 'Daftar SOP Process berhasil diambil',
+      message: 'Daftar SOP Proses Bisnis berhasil diambil',
       success: true,
-      data: await this.sopPublicService.listSopByProcess(processId, query),
+      data: await this.sopPublicService.listSopByProsesBisnis(prosesBisnisId, query),
     };
   }
 
   @Get('fti/sop')
   @ApiOperation({
     summary: 'Cari SOP resmi pada arsip FTI',
-    description: 'Mencari SOP Process-bound saja; row legacy tanpa Process tidak menjadi first-party discovery result.',
+    description: 'Mencari SOP Proses Bisnis-bound saja; row legacy tanpa Proses Bisnis tidak menjadi first-party discovery result.',
   })
   async listFtiSopGlobal(
     @Query() query: PublicArsipQueryDto,
@@ -65,7 +65,7 @@ export class SopPublicController {
   @Get('dokumen/:detailSopId')
   @ApiOperation({ summary: 'Pratinjau dokumen SOP FTI berlaku' })
   @ApiResponse({ status: 200, type: PublicSopDokumenDto })
-  @ApiNotFoundResponse({ description: 'Dokumen tidak ditemukan atau bukan SOP Process-bound berlaku' })
+  @ApiNotFoundResponse({ description: 'Dokumen tidak ditemukan atau bukan SOP Proses Bisnis-bound berlaku' })
   async getDokumen(
     @Param('detailSopId', ParseUUIDPipe) detailSopId: string,
   ): Promise<ApiSuccessResponse<PublicSopDokumenDto>> {

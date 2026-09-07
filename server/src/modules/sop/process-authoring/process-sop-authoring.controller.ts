@@ -23,23 +23,23 @@ import { ListSopQueryDto } from '../catalog/dto/list-sop-query.dto';
 import { SopRiwayatVersiRowDto } from '../catalog/dto/sop-riwayat-versi-row.dto';
 import { UpdateSopHeaderDto } from '../catalog/dto/update-sop-header.dto';
 import { PelaksanaSnapshotService } from '../pelaksana/pelaksana-snapshot.service';
-import { CreateProcessSopDto } from './dto/create-process-sop.dto';
-import { ProcessSopAuthoringService } from './process-sop-authoring.service';
-import { ProcessVersionService } from './process-version.service';
+import { CreateProsesBisnisSopDto } from './dto/create-process-sop.dto';
+import { ProsesBisnisSopAuthoringService } from './sop-proses-bisnis-authoring.service';
+import { ProsesBisnisVersionService } from './process-version.service';
 
-@ApiTags('Process SOP Authoring')
+@ApiTags('Proses Bisnis SOP Authoring')
 @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
 @Controller('process-sop')
 @UseGuards(JwtAuthGuard)
-export class ProcessSopAuthoringController {
+export class ProsesBisnisSopAuthoringController {
   constructor(
-    private readonly service: ProcessSopAuthoringService,
+    private readonly service: ProsesBisnisSopAuthoringService,
     private readonly pelaksanaSnapshotService: PelaksanaSnapshotService,
-    private readonly processVersionService: ProcessVersionService,
+    private readonly processVersionService: ProsesBisnisVersionService,
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Daftar SOP native pada Process yang dapat diakses pengguna' })
+  @ApiOperation({ summary: 'Daftar SOP native pada Proses Bisnis yang dapat diakses pengguna' })
   async list(
     @Req() req: Request & { user: JwtAccessPayload },
     @Query() query: ListSopQueryDto,
@@ -53,13 +53,13 @@ export class ProcessSopAuthoringController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Buat SOP baru di dalam Process yang dimiliki/diikuti pengguna' })
+  @ApiOperation({ summary: 'Buat SOP baru di dalam Proses Bisnis yang dimiliki/diikuti pengguna' })
   async create(
     @Req() req: Request & { user: JwtAccessPayload },
-    @Body() dto: CreateProcessSopDto,
+    @Body() dto: CreateProsesBisnisSopDto,
   ): Promise<ApiSuccessResponse<unknown>> {
     return {
-      message: 'SOP Process berhasil dibuat',
+      message: 'SOP Proses Bisnis berhasil dibuat',
       success: true,
       data: await this.service.create(req.user, dto),
     };
@@ -68,7 +68,7 @@ export class ProcessSopAuthoringController {
   @Post(':detailOrSopId/version')
   @HttpCode(HttpStatus.CREATED)
   @ApiQuery({ name: 'logsLimit', required: false, schema: { default: 100, minimum: 1, maximum: 500 } })
-  @ApiOperation({ summary: 'Buat versi baru dengan Process authorization untuk SOP target' })
+  @ApiOperation({ summary: 'Buat versi baru dengan Proses Bisnis authorization untuk SOP target' })
   async createVersion(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,
@@ -87,7 +87,7 @@ export class ProcessSopAuthoringController {
   }
 
   @Get(':sopId/history')
-  @ApiOperation({ summary: 'Riwayat versi SOP dengan Process authorization untuk SOP target' })
+  @ApiOperation({ summary: 'Riwayat versi SOP dengan Proses Bisnis authorization untuk SOP target' })
   async history(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('sopId', ParseUUIDPipe) sopId: string,
@@ -101,7 +101,7 @@ export class ProcessSopAuthoringController {
 
   @Delete(':detailSopId/versi-draft')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Hapus draft revisi melalui Process authorization' })
+  @ApiOperation({ summary: 'Hapus draft revisi melalui Proses Bisnis authorization' })
   async deleteVersionDraft(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailSopId', ParseUUIDPipe) detailSopId: string,
@@ -112,7 +112,7 @@ export class ProcessSopAuthoringController {
 
   @Delete(':detailSopId/draft')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Hapus draft awal melalui Process authorization' })
+  @ApiOperation({ summary: 'Hapus draft awal melalui Proses Bisnis authorization' })
   async deleteInitialDraft(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailSopId', ParseUUIDPipe) detailSopId: string,
@@ -123,7 +123,7 @@ export class ProcessSopAuthoringController {
 
   @Get('workbench/:detailOrSopId')
   @ApiQuery({ name: 'logsLimit', required: false, schema: { default: 100, minimum: 1, maximum: 500 } })
-  @ApiOperation({ summary: 'Workbench SOP dengan Process authorization untuk SOP target' })
+  @ApiOperation({ summary: 'Workbench SOP dengan Proses Bisnis authorization untuk SOP target' })
   async workbench(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,
@@ -139,7 +139,7 @@ export class ProcessSopAuthoringController {
 
   @Patch('header/:detailOrSopId')
   @ApiQuery({ name: 'logsLimit', required: false, schema: { default: 100, minimum: 1, maximum: 500 } })
-  @ApiOperation({ summary: 'Perbarui header draft dengan Process authorization untuk SOP target' })
+  @ApiOperation({ summary: 'Perbarui header draft dengan Proses Bisnis authorization untuk SOP target' })
   async updateHeader(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,

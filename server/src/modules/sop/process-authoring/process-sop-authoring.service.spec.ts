@@ -1,17 +1,17 @@
 import { ConflictException } from '@nestjs/common';
-import { OrganizationalScope, StatusSOP } from '../../../generated/prisma';
+import { LingkupOrganisasi, StatusSOP } from '../../../generated/prisma';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
-import type { ProcessContextService } from '../../core/process/process-context.service';
+import type { ProsesBisnisContextService } from '../../core/process/konteks-proses-bisnis.service';
 import type { SopCatalogRepository, SopDaftarDbRow } from '../catalog/sop-catalog.repository';
 import type { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
-import { ProcessSopAuthoringService } from './process-sop-authoring.service';
+import { ProsesBisnisSopAuthoringService } from './sop-proses-bisnis-authoring.service';
 
-describe('ProcessSopAuthoringService', () => {
-  it('lists only native SOPs for the user Process relationships', async () => {
+describe('ProsesBisnisSopAuthoringService', () => {
+  it('lists only native SOPs for the user Proses Bisnis relationships', async () => {
     const now = new Date('2026-09-01T00:00:00.000Z');
     const accessibleTarget: SopDaftarDbRow = {
       sopId: 'sop-target-accessible',
-      judul: 'SOP Process TA',
+      judul: 'SOP Proses Bisnis TA',
       detail: {
         detailSopId: 'detail-target',
         nomorSOP: 'FTI/TA/001',
@@ -29,8 +29,8 @@ describe('ProcessSopAuthoringService', () => {
     const prisma = {
       sOP: {
         findMany: jest.fn().mockResolvedValue([
-          { sopId: 'sop-target-inaccessible', processId: 'process-b' },
-          { sopId: 'sop-target-accessible', processId: 'process-a' },
+          { sopId: 'sop-target-inaccessible', prosesBisnisId: 'process-b' },
+          { sopId: 'sop-target-accessible', prosesBisnisId: 'process-a' },
         ]),
       },
       processFinalApproval: {
@@ -46,22 +46,22 @@ describe('ProcessSopAuthoringService', () => {
     const processContext = {
       listForUser: jest.fn().mockResolvedValue([
         {
-          processId: 'process-a',
+          prosesBisnisId: 'process-a',
           nama: 'Tugas Akhir',
-          scope: OrganizationalScope.FACULTY,
+          scope: LingkupOrganisasi.FACULTY,
           ownerId: 'owner-1',
-          departmentId: null,
-          owner: { nama: 'Process Owner' },
+          departemenId: null,
+          owner: { nama: 'Penanggung Jawab Proses Bisnis' },
           department: null,
         },
       ]),
-    } as unknown as ProcessContextService;
+    } as unknown as ProsesBisnisContextService;
     const repository = {
       findDaftarAll: jest.fn().mockResolvedValue([accessibleTarget]),
     } as unknown as SopCatalogRepository;
     const workbenchReader = {} as unknown as SopWorkbenchReader;
 
-    const service = new ProcessSopAuthoringService(
+    const service = new ProsesBisnisSopAuthoringService(
       prisma,
       processContext,
       repository,
@@ -80,7 +80,7 @@ describe('ProcessSopAuthoringService', () => {
     expect(rows.map((row) => row.id)).toEqual(['sop-target-accessible']);
     expect(rows.map((row) => row.id)).not.toContain('sop-target-inaccessible');
     expect(rows.find((row) => row.id === 'sop-target-accessible')).toMatchObject({
-      processId: 'process-a',
+      prosesBisnisId: 'process-a',
       processNama: 'Tugas Akhir',
       lifecycle: {
         stage: 'AUTHORING',
@@ -90,18 +90,18 @@ describe('ProcessSopAuthoringService', () => {
     });
   });
 
-  it('does not expose SOPs when the user has no Process relationship', async () => {
+  it('does not expose SOPs when the user has no Proses Bisnis relationship', async () => {
     const prisma = {
       sOP: { findMany: jest.fn().mockResolvedValue([]) },
     } as unknown as PrismaService;
     const processContext = {
       listForUser: jest.fn().mockResolvedValue([]),
-    } as unknown as ProcessContextService;
+    } as unknown as ProsesBisnisContextService;
     const repository = {
       findDaftarAll: jest.fn().mockResolvedValue([]),
     } as unknown as SopCatalogRepository;
     const workbenchReader = {} as unknown as SopWorkbenchReader;
-    const service = new ProcessSopAuthoringService(
+    const service = new ProsesBisnisSopAuthoringService(
       prisma,
       processContext,
       repository,
@@ -123,10 +123,10 @@ describe('ProcessSopAuthoringService', () => {
   it('rejects an unbound SOP on the native workbench endpoint', async () => {
     const prisma = {
       sOP: {
-        findUnique: jest.fn().mockResolvedValue({ processId: null }),
+        findUnique: jest.fn().mockResolvedValue({ prosesBisnisId: null }),
       },
     } as unknown as PrismaService;
-    const processContext = {} as unknown as ProcessContextService;
+    const processContext = {} as unknown as ProsesBisnisContextService;
     const repository = {
       findDetailIdByDetailOrSopId: jest.fn().mockResolvedValue({
         sopId: 'legacy-sop',
@@ -136,7 +136,7 @@ describe('ProcessSopAuthoringService', () => {
     const workbenchReader = {
       getForDetail: jest.fn(),
     } as unknown as SopWorkbenchReader;
-    const service = new ProcessSopAuthoringService(
+    const service = new ProsesBisnisSopAuthoringService(
       prisma,
       processContext,
       repository,

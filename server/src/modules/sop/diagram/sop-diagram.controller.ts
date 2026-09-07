@@ -40,7 +40,7 @@ export class SopDiagramController {
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
   @ApiOperation({
     summary:
-      'PATCH konfigurasi diagram SOP Process-bound (layoutSeed + path manual). Param :detailSopId boleh DetailSOP atau SOP header.',
+      'PATCH konfigurasi diagram SOP Proses Bisnis-bound (layoutSeed + path manual). Param :detailSopId boleh DetailSOP atau SOP header.',
   })
   @ApiQuery({
     name: 'logsLimit',

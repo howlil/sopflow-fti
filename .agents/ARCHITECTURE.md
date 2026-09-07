@@ -5,23 +5,23 @@
 ```text
 Pengguna + PlatformRole
         |
-        +--> ProcessOwnerAuthority ----> Process ----> SOP ----> DetailSOP
+        +--> KewenanganPenanggungJawabProsesBisnis ----> ProsesBisnis ----> SOP ----> DetailSOP
         |                                  |             |
-        +--> ProcessMember ----------------+             +--> Review / Approval / TTE / Version
+        +--> AnggotaProsesBisnis ----------------+             +--> Review / Approval / TTE / Version
         |
-        +--> OrganizationalAuthorityAssignment
+        +--> PenugasanPejabatBerwenang
                  |
                  +--> DEAN (Faculty)
-                 +--> HEAD_OF_DEPARTMENT (Department)
+                 +--> HEAD_OF_DEPARTMENT (Departemen)
 ```
 
 ### Identity and authorization
 
-`PlatformRole` is only platform administration. Workflow authorization is contextual to Process ownership/membership. Final approval and TTE authorization come only from the organizational authority resolved for the Process scope. No platform administrator bypass exists for workflow approval or signing.
+`PlatformRole` is only platform administration. Workflow authorization is contextual to ProsesBisnis ownership/membership. Final approval and TTE authorization come only from the organizational authority resolved for the ProsesBisnis scope. No platform administrator bypass exists for workflow approval or signing.
 
 ### SOP ownership
 
-An active SOP belongs directly to one Process through `SOP.processId`. A Process has exactly one owner and zero or more members. Department context is organizational scope metadata, not SOP ownership.
+An active SOP belongs directly to one ProsesBisnis through `SOP.prosesBisnisId`. A ProsesBisnis has exactly one owner and zero or more members. Departemen context is organizational scope metadata, not SOP ownership.
 
 ### Lifecycle
 
@@ -29,7 +29,7 @@ An active SOP belongs directly to one Process through `SOP.processId`. A Process
 
 ### TTE
 
-Signing evidence stores `OrganizationalAuthority` (`DEAN` or `HEAD_OF_DEPARTMENT`) plus signer identity and certificate metadata. Public verification exposes this authority directly.
+Signing evidence stores `PejabatBerwenang` (`DEAN` or `HEAD_OF_DEPARTMENT`) plus signer identity and certificate metadata. Public verification exposes this authority directly.
 
 ### Catalogs
 

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import type { Implementer, SOPStep, ArrowConfig, LabelConfig } from '../core/sopDiagramTypes'
 import { buildWorkflowConnections } from '../core/workflow/build-workflow-connections.util'
-import { BpmnPage, type ProcessedBpmnStep } from './BpmnPage'
+import { BpmnPage, type ProsesBisnisedBpmnStep } from './BpmnPage'
 
 export interface SOPDiagramBpmnProps {
   data: {
@@ -24,20 +24,20 @@ export interface SOPDiagramBpmnProps {
   }
 }
 
-function buildProcessedSteps(steps: SOPStep[]): ProcessedBpmnStep[] {
+function buildProsesBisnisedSteps(steps: SOPStep[]): ProsesBisnisedBpmnStep[] {
   if (!steps.length) return []
   const sorted = [...steps].sort((a, b) => a.seq_number - b.seq_number)
   const first = sorted[0]
   const last = sorted[sorted.length - 1]
   const endSeq = last ? last.seq_number + 1 : 1
-  const start: ProcessedBpmnStep = {
+  const start: ProsesBisnisedBpmnStep = {
     id_step: 'start-terminator',
     seq_number: 0,
     name: 'Mulai',
     type: 'terminator',
     id_implementer: first?.id_implementer,
   }
-  const end: ProcessedBpmnStep = {
+  const end: ProsesBisnisedBpmnStep = {
     id_step: 'end-terminator',
     seq_number: endSeq,
     name: 'Selesai',
@@ -49,7 +49,7 @@ function buildProcessedSteps(steps: SOPStep[]): ProcessedBpmnStep[] {
     type: s.type === 'terminator' ? 'task' : s.type,
     seq_number: s.seq_number,
     id_step: s.id_step ?? `step-${s.seq_number}`,
-  })) as ProcessedBpmnStep[]
+  })) as ProsesBisnisedBpmnStep[]
   return [start, ...workflow, end]
 }
 
@@ -59,7 +59,7 @@ export function SOPDiagramBpmn({ data, config, events }: SOPDiagramBpmnProps) {
   const pathLayoutSeed = config?.pathLayoutSeed ?? 0
   const labelConfig = config?.labelConfig
 
-  const processedSteps = useMemo(() => buildProcessedSteps(steps), [steps])
+  const processedSteps = useMemo(() => buildProsesBisnisedSteps(steps), [steps])
 
   const connections = useMemo(
     () =>

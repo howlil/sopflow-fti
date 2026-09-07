@@ -3,7 +3,7 @@ import { JenisLangkahProsedur } from '../../../generated/prisma';
 import type { SopWorkbenchDbPayload } from './sop-catalog.repository';
 
 /**
- * Mengumpulkan pesan validasi kelengkapan workbench sebelum masuk Process Review.
+ * Mengumpulkan pesan validasi kelengkapan workbench sebelum masuk ProsesBisnis Review.
  * Tanggal revisi dan tanggal efektif tidak diwajibkan.
  */
 export function collectSopWorkbenchCompletenessIssues(row: SopWorkbenchDbPayload): string[] {
@@ -77,9 +77,9 @@ export function collectSopWorkbenchCompletenessIssues(row: SopWorkbenchDbPayload
   return pesan;
 }
 
-export function assertSopWorkbenchCompleteForProcessReview(row: SopWorkbenchDbPayload): void {
+export function assertSopWorkbenchCompleteForPemeriksaanProsesBisnis(row: SopWorkbenchDbPayload): void {
   const pesan = collectSopWorkbenchCompletenessIssues(row);
   if (pesan.length > 0) {
-    throw new BadRequestException(`SOP belum lengkap untuk Process Review. ${pesan.join(' ')}`);
+    throw new BadRequestException(`SOP belum lengkap untuk ProsesBisnis Review. ${pesan.join(' ')}`);
   }
 }

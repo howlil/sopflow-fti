@@ -5,15 +5,15 @@ import { Pagination } from '@/components/ui/pagination'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/utils/cn'
 import type { PaginationMetaDto } from '@/types/dto/common.dto'
-import type { PublicProcessItem } from '@/types/dto/sop-public.dto'
+import type { PublicProsesBisnisItem } from '@/types/dto/sop-public.dto'
 import { ArsipSearchField } from './arsip-chrome'
 
-export interface ArsipProcessSidebarProps {
-  items: PublicProcessItem[]
-  selectedProcessId?: string
+export interface ArsipProsesBisnisSidebarProps {
+  items: PublicProsesBisnisItem[]
+  selectedProsesBisnisId?: string
   processFilter: string
-  onProcessFilterChange: (value: string) => void
-  onSelectProcess: (processId: string) => void
+  onProsesBisnisFilterChange: (value: string) => void
+  onSelectProsesBisnis: (prosesBisnisId: string) => void
   isLoading: boolean
   isError: boolean
   isFetching: boolean
@@ -24,12 +24,12 @@ export interface ArsipProcessSidebarProps {
   compactPagination?: boolean
 }
 
-export function ArsipProcessSidebar({
+export function ArsipProsesBisnisSidebar({
   items,
-  selectedProcessId,
+  selectedProsesBisnisId,
   processFilter,
-  onProcessFilterChange,
-  onSelectProcess,
+  onProsesBisnisFilterChange,
+  onSelectProsesBisnis,
   isLoading,
   isError,
   isFetching,
@@ -38,7 +38,7 @@ export function ArsipProcessSidebar({
   onPageChange,
   embedded = false,
   compactPagination = false,
-}: ArsipProcessSidebarProps) {
+}: ArsipProsesBisnisSidebarProps) {
   const faculty = items.filter((item) => item.scope === 'FACULTY')
   const departments = items.filter((item) => item.scope === 'DEPARTMENT')
   const hasFilter = processFilter.trim().length > 0
@@ -50,7 +50,7 @@ export function ArsipProcessSidebar({
         !embedded &&
           'max-h-[calc(100vh-12rem)] min-h-[calc(100vh-12rem)] rounded-xl border border-border shadow-surface',
       )}
-      aria-label="Daftar Process FTI"
+      aria-label="Daftar Proses Bisnis FTI"
     >
       <div className="border-b border-border p-3">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -59,14 +59,14 @@ export function ArsipProcessSidebar({
         <ArsipSearchField
           id="arsip-process-filter"
           value={processFilter}
-          onChange={onProcessFilterChange}
-          placeholder="Saring Process atau Departemen…"
+          onChange={onProsesBisnisFilterChange}
+          placeholder="Saring Proses Bisnis atau Departemen…"
         />
       </div>
       <div className="flex-1 overflow-y-auto p-2">
         {isLoading ? (
           <div className="space-y-2 p-2" aria-busy="true" role="status">
-            <span className="sr-only">Memuat daftar Process</span>
+            <span className="sr-only">Memuat daftar ProsesBisnis</span>
             {Array.from({ length: 7 }).map((_, i) => (
               <Skeleton key={i} className="h-14 rounded-lg" />
             ))}
@@ -74,34 +74,34 @@ export function ArsipProcessSidebar({
         ) : null}
         {isError ? (
           <Card role="alert" className="m-2 border-red-200 bg-red-50 p-4 text-center text-sm text-red-800">
-            Gagal memuat daftar Process.
+            Gagal memuat daftar ProsesBisnis.
           </Card>
         ) : null}
         {!isLoading && !isError && items.length === 0 ? (
           <p className="p-4 text-center text-sm text-muted-foreground">
             {hasFilter
-              ? 'Tidak ada Process atau Departemen yang cocok.'
-              : 'Belum ada Process yang memiliki SOP resmi berlaku.'}
+              ? 'Tidak ada Proses Bisnis atau Departemen yang cocok.'
+              : 'Belum ada Proses Bisnis yang memiliki SOP resmi berlaku.'}
           </p>
         ) : null}
         {!isLoading && !isError && items.length > 0 ? (
           <div className="space-y-4">
             {faculty.length > 0 ? (
-              <ProcessGroup
+              <ProsesBisnisGroup
                 label="Fakultas"
                 icon={<GraduationCap className="h-4 w-4" aria-hidden />}
                 items={faculty}
-                selectedProcessId={selectedProcessId}
-                onSelectProcess={onSelectProcess}
+                selectedProsesBisnisId={selectedProsesBisnisId}
+                onSelectProsesBisnis={onSelectProsesBisnis}
               />
             ) : null}
             {departments.length > 0 ? (
-              <ProcessGroup
+              <ProsesBisnisGroup
                 label="Departemen"
                 icon={<Building2 className="h-4 w-4" aria-hidden />}
                 items={departments}
-                selectedProcessId={selectedProcessId}
-                onSelectProcess={onSelectProcess}
+                selectedProsesBisnisId={selectedProsesBisnisId}
+                onSelectProsesBisnis={onSelectProsesBisnis}
               />
             ) : null}
           </div>
@@ -119,7 +119,7 @@ export function ArsipProcessSidebar({
             currentPage={page}
             totalItems={pagination.totalItems}
             pageSize={pagination.limit}
-            label="Process"
+            label="Proses Bisnis"
             showSinglePageSummary
             onPageChange={onPageChange}
             className={cn('border-t-0 px-0 py-0', compactPagination && 'flex-col gap-2')}
@@ -130,18 +130,18 @@ export function ArsipProcessSidebar({
   )
 }
 
-function ProcessGroup({
+function ProsesBisnisGroup({
   label,
   icon,
   items,
-  selectedProcessId,
-  onSelectProcess,
+  selectedProsesBisnisId,
+  onSelectProsesBisnis,
 }: {
   label: string
   icon: ReactNode
-  items: PublicProcessItem[]
-  selectedProcessId?: string
-  onSelectProcess: (processId: string) => void
+  items: PublicProsesBisnisItem[]
+  selectedProsesBisnisId?: string
+  onSelectProsesBisnis: (prosesBisnisId: string) => void
 }) {
   return (
     <section aria-label={label}>
@@ -149,17 +149,17 @@ function ProcessGroup({
         {icon}
         {label}
       </p>
-      <ul className="space-y-1" role="listbox" aria-label={`Process ${label}`}>
+      <ul className="space-y-1" role="listbox" aria-label={`ProsesBisnis ${label}`}>
         {items.map((process) => {
-          const isSelected = process.processId === selectedProcessId
+          const isSelected = process.prosesBisnisId === selectedProsesBisnisId
           return (
-            <li key={process.processId} role="presentation">
+            <li key={process.prosesBisnisId} role="presentation">
               <button
                 type="button"
                 role="option"
                 aria-selected={isSelected}
-                data-arsip-process-id={process.processId}
-                onClick={() => onSelectProcess(process.processId)}
+                data-arsip-process-id={process.prosesBisnisId}
+                onClick={() => onSelectProsesBisnis(process.prosesBisnisId)}
                 className={cn(
                   'flex min-h-11 w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition',
                   isSelected
@@ -180,8 +180,8 @@ function ProcessGroup({
                     {process.nama}
                   </span>
                   <span className="mt-0.5 block text-xs text-muted-foreground">
-                    {process.scope === 'DEPARTMENT' && process.departmentName
-                      ? `${process.departmentName} · `
+                    {process.scope === 'DEPARTMENT' && process.namaDepartemen
+                      ? `${process.namaDepartemen} · `
                       : ''}
                     {process.jumlahSopBerlaku} SOP berlaku
                   </span>

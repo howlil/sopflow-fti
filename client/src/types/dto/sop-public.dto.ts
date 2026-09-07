@@ -7,14 +7,14 @@ export interface PublicArsipQueryParams {
   search?: string
 }
 
-export type PublicOrganizationalScope = 'FACULTY' | 'DEPARTMENT'
+export type PublicLingkupOrganisasi = 'FACULTY' | 'DEPARTMENT'
 
-export interface PublicProcessItem {
-  processId: string
+export interface PublicProsesBisnisItem {
+  prosesBisnisId: string
   nama: string
-  scope: PublicOrganizationalScope
-  departmentId: string | null
-  departmentName: string | null
+  scope: PublicLingkupOrganisasi
+  departemenId: string | null
+  namaDepartemen: string | null
   jumlahSopBerlaku: number
 }
 
@@ -25,16 +25,16 @@ export interface PublicSopItem {
   nomorSOP: string
   versi: number
   tanggalEfektif: string | null
-  processId: string
-  processName: string
-  scope: PublicOrganizationalScope
-  departmentId: string | null
-  departmentName: string | null
+  prosesBisnisId: string
+  namaProsesBisnis: string
+  scope: PublicLingkupOrganisasi
+  departemenId: string | null
+  namaDepartemen: string | null
   pdfUrl: string
 }
 
-export interface PublicProcessPage {
-  items: PublicProcessItem[]
+export interface PublicProsesBisnisPage {
+  items: PublicProsesBisnisItem[]
   pagination: PaginationMetaDto
 }
 
@@ -43,8 +43,8 @@ export interface PublicSopPage {
   pagination: PaginationMetaDto
 }
 
-export interface PublicSopByProcessPage extends PublicSopPage {
-  process: PublicProcessItem
+export interface PublicSopByProsesBisnisPage extends PublicSopPage {
+  process: PublicProsesBisnisItem
 }
 
 export interface PublicSopDokumen {

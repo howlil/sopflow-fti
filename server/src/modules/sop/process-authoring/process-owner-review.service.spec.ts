@@ -4,17 +4,17 @@ import { ConflictException, ForbiddenException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import {
   JenisLangkahProsedur,
-  OrganizationalAuthority,
-  ProcessNotificationKind,
+  PejabatBerwenang,
+  JenisNotifikasiProsesBisnis,
   StatusSOP,
 } from '../../../generated/prisma';
-import type { OrganizationalAuthorityService } from '../../core/process/organizational-authority.service';
-import type { ProcessContextService } from '../../core/process/process-context.service';
-import type { ProcessNotificationService } from '../../notifications/process/process-notification.service';
+import type { PejabatBerwenangService } from '../../core/process/organizational-authority.service';
+import type { ProsesBisnisContextService } from '../../core/process/konteks-proses-bisnis.service';
+import type { NotifikasiProsesBisnisService } from '../../notifications/process/process-notification.service';
 import type { SopCatalogRepository } from '../catalog/sop-catalog.repository';
-import { ProcessReviewDecision } from './dto/process-review-decision.dto';
-import { ProcessOwnerReviewService } from './process-owner-review.service';
-import type { ProcessSopAuthoringService } from './process-sop-authoring.service';
+import { KeputusanPemeriksaanProsesBisnis } from './dto/pemeriksaan-proses-bisnis-decision.dto';
+import { ProsesBisnisOwnerReviewService } from './process-owner-review.service';
+import type { ProsesBisnisSopAuthoringService } from './sop-proses-bisnis-authoring.service';
 
 const user = {
   sub: 'user-1',
@@ -30,13 +30,13 @@ function makeService(options?: { owner?: boolean; status?: StatusSOP; transition
     logEditSOP: {
       create: jest.fn().mockResolvedValue({}),
     },
-    processReview: {
+    pemeriksaanProsesBisnis: {
       create: jest.fn().mockResolvedValue({}),
     },
   };
   const prisma = {
     sOP: {
-      findUnique: jest.fn().mockResolvedValue({ processId: 'process-a' }),
+      findUnique: jest.fn().mockResolvedValue({ prosesBisnisId: 'process-a' }),
     },
     detailSOP: {
       findUnique: jest.fn().mockResolvedValue({ dibuatOlehId: 'author-1' }),
@@ -45,7 +45,7 @@ function makeService(options?: { owner?: boolean; status?: StatusSOP; transition
   } as unknown as PrismaService;
   const processContext = {
     assertCanAuthor: jest.fn().mockResolvedValue({
-      processId: 'process-a',
+      prosesBisnisId: 'process-a',
       ownerId: 'owner-1',
       nama: 'Akademik',
     }),
@@ -53,29 +53,29 @@ function makeService(options?: { owner?: boolean; status?: StatusSOP; transition
       options?.owner === false
         ? jest.fn().mockRejectedValue(new ForbiddenException())
         : jest.fn().mockResolvedValue({
-            processId: 'process-a',
+            prosesBisnisId: 'process-a',
             ownerId: 'user-1',
             nama: 'Akademik',
           }),
-  } as unknown as ProcessContextService;
+  } as unknown as ProsesBisnisContextService;
   const organizationalAuthority = {
-    resolveForProcess: jest.fn().mockResolvedValue({
+    resolveForProsesBisnis: jest.fn().mockResolvedValue({
       authorityKey: 'DEAN',
-      authority: OrganizationalAuthority.DEAN,
-      departmentId: null,
+      authority: PejabatBerwenang.DEAN,
+      departemenId: null,
       holderId: 'dean-1',
       holderName: 'Dekan FTI',
       holderNip: '123456789012345678',
       holderJabatan: 'Dekan',
-      processId: 'process-a',
-      processName: 'Akademik',
+      prosesBisnisId: 'process-a',
+      namaProsesBisnis: 'Akademik',
       scope: 'FACULTY',
     }),
-  } as unknown as OrganizationalAuthorityService;
-  const processNotifications = {
+  } as unknown as PejabatBerwenangService;
+  const notifikasiProsesBisnis = {
     createInTransaction: jest.fn().mockResolvedValue(undefined),
     emitChanged: jest.fn(),
-  } as unknown as ProcessNotificationService;
+  } as unknown as NotifikasiProsesBisnisService;
   const repository = {
     findDetailIdByDetailOrSopId: jest.fn().mockResolvedValue({
       detailSopId: 'detail-a',
@@ -130,30 +130,30 @@ function makeService(options?: { owner?: boolean; status?: StatusSOP; transition
   } as unknown as SopCatalogRepository;
   const authoring = {
     getWorkbench: jest.fn().mockResolvedValue({ detail: { id: 'detail-a' }, langkah: [] }),
-  } as unknown as ProcessSopAuthoringService;
+  } as unknown as ProsesBisnisSopAuthoringService;
 
   return {
-    service: new ProcessOwnerReviewService(
+    service: new ProsesBisnisOwnerReviewService(
       prisma,
       processContext,
       organizationalAuthority,
-      processNotifications,
+      notifikasiProsesBisnis,
       repository,
       authoring,
     ),
     prisma,
     processContext,
     organizationalAuthority,
-    processNotifications,
+    notifikasiProsesBisnis,
     repository,
     authoring,
     tx,
   };
 }
 
-describe('ProcessOwnerReviewService', () => {
-  it('submits a Process SOP directly into Process Owner review and notifies the Process Owner', async () => {
-    const { service, tx, processNotifications } = makeService();
+describe('ProsesBisnisOwnerReviewService', () => {
+  it('submits a Proses Bisnis SOP directly into Penanggung Jawab Proses Bisnis review and notifies the Penanggung Jawab Proses Bisnis', async () => {
+    const { service, tx, notifikasiProsesBisnis } = makeService();
 
     await service.submitForReview(user, 'detail-a');
 
@@ -165,28 +165,28 @@ describe('ProcessOwnerReviewService', () => {
       },
     });
     expect(tx.logEditSOP.create).toHaveBeenCalled();
-    expect(processNotifications.createInTransaction).toHaveBeenCalledWith(
+    expect(notifikasiProsesBisnis.createInTransaction).toHaveBeenCalledWith(
       tx,
       expect.objectContaining({
         detailSopId: 'detail-a',
         sopId: 'sop-a',
-        processId: 'process-a',
+        prosesBisnisId: 'process-a',
         penggunaId: 'owner-1',
-        kind: ProcessNotificationKind.PROCESS_OWNER_REVIEW_REQUESTED,
-        processName: 'Akademik',
+        kind: JenisNotifikasiProsesBisnis.PROCESS_OWNER_REVIEW_REQUESTED,
+        namaProsesBisnis: 'Akademik',
       }),
     );
-    expect(processNotifications.emitChanged).toHaveBeenCalledWith('owner-1');
+    expect(notifikasiProsesBisnis.emitChanged).toHaveBeenCalledWith('owner-1');
   });
 
-  it('returns a submitted SOP for revision and notifies the original Process author atomically', async () => {
-    const { service, prisma, processContext, organizationalAuthority, processNotifications, tx } =
+  it('returns a submitted SOP for revision and notifies the original Proses Bisnis author atomically', async () => {
+    const { service, prisma, processContext, organizationalAuthority, notifikasiProsesBisnis, tx } =
       makeService({
         owner: true,
         status: StatusSOP.PROCESS_REVIEW,
       });
 
-    await service.review(user, 'detail-a', ProcessReviewDecision.REVISION, 'Perbaiki langkah 2');
+    await service.review(user, 'detail-a', KeputusanPemeriksaanProsesBisnis.REVISION, 'Perbaiki langkah 2');
 
     expect(processContext.assertCanReview).toHaveBeenCalledWith('user-1', 'process-a');
     expect(prisma.detailSOP.findUnique).toHaveBeenCalledWith({
@@ -200,20 +200,20 @@ describe('ProcessOwnerReviewService', () => {
         terakhirDieditOlehId: 'user-1',
       },
     });
-    expect(organizationalAuthority.resolveForProcess).not.toHaveBeenCalled();
-    expect(processNotifications.createInTransaction).toHaveBeenCalledWith(
+    expect(organizationalAuthority.resolveForProsesBisnis).not.toHaveBeenCalled();
+    expect(notifikasiProsesBisnis.createInTransaction).toHaveBeenCalledWith(
       tx,
       expect.objectContaining({
         penggunaId: 'author-1',
-        kind: ProcessNotificationKind.PROCESS_REVISION_REQUESTED,
-        processName: 'Akademik',
+        kind: JenisNotifikasiProsesBisnis.PROCESS_REVISION_REQUESTED,
+        namaProsesBisnis: 'Akademik',
       }),
     );
-    expect(tx.processReview.create).toHaveBeenCalledWith({
+    expect(tx.pemeriksaanProsesBisnis.create).toHaveBeenCalledWith({
       data: {
         detailSopId: 'detail-a',
         sopId: 'sop-a',
-        processId: 'process-a',
+        prosesBisnisId: 'process-a',
         reviewedById: 'user-1',
         decision: 'REVISION',
         previousStatus: StatusSOP.PROCESS_REVIEW,
@@ -221,17 +221,17 @@ describe('ProcessOwnerReviewService', () => {
         catatan: 'Perbaiki langkah 2',
       },
     });
-    expect(processNotifications.emitChanged).toHaveBeenCalledWith('author-1');
+    expect(notifikasiProsesBisnis.emitChanged).toHaveBeenCalledWith('author-1');
   });
 
-  it('maps Process Owner acceptance to ready-for-approval and notifies the resolved authority', async () => {
-    const { service, tx, organizationalAuthority, processNotifications } = makeService({
+  it('maps Penanggung Jawab Proses Bisnis acceptance to ready-for-approval and notifies the resolved authority', async () => {
+    const { service, tx, organizationalAuthority, notifikasiProsesBisnis } = makeService({
       status: StatusSOP.PROCESS_REVIEW,
     });
 
-    await service.review(user, 'detail-a', ProcessReviewDecision.ACCEPT);
+    await service.review(user, 'detail-a', KeputusanPemeriksaanProsesBisnis.ACCEPT);
 
-    expect(organizationalAuthority.resolveForProcess).toHaveBeenCalledWith('process-a');
+    expect(organizationalAuthority.resolveForProsesBisnis).toHaveBeenCalledWith('process-a');
     expect(tx.detailSOP.updateMany).toHaveBeenCalledWith({
       where: { detailSopId: 'detail-a', status: StatusSOP.PROCESS_REVIEW },
       data: {
@@ -239,19 +239,19 @@ describe('ProcessOwnerReviewService', () => {
         terakhirDieditOlehId: 'user-1',
       },
     });
-    expect(processNotifications.createInTransaction).toHaveBeenCalledWith(
+    expect(notifikasiProsesBisnis.createInTransaction).toHaveBeenCalledWith(
       tx,
       expect.objectContaining({
         penggunaId: 'dean-1',
-        kind: ProcessNotificationKind.FINAL_APPROVAL_REQUESTED,
+        kind: JenisNotifikasiProsesBisnis.FINAL_APPROVAL_REQUESTED,
         authorityLabel: 'Dekan',
       }),
     );
-    expect(tx.processReview.create).toHaveBeenCalledWith({
+    expect(tx.pemeriksaanProsesBisnis.create).toHaveBeenCalledWith({
       data: {
         detailSopId: 'detail-a',
         sopId: 'sop-a',
-        processId: 'process-a',
+        prosesBisnisId: 'process-a',
         reviewedById: 'user-1',
         decision: 'ACCEPT',
         previousStatus: StatusSOP.PROCESS_REVIEW,
@@ -259,14 +259,14 @@ describe('ProcessOwnerReviewService', () => {
         catatan: null,
       },
     });
-    expect(processNotifications.emitChanged).toHaveBeenCalledWith('dean-1');
+    expect(notifikasiProsesBisnis.emitChanged).toHaveBeenCalledWith('dean-1');
   });
 
-  it('rejects review decisions outside the submitted Process Owner review state', async () => {
+  it('rejects review decisions outside the submitted Penanggung Jawab Proses Bisnis review state', async () => {
     const { service } = makeService({ status: StatusSOP.DRAFT });
 
     await expect(
-      service.review(user, 'detail-a', ProcessReviewDecision.ACCEPT),
+      service.review(user, 'detail-a', KeputusanPemeriksaanProsesBisnis.ACCEPT),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
@@ -276,9 +276,9 @@ describe('ProcessOwnerReviewService', () => {
       status: StatusSOP.PROCESS_REVIEW,
     });
 
-    await service.review(user, 'detail-a', ProcessReviewDecision.REVISION);
+    await service.review(user, 'detail-a', KeputusanPemeriksaanProsesBisnis.REVISION);
 
-    expect(tx.processReview.create).toHaveBeenCalledWith({
+    expect(tx.pemeriksaanProsesBisnis.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         decision: 'REVISION',
         catatan: null,
@@ -287,15 +287,15 @@ describe('ProcessOwnerReviewService', () => {
   });
 
   it('rejects a stale concurrent review decision instead of overwriting the winner', async () => {
-    const { service, processNotifications, tx } = makeService({
+    const { service, notifikasiProsesBisnis, tx } = makeService({
       status: StatusSOP.PROCESS_REVIEW,
       transitionCount: 0,
     });
 
     await expect(
-      service.review(user, 'detail-a', ProcessReviewDecision.ACCEPT),
+      service.review(user, 'detail-a', KeputusanPemeriksaanProsesBisnis.ACCEPT),
     ).rejects.toBeInstanceOf(ConflictException);
-    expect(processNotifications.createInTransaction).not.toHaveBeenCalled();
-    expect(tx.processReview.create).not.toHaveBeenCalled();
+    expect(notifikasiProsesBisnis.createInTransaction).not.toHaveBeenCalled();
+    expect(tx.pemeriksaanProsesBisnis.create).not.toHaveBeenCalled();
   });
 });

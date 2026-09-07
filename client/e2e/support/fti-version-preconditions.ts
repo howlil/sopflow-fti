@@ -3,13 +3,13 @@ import type { RoleApiFactory } from '../fixtures/business-test'
 import { apiGet, apiPost } from './api'
 import { ensureTteReady } from './e2e-flow'
 import type {
-  ProcessSopSeedOptions,
-  ReadyProcessSopFixture,
+  ProsesBisnisSopSeedOptions,
+  ReadyProsesBisnisSopFixture,
 } from './fti-process-preconditions'
-import { seedProcessSopReadyForTte } from './fti-tte-preconditions'
+import { seedProsesBisnisSopReadyForTte } from './fti-tte-preconditions'
 import { e2ePin, validPdfBase64 } from './test-data'
 
-export interface ProcessVersionWorkbench {
+export interface ProsesBisnisVersionWorkbench {
   detail: {
     id: string
     sopId: string
@@ -20,7 +20,7 @@ export interface ProcessVersionWorkbench {
   }
 }
 
-export interface ProcessVersionHistoryRow {
+export interface ProsesBisnisVersionHistoryRow {
   detailSopId: string
   versi: number
   nomorSOP: string
@@ -28,42 +28,42 @@ export interface ProcessVersionHistoryRow {
   revisiDariDetailSopId: string | null
 }
 
-export interface PublishedProcessSopFixture extends ReadyProcessSopFixture {
+export interface PublishedProsesBisnisSopFixture extends ReadyProsesBisnisSopFixture {
   authorityUser: E2eUser
 }
 
 export interface ReplacementReadyFixture {
-  v1: PublishedProcessSopFixture
-  v2: ProcessVersionWorkbench['detail']
+  v1: PublishedProsesBisnisSopFixture
+  v2: ProsesBisnisVersionWorkbench['detail']
 }
 
-interface PublishedSeedOptions extends ProcessSopSeedOptions {
+interface PublishedSeedOptions extends ProsesBisnisSopSeedOptions {
   authorityUser?: E2eUser
 }
 
-/** Publish V1 through the real Process TTE endpoint. This is a precondition for version journeys. */
-export async function seedPublishedProcessSop(
+/** Publish V1 through the real ProsesBisnis TTE endpoint. This is a precondition for version journeys. */
+export async function seedPublishedProsesBisnisSop(
   apiFor: RoleApiFactory,
   prefix: string,
   options: PublishedSeedOptions = {},
-): Promise<PublishedProcessSopFixture> {
+): Promise<PublishedProsesBisnisSopFixture> {
   const authorityUser = options.authorityUser ?? targetUsers.dean
-  const sop = await seedProcessSopReadyForTte(apiFor, prefix, {
+  const sop = await seedProsesBisnisSopReadyForTte(apiFor, prefix, {
     ...options,
     authorityUser,
   })
   const authorityApi = await apiFor(authorityUser)
-  await apiPost(authorityApi, `/process-tte/${sop.detailSopId}/sign`, {
+  await apiPost(authorityApi, `/tte-proses-bisnis/${sop.detailSopId}/sign`, {
     pin: e2ePin,
     nomorDokumen: sop.number,
     judulDokumen: sop.title,
     pdfBase64: validPdfBase64,
   })
 
-  const actorApi = await apiFor(options.actor ?? targetUsers.processMember)
-  const workbench = await apiGet<ProcessVersionWorkbench>(
+  const actorApi = await apiFor(options.actor ?? targetUsers.anggotaProsesBisnis)
+  const workbench = await apiGet<ProsesBisnisVersionWorkbench>(
     actorApi,
-    `/process-sop/workbench/${sop.detailSopId}`,
+    `/sop-proses-bisnis/workbench/${sop.detailSopId}`,
   )
   if (workbench.detail.status !== 'EFFECTIVE') {
     throw new Error(`Precondition V1 harus BERLAKU, ditemukan ${workbench.detail.status}`)
@@ -72,13 +72,13 @@ export async function seedPublishedProcessSop(
   return { ...sop, authorityUser }
 }
 
-export async function createProcessVersion(
+export async function createProsesBisnisVersion(
   apiFor: RoleApiFactory,
   actor: E2eUser,
   sourceDetailSopId: string,
-): Promise<ProcessVersionWorkbench> {
+): Promise<ProsesBisnisVersionWorkbench> {
   const api = await apiFor(actor)
-  return apiPost<ProcessVersionWorkbench>(api, `/process-sop/${sourceDetailSopId}/version`)
+  return apiPost<ProsesBisnisVersionWorkbench>(api, `/sop-proses-bisnis/${sourceDetailSopId}/version`)
 }
 
 /** Prepare V2 through submit, Owner ACCEPT, and contextual final approval; signing stays the journey action. */
@@ -87,22 +87,22 @@ export async function seedReplacementReadyForTte(
   prefix: string,
   options: PublishedSeedOptions = {},
 ): Promise<ReplacementReadyFixture> {
-  const actor = options.actor ?? targetUsers.processMember
+  const actor = options.actor ?? targetUsers.anggotaProsesBisnis
   const authorityUser = options.authorityUser ?? targetUsers.dean
-  const v1 = await seedPublishedProcessSop(apiFor, prefix, { ...options, authorityUser })
-  const v2Workbench = await createProcessVersion(apiFor, actor, v1.detailSopId)
+  const v1 = await seedPublishedProsesBisnisSop(apiFor, prefix, { ...options, authorityUser })
+  const v2Workbench = await createProsesBisnisVersion(apiFor, actor, v1.detailSopId)
   const actorApi = await apiFor(actor)
   const ownerApi = await apiFor(targetUsers.processOwner)
   const authorityApi = await apiFor(authorityUser)
 
-  await apiPost(actorApi, `/process-sop/${v2Workbench.detail.id}/submit-review`)
-  await apiPost(ownerApi, `/process-sop/${v2Workbench.detail.id}/review`, { decision: 'ACCEPT' })
-  await apiPost(authorityApi, `/process-approval/${v2Workbench.detail.id}/approve`)
+  await apiPost(actorApi, `/sop-proses-bisnis/${v2Workbench.detail.id}/submit-review`)
+  await apiPost(ownerApi, `/sop-proses-bisnis/${v2Workbench.detail.id}/review`, { decision: 'ACCEPT' })
+  await apiPost(authorityApi, `/persetujuan-akhir-sop/${v2Workbench.detail.id}/approve`)
   await ensureTteReady(authorityApi)
 
-  const ready = await apiGet<ProcessVersionWorkbench>(
+  const ready = await apiGet<ProsesBisnisVersionWorkbench>(
     actorApi,
-    `/process-sop/workbench/${v2Workbench.detail.id}`,
+    `/sop-proses-bisnis/workbench/${v2Workbench.detail.id}`,
   )
   if (ready.detail.status !== 'TTE_PENDING') {
     throw new Error(`Precondition V2 harus siap TTE, ditemukan ${ready.detail.status}`)
@@ -111,11 +111,11 @@ export async function seedReplacementReadyForTte(
   return { v1, v2: ready.detail }
 }
 
-export async function getProcessVersionHistory(
+export async function getProsesBisnisVersionHistory(
   apiFor: RoleApiFactory,
   actor: E2eUser,
   sopId: string,
-): Promise<ProcessVersionHistoryRow[]> {
+): Promise<ProsesBisnisVersionHistoryRow[]> {
   const api = await apiFor(actor)
-  return apiGet<ProcessVersionHistoryRow[]>(api, `/process-sop/${sopId}/history`)
+  return apiGet<ProsesBisnisVersionHistoryRow[]>(api, `/sop-proses-bisnis/${sopId}/history`)
 }
