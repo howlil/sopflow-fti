@@ -64,9 +64,9 @@ function makeService(options?: { owner?: boolean; status?: StatusSOP; transition
       authority: OrganizationalAuthority.DEAN,
       departmentId: null,
       holderId: 'dean-1',
-      holderName: 'Dean',
+      holderName: 'Dekan FTI',
       holderNip: '123456789012345678',
-      holderJabatan: 'Dean',
+      holderJabatan: 'Dekan',
       processId: 'process-a',
       processName: 'Akademik',
       scope: 'FACULTY',
@@ -93,7 +93,7 @@ function makeService(options?: { owner?: boolean; status?: StatusSOP; transition
       versi: 1,
       nomorSOP: '001',
       namaLembaga: 'Fakultas Teknologi Informasi',
-      sop: { sopId: 'sop-a', judul: 'SOP'},
+      sop: { sopId: 'sop-a', judul: 'SOP' },
       dasarHukum: [{ peraturanId: 'p-1' }],
       relasiSopKeluar: [
         {
@@ -244,7 +244,7 @@ describe('ProcessOwnerReviewService', () => {
       expect.objectContaining({
         penggunaId: 'dean-1',
         kind: ProcessNotificationKind.FINAL_APPROVAL_REQUESTED,
-        authorityLabel: 'Dean',
+        authorityLabel: 'Dekan',
       }),
     );
     expect(tx.processReview.create).toHaveBeenCalledWith({
@@ -270,7 +270,7 @@ describe('ProcessOwnerReviewService', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('keeps revision-note input backward-compatible during the expand phase', async () => {
+  it('persists an omitted revision note as null', async () => {
     const { service, tx } = makeService({
       owner: true,
       status: StatusSOP.PROCESS_REVIEW,
