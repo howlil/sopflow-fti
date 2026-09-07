@@ -102,7 +102,7 @@ export class TteProfilService {
     const p12Buffer = generatePersonalP12({
       nama: pengguna.nama,
       nip: pengguna.nip,
-      opdNama: FTI_ORGANIZATION_NAME,
+      organizationName: FTI_ORGANIZATION_NAME,
       jabatan: pengguna.jabatan,
       passphrase: randomPassphrase,
     });
@@ -134,7 +134,7 @@ export class TteProfilService {
     const p12Buffer = generatePersonalP12({
       nama: pengguna.nama,
       nip: pengguna.nip,
-      opdNama: FTI_ORGANIZATION_NAME,
+      organizationName: FTI_ORGANIZATION_NAME,
       jabatan: pengguna.jabatan,
       passphrase: randomPassphrase,
     });
