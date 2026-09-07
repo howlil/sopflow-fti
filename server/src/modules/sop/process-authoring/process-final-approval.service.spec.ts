@@ -15,7 +15,7 @@ jest.mock('../catalog/sop-catalog.mapper', () => ({
   mapWorkbenchPayload: jest.fn(() => ({ detail: { id: 'detail-a' }, langkah: [] })),
 }));
 
-const user = { sub: 'dean-1', peran: 'PENYUSUN' } as never;
+const user = { sub: 'dean-1', email: 'dean@fti.example.test' } as never;
 
 function makeService(
   status: StatusSOP = StatusSOP.FINAL_APPROVAL,
