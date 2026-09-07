@@ -22,6 +22,7 @@ const textExtensions = new Set([
 const codeExtensions = new Set(['.ts', '.tsx', '.js', '.cjs', '.mjs', '.prisma', '.py']);
 
 const forbiddenEverywhere = [
+  /\bOPD\b/i,
   /\bPeranPengguna\b/,
   /\bKEPALA_OPD\b/,
   /\bPJ_EVALUATOR\b/,
@@ -35,7 +36,7 @@ const forbiddenEverywhere = [
   /BagianSOP\.EVALUASI\b/,
   /\bSiapDievaluasi\b/,
   /\bSiap Dievaluasi\b/,
-  /legacy-unbound compatibility/i,
+  /\blegacy-unbound\b/i,
 ];
 const forbiddenInCode = [
   /\bperan\s*:\s*['"](?:PENYUSUN|EVALUATOR|KEPALA_OPD|PJ_EVALUATOR|PJ_PENYUSUN)['"]/,
