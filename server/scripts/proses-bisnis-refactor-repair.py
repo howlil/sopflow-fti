@@ -13,6 +13,12 @@ filename_map = [
     ('process-invitations', 'undangan-anggota-proses-bisnis'),
     ('process-revocation', 'pencabutan-sop'),
     ('process-tte', 'tte-proses-bisnis'),
+    ('ProcessLifecycleContext', 'StatusProsesBisnisContext'),
+    ('ProcessInvitationActivation', 'AktivasiUndanganAnggotaProsesBisnis'),
+    ('ProcessOwnerSelfServicePanel', 'PanelLayananMandiriPenanggungJawabProsesBisnis'),
+    ('ProcessManagementPage', 'HalamanPengelolaanProsesBisnis'),
+    ('ProcessApprovalPage', 'HalamanPersetujuanAkhirSOP'),
+    ('ProcessWorkQueuePage', 'HalamanAntrianKerjaProsesBisnis'),
 ]
 
 paths = sorted(
@@ -72,6 +78,21 @@ for path in ROOT.rglob('*'):
         '../shared/dto/tanda-tangani-process-sop.dto',
         '../shared/dto/tanda-tangani-sop-proses-bisnis.dto',
     )
+    component_replacements = {
+        'ProcessLifecycleContext': 'StatusProsesBisnisContext',
+        'ProcessInvitationActivation': 'AktivasiUndanganAnggotaProsesBisnis',
+        'UndanganAnggotaProsesBisnisActivation': 'AktivasiUndanganAnggotaProsesBisnis',
+        'ProcessOwnerSelfServicePanel': 'PanelLayananMandiriPenanggungJawabProsesBisnis',
+        'ProsesBisnisOwnerSelfServicePanel': 'PanelLayananMandiriPenanggungJawabProsesBisnis',
+        'ProcessManagementPage': 'HalamanPengelolaanProsesBisnis',
+        'ProsesBisnisManagementPage': 'HalamanPengelolaanProsesBisnis',
+        'ProcessApprovalPage': 'HalamanPersetujuanAkhirSOP',
+        'ProsesBisnisApprovalPage': 'HalamanPersetujuanAkhirSOP',
+        'ProcessWorkQueuePage': 'HalamanAntrianKerjaProsesBisnis',
+        'ProsesBisnisWorkQueuePage': 'HalamanAntrianKerjaProsesBisnis',
+    }
+    for old, new in component_replacements.items():
+        text = text.replace(old, new)
     text = text.replace('listProsesBisnises', 'listProsesBisnis')
     text = text.replace('listDepartemens', 'listDepartemen')
     if text != original:
