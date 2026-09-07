@@ -31,8 +31,11 @@ const forbiddenEverywhere = [
   /\bopdId\b/,
   /\bopdNama\b/,
   /\bARSIP_OPD_[A-Z0-9_]*\b/,
-  /StatusSOP\.(?:BERLAKU|DIGANTIKAN|DICABUT|SEDANG_DIEVALUASI|REVISI_DARI_EVALUATOR|MENUNGGU_TTD_PJ_EVALUATOR|DITANDATANGANI_DEAN)/,
+  /StatusSOP\.(?:BERLAKU|DIGANTIKAN|DICABUT|SEDANG_DIEVALUASI|REVISI_DARI_EVALUATOR|DITOLAK_EVALUATOR|MENUNGGU_TTD_PJ_EVALUATOR)/,
   /BagianSOP\.EVALUASI\b/,
+  /\bSiapDievaluasi\b/,
+  /\bSiap Dievaluasi\b/,
+  /legacy-unbound compatibility/i,
 ];
 const forbiddenInCode = [
   /\bperan\s*:\s*['"](?:PENYUSUN|EVALUATOR|KEPALA_OPD|PJ_EVALUATOR|PJ_PENYUSUN)['"]/,
