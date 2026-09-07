@@ -53,8 +53,8 @@ const BAGIAN_LABEL_ID: Record<BagianSOP, string> = {
   HEADER: 'Header SOP',
   LANGKAH: 'Langkah Prosedur',
   STATUS: 'Status SOP',
-  UMPAN_BALIK: 'Umpan balik evaluasi',
-  EVALUASI: 'Evaluasi',
+  UMPAN_BALIK: 'Umpan balik review',
+  REVIEW: 'Review Proses',
 };
 
 /** Id stabil untuk klien (bukan UUID): tripel PK dipisah unit separator. */
@@ -121,7 +121,7 @@ async function replaceDomainFields(
 }
 
 /**
- * Append-or-create entry log untuk satu (detailSop, pengguna, bagian, targetEntityId).
+ * Append-or-create entry log untuk satu (detailSop, pengguna, bagian).
  *
  * - `discrete=true` selalu buat entry baru `closedAt = now`.
  * - Bila ada sesi terbuka same triple dan `updatedAt > now - idleWindowMs` -> merge.
@@ -193,7 +193,6 @@ export async function appendOrCreateLogSession(p: AppendLogParams): Promise<void
     return;
   }
 
-  /* Tutup sesi terbuka basi same triple agar tidak ada dua sesi terbuka paralel. */
   await p.tx.logEditSOP.updateMany({
     where: {
       detailSopId: p.detailSopId,
