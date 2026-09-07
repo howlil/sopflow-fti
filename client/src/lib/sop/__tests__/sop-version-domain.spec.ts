@@ -9,7 +9,7 @@ describe('sop version domain', () => {
     expect(getNextSopVersion([{ versi: 1 }, { versi: 2 }])).toBe(3)
   })
 
-  it.each(['DITOLAK_EVALUATOR', 'BERLAKU', 'DIGANTIKAN', 'DICABUT'])(
+  it.each(['EFFECTIVE', 'SUPERSEDED', 'REVOKED'])(
     'mengizinkan status terminal %s sebagai sumber',
     (status) => {
       expect(isTerminalVersionStatus(status)).toBe(true)
@@ -23,13 +23,13 @@ describe('sop version domain', () => {
         status: 'DRAFT',
         canBuatVersiBaru: false,
       }),
-    ).toContain('versi DITOLAK, BERLAKU, DIGANTIKAN, atau DICABUT')
+    ).toContain('Hanya versi Berlaku, Digantikan, atau Dicabut')
   })
 
   it('memblokir sumber terminal ketika revisi lain masih berjalan', () => {
     expect(
       getBuatVersiDariRiwayatBlockingReason({
-        status: 'DIGANTIKAN',
+        status: 'SUPERSEDED',
         canBuatVersiBaru: false,
       }),
     ).toContain('Masih ada revisi versi yang belum selesai')
