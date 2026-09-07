@@ -36,12 +36,11 @@ describe('TteProfilService PIN rotation', () => {
     const repository = {
       findPenggunaAktif: jest.fn().mockResolvedValue({
         penggunaId: 'user-1',
-        email: 'kepala@example.test',
-        nama: 'Kepala OPD',
+        email: 'dean@example.test',
+        nama: 'Dekan FTI',
         nip: '198001012006041001',
-        jabatan: 'Kepala Dinas',
+        jabatan: 'Dekan',
         pangkat: 'Pembina',
-        opdNama: 'Dinas Test',
       }),
       findKredensial: jest.fn().mockResolvedValue({
         hashPin: oldHash,
@@ -73,7 +72,7 @@ describe('TteProfilService PIN rotation', () => {
     await service.updateProfilPin(
       {
         sub: 'user-1',
-        email: 'kepala@example.test',
+        email: 'dean@example.test',
       },
       { pinLama: oldPin, pinBaru: newPin },
     );
