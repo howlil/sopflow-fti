@@ -29,7 +29,6 @@ jobs:
           ROOT = Path('.')
           PRISMA = ROOT / 'server' / 'prisma'
           MAIN_SCHEMA = PRISMA / 'schema.prisma'
-          WORKFLOW = Path('.github/workflows/proses-bisnis-domain-refactor.yml')
 
           # 1. Satu source of truth Prisma. Migration historis tidak pernah disentuh.
           fragment_order = [
@@ -134,11 +133,16 @@ jobs:
               ('/process-tte', '/tte-proses-bisnis'),
           ]
 
-          text_suffixes = {'.ts', '.tsx', '.js', '.cjs', '.mjs', '.prisma', '.md', '.json', '.yml', '.yaml'}
-          skip_roots = ('server/prisma/migrations/', 'server/src/generated/', 'client/node_modules/', 'server/node_modules/')
+          text_suffixes = {'.ts', '.tsx', '.js', '.cjs', '.mjs', '.prisma', '.md', '.json'}
+          skip_roots = (
+              '.github/workflows/',
+              'server/prisma/migrations/',
+              'server/src/generated/',
+              'client/node_modules/',
+              'server/node_modules/',
+          )
           skip_names = {'pnpm-lock.yaml', 'package-lock.json', 'yarn.lock'}
 
-          # Quoted user-facing strings first, so PascalCase identifier replacement does not create "ProsesBisnis" labels.
           quoted = re.compile(r"(['\"])(?:\\.|(?!\1).)*\1")
           def translate_literal(match):
               literal = match.group(0)
@@ -156,9 +160,9 @@ jobs:
               if not path.is_file():
                   continue
               rel = path.as_posix()
-              if rel == WORKFLOW.as_posix() or rel in skip_names or rel.startswith(skip_roots):
+              if rel in skip_names or rel.startswith(skip_roots):
                   continue
-              if path.suffix not in text_suffixes and path.name not in {'AGENTS.md'}:
+              if path.suffix not in text_suffixes and path.name != 'AGENTS.md':
                   continue
               try:
                   text = path.read_text(encoding='utf-8')
@@ -178,9 +182,8 @@ jobs:
               if text != original:
                   path.write_text(text, encoding='utf-8')
 
-          # 3. Prisma Client memakai Bahasa Indonesia, DB fisik tetap memakai nama tabel/kolom existing.
+          # 3. Prisma Client memakai Bahasa Indonesia, DB fisik tetap memakai nama existing.
           schema = MAIN_SCHEMA.read_text(encoding='utf-8')
-
           model_maps = {
               'Departemen': 'Department',
               'ProsesBisnis': 'Process',
@@ -240,37 +243,22 @@ jobs:
               lines.append(line)
           MAIN_SCHEMA.write_text('\n'.join(lines) + '\n', encoding='utf-8')
 
-          # Prisma sekarang hanya membaca satu schema canonical.
           config = Path('server/prisma.config.ts')
-          cfg = config.read_text(encoding='utf-8')
-          cfg = cfg.replace("schema: 'prisma',", "schema: 'prisma/schema.prisma',")
+          cfg = config.read_text(encoding='utf-8').replace("schema: 'prisma',", "schema: 'prisma/schema.prisma',")
           config.write_text(cfg, encoding='utf-8')
 
-          # 4. Pulihkan version ranges package manifest agar cocok dengan frozen lockfile.
+          # 4. Pulihkan package manifest agar cocok dengan frozen lockfile.
           package_path = Path('server/package.json')
           package = json.loads(package_path.read_text(encoding='utf-8'))
           package['devDependencies'].update({
-              '@eslint/js': '^9.18.0',
-              '@nestjs/cli': '^11.0.0',
-              '@nestjs/schematics': '^11.0.0',
-              '@nestjs/testing': '^11.0.1',
-              '@types/express': '^5.0.0',
-              '@types/node': '^22.10.7',
-              '@types/supertest': '^6.0.2',
-              'eslint': '^9.18.0',
-              'eslint-config-prettier': '^10.0.1',
-              'eslint-plugin-prettier': '^5.2.2',
-              'globals': '^16.0.0',
-              'jest': '^30.0.0',
-              'prettier': '^3.4.2',
-              'supertest': '^7.0.0',
-              'ts-jest': '^29.2.5',
-              'typescript': '^5.7.3',
-              'typescript-eslint': '^8.20.0',
+              '@eslint/js': '^9.18.0', '@nestjs/cli': '^11.0.0', '@nestjs/schematics': '^11.0.0',
+              '@nestjs/testing': '^11.0.1', '@types/express': '^5.0.0', '@types/node': '^22.10.7',
+              '@types/supertest': '^6.0.2', 'eslint': '^9.18.0', 'eslint-config-prettier': '^10.0.1',
+              'eslint-plugin-prettier': '^5.2.2', 'globals': '^16.0.0', 'jest': '^30.0.0',
+              'prettier': '^3.4.2', 'supertest': '^7.0.0', 'ts-jest': '^29.2.5',
+              'typescript': '^5.7.3', 'typescript-eslint': '^8.20.0',
           })
           package_path.write_text(json.dumps(package, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-
-          # Keep formatter-friendly EOFs.
           subprocess.run(['git', 'status', '--short'], check=True)
           PY
 
