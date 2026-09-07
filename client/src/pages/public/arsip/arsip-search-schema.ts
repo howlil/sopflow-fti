@@ -13,9 +13,6 @@ export const arsipBrowseSearchSchema = z.object({
   processPage: z.coerce.number().int().min(1).optional(),
   sopPage: z.coerce.number().int().min(1).optional(),
   sopSearch: z.string().max(200).optional(),
-  // Accepted only so old bookmarked OPD-first URLs do not fail route validation.
-  opdId: z.string().optional(),
-  opdPage: z.coerce.number().int().min(1).optional(),
 })
 
 export type ArsipBrowseSearch = z.infer<typeof arsipBrowseSearchSchema>

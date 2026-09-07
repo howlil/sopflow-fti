@@ -2,172 +2,85 @@ import 'dotenv/config';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { PrismaClient } from '../src/generated/prisma';
 
-type ScalarRow = { value: bigint | number | string };
-
 const required = (name: string): string => {
   const value = process.env[name]?.trim();
-  if (!value) throw new Error(`${name} wajib diisi untuk FTI baseline audit`);
+  if (!value) throw new Error(`${name} wajib diisi untuk FTI schema audit`);
   return value;
 };
 
-const databasePort = (): number => {
-  const port = Number(process.env.DATABASE_PORT ?? '3306');
-  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
-    throw new Error('DATABASE_PORT tidak valid');
-  }
-  return port;
-};
-
-const adapter = new PrismaMariaDb({
-  host: required('DATABASE_HOST'),
-  port: databasePort(),
-  user: required('DATABASE_USER'),
-  password: required('DATABASE_PASSWORD'),
-  database: required('DATABASE_NAME'),
-  connectionLimit: 2,
-  connectTimeout: 15_000,
-  allowPublicKeyRetrieval: true,
+const port = Number(process.env.DATABASE_PORT ?? '3306');
+const prisma = new PrismaClient({
+  adapter: new PrismaMariaDb({
+    host: required('DATABASE_HOST'),
+    port,
+    user: required('DATABASE_USER'),
+    password: required('DATABASE_PASSWORD'),
+    database: required('DATABASE_NAME'),
+    connectionLimit: 2,
+    connectTimeout: 15_000,
+    allowPublicKeyRetrieval: true,
+  }),
 });
 
-const prisma = new PrismaClient({ adapter });
-
 async function scalar(sql: string): Promise<number> {
-  const rows = await prisma.$queryRawUnsafe<ScalarRow[]>(sql);
-  const value = rows[0]?.value;
-  if (value === undefined) throw new Error(`Audit query tidak mengembalikan nilai: ${sql}`);
-  return Number(value);
-}
-
-async function tableExists(tableName: string): Promise<boolean> {
-  return (
-    (await scalar(
-      `SELECT COUNT(*) AS value FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = '${tableName}'`,
-    )) > 0
-  );
+  const rows = await prisma.$queryRawUnsafe<Array<{ value: bigint | number | string }>>(sql);
+  return Number(rows[0]?.value ?? 0);
 }
 
 async function run(): Promise<void> {
-  const hasProcessReminderTable = await tableExists('ProcessReminder');
-  const hasLegacyRetentionTable = await tableExists('LegacySopRetention');
-  const hasActiveBindingTable = await tableExists('ProcessSopBinding');
-  const hasRetiredBindingTable = await tableExists('_retired_ProcessSopBinding_20260906');
+  const removedTables = [
+    'OPD',
+    'RiwayatOpdPengguna',
+    'OPDPeraturan',
+    'PengajuanEvaluasi',
+    'NilaiEvaluasi',
+    'PengingatWhatsApp',
+    'LegacySopRetention',
+    '_retired_ProcessSopBinding_20260906',
+  ];
+  const removedColumns: Array<[string, string]> = [
+    ['Pengguna', 'opdId'],
+    ['Pengguna', 'peran'],
+    ['SOP', 'opdId'],
+    ['Pelaksana', 'opdId'],
+    ['DokumenTte', 'pengajuanEvaluasiId'],
+    ['RiwayatTandaTangan', 'peran'],
+  ];
 
-  const checks = {
-    unresolvedFailedMigrations: await scalar(
-      'SELECT COUNT(*) AS value FROM `_prisma_migrations` WHERE finished_at IS NULL AND rolled_back_at IS NULL',
-    ),
-    processScopeMismatches: await scalar(
-      "SELECT COUNT(*) AS value FROM `Process` WHERE (`scope` = 'FACULTY' AND `departmentId` IS NOT NULL) OR (`scope` = 'DEPARTMENT' AND `departmentId` IS NULL)",
-    ),
-    processOwnerOrphans: await scalar(
-      'SELECT COUNT(*) AS value FROM `Process` p LEFT JOIN `Pengguna` u ON u.`penggunaId` = p.`ownerId` WHERE u.`penggunaId` IS NULL',
-    ),
-    processMemberOrphans: await scalar(
-      'SELECT COUNT(*) AS value FROM `ProcessMember` m LEFT JOIN `Process` p ON p.`processId` = m.`processId` LEFT JOIN `Pengguna` u ON u.`penggunaId` = m.`penggunaId` WHERE p.`processId` IS NULL OR u.`penggunaId` IS NULL',
-    ),
-    sopProcessOrphans: await scalar(
-      'SELECT COUNT(*) AS value FROM `SOP` s LEFT JOIN `Process` p ON p.`processId` = s.`processId` WHERE s.`processId` IS NOT NULL AND p.`processId` IS NULL',
-    ),
-    activeProcessSopBindingStillPresent: hasActiveBindingTable ? 1 : 0,
-    retiredProcessSopBindingMissing: hasRetiredBindingTable ? 0 : 1,
-    retiredBindingUnbackfilled: hasRetiredBindingTable
-      ? await scalar(
-          'SELECT COUNT(*) AS value FROM `_retired_ProcessSopBinding_20260906` b LEFT JOIN `SOP` s ON s.`sopId` = b.`sopId` WHERE s.`sopId` IS NULL OR s.`processId` IS NULL',
-        )
-      : 0,
-    retiredBindingOwnershipMismatches: hasRetiredBindingTable
-      ? await scalar(
-          'SELECT COUNT(*) AS value FROM `_retired_ProcessSopBinding_20260906` b JOIN `SOP` s ON s.`sopId` = b.`sopId` WHERE s.`processId` <> b.`processId`',
-        )
-      : 0,
-    legacyRetentionTableMissing: hasLegacyRetentionTable ? 0 : 1,
-    unclassifiedUnboundSop: hasLegacyRetentionTable
-      ? await scalar(
-          'SELECT COUNT(*) AS value FROM `SOP` s LEFT JOIN `LegacySopRetention` r ON r.`sopId` = s.`sopId` WHERE s.`processId` IS NULL AND r.`sopId` IS NULL',
-        )
-      : 0,
-    retentionForProcessBoundSop: hasLegacyRetentionTable
-      ? await scalar(
-          'SELECT COUNT(*) AS value FROM `LegacySopRetention` r JOIN `SOP` s ON s.`sopId` = r.`sopId` WHERE s.`processId` IS NOT NULL',
-        )
-      : 0,
-    retentionKindMismatches: hasLegacyRetentionTable
-      ? await scalar(
-          "SELECT COUNT(*) AS value FROM `LegacySopRetention` r WHERE (r.`kind` = 'HISTORICAL_OPD' AND r.`legacyOpdId` IS NULL) OR (r.`kind` = 'HISTORICAL_UNSCOPED' AND r.`legacyOpdId` IS NOT NULL) OR TRIM(r.`sopTitleSnapshot`) = ''",
-        )
-      : 0,
-    missingPelaksanaSnapshots: await scalar(
-      'SELECT COUNT(*) AS value FROM `DetailSOPPelaksana` d LEFT JOIN `DetailSOPPelaksanaSnapshot` s ON s.`detailSopId` = d.`detailSopId` AND s.`pelaksanaId` = d.`pelaksanaId` WHERE s.`detailSopId` IS NULL',
-    ),
-    orphanPelaksanaSnapshots: await scalar(
-      'SELECT COUNT(*) AS value FROM `DetailSOPPelaksanaSnapshot` s LEFT JOIN `DetailSOPPelaksana` d ON d.`detailSopId` = s.`detailSopId` AND d.`pelaksanaId` = s.`pelaksanaId` WHERE d.`detailSopId` IS NULL',
-    ),
-    duplicateEffectiveVersions: await scalar(
-      "SELECT COUNT(*) AS value FROM (SELECT `sopId` FROM `DetailSOP` WHERE `status` = 'BERLAKU' GROUP BY `sopId` HAVING COUNT(*) > 1) duplicates",
-    ),
-    invalidDokumenTteParent: await scalar(
-      'SELECT COUNT(*) AS value FROM `DokumenTte` WHERE ((`detailSopId` IS NULL) + (`pengajuanEvaluasiId` IS NULL)) <> 1',
-    ),
-    nativeReminderOrphans: hasProcessReminderTable
-      ? await scalar(
-          'SELECT COUNT(*) AS value FROM `ProcessReminder` r LEFT JOIN `DetailSOP` d ON d.`detailSopId` = r.`detailSopId` LEFT JOIN `SOP` s ON s.`sopId` = r.`sopId` LEFT JOIN `Process` p ON p.`processId` = r.`processId` LEFT JOIN `Pengguna` u ON u.`penggunaId` = r.`penggunaId` WHERE d.`detailSopId` IS NULL OR s.`sopId` IS NULL OR p.`processId` IS NULL OR u.`penggunaId` IS NULL OR d.`sopId` <> r.`sopId` OR s.`processId` <> r.`processId`',
-        )
-      : 0,
-    nativeReminderStatusMismatches: hasProcessReminderTable
-      ? await scalar(
-          "SELECT COUNT(*) AS value FROM `ProcessReminder` r JOIN `DetailSOP` d ON d.`detailSopId` = r.`detailSopId` WHERE (r.`kind` = 'PROCESS_OWNER_REVIEW' AND d.`status` <> 'SEDANG_DIEVALUASI') OR (r.`kind` = 'PROCESS_REVISION' AND d.`status` <> 'REVISI_DARI_EVALUATOR') OR (r.`kind` = 'FINAL_APPROVAL' AND d.`status` <> 'MENUNGGU_TTD_PJ_EVALUATOR')",
-        )
-      : 0,
-  };
-
-  const classification = {
-    sopNativeProcessBound: await scalar(
-      'SELECT COUNT(*) AS value FROM `SOP` WHERE `processId` IS NOT NULL',
-    ),
-    sopHistoricalRetained: hasLegacyRetentionTable
-      ? await scalar('SELECT COUNT(*) AS value FROM `LegacySopRetention`')
-      : 0,
-    sopUnboundUnclassified: checks.unclassifiedUnboundSop,
-    penggunaWithLegacyOpdShadow: await scalar(
-      'SELECT COUNT(*) AS value FROM `Pengguna` WHERE `opdId` IS NOT NULL',
-    ),
-    penggunaWithoutOpdShadow: await scalar(
-      'SELECT COUNT(*) AS value FROM `Pengguna` WHERE `opdId` IS NULL',
-    ),
-    activeProcessSopBindingTablePresent: hasActiveBindingTable ? 1 : 0,
-    retiredProcessSopBindingRows: hasRetiredBindingTable
-      ? await scalar('SELECT COUNT(*) AS value FROM `_retired_ProcessSopBinding_20260906`')
-      : 0,
-    opdRowsRetainedForHistory: await scalar('SELECT COUNT(*) AS value FROM `OPD`'),
-    pengajuanEvaluasiRowsRetainedForHistory: await scalar(
-      'SELECT COUNT(*) AS value FROM `PengajuanEvaluasi`',
-    ),
-    retiredNilaiEvaluasiTablePresent: (await tableExists('_retired_NilaiEvaluasi_20260906')) ? 1 : 0,
-    retiredLogNilaiEvaluasiTablePresent: (await tableExists('_retired_LogNilaiEvaluasi_20260906')) ? 1 : 0,
-    retiredPengingatWhatsAppTablePresent: (await tableExists('_retired_PengingatWhatsApp_20260906')) ? 1 : 0,
-    retiredNotifikasiInAppTablePresent: (await tableExists('_retired_NotifikasiInApp_20260906')) ? 1 : 0,
-    nativeReminderTablePresent: hasProcessReminderTable ? 1 : 0,
-    processReminderRows: hasProcessReminderTable
-      ? await scalar('SELECT COUNT(*) AS value FROM `ProcessReminder`')
-      : 0,
-  };
-
-  const failedChecks = Object.entries(checks).filter(([, value]) => value !== 0);
-  const report = {
-    generatedAt: new Date().toISOString(),
-    database: process.env.DATABASE_NAME,
-    readOnly: true,
-    checks,
-    classification,
-    result: failedChecks.length === 0 ? 'PASS' : 'FAIL',
-  };
-
-  console.log(JSON.stringify(report, null, 2));
-
-  if (failedChecks.length > 0) {
-    throw new Error(
-      `FTI baseline invariant gagal: ${failedChecks.map(([name]) => name).join(', ')}`,
+  const tableResidue = await scalar(
+    `SELECT COUNT(*) AS value FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN (${removedTables.map((name) => `'${name}'`).join(',')})`,
+  );
+  let columnResidue = 0;
+  for (const [tableName, columnName] of removedColumns) {
+    columnResidue += await scalar(
+      `SELECT COUNT(*) AS value FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '${tableName}' AND COLUMN_NAME = '${columnName}'`,
     );
+  }
+
+  const invalidStatusRows = await scalar(
+    "SELECT COUNT(*) AS value FROM `DetailSOP` WHERE `status` NOT IN ('DRAFT','PROCESS_REVIEW','REVISION_REQUIRED','FINAL_APPROVAL','TTE_PENDING','EFFECTIVE','SUPERSEDED','REVOKED')",
+  );
+  const statusColumnWithLegacyValues = await scalar(
+    "SELECT COUNT(*) AS value FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'DetailSOP' AND COLUMN_NAME = 'status' AND (COLUMN_TYPE LIKE '%SEDANG_DIEVALUASI%' OR COLUMN_TYPE LIKE '%REVISI_DARI_EVALUATOR%' OR COLUMN_TYPE LIKE '%MENUNGGU_TTD_PJ_EVALUATOR%' OR COLUMN_TYPE LIKE '%BERLAKU%' OR COLUMN_TYPE LIKE '%DICABUT%')",
+  );
+  const orphanedProcessSop = await scalar(
+    'SELECT COUNT(*) AS value FROM `SOP` s LEFT JOIN `Process` p ON p.processId = s.processId WHERE s.processId IS NOT NULL AND p.processId IS NULL',
+  );
+  const invalidSigningAuthority = await scalar(
+    "SELECT COUNT(*) AS value FROM `RiwayatTandaTangan` WHERE `authority` NOT IN ('DEAN','HEAD_OF_DEPARTMENT')",
+  );
+
+  const result = {
+    tableResidue,
+    columnResidue,
+    invalidStatusRows,
+    statusColumnWithLegacyValues,
+    orphanedProcessSop,
+    invalidSigningAuthority,
+  };
+  console.log(JSON.stringify(result, null, 2));
+  if (Object.values(result).some((value) => value !== 0)) {
+    throw new Error('FTI post-contraction database invariant gagal');
   }
 }
 
@@ -176,6 +89,4 @@ run()
     console.error(error instanceof Error ? error.message : error);
     process.exitCode = 1;
   })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .finally(async () => prisma.$disconnect());

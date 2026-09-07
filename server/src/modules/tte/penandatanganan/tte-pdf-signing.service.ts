@@ -81,7 +81,7 @@ export type PdfSignatureTteMatch = {
   readonly reason: string;
   readonly dokumenTteId?: string;
   readonly userId?: string;
-  readonly peran?: string;
+  readonly authority?: string;
   readonly jenisDokumen?: string;
   readonly nomorDokumen?: string;
   readonly judulDokumen?: string;
@@ -435,7 +435,7 @@ export class TtePdfSigningService {
           reason: 'Jenis dokumen pada signature PDF tidak cocok dengan riwayat TTE aplikasi.',
           dokumenTteId: row.dokumenTteId,
           userId: row.userId,
-          peran: String(row.peran),
+          authority: String(row.authority),
           jenisDokumen: String(row.dokumenTte.jenisDokumen),
         },
       };
@@ -452,7 +452,7 @@ export class TtePdfSigningService {
           reason: 'Riwayat TTE ditemukan, tetapi metadata signature PDF belum tersimpan.',
           dokumenTteId: row.dokumenTteId,
           userId: row.userId,
-          peran: String(row.peran),
+          authority: String(row.authority),
           jenisDokumen: String(row.dokumenTte.jenisDokumen),
           nomorDokumen: row.dokumenTte.nomorDokumen,
           judulDokumen: row.dokumenTte.judulDokumen,
@@ -474,7 +474,7 @@ export class TtePdfSigningService {
             : 'Signature PDF tidak cocok dengan signature value/fingerprint/serial sertifikat pada riwayat TTE aplikasi.',
         dokumenTteId: row.dokumenTteId,
         userId: row.userId,
-        peran: String(row.peran),
+        authority: String(row.authority),
         jenisDokumen: String(row.dokumenTte.jenisDokumen),
         nomorDokumen: row.dokumenTte.nomorDokumen,
         judulDokumen: row.dokumenTte.judulDokumen,

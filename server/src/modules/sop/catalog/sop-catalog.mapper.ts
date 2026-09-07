@@ -252,7 +252,7 @@ export function mapDaftarRow(row: SopDaftarDbRow): SopDaftarRowDto {
   const hasTerminalSource = row.allStatuses.some((status) => TERMINAL_DETAIL_STATUSES.has(status));
   const canBuatVersiBaru = hasTerminalSource && !inFlight;
   const canCabutSop =
-    row.versiBerlaku !== null && row.versiBerlaku.status === StatusSOP.BERLAKU && !inFlight;
+    row.versiBerlaku !== null && row.versiBerlaku.status === StatusSOP.EFFECTIVE && !inFlight;
   const canHapusSopDraft =
     detail !== undefined &&
     detail.status === StatusSOP.DRAFT &&

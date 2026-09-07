@@ -139,7 +139,7 @@ describe('SopProsedurService Process-native actor policy', () => {
   });
 
   it('preserves editability rules for Process-bound SOPs', async () => {
-    repo.findDetailStatus.mockResolvedValue(StatusSOP.BERLAKU);
+    repo.findDetailStatus.mockResolvedValue(StatusSOP.EFFECTIVE);
     await expect(
       service.updateProsedur(processMember, 'detail-1', {
         pelaksana: [{ pelaksanaId: 'actor-1' }],

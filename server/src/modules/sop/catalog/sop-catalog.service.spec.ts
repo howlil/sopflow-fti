@@ -27,7 +27,7 @@ describe('SopCatalogService', () => {
       nomorSOP: 'SOP/001',
       tanggalPembuatan: now,
       tanggalRevisi: null,
-      tanggalEfektif: status === StatusSOP.BERLAKU ? now : null,
+      tanggalEfektif: status === StatusSOP.EFFECTIVE ? now : null,
       namaLembaga: 'Fakultas Teknologi Informasi',
       dibuatOlehId: 'user-1',
       terakhirDieditOlehId: null,
@@ -79,7 +79,7 @@ describe('SopCatalogService', () => {
 
   it('rejects an effective legacy-unbound document from first-party public discovery', async () => {
     repository.findWorkbenchPayloadByDetailOrSopId.mockResolvedValue(
-      workbench(StatusSOP.BERLAKU, null),
+      workbench(StatusSOP.EFFECTIVE, null),
     );
 
     await expect(createService().getPublicDokumenBerlaku('detail-1')).rejects.toBeInstanceOf(
@@ -88,7 +88,7 @@ describe('SopCatalogService', () => {
   });
 
   it('returns only an effective Process-bound document', async () => {
-    repository.findWorkbenchPayloadByDetailOrSopId.mockResolvedValue(workbench(StatusSOP.BERLAKU));
+    repository.findWorkbenchPayloadByDetailOrSopId.mockResolvedValue(workbench(StatusSOP.EFFECTIVE));
 
     const result = await createService().getPublicDokumenBerlaku('detail-1');
 

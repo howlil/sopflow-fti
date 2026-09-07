@@ -198,7 +198,7 @@ export class SopCatalogRepository {
   }): SopDaftarDbRow {
     const sorted = [...row.detailSops].sort((a, b) => b.versi - a.versi);
     const latest = sorted[0];
-    const effective = sorted.find((detail) => detail.status === StatusSOP.BERLAKU);
+    const effective = sorted.find((detail) => detail.status === StatusSOP.EFFECTIVE);
     return {
       sopId: row.sopId,
       judul: row.judul,

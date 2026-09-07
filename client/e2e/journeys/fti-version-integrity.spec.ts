@@ -51,14 +51,14 @@ test.describe('End-to-End Business Journey — Process version historical/public
       )
       expect(history.find((row) => row.detailSopId === fixture.v1.detailSopId)).toMatchObject({
         versi: 1,
-        status: 'BERLAKU',
+        status: 'EFFECTIVE',
       })
       expect(history.find((row) => row.detailSopId === fixture.v2.id)).toMatchObject({
         versi: 2,
-        status: 'MENUNGGU_TTD_PJ_EVALUATOR',
+        status: 'TTE_PENDING',
         revisiDariDetailSopId: fixture.v1.detailSopId,
       })
-      expect(history.filter((row) => row.status === 'BERLAKU')).toHaveLength(1)
+      expect(history.filter((row) => row.status === 'EFFECTIVE')).toHaveLength(1)
 
       const oldPdf = await publicPage.request.get(
         toApiUrl(`/sop/public/pdf/${fixture.v1.detailSopId}`),

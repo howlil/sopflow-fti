@@ -43,9 +43,9 @@ const processInclude = {
 } as const;
 
 const TERMINAL_SOP_STATUSES: StatusSOP[] = [
-  StatusSOP.BERLAKU,
-  StatusSOP.DIGANTIKAN,
-  StatusSOP.DICABUT,
+  StatusSOP.EFFECTIVE,
+  StatusSOP.SUPERSEDED,
+  StatusSOP.REVOKED,
 ];
 
 @Injectable()

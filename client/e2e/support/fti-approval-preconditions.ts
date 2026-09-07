@@ -32,7 +32,7 @@ export async function seedProcessSopAwaitingOwnerReview(
     memberApi,
     `/process-sop/workbench/${sop.detailSopId}`,
   )
-  if (workbench.detail.status !== 'SEDANG_DIEVALUASI') {
+  if (workbench.detail.status !== 'PROCESS_REVIEW') {
     throw new Error(
       `Precondition harus menunggu Process Owner review, ditemukan ${workbench.detail.status}`,
     )

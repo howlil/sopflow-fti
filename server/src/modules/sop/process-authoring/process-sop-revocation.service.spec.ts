@@ -46,7 +46,7 @@ function makeService(options?: { transitionCount?: number }) {
           detailSopId: 'detail-a',
           sopId: 'sop-a',
           nomorSOP: 'SOP-001',
-          status: StatusSOP.BERLAKU,
+          status: StatusSOP.EFFECTIVE,
           versi: 1,
           updatedAt: new Date('2026-09-03T00:00:00.000Z'),
           sop: { judul: 'SOP Fakultas' },
@@ -81,7 +81,7 @@ function makeService(options?: { transitionCount?: number }) {
       sopId: 'sop-a',
     }),
     findRiwayatVersiBySopId: jest.fn().mockResolvedValue([
-      { detailSopId: 'detail-a', status: StatusSOP.BERLAKU },
+      { detailSopId: 'detail-a', status: StatusSOP.EFFECTIVE },
     ]),
   } as unknown as SopCatalogRepository;
   return {
@@ -115,12 +115,12 @@ describe('ProcessSopRevocationService', () => {
       detailSopId: 'detail-a',
       sopId: 'sop-a',
       processId: 'process-a',
-      status: StatusSOP.DICABUT,
+      status: StatusSOP.REVOKED,
     });
     expect(authority.assertCanApprove).toHaveBeenCalledWith('dean-1', 'process-a');
     expect(tx.detailSOP.updateMany).toHaveBeenCalledWith({
-      where: { detailSopId: 'detail-a', status: StatusSOP.BERLAKU },
-      data: { status: StatusSOP.DICABUT, terakhirDieditOlehId: 'dean-1' },
+      where: { detailSopId: 'detail-a', status: StatusSOP.EFFECTIVE },
+      data: { status: StatusSOP.REVOKED, terakhirDieditOlehId: 'dean-1' },
     });
     expect(tx.logEditSOP.create).toHaveBeenCalled();
     expect(tx.$executeRaw).toHaveBeenCalled();
@@ -153,7 +153,7 @@ describe('ProcessSopRevocationService', () => {
   it('rejects revocation while a newer revision is still in flight', async () => {
     const { service, catalog, processNotifications } = makeService();
     (catalog.findRiwayatVersiBySopId as jest.Mock).mockResolvedValue([
-      { detailSopId: 'detail-a', status: StatusSOP.BERLAKU },
+      { detailSopId: 'detail-a', status: StatusSOP.EFFECTIVE },
       { detailSopId: 'detail-b', status: StatusSOP.DRAFT },
     ]);
 

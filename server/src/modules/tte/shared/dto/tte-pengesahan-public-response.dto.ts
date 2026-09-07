@@ -27,40 +27,32 @@ class TtePengesahanPublicDokumenDto {
   @ApiProperty({ description: 'Hash SHA-256 kanonik dokumen' })
   hashDokumen!: string;
 
-  @ApiPropertyOptional({ nullable: true })
-  sopDetailId?: string | null;
-
+  @ApiProperty({ format: 'uuid' })
+  sopDetailId!: string;
 }
 
-/** Respons GET publik `/tte/public/pengesahan/:dokumenTteId/:userId` (verifikasi scan QR). */
+/** Respons publik untuk verifikasi QR pengesahan SOP FTI. */
 export class TtePengesahanPublicResponseDto {
-  @ApiProperty({ format: 'uuid', description: 'Pengguna penandatangan (bagian PK junction)' })
+  @ApiProperty({ format: 'uuid' })
   userId!: string;
 
-  @ApiProperty({ format: 'uuid', description: 'Dokumen TTE (bagian PK junction)' })
+  @ApiProperty({ format: 'uuid' })
   dokumenTteId!: string;
 
   @ApiProperty({ description: 'Waktu pengesahan (ISO 8601)' })
   ditandatanganiPada!: string;
 
   @ApiProperty({
-    enum: ['KEPALA_OPD', 'PJ_EVALUATOR', 'PJ_PENYUSUN', 'EVALUATOR', 'PENYUSUN'],
-    description:
-      'Peran akun compatibility. Untuk SOP Process-bound, authority legal berasal dari field authority.',
-  })
-  peran!: 'KEPALA_OPD' | 'PJ_EVALUATOR' | 'PJ_PENYUSUN' | 'EVALUATOR' | 'PENYUSUN';
-
-  @ApiPropertyOptional({
     enum: ['DEAN', 'HEAD_OF_DEPARTMENT'],
-    description: 'Organizational authority untuk TTE SOP Process-bound.',
+    description: 'Kewenangan organisasi yang menandatangani SOP.',
   })
-  authority?: 'DEAN' | 'HEAD_OF_DEPARTMENT';
+  authority!: 'DEAN' | 'HEAD_OF_DEPARTMENT';
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     enum: ['Dekan', 'Kepala Departemen'],
-    description: 'Label authority yang ditampilkan pada verifikasi publik.',
+    description: 'Label kewenangan penandatangan.',
   })
-  authorityLabel?: 'Dekan' | 'Kepala Departemen';
+  authorityLabel!: 'Dekan' | 'Kepala Departemen';
 
   @ApiProperty({ type: TtePengesahanPublicPenandatanganDto })
   penandatangan!: TtePengesahanPublicPenandatanganDto;
@@ -68,13 +60,9 @@ export class TtePengesahanPublicResponseDto {
   @ApiProperty({ type: TtePengesahanPublicDokumenDto })
   dokumen!: TtePengesahanPublicDokumenDto;
 
-  @ApiPropertyOptional({
-    nullable: true,
-    description:
-      'URL verifikasi publik bila origin aplikasi dapat ditentukan (request atau PUBLIC_APP_ORIGIN)',
-  })
+  @ApiPropertyOptional({ nullable: true })
   qrVerificationUrl!: string | null;
 
-  @ApiProperty({ description: 'String yang di-encode ke QR (URL atau JSON)' })
+  @ApiProperty({ description: 'String yang di-encode ke QR' })
   qrPayload!: string;
 }

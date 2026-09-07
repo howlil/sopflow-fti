@@ -18,7 +18,7 @@ jest.mock('../catalog/sop-catalog.mapper', () => ({
 const user = { sub: 'dean-1', peran: 'PENYUSUN' } as never;
 
 function makeService(
-  status: StatusSOP = StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
+  status: StatusSOP = StatusSOP.FINAL_APPROVAL,
   acceptedReviewId: string | null = null,
 ) {
   const prisma = {
@@ -96,7 +96,7 @@ describe('ProcessFinalApprovalService', () => {
   });
 
   it('links new approval evidence to the latest accepted Process Owner review', async () => {
-    const { service, prisma } = makeService(StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR, 'review-1');
+    const { service, prisma } = makeService(StatusSOP.FINAL_APPROVAL, 'review-1');
 
     await service.approve(user, 'detail-a');
 
@@ -105,7 +105,7 @@ describe('ProcessFinalApprovalService', () => {
         detailSopId: 'detail-a',
         processId: 'process-a',
         decision: ProcessReviewDecision.ACCEPT,
-        nextStatus: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
+        nextStatus: StatusSOP.FINAL_APPROVAL,
       },
       orderBy: { createdAt: 'desc' },
       select: { processReviewId: true },
@@ -134,7 +134,7 @@ describe('ProcessFinalApprovalService', () => {
   });
 
   it('rejects document reads outside the final approval/TTE state', async () => {
-    const { service } = makeService(StatusSOP.SEDANG_DIEVALUASI);
+    const { service } = makeService(StatusSOP.PROCESS_REVIEW);
 
     await expect(service.getDocumentForCurrentApprover(user, 'detail-a')).rejects.toBeInstanceOf(
       ConflictException,
@@ -142,7 +142,7 @@ describe('ProcessFinalApprovalService', () => {
   });
 
   it('rejects approval before Process Owner accepted the SOP', async () => {
-    const { service } = makeService(StatusSOP.SEDANG_DIEVALUASI);
+    const { service } = makeService(StatusSOP.PROCESS_REVIEW);
 
     await expect(service.approve(user, 'detail-a')).rejects.toBeInstanceOf(ConflictException);
   });

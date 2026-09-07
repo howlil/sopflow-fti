@@ -100,7 +100,7 @@ describe('Pengujian SopCatalogMapper', () => {
       detail: {
         detailSopId: 'det-1',
         nomorSOP: '001',
-        status: StatusSOP.BERLAKU,
+        status: StatusSOP.EFFECTIVE,
         versi: 1,
         updatedAt: t,
         pembuatNama: 'Budi',
@@ -111,13 +111,13 @@ describe('Pengujian SopCatalogMapper', () => {
         detailSopId: 'det-1',
         versi: 1,
         nomorSOP: '001',
-        status: StatusSOP.BERLAKU,
+        status: StatusSOP.EFFECTIVE,
         updatedAt: t,
         pembuatNama: 'Budi',
         editorNama: 'Ani',
         peraturanId: 'per-1',
       },
-      allStatuses: [StatusSOP.BERLAKU],
+      allStatuses: [StatusSOP.EFFECTIVE],
     });
     expect(actual.canBuatVersiBaru).toBe(true);
     expect(actual.canCabutSop).toBe(true);

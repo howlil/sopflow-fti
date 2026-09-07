@@ -48,14 +48,14 @@ test.describe('End-to-End Business Journey — Department Process version replac
         fixture.v1.sopId,
       )
       expect(history.find((row) => row.detailSopId === fixture.v1.detailSopId)?.status).toBe(
-        'DIGANTIKAN',
+        'SUPERSEDED',
       )
       expect(history.find((row) => row.detailSopId === fixture.v2.id)).toMatchObject({
         versi: 2,
-        status: 'BERLAKU',
+        status: 'EFFECTIVE',
         revisiDariDetailSopId: fixture.v1.detailSopId,
       })
-      expect(history.filter((row) => row.status === 'BERLAKU')).toHaveLength(1)
+      expect(history.filter((row) => row.status === 'EFFECTIVE')).toHaveLength(1)
     })
 
     await test.step('Public artifact hanya current V2', async () => {

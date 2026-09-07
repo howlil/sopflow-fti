@@ -11,25 +11,15 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 import { mapPenyusunWorkbenchToPreviewProps } from "@/lib/sop/detailSop.mappers";
 import { scheduleSopDocumentPrint } from "@/lib/print/pengajuan-print";
 import { ROUTES } from "@/utils/constants";
-import type { PeranTTE, TTESignaturePayload } from "@/types/dto/tte.dto";
+import type { TTESignaturePayload } from "@/types/dto/tte.dto";
 import { formatDateIdLong } from "@/utils/format-date";
 
-const HISTORICAL_TTE_ROLE_LABELS: Record<PeranTTE, string> = {
-  KEPALA_OPD: "Kepala OPD",
-  PJ_EVALUATOR: "Penanggung Jawab Evaluator",
-  PJ_PENYUSUN: "Penanggung Jawab Penyusun",
-  EVALUATOR: "Evaluator",
-  PENYUSUN: "Penyusun",
-};
 
 function truncateHash(hex: string, head = 18, tail = 8): string {
   if (hex.length <= head + tail + 3) return hex;
   return `${hex.slice(0, head)}…${hex.slice(-tail)}`;
 }
 
-function labelPeran(peran: PeranTTE): string {
-  return HISTORICAL_TTE_ROLE_LABELS[peran];
-}
 
 function waitForPrintPaint(): Promise<void> {
   return new Promise((resolve) => {
@@ -180,10 +170,10 @@ export function ValidasiPengesahanPage() {
                       : "—"}
                   </span>
                   <span className="text-muted-foreground">
-                    {query.data.authorityLabel ? "Kewenangan" : "Peran historis"}
+                    Kewenangan
                   </span>
                   <span className="text-foreground">
-                    {query.data.authorityLabel ?? labelPeran(query.data.peran)}
+                    {query.data.authorityLabel}
                   </span>
                   <span className="text-muted-foreground">Waktu pengesahan</span>
                   <span className="text-foreground">

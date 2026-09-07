@@ -11,7 +11,7 @@ export interface RevocationResult {
   detailSopId: string
   sopId: string
   processId: string
-  status: 'DICABUT'
+  status: 'REVOKED'
 }
 
 export async function revokeProcessSopViaApi(

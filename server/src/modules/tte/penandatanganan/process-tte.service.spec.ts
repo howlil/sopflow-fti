@@ -199,7 +199,7 @@ describe('ProcessTteService', () => {
     expect(result).toEqual(expect.objectContaining({
       detailSopId: context.detailSopId,
       authority: OrganizationalAuthority.DEAN,
-      status: StatusSOP.BERLAKU,
+      status: StatusSOP.EFFECTIVE,
     }));
   });
 
@@ -240,7 +240,7 @@ describe('ProcessTteService', () => {
     expect(result).toEqual(expect.objectContaining({
       authority: OrganizationalAuthority.HEAD_OF_DEPARTMENT,
       authorityKey: departmentContext.approval.authorityKey,
-      status: StatusSOP.BERLAKU,
+      status: StatusSOP.EFFECTIVE,
     }));
   });
 

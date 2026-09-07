@@ -108,7 +108,7 @@ export class ProcessSopRevocationService {
       const sopDetails = detailsBySopId.get(sop.sopId) ?? [];
       if (!process || sopDetails.length === 0) continue;
       if (hasRevisiInFlight(sopDetails.map((detail) => detail.status))) continue;
-      const effective = sopDetails.find((detail) => detail.status === StatusSOP.BERLAKU);
+      const effective = sopDetails.find((detail) => detail.status === StatusSOP.EFFECTIVE);
       if (!effective) continue;
       rows.push({
         detailSopId: effective.detailSopId,
@@ -152,7 +152,7 @@ export class ProcessSopRevocationService {
         'Tidak dapat mencabut SOP karena masih ada revisi yang sedang berjalan. Selesaikan atau batalkan revisi terlebih dahulu.',
       );
     }
-    const effective = history.find((row) => row.status === StatusSOP.BERLAKU);
+    const effective = history.find((row) => row.status === StatusSOP.EFFECTIVE);
     if (effective === undefined) {
       throw new ConflictException('SOP tidak memiliki versi berlaku yang dapat dicabut');
     }
@@ -181,10 +181,10 @@ export class ProcessSopRevocationService {
       const updated = await tx.detailSOP.updateMany({
         where: {
           detailSopId: effective.detailSopId,
-          status: StatusSOP.BERLAKU,
+          status: StatusSOP.EFFECTIVE,
         },
         data: {
-          status: StatusSOP.DICABUT,
+          status: StatusSOP.REVOKED,
           terakhirDieditOlehId: user.sub,
         },
       });
@@ -235,7 +235,7 @@ export class ProcessSopRevocationService {
       detailSopId: effective.detailSopId,
       sopId: resolved.sopId,
       processId,
-      status: StatusSOP.DICABUT,
+      status: StatusSOP.REVOKED,
     };
   }
 }

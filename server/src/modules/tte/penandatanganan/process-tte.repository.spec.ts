@@ -23,7 +23,7 @@ function signingContextTx() {
         sopId,
         nomorSOP: 'SOP-01',
         versi: 2,
-        status: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
+        status: StatusSOP.TTE_PENDING,
         sop: { processId, judul: 'SOP Akademik' },
       }),
       findFirst: jest.fn().mockResolvedValue({ detailSopId }),
@@ -107,16 +107,16 @@ describe('ProcessTteRepository effective-state integrity', () => {
 
     expect(tx.detailSOP.updateMany).toHaveBeenNthCalledWith(
       1,
-      expect.objectContaining({ data: { status: StatusSOP.DIGANTIKAN } }),
+      expect.objectContaining({ data: { status: StatusSOP.SUPERSEDED } }),
     );
     expect(tx.detailSOP.updateMany).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
         where: expect.objectContaining({
           detailSopId,
-          status: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
+          status: StatusSOP.TTE_PENDING,
         }),
-        data: expect.objectContaining({ status: StatusSOP.BERLAKU }),
+        data: expect.objectContaining({ status: StatusSOP.EFFECTIVE }),
       }),
     );
     expect(transactionRolledBack).toBe(true);

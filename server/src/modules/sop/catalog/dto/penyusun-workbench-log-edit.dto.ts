@@ -24,10 +24,10 @@ export class PenyusunWorkbenchLogEditDto {
   readonly userId!: string;
 
   @ApiProperty({
-    enum: ['HEADER', 'LANGKAH', 'STATUS', 'UMPAN_BALIK', 'EVALUASI'],
+    enum: ['HEADER', 'LANGKAH', 'STATUS', 'UMPAN_BALIK', 'REVIEW'],
     description: 'Bagian SOP yang disentuh (selaras BagianSOP server).',
   })
-  readonly bagian!: 'HEADER' | 'LANGKAH' | 'STATUS' | 'UMPAN_BALIK' | 'EVALUASI';
+  readonly bagian!: 'HEADER' | 'LANGKAH' | 'STATUS' | 'UMPAN_BALIK' | 'REVIEW';
 
   @ApiPropertyOptional({ nullable: true, description: 'Ringkasan keterangan untuk UI.' })
   readonly keterangan?: string | null;
@@ -39,7 +39,7 @@ export class PenyusunWorkbenchLogEditDto {
   })
   readonly meta?: PenyusunWorkbenchLogEditMetaDto | null;
 
-  @ApiProperty({ description: 'Peran pengguna saat mencatat log' })
+  @ApiProperty({ description: 'Konteks aktor saat mencatat log' })
   readonly aktorRole!: string;
 
   @ApiProperty({ description: 'Waktu ISO 8601' })

@@ -37,7 +37,7 @@ test.describe('End-to-End Business Journey — Process version creation', () => 
       expect(history[0]).toMatchObject({
         detailSopId: v1.detailSopId,
         versi: 1,
-        status: 'BERLAKU',
+        status: 'EFFECTIVE',
       })
       expect(history[1]).toMatchObject({
         versi: 2,

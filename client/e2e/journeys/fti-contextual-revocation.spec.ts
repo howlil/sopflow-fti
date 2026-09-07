@@ -64,8 +64,8 @@ test.describe('End-to-End Business Journey — contextual SOP revocation', () =>
         await roleApi(targetUsers.headOfDepartment),
         department.detailSopId,
       )
-      expect(facultyResult.status).toBe('DICABUT')
-      expect(departmentResult.status).toBe('DICABUT')
+      expect(facultyResult.status).toBe('REVOKED')
+      expect(departmentResult.status).toBe('REVOKED')
     })
 
     await test.step('Pencabutan ulang deterministic conflict', async () => {
@@ -105,7 +105,7 @@ test.describe('End-to-End Business Journey — contextual SOP revocation', () =>
       await roleApi(targetUsers.departmentMember),
       `/sop/${sop.sopId}/riwayat-versi`,
     )
-    expect(history.find((row) => row.detailSopId === sop.detailSopId)?.status).toBe('DICABUT')
+    expect(history.find((row) => row.detailSopId === sop.detailSopId)?.status).toBe('REVOKED')
   })
 
   test('J30 Effective/Public Integrity — revoked SOP keluar dari effective/public surface tanpa menghapus history', async ({
@@ -144,6 +144,6 @@ test.describe('End-to-End Business Journey — contextual SOP revocation', () =>
       await roleApi(targetUsers.processMember),
       `/sop/${sop.sopId}/riwayat-versi`,
     )
-    expect(history.some((row) => row.detailSopId === sop.detailSopId && row.status === 'DICABUT')).toBe(true)
+    expect(history.some((row) => row.detailSopId === sop.detailSopId && row.status === 'REVOKED')).toBe(true)
   })
 })

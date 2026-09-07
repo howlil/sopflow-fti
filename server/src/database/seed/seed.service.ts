@@ -239,10 +239,8 @@ export class SeedService {
         where: { email: user.email },
         create: {
           email: user.email,
-          opdId: null,
           nama: user.nama,
           kataSandi: hashedPassword,
-          peran: null,
           platformRole: user.platformRole ?? PlatformRole.USER,
           nip: user.nip,
           jabatan: user.jabatan,
@@ -250,10 +248,8 @@ export class SeedService {
           nohp: user.nohp,
         },
         update: {
-          opdId: null,
           nama: user.nama,
           kataSandi: hashedPassword,
-          peran: null,
           platformRole: user.platformRole ?? PlatformRole.USER,
           nip: user.nip,
           jabatan: user.jabatan,

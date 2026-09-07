@@ -127,7 +127,7 @@ describeIntegration('Database migration invariants', () => {
     await prisma.detailSOP.create({
       data: {
         sopId: sop.sopId,
-        status: StatusSOP.BERLAKU,
+        status: StatusSOP.EFFECTIVE,
         versi: 1,
         nomorSOP: 'DB-INV-001',
         namaLembaga: opd.nama,
@@ -138,7 +138,7 @@ describeIntegration('Database migration invariants', () => {
       prisma.detailSOP.create({
         data: {
           sopId: sop.sopId,
-          status: StatusSOP.BERLAKU,
+          status: StatusSOP.EFFECTIVE,
           versi: 2,
           nomorSOP: 'DB-INV-002',
           namaLembaga: opd.nama,

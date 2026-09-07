@@ -32,14 +32,14 @@ test.describe('End-to-End Business Journey — Faculty Process version replaceme
       expect(history).toHaveLength(2)
       expect(history.find((row) => row.detailSopId === fixture.v1.detailSopId)).toMatchObject({
         versi: 1,
-        status: 'DIGANTIKAN',
+        status: 'SUPERSEDED',
       })
       expect(history.find((row) => row.detailSopId === fixture.v2.id)).toMatchObject({
         versi: 2,
-        status: 'BERLAKU',
+        status: 'EFFECTIVE',
         revisiDariDetailSopId: fixture.v1.detailSopId,
       })
-      expect(history.filter((row) => row.status === 'BERLAKU')).toHaveLength(1)
+      expect(history.filter((row) => row.status === 'EFFECTIVE')).toHaveLength(1)
     })
 
     await test.step('Public document/PDF hanya tersedia untuk V2 current', async () => {

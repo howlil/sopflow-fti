@@ -65,7 +65,7 @@ export async function seedPublishedProcessSop(
     actorApi,
     `/process-sop/workbench/${sop.detailSopId}`,
   )
-  if (workbench.detail.status !== 'BERLAKU') {
+  if (workbench.detail.status !== 'EFFECTIVE') {
     throw new Error(`Precondition V1 harus BERLAKU, ditemukan ${workbench.detail.status}`)
   }
 
@@ -104,7 +104,7 @@ export async function seedReplacementReadyForTte(
     actorApi,
     `/process-sop/workbench/${v2Workbench.detail.id}`,
   )
-  if (ready.detail.status !== 'MENUNGGU_TTD_PJ_EVALUATOR') {
+  if (ready.detail.status !== 'TTE_PENDING') {
     throw new Error(`Precondition V2 harus siap TTE, ditemukan ${ready.detail.status}`)
   }
 

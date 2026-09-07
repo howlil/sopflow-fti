@@ -115,7 +115,7 @@ export interface TtePengesahanPublic {
   dokumenTteId: string;
   ditandatanganiPada: string;
   authority: TteAuthority;
-  authorityLabel?: string;
+  authorityLabel: "Dekan" | "Kepala Departemen";
   penandatangan: { nama: string; nip: string; jabatan: string };
   dokumen: {
     dokumenTteId: string;

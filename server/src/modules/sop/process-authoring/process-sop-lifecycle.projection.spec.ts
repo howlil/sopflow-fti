@@ -37,7 +37,7 @@ describe('projectProcessSopLifecycle', () => {
     expect(
       projectProcessSopLifecycle({
         ...baseInput,
-        status: StatusSOP.SEDANG_DIEVALUASI,
+        status: StatusSOP.PROCESS_REVIEW,
       }),
     ).toMatchObject({
       stage: 'PROCESS_REVIEW',
@@ -53,7 +53,7 @@ describe('projectProcessSopLifecycle', () => {
       projectProcessSopLifecycle({
         ...baseInput,
         currentUserId: 'owner-1',
-        status: StatusSOP.SEDANG_DIEVALUASI,
+        status: StatusSOP.PROCESS_REVIEW,
       }),
     ).toMatchObject({
       responsibility: { type: 'CURRENT_USER', name: 'Anda' },
@@ -69,11 +69,11 @@ describe('projectProcessSopLifecycle', () => {
   it('distinguishes final approval from TTE for the same authority', () => {
     const finalApproval = projectProcessSopLifecycle({
       ...baseInput,
-      status: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
+      status: StatusSOP.TTE_PENDING,
     });
     const tte = projectProcessSopLifecycle({
       ...baseInput,
-      status: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
+      status: StatusSOP.TTE_PENDING,
       approvalExists: true,
       currentUserId: 'dean-1',
     });
@@ -97,13 +97,13 @@ describe('projectProcessSopLifecycle', () => {
   });
 
   it('keeps effective and revoked states out of actionable responsibility', () => {
-    expect(projectProcessSopLifecycle({ ...baseInput, status: StatusSOP.BERLAKU })).toMatchObject({
+    expect(projectProcessSopLifecycle({ ...baseInput, status: StatusSOP.EFFECTIVE })).toMatchObject({
       stage: 'EFFECTIVE',
       stateLabel: 'Berlaku',
       responsibility: { type: 'NONE', name: null },
       action: { type: 'OPEN', label: 'Buka SOP' },
     });
-    expect(projectProcessSopLifecycle({ ...baseInput, status: StatusSOP.DICABUT })).toMatchObject({
+    expect(projectProcessSopLifecycle({ ...baseInput, status: StatusSOP.REVOKED })).toMatchObject({
       stage: 'REVOKED',
       stateLabel: 'Dicabut',
       responsibility: { type: 'NONE', name: null },
@@ -120,7 +120,7 @@ describe('projectProcessSopLifecycle', () => {
           scope: OrganizationalScope.DEPARTMENT,
           departmentName: 'Teknik Informatika',
         },
-        status: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
+        status: StatusSOP.TTE_PENDING,
         authority: { holderId: 'head-1', holderName: 'Kepala TI' },
       }),
     ).toMatchObject({

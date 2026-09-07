@@ -47,7 +47,7 @@ export class SopPublicRepository {
       JOIN SOP s ON s.processId = p.processId
       JOIN DetailSOP d ON d.sopId = s.sopId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
-      WHERE d.status = ${StatusSOP.BERLAKU}
+      WHERE d.status = ${StatusSOP.EFFECTIVE}
         AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
         AND dt.pdfStatus = ${'PUBLISHED'}
         AND dt.pdfPath IS NOT NULL
@@ -76,7 +76,7 @@ export class SopPublicRepository {
       JOIN SOP s ON s.processId = p.processId
       JOIN DetailSOP d ON d.sopId = s.sopId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
-      WHERE d.status = ${StatusSOP.BERLAKU}
+      WHERE d.status = ${StatusSOP.EFFECTIVE}
         AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
         AND dt.pdfStatus = ${'PUBLISHED'}
         AND dt.pdfPath IS NOT NULL
@@ -105,7 +105,7 @@ export class SopPublicRepository {
       FROM Process p
       LEFT JOIN Department dep ON dep.departmentId = p.departmentId
       LEFT JOIN SOP s ON s.processId = p.processId
-      LEFT JOIN DetailSOP d ON d.sopId = s.sopId AND d.status = ${StatusSOP.BERLAKU}
+      LEFT JOIN DetailSOP d ON d.sopId = s.sopId AND d.status = ${StatusSOP.EFFECTIVE}
       LEFT JOIN DokumenTte dt
         ON dt.detailSopId = d.detailSopId
         AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
@@ -127,7 +127,7 @@ export class SopPublicRepository {
       JOIN DetailSOP d ON d.sopId = s.sopId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
       WHERE p.processId = ${processId}
-        AND d.status = ${StatusSOP.BERLAKU}
+        AND d.status = ${StatusSOP.EFFECTIVE}
         AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
         AND dt.pdfStatus = ${'PUBLISHED'}
         AND dt.pdfPath IS NOT NULL
@@ -158,7 +158,7 @@ export class SopPublicRepository {
       LEFT JOIN Department dep ON dep.departmentId = p.departmentId
       JOIN DetailSOP d ON d.sopId = s.sopId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
-      WHERE d.status = ${StatusSOP.BERLAKU}
+      WHERE d.status = ${StatusSOP.EFFECTIVE}
         AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
         AND dt.pdfStatus = ${'PUBLISHED'}
         AND dt.pdfPath IS NOT NULL
@@ -188,7 +188,7 @@ export class SopPublicRepository {
       JOIN Process p ON p.processId = s.processId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
       WHERE d.detailSopId = ${detailSopId}
-        AND d.status = ${StatusSOP.BERLAKU}
+        AND d.status = ${StatusSOP.EFFECTIVE}
         AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
         AND dt.pdfStatus = ${'PUBLISHED'}
         AND dt.pdfPath IS NOT NULL
@@ -223,7 +223,7 @@ export class SopPublicRepository {
       JOIN DetailSOP d ON d.sopId = s.sopId
       JOIN DokumenTte dt ON dt.detailSopId = d.detailSopId
       WHERE ${extraWhere}
-        AND d.status = ${StatusSOP.BERLAKU}
+        AND d.status = ${StatusSOP.EFFECTIVE}
         AND dt.jenisDokumen = ${JenisDokumenTte.SOP_BERLAKU}
         AND dt.pdfStatus = ${'PUBLISHED'}
         AND dt.pdfPath IS NOT NULL

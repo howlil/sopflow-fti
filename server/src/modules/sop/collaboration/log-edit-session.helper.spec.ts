@@ -569,7 +569,7 @@ describe('Pengujian helper sesi log edit', () => {
       capture.rows.push({
         detailSopId,
         penggunaId,
-        bagian: BagianSOP.EVALUASI,
+        bagian: BagianSOP.REVIEW,
         createdAt: new Date(t1.getTime() - 1000),
         closedAt: null,
         sesiChangeCount: 1,
@@ -580,7 +580,7 @@ describe('Pengujian helper sesi log edit', () => {
       capture.rows.push({
         detailSopId,
         penggunaId,
-        bagian: BagianSOP.EVALUASI,
+        bagian: BagianSOP.REVIEW,
         createdAt: new Date(t1.getTime() - 2000),
         closedAt: null,
         sesiChangeCount: 1,
@@ -591,7 +591,7 @@ describe('Pengujian helper sesi log edit', () => {
       capture.rows.push({
         detailSopId,
         penggunaId,
-        bagian: BagianSOP.EVALUASI,
+        bagian: BagianSOP.REVIEW,
         createdAt: new Date(t1.getTime() - 3000),
         closedAt: null,
         sesiChangeCount: 1,
@@ -605,7 +605,7 @@ describe('Pengujian helper sesi log edit', () => {
           tx: asAppendTx(tx),
           detailSopId,
           penggunaId,
-          bagian: BagianSOP.EVALUASI,
+          bagian: BagianSOP.REVIEW,
           fields: ['catatan'],
           now: t2,
         }),

@@ -163,7 +163,7 @@ describe('ProcessOwnerReviewService', () => {
     expect(tx.detailSOP.updateMany).toHaveBeenCalledWith({
       where: { detailSopId: 'detail-a', status: StatusSOP.DRAFT },
       data: {
-        status: StatusSOP.SEDANG_DIEVALUASI,
+        status: StatusSOP.PROCESS_REVIEW,
         terakhirDieditOlehId: 'user-1',
       },
     });
@@ -186,7 +186,7 @@ describe('ProcessOwnerReviewService', () => {
     const { service, prisma, processContext, organizationalAuthority, processNotifications, tx } =
       makeService({
         owner: true,
-        status: StatusSOP.SEDANG_DIEVALUASI,
+        status: StatusSOP.PROCESS_REVIEW,
       });
 
     await service.review(user, 'detail-a', ProcessReviewDecision.REVISION, 'Perbaiki langkah 2');
@@ -197,9 +197,9 @@ describe('ProcessOwnerReviewService', () => {
       select: { dibuatOlehId: true },
     });
     expect(tx.detailSOP.updateMany).toHaveBeenCalledWith({
-      where: { detailSopId: 'detail-a', status: StatusSOP.SEDANG_DIEVALUASI },
+      where: { detailSopId: 'detail-a', status: StatusSOP.PROCESS_REVIEW },
       data: {
-        status: StatusSOP.REVISI_DARI_EVALUATOR,
+        status: StatusSOP.REVISION_REQUIRED,
         terakhirDieditOlehId: 'user-1',
       },
     });
@@ -219,8 +219,8 @@ describe('ProcessOwnerReviewService', () => {
         processId: 'process-a',
         reviewedById: 'user-1',
         decision: 'REVISION',
-        previousStatus: StatusSOP.SEDANG_DIEVALUASI,
-        nextStatus: StatusSOP.REVISI_DARI_EVALUATOR,
+        previousStatus: StatusSOP.PROCESS_REVIEW,
+        nextStatus: StatusSOP.REVISION_REQUIRED,
         catatan: 'Perbaiki langkah 2',
       },
     });
@@ -229,16 +229,16 @@ describe('ProcessOwnerReviewService', () => {
 
   it('maps Process Owner acceptance to ready-for-approval and notifies the resolved authority', async () => {
     const { service, tx, organizationalAuthority, processNotifications } = makeService({
-      status: StatusSOP.SEDANG_DIEVALUASI,
+      status: StatusSOP.PROCESS_REVIEW,
     });
 
     await service.review(user, 'detail-a', ProcessReviewDecision.ACCEPT);
 
     expect(organizationalAuthority.resolveForProcess).toHaveBeenCalledWith('process-a');
     expect(tx.detailSOP.updateMany).toHaveBeenCalledWith({
-      where: { detailSopId: 'detail-a', status: StatusSOP.SEDANG_DIEVALUASI },
+      where: { detailSopId: 'detail-a', status: StatusSOP.PROCESS_REVIEW },
       data: {
-        status: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
+        status: StatusSOP.FINAL_APPROVAL,
         terakhirDieditOlehId: 'user-1',
       },
     });
@@ -257,8 +257,8 @@ describe('ProcessOwnerReviewService', () => {
         processId: 'process-a',
         reviewedById: 'user-1',
         decision: 'ACCEPT',
-        previousStatus: StatusSOP.SEDANG_DIEVALUASI,
-        nextStatus: StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR,
+        previousStatus: StatusSOP.PROCESS_REVIEW,
+        nextStatus: StatusSOP.FINAL_APPROVAL,
         catatan: null,
       },
     });
@@ -276,7 +276,7 @@ describe('ProcessOwnerReviewService', () => {
   it('keeps revision-note input backward-compatible during the expand phase', async () => {
     const { service, tx } = makeService({
       owner: true,
-      status: StatusSOP.SEDANG_DIEVALUASI,
+      status: StatusSOP.PROCESS_REVIEW,
     });
 
     await service.review(user, 'detail-a', ProcessReviewDecision.REVISION);
@@ -291,7 +291,7 @@ describe('ProcessOwnerReviewService', () => {
 
   it('rejects a stale concurrent review decision instead of overwriting the winner', async () => {
     const { service, processNotifications, tx } = makeService({
-      status: StatusSOP.SEDANG_DIEVALUASI,
+      status: StatusSOP.PROCESS_REVIEW,
       transitionCount: 0,
     });
 
