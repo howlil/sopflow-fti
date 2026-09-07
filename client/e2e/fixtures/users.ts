@@ -58,7 +58,7 @@ export const targetUsers = {
     role: 'USER',
     roleLabel: 'Penyusun SOP Sistem Informasi',
     email: process.env.E2E_OTHER_DEPARTMENT_MEMBER_EMAIL ?? 'process.anggota.si@gmail.com',
-    password: process.env.E2E_OTHER_DEPARTMENT_PASSWORD ?? defaultPassword,
+    password: process.env.E2E_OTHER_DEPARTMENT_MEMBER_PASSWORD ?? defaultPassword,
     landingPath: '/work',
   },
   otherHeadOfDepartemen: {
