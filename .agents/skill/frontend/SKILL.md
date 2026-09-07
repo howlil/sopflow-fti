@@ -314,7 +314,7 @@ TTE
 Pekerjaan SOP
 ```
 
-Do not expose migration/internal terminology such as `legacy`, `target`, `authoring`, internal enum names, or old Pemilik Proses-role semantics unless the surface is explicitly a compatibility/admin/debug surface where that distinction is necessary.
+Do not expose migration/internal terminology such as `legacy`, `target`, `authoring`, internal enum names, or retired workflow-role semantics unless the surface is explicitly a compatibility/admin/debug surface where that distinction is necessary.
 
 Translate persisted legacy status names into target-facing labels at the presentation/domain mapping boundary instead of renaming database concepts opportunistically.
 
@@ -384,7 +384,7 @@ For a frontend task:
 - create a generic design/component system beside the existing one;
 - use imperative navigation for ordinary links;
 - copy backend authorization logic as the sole permission enforcement;
-- propagate legacy retired organization model/Pemilik Proses semantics into new target UI;
+- propagate retired organization/workflow-role semantics into new target UI;
 - modify generated route files manually as source code;
 - alter the protected Edit SOP workspace without explicit user direction;
 - add browser/manual acceptance gates as completion ceremony;
