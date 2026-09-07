@@ -1,10 +1,9 @@
 import type { SopDaftarRow, SopRiwayatVersiRow, StatusSOP } from '@/types/dto/sop.dto'
 
 const TERMINAL_VERSION_STATUSES: ReadonlySet<StatusSOP> = new Set([
-  'DITOLAK_EVALUATOR',
-  'BERLAKU',
-  'DIGANTIKAN',
-  'DICABUT',
+  'EFFECTIVE',
+  'SUPERSEDED',
+  'REVOKED',
 ])
 
 export function isTerminalVersionStatus(status: string): status is StatusSOP {
@@ -22,7 +21,7 @@ export function getBuatVersiDariRiwayatBlockingReason(
     return 'Versi sumber tidak ditemukan dalam riwayat.'
   }
   if (!isTerminalVersionStatus(row.status)) {
-    return 'Hanya versi DITOLAK, BERLAKU, DIGANTIKAN, atau DICABUT yang dapat dijadikan sumber.'
+    return 'Hanya versi Berlaku, Digantikan, atau Dicabut yang dapat dijadikan sumber.'
   }
   if (!row.canBuatVersiBaru) {
     return 'Masih ada revisi versi yang belum selesai. Selesaikan atau hapus draft terlebih dahulu.'
