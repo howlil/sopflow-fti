@@ -22,7 +22,6 @@ def git_mv(src: str, dst: str) -> None:
     subprocess.run(['git', 'mv', src, dst], cwd=ROOT, check=True)
 
 
-# Rename domain-owned directories first so the ownership boundary itself uses the new language.
 for source, target in (
     ('server/src/modules/core/process', 'server/src/modules/core/proses-bisnis'),
     ('server/src/modules/notifications/process', 'server/src/modules/notifications/proses-bisnis'),
@@ -52,6 +51,10 @@ filename_replacements = (
     ('process-approval', 'persetujuan-proses-bisnis'),
     ('process-lifecycle', 'siklus-proses-bisnis'),
     ('process-audit', 'riwayat-aktivitas-proses-bisnis'),
+    ('process.controller', 'proses-bisnis.controller'),
+    ('process.module', 'proses-bisnis.module'),
+    ('process.repository', 'proses-bisnis.repository'),
+    ('process.service', 'proses-bisnis.service'),
     ('sop-proses-bisnis-lifecycle', 'sop-proses-bisnis-siklus'),
     ('sop-proses-bisnis-revocation', 'pencabutan-sop-proses-bisnis'),
     ('process.dto', 'proses-bisnis.dto'),
@@ -82,6 +85,7 @@ for path in paths:
 literal_replacements = (
     ('server/src/modules/core/process', 'server/src/modules/core/proses-bisnis'),
     ('modules/core/process', 'modules/core/proses-bisnis'),
+    ('core/process', 'core/proses-bisnis'),
     ('notifications/process', 'notifications/proses-bisnis'),
     ('process-authoring', 'penyusunan-proses-bisnis'),
     ('routes/admin/processes', 'routes/admin/proses-bisnis'),
@@ -103,6 +107,10 @@ literal_replacements = (
     ('process-approval', 'persetujuan-proses-bisnis'),
     ('process-lifecycle', 'siklus-proses-bisnis'),
     ('process-audit', 'riwayat-aktivitas-proses-bisnis'),
+    ('process.controller', 'proses-bisnis.controller'),
+    ('process.module', 'proses-bisnis.module'),
+    ('process.repository', 'proses-bisnis.repository'),
+    ('process.service', 'proses-bisnis.service'),
     ('sop-proses-bisnis-lifecycle', 'sop-proses-bisnis-siklus'),
     ('sop-proses-bisnis-revocation', 'pencabutan-sop-proses-bisnis'),
     ('types/dto/process.dto', 'types/dto/proses-bisnis.dto'),
@@ -114,6 +122,7 @@ literal_replacements = (
     ('"departments"', '"departemen"'),
     ("'processes'", "'proses-bisnis'"),
     ('"processes"', '"proses-bisnis"'),
+    ('penggunaId_scopeKey', 'penggunaId_kunciLingkup'),
     ('Proses Bisnis Team', 'Tim Proses Bisnis'),
     ('Process Owner', 'Penanggung Jawab Proses Bisnis'),
     ('Process Member', 'Anggota Proses Bisnis'),
@@ -178,6 +187,8 @@ identifier_replacements = (
     ('processIds', 'prosesBisnisIds'),
     ('processName', 'namaProsesBisnis'),
     ('processNama', 'namaProsesBisnis'),
+    ('processes', 'prosesBisnis'),
+    ('departments', 'departemen'),
     ('ownerId', 'penanggungJawabId'),
     ('ownerName', 'namaPenanggungJawab'),
     ('ownerEmail', 'emailPenanggungJawab'),
@@ -241,6 +252,8 @@ for path in ROOT.rglob('*'):
         )
     )
     if domain_file:
+        text = re.sub(r'\bProcess\b', 'ProsesBisnis', text)
+        text = re.sub(r'\bprocess\b(?!\.env\b)', 'prosesBisnis', text)
         text = re.sub(r'\bscope\b', 'lingkup', text)
         text = re.sub(r'\bScope\b', 'Lingkup', text)
         text = re.sub(r'\.owner\b', '.penanggungJawab', text)
@@ -260,13 +273,13 @@ for path in ROOT.rglob('*'):
         path.write_text(text, encoding='utf-8')
 
 
-# Prisma client-facing names follow the Indonesian domain language. Quoted map strings remain physical DB names.
 schema = SCHEMA.read_text(encoding='utf-8')
 quoted = re.compile(r'("(?:\\.|[^"\\])*")')
 schema_replacements = (
     ('scopeKey', 'kunciLingkup'),
     ('scope', 'lingkup'),
     ('ownerId', 'penanggungJawabId'),
+    ('authorityKey', 'kunciPejabatBerwenang'),
     ('processes', 'prosesBisnis'),
     ('department', 'departemen'),
     ('owner', 'penanggungJawab'),
@@ -289,10 +302,11 @@ for line in schema.splitlines():
         line += ' @map("ownerId")'
     if re.match(r'^\s*kunciLingkup\s+String\b', line) and '@map(' not in line:
         line += ' @map("scopeKey")'
+    if re.match(r'^\s*kunciPejabatBerwenang\s+String\b', line) and '@map(' not in line:
+        line += ' @map("authorityKey")'
     lines.append(line)
 SCHEMA.write_text('\n'.join(lines) + '\n', encoding='utf-8')
 
-# Keep existing physical index names stable.
 schema = SCHEMA.read_text(encoding='utf-8')
 physical_map_names = {
     'ProsesBisnis_lingkup_departemenId_idx': 'Process_scope_departmentId_idx',
@@ -302,7 +316,7 @@ physical_map_names = {
     'PenugasanPejabatBerwenang_holderId_idx': 'OrganizationalAuthorityAssignment_holderId_idx',
     'PersetujuanAkhirSOP_prosesBisnisId_approvedAt_idx': 'ProcessFinalApproval_processId_approvedAt_idx',
     'PersetujuanAkhirSOP_approvedById_approvedAt_idx': 'ProcessFinalApproval_approvedById_approvedAt_idx',
-    'PersetujuanAkhirSOP_authorityKey_idx': 'ProcessFinalApproval_authorityKey_idx',
+    'PersetujuanAkhirSOP_kunciPejabatBerwenang_idx': 'ProcessFinalApproval_authorityKey_idx',
     'PersetujuanAkhirSOP_pemeriksaanProsesBisnisId_idx': 'ProcessFinalApproval_processReviewId_idx',
     'PemeriksaanProsesBisnis_detail_created_idx': 'ProcessReview_detail_created_idx',
     'PemeriksaanProsesBisnis_process_created_idx': 'ProcessReview_process_created_idx',
@@ -329,7 +343,6 @@ for current, physical in physical_map_names.items():
     schema = schema.replace(f'map: "{current}"', f'map: "{physical}"')
 SCHEMA.write_text(schema, encoding='utf-8')
 
-# Prisma 7 audit compatibility.
 audit = ROOT / 'server' / 'prisma' / 'post-contraction-db-audit.ts'
 text = audit.read_text(encoding='utf-8')
 text = text.replace("current.replaceAll(\"\\\\'\", \"'\")", "current.split(\"\\\\'\").join(\"'\")")
