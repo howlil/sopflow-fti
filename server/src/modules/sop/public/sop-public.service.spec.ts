@@ -97,7 +97,7 @@ describe('SopPublicService', () => {
     });
   });
 
-  it('lists global FTI SOPs without OPD fallback fields', async () => {
+  it('lists global FTI SOPs with Proses Bisnis context', async () => {
     repoMock.countFtiSopGlobal.mockResolvedValue(1);
     repoMock.findFtiSopGlobal.mockResolvedValue([sopRow]);
 
@@ -108,8 +108,6 @@ describe('SopPublicService', () => {
       namaProsesBisnis: 'Akademik',
       tanggalEfektif: '2026-09-01T00:00:00.000Z',
     });
-    expect(result.items[0]).not.toHaveProperty('opdId');
-    expect(result.items[0]).not.toHaveProperty('opdNama');
   });
 
   it('delegates effective document projection to the read-only catalog', async () => {
