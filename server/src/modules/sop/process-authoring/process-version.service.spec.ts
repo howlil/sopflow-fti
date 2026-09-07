@@ -1,5 +1,6 @@
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
+import { StatusSOP } from '../../../generated/prisma';
 import type { ProcessContextService } from '../../core/process/process-context.service';
 import type { SopCatalogRepository } from '../catalog/sop-catalog.repository';
 import type { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
@@ -35,7 +36,7 @@ describe('ProcessVersionService', () => {
           detailSopId: 'detail-v1',
           versi: 1,
           nomorSOP: 'SOP-001',
-          status: 'BERLAKU',
+          status: StatusSOP.EFFECTIVE,
           revisiDariDetailSopId: null,
           revisiDariVersi: null,
           updatedAt: new Date('2026-09-01T00:00:00.000Z'),
@@ -95,7 +96,11 @@ describe('ProcessVersionService', () => {
     const ctx = setup();
 
     await expect(ctx.service.getVersionHistory(user, 'sop-a')).resolves.toMatchObject([
-      expect.objectContaining({ detailSopId: 'detail-v1', canBuatVersiBaru: true }),
+      expect.objectContaining({
+        detailSopId: 'detail-v1',
+        status: StatusSOP.EFFECTIVE,
+        canBuatVersiBaru: true,
+      }),
     ]);
     expect(ctx.processContext.assertCanAuthor).toHaveBeenCalledWith('member-a', 'process-a');
     expect(ctx.repository.findRiwayatVersiBySopId).toHaveBeenCalledWith('sop-a');
