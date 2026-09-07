@@ -61,13 +61,16 @@ for path in ROOT.rglob('*'):
     for old, new in delegate_map.items():
         text = re.sub(rf'({receiver})\.{re.escape(old)}\b', rf'\1.{new}', text)
     text = re.sub(r'^\s*peran:\s*true,?\s*$', '', text, flags=re.M)
-    text = text.replace(
+    for old in (
         'assertSopWorkbenchCompleteForSiapDievaluasi',
-        'pastikanWorkbenchSopLengkapUntukPemeriksaanProsesBisnis',
-    )
-    text = text.replace(
         'assertSopWorkbenchCompleteForProcessReview',
-        'pastikanWorkbenchSopLengkapUntukPemeriksaanProsesBisnis',
+        'assertSopWorkbenchCompleteForPemeriksaanProsesBisnis',
+    ):
+        text = text.replace(old, 'pastikanWorkbenchSopLengkapUntukPemeriksaanProsesBisnis')
+    text = text.replace('./dto/create-process-sop.dto', './dto/create-sop-proses-bisnis.dto')
+    text = text.replace(
+        '../shared/dto/tanda-tangani-process-sop.dto',
+        '../shared/dto/tanda-tangani-sop-proses-bisnis.dto',
     )
     text = text.replace('listProsesBisnises', 'listProsesBisnis')
     text = text.replace('listDepartemens', 'listDepartemen')
