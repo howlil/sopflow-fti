@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsInt, IsNotEmpty, IsString, MaxLength, Min, MinLength } from 'class-validator';
 
-/** Input pembuatan peraturan global untuk katalog FTI. */
+/** Input pembuatan regulasi reusable untuk katalog FTI. */
 export class CreatePeraturanDto {
   @ApiProperty({ description: 'Nama peraturan (namaPeraturan)' })
   @IsString()
