@@ -5,778 +5,209 @@ import json
 import re
 
 ROOT = Path(__file__).resolve().parents[1]
-CHANGED: list[str] = []
-DELETED: list[str] = []
+changed: list[str] = []
+deleted: list[str] = []
 
 
-def path(rel: str) -> Path:
+def p(rel: str) -> Path:
     return ROOT / rel
 
 
-def save(rel: str, content: str) -> None:
-    p = path(rel)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    old = p.read_text(encoding="utf-8") if p.exists() else None
+def write(rel: str, content: str) -> None:
+    target = p(rel)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    old = target.read_text(encoding='utf-8') if target.exists() else None
     if old != content:
-        p.write_text(content, encoding="utf-8")
-        CHANGED.append(rel)
+        target.write_text(content, encoding='utf-8')
+        changed.append(rel)
 
 
-def transform(rel: str, fn) -> None:
-    p = path(rel)
-    if not p.exists():
+def edit(rel: str, fn) -> None:
+    target = p(rel)
+    if not target.exists():
         return
-    old = p.read_text(encoding="utf-8")
+    old = target.read_text(encoding='utf-8')
     new = fn(old)
     if new != old:
-        p.write_text(new, encoding="utf-8")
-        CHANGED.append(rel)
+        target.write_text(new, encoding='utf-8')
+        changed.append(rel)
 
 
-def replace(rel: str, replacements: dict[str, str]) -> None:
+def replace(rel: str, mapping: dict[str, str]) -> None:
     def apply(text: str) -> str:
-        for old, new in replacements.items():
-            text = text.replace(old, new)
+        for a, b in mapping.items():
+            text = text.replace(a, b)
         return text
-    transform(rel, apply)
+    edit(rel, apply)
 
 
-def delete(rel: str) -> None:
-    p = path(rel)
-    if p.exists():
-        p.unlink()
-        DELETED.append(rel)
+def remove(rel: str) -> None:
+    target = p(rel)
+    if target.exists():
+        target.unlink()
+        deleted.append(rel)
 
 
-def replace_in_tree(root_rel: str, replacements: dict[str, str], suffixes=(".ts", ".tsx")) -> None:
-    base = path(root_rel)
-    if not base.exists():
+def remove_tree(rel: str) -> None:
+    target = p(rel)
+    if not target.exists():
         return
-    for p in base.rglob("*"):
-        if not p.is_file() or p.suffix not in suffixes:
-            continue
-        rel = p.relative_to(ROOT).as_posix()
-        old = p.read_text(encoding="utf-8")
-        new = old
-        for source, target in replacements.items():
-            new = new.replace(source, target)
-        if new != old:
-            p.write_text(new, encoding="utf-8")
-            CHANGED.append(rel)
+    for child in sorted(target.rglob('*'), reverse=True):
+        if child.is_file():
+            deleted.append(child.relative_to(ROOT).as_posix())
+            child.unlink()
+        elif child.is_dir():
+            child.rmdir()
+    target.rmdir()
 
 
-# ---------------------------------------------------------------------------
-# S1 — build recovery: StatusSOP / BagianSOP / seed / TTE
-# ---------------------------------------------------------------------------
-status_constant_replacements = {
-    "StatusSOP.BERLAKU": "StatusSOP.EFFECTIVE",
-    "StatusSOP.DIGANTIKAN": "StatusSOP.SUPERSEDED",
-    "StatusSOP.DICABUT": "StatusSOP.REVOKED",
-    "StatusSOP.SEDANG_DIEVALUASI": "StatusSOP.PROCESS_REVIEW",
-    "StatusSOP.REVISI_DARI_EVALUATOR": "StatusSOP.REVISION_REQUIRED",
-    "BagianSOP.EVALUASI": "BagianSOP.REVIEW",
-}
-replace_in_tree("server/src", status_constant_replacements)
-replace_in_tree("server/test", status_constant_replacements)
+# Client: finish native status / activity / TTE contract consumers.
+for rel in [
+    'client/src/pages/penyusun/sop/components/RiwayatStatusPanel.tsx',
+    'client/src/pages/penyusun/sop/detail/DetailSOPPenyusun.tsx',
+    'client/src/pages/penyusun/sop/detail/components/DetailSopPenyusunHeader.tsx',
+    'client/src/pages/penyusun/sop/detail/components/DetailSopPenyusunMain.tsx',
+    'client/src/pages/penyusun/sop/detail/components/__tests__/DetailSopPenyusunHeader.test.tsx',
+]:
+    replace(rel, {
+        'EVALUASI': 'REVIEW',
+        'BERLAKU': 'EFFECTIVE',
+        'tteSignaturePayloadKepalaOpd': 'tteSignaturePayload',
+    })
 
-# Tests where the old pre-TTE value represented two different native states.
+edit(
+    'client/src/pages/public/arsip/hooks/use-arsip-browse.ts',
+    lambda t: re.sub(r'^\s*opd(?:Id|Page): undefined,\n', '', t, flags=re.MULTILINE),
+)
+
+# Remove stale organization wording from the now-global regulation DTO.
 replace(
-    "server/src/modules/sop/process-authoring/process-final-approval.service.spec.ts",
-    {"StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR": "StatusSOP.FINAL_APPROVAL"},
-)
-replace(
-    "server/src/modules/sop/process-authoring/process-owner-review.service.spec.ts",
-    {"StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR": "StatusSOP.FINAL_APPROVAL"},
-)
-replace(
-    "server/src/modules/tte/penandatanganan/process-tte.repository.spec.ts",
-    {"StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR": "StatusSOP.TTE_PENDING"},
-)
-replace(
-    "server/src/modules/sop/process-authoring/process-sop-lifecycle.projection.spec.ts",
-    {"StatusSOP.MENUNGGU_TTD_PJ_EVALUATOR": "StatusSOP.TTE_PENDING"},
+    'server/src/modules/core/peraturan/dto/create-peraturan.dto.ts',
+    {'/** Input pembuatan master peraturan + tautan ke OPD pengguna (opdId di-set server). */':
+     '/** Input pembuatan peraturan global untuk katalog FTI. */'},
 )
 
-# FTI E2E strings are post-approval states.
-replace_in_tree(
-    "client/e2e",
-    {
-        "'SEDANG_DIEVALUASI'": "'PROCESS_REVIEW'",
-        '"SEDANG_DIEVALUASI"': '"PROCESS_REVIEW"',
-        "'REVISI_DARI_EVALUATOR'": "'REVISION_REQUIRED'",
-        '"REVISI_DARI_EVALUATOR"': '"REVISION_REQUIRED"',
-        "'MENUNGGU_TTD_PJ_EVALUATOR'": "'TTE_PENDING'",
-        '"MENUNGGU_TTD_PJ_EVALUATOR"': '"TTE_PENDING"',
-        "'BERLAKU'": "'EFFECTIVE'",
-        '"BERLAKU"': '"EFFECTIVE"',
-        "'DIGANTIKAN'": "'SUPERSEDED'",
-        '"DIGANTIKAN"': '"SUPERSEDED"',
-        "'DICABUT'": "'REVOKED'",
-        '"DICABUT"': '"REVOKED"',
-    },
-)
+# Generic fixture cleanup: contracted models no longer contain these columns.
+for target in list(p('server/src').rglob('*.spec.ts')):
+    rel = target.relative_to(ROOT).as_posix()
+    def clean_columns(text: str) -> str:
+        text = re.sub(r'^\s*(?:opdId|sopOpdId|pengajuanEvaluasiId):[^\n]*\n', '', text, flags=re.MULTILINE)
+        text = text.replace("'opd/sop/v2.pdf'", "'process/sop/v2.pdf'")
+        return text
+    edit(rel, clean_columns)
 
-# Seed must match the contracted Pengguna schema.
-def clean_seed(text: str) -> str:
-    text = re.sub(r"^\s*opdId: null,\n", "", text, flags=re.MULTILINE)
-    text = re.sub(r"^\s*peran: null,\n", "", text, flags=re.MULTILINE)
+# Native Process review fixture: identity has no workflow role.
+def clean_owner_review(text: str) -> str:
+    text = re.sub(r'^\s*PeranPengguna,\n', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^\s*peran: PeranPengguna\.[A-Z_]+,\n', '', text, flags=re.MULTILINE)
+    text = re.sub(r',\s*opdId: [^,}]+', '', text)
     return text
-transform("server/src/database/seed/seed.service.ts", clean_seed)
+edit('server/src/modules/sop/process-authoring/process-owner-review.service.spec.ts', clean_owner_review)
 
-# Workbench activity DTO follows the native BagianSOP enum.
-replace(
-    "server/src/modules/sop/catalog/dto/penyusun-workbench-log-edit.dto.ts",
-    {
-        "'HEADER', 'LANGKAH', 'STATUS', 'UMPAN_BALIK', 'EVALUASI'": "'HEADER', 'LANGKAH', 'STATUS', 'UMPAN_BALIK', 'REVIEW'",
-        "'HEADER' | 'LANGKAH' | 'STATUS' | 'UMPAN_BALIK' | 'EVALUASI'": "'HEADER' | 'LANGKAH' | 'STATUS' | 'UMPAN_BALIK' | 'REVIEW'",
-        "Peran pengguna saat mencatat log": "Konteks aktor saat mencatat log",
-    },
-)
+# Process TTE: authority is carried by final-approval context, never a global role.
+def clean_process_tte_service(text: str) -> str:
+    text = re.sub(r'^\s*PeranPengguna,\n', '', text, flags=re.MULTILINE)
+    text = text.replace('menyimpan historical signature role tanpa membaca Pengguna.peran', 'menyimpan contextual signing authority')
+    text = re.sub(r'expect\.objectContaining\(\{ userId: user\.sub, peran: PeranPengguna\.KEPALA_OPD \}\)',
+                  "expect.objectContaining({ userId: user.sub })", text)
+    text = re.sub(r'expect\.objectContaining\(\{ peran: PeranPengguna\.KEPALA_OPD \}\)',
+                  "expect.objectContaining({ userId: user.sub })", text)
+    return text
+edit('server/src/modules/tte/penandatanganan/process-tte.service.spec.ts', clean_process_tte_service)
 
-# TTE persistence now stores OrganizationalAuthority, not PeranPengguna.
-replace(
-    "server/src/modules/tte/shared/repository/tte.repository.ts",
-    {
-        "import { JenisDokumenTte, PeranPengguna } from '../../../../generated/prisma';": "import { JenisDokumenTte, OrganizationalAuthority } from '../../../../generated/prisma';",
-        "readonly peran: PeranPengguna;": "readonly authority: OrganizationalAuthority;",
-        "peran: true,": "authority: true,",
-    },
-)
 
-replace(
-    "server/src/modules/tte/penandatanganan/tte-pdf-signing.service.ts",
-    {
-        "readonly peran?: string;": "readonly authority?: string;",
-        "peran: String(row.peran),": "authority: String(row.authority),",
-    },
-)
+def clean_process_tte_repo(text: str) -> str:
+    text = re.sub(r'^\s*PeranPengguna,\n', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^\s*peran: PeranPengguna\.[A-Z_]+,\n', '', text, flags=re.MULTILINE)
+    return text
+edit('server/src/modules/tte/penandatanganan/process-tte.repository.spec.ts', clean_process_tte_repo)
 
-save(
-    "server/src/modules/tte/verifikasi/tte-verifikasi.service.ts",
-    """import { Injectable, NotFoundException } from '@nestjs/common';
-import type { Request } from 'express';
-import { OrganizationalAuthority } from '../../../generated/prisma';
-import { TteRepository } from '../shared/repository/tte.repository';
-import type { TtePengesahanPublicResponse } from '../shared/types/tte.types';
-import { buildTteQrPayload } from '../shared/utils/tte-verifikasi-qr.util';
-import { TtePublicUrlResolver } from '../shared/utils/tte-public-url.resolver';
-import { ProcessTteVerificationRepository } from './process-tte-verification.repository';
+# Lightweight current-user specs: remove obsolete global-role fixture fields/imports.
+for rel in [
+    'server/src/modules/core/auth/auth.controller.spec.ts',
+    'server/src/modules/sop/diagram/sop-diagram.service.spec.ts',
+    'server/src/modules/sop/process-authoring/process-bound-sop.guard.spec.ts',
+    'server/src/modules/tte/core/tte.controller.spec.ts',
+    'server/src/modules/tte/profil/tte-profil-pin-rotation.spec.ts',
+]:
+    def clean_role_fixture(text: str) -> str:
+        text = re.sub(r"import \{\s*PeranPengguna\s*\} from '[^']+';\n", '', text)
+        text = re.sub(r'\bPeranPengguna,\s*', '', text)
+        text = re.sub(r',\s*PeranPengguna\b', '', text)
+        text = re.sub(r'^\s*peran: PeranPengguna\.[A-Z_]+,\n', '', text, flags=re.MULTILINE)
+        text = text.replace('KEPALA_OPD', 'DEAN')
+        return text
+    edit(rel, clean_role_fixture)
 
-@Injectable()
-export class TteVerifikasiService {
-  constructor(
-    private readonly tteRepository: TteRepository,
-    private readonly publicUrlResolver: TtePublicUrlResolver,
-    private readonly processVerificationRepository: ProcessTteVerificationRepository,
-  ) {}
+# Profile service helper used to parameterize a removed role axis.
+def clean_profile_spec(text: str) -> str:
+    text = re.sub(r"import \{\s*PeranPengguna\s*\} from '[^']+';\n", '', text)
+    text = re.sub(r'\bPeranPengguna,\s*', '', text)
+    text = re.sub(r',\s*PeranPengguna\b', '', text)
+    text = re.sub(r'function pengguna\(peran: PeranPengguna = PeranPengguna\.[A-Z_]+\)', 'function pengguna()', text)
+    text = re.sub(r'pengguna\(PeranPengguna\.[A-Z_]+\)', 'pengguna()', text)
+    text = re.sub(r'^\s*peran,\n', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^\s*peran: PeranPengguna\.[A-Z_]+,\n', '', text, flags=re.MULTILINE)
+    text = text.replace('KEPALA_OPD', 'DEAN').replace('PJ_EVALUATOR', 'DEAN').replace('PJ_PENYUSUN', 'HEAD_OF_DEPARTMENT')
+    return text
+edit('server/src/modules/tte/profil/tte-profil.service.spec.ts', clean_profile_spec)
 
-  async getPengesahanPublic(
-    dokumenTteId: string,
-    userId: string,
-    req?: Pick<Request, 'headers'>,
-  ): Promise<TtePengesahanPublicResponse> {
-    const row = await this.tteRepository.findRiwayatPengesahanByUserAndDokumen(
-      userId,
-      dokumenTteId,
-    );
-    if (row === null || row.dokumenTte === null || row.user === null) {
-      throw new NotFoundException('Data pengesahan tidak ditemukan');
-    }
+# PDF-signing / public-verification evidence is authority-native.
+for rel in [
+    'server/src/modules/tte/penandatanganan/tte-pdf-signing.service.spec.ts',
+    'server/src/modules/tte/verifikasi/tte-verifikasi.service.spec.ts',
+]:
+    def authority_spec(text: str) -> str:
+        text = text.replace('PeranPengguna', 'OrganizationalAuthority')
+        text = text.replace('OrganizationalAuthority.KEPALA_OPD', 'OrganizationalAuthority.DEAN')
+        text = text.replace('OrganizationalAuthority.PJ_EVALUATOR', 'OrganizationalAuthority.DEAN')
+        text = text.replace('OrganizationalAuthority.PJ_PENYUSUN', 'OrganizationalAuthority.HEAD_OF_DEPARTMENT')
+        text = text.replace('OrganizationalAuthority.PENYUSUN', 'OrganizationalAuthority.DEAN')
+        text = text.replace('OrganizationalAuthority.EVALUATOR', 'OrganizationalAuthority.HEAD_OF_DEPARTMENT')
+        text = re.sub(r'OrganizationalAuthority,\s*OrganizationalAuthority,', 'OrganizationalAuthority,', text)
+        text = re.sub(r'^\s*peran:', lambda m: m.group(0).replace('peran', 'authority'), text, flags=re.MULTILINE)
+        text = text.replace('KEPALA_OPD', 'DEAN').replace('PJ_EVALUATOR', 'DEAN').replace('PJ_PENYUSUN', 'HEAD_OF_DEPARTMENT')
+        return text
+    edit(rel, authority_spec)
 
-    const { detailSopId, processId } = row.dokumenTte;
-    if (detailSopId === null || processId === null) {
-      throw new NotFoundException('Dokumen TTE bukan artefak SOP FTI yang aktif');
-    }
+# Repository spec current-user selection no longer includes organization shadows.
+# Other simple specs already lost opdId lines above.
 
-    const approval = await this.processVerificationRepository.findApprovalForSignedDetail(
-      detailSopId,
-      row.userId,
-      processId,
-    );
-    if (approval === null || approval.authority !== row.authority) {
-      throw new NotFoundException('Evidence authority pengesahan tidak valid');
-    }
+# The old negative-boundary spec duplicated the executable whole-tree audit.
+remove('server/src/modules/sop/process-authoring/native-fti-boundary.spec.ts')
 
-    const authorityLabel =
-      row.authority === OrganizationalAuthority.DEAN ? ('Dekan' as const) : ('Kepala Departemen' as const);
-    const qr = buildTteQrPayload({
-      publicVerifyBaseUrl: this.publicUrlResolver.resolveDocumentVerifyBaseUrl(req),
-      dokumenTteId: row.dokumenTte.dokumenTteId,
-      hashDokumen: row.dokumenTte.hashDokumen,
-    });
+# Retire the old schema/global-role integration world. Migration Smoke + FTI DB audit replace it.
+remove_tree('server/test/integration')
+remove('server/test/jest-integration.json')
 
-    return {
-      userId: row.userId,
-      dokumenTteId: row.dokumenTteId,
-      ditandatanganiPada: row.ditandatanganiPada.toISOString(),
-      authority: row.authority,
-      authorityLabel,
-      penandatangan: {
-        nama: row.user.nama,
-        nip: row.user.nip,
-        jabatan: row.user.jabatan ?? '',
-      },
-      dokumen: {
-        dokumenTteId: row.dokumenTte.dokumenTteId,
-        nomorDokumen: row.dokumenTte.nomorDokumen,
-        judulDokumen: row.dokumenTte.judulDokumen,
-        jenisDokumen: String(row.dokumenTte.jenisDokumen),
-        hashDokumen: row.dokumenTte.hashDokumen,
-        sopDetailId: detailSopId,
-      },
-      qrVerificationUrl: qr.qrVerificationUrl,
-      qrPayload: qr.qrPayload,
-    };
-  }
-}
-""",
-)
-
-save(
-    "server/src/modules/tte/shared/dto/tte-pengesahan-public-response.dto.ts",
-    """import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-
-class TtePengesahanPublicPenandatanganDto {
-  @ApiProperty({ description: 'Nama penandatangan' })
-  nama!: string;
-
-  @ApiProperty({ description: 'NIP penandatangan' })
-  nip!: string;
-
-  @ApiProperty({ description: 'Jabatan (boleh kosong)' })
-  jabatan!: string;
-}
-
-class TtePengesahanPublicDokumenDto {
-  @ApiProperty()
-  dokumenTteId!: string;
-
-  @ApiProperty()
-  nomorDokumen!: string;
-
-  @ApiProperty()
-  judulDokumen!: string;
-
-  @ApiProperty({ description: 'Nilai enum JenisDokumenTte' })
-  jenisDokumen!: string;
-
-  @ApiProperty({ description: 'Hash SHA-256 kanonik dokumen' })
-  hashDokumen!: string;
-
-  @ApiProperty({ format: 'uuid' })
-  sopDetailId!: string;
-}
-
-/** Respons publik untuk verifikasi QR pengesahan SOP FTI. */
-export class TtePengesahanPublicResponseDto {
-  @ApiProperty({ format: 'uuid' })
-  userId!: string;
-
-  @ApiProperty({ format: 'uuid' })
-  dokumenTteId!: string;
-
-  @ApiProperty({ description: 'Waktu pengesahan (ISO 8601)' })
-  ditandatanganiPada!: string;
-
-  @ApiProperty({
-    enum: ['DEAN', 'HEAD_OF_DEPARTMENT'],
-    description: 'Kewenangan organisasi yang menandatangani SOP.',
-  })
-  authority!: 'DEAN' | 'HEAD_OF_DEPARTMENT';
-
-  @ApiProperty({
-    enum: ['Dekan', 'Kepala Departemen'],
-    description: 'Label kewenangan penandatangan.',
-  })
-  authorityLabel!: 'Dekan' | 'Kepala Departemen';
-
-  @ApiProperty({ type: TtePengesahanPublicPenandatanganDto })
-  penandatangan!: TtePengesahanPublicPenandatanganDto;
-
-  @ApiProperty({ type: TtePengesahanPublicDokumenDto })
-  dokumen!: TtePengesahanPublicDokumenDto;
-
-  @ApiPropertyOptional({ nullable: true })
-  qrVerificationUrl!: string | null;
-
-  @ApiProperty({ description: 'String yang di-encode ke QR' })
-  qrPayload!: string;
-}
-""",
-)
-
-# Native Process is the only storage namespace.
-replace(
-    "server/src/modules/sop/pdf/sop-pdf-storage.service.ts",
-    {
-        "    /** Native Process namespace. */\n    processId?: string;\n    /** Legacy compatibility namespace used only by the old evaluator workflow. */\n    opdId?: string;": "    processId: string;",
-        "this.segment(params.processId ?? params.opdId ?? 'unscoped')": "this.segment(params.processId)",
-    },
-)
-
-# ---------------------------------------------------------------------------
-# S2 — post-contraction DB proof and CI workflows
-# ---------------------------------------------------------------------------
-delete("server/prisma/fti-legacy-retention-backfill.ts")
-delete("server/prisma/identity-shadow-audit.ts")
-delete("server/prisma/rehearse-process-sop-binding-retirement.ts")
-
-save(
-    "server/prisma/fti-baseline-audit.ts",
-    """import 'dotenv/config';
-import { PrismaMariaDb } from '@prisma/adapter-mariadb';
-import { PrismaClient } from '../src/generated/prisma';
-
-const required = (name: string): string => {
-  const value = process.env[name]?.trim();
-  if (!value) throw new Error(`${name} wajib diisi untuk FTI schema audit`);
-  return value;
-};
-
-const port = Number(process.env.DATABASE_PORT ?? '3306');
-const prisma = new PrismaClient({
-  adapter: new PrismaMariaDb({
-    host: required('DATABASE_HOST'),
-    port,
-    user: required('DATABASE_USER'),
-    password: required('DATABASE_PASSWORD'),
-    database: required('DATABASE_NAME'),
-    connectionLimit: 2,
-    connectTimeout: 15_000,
-    allowPublicKeyRetrieval: true,
-  }),
-});
-
-async function scalar(sql: string): Promise<number> {
-  const rows = await prisma.$queryRawUnsafe<Array<{ value: bigint | number | string }>>(sql);
-  return Number(rows[0]?.value ?? 0);
-}
-
-async function run(): Promise<void> {
-  const removedTables = [
-    'OPD',
-    'RiwayatOpdPengguna',
-    'OPDPeraturan',
-    'PengajuanEvaluasi',
-    'NilaiEvaluasi',
-    'PengingatWhatsApp',
-    'LegacySopRetention',
-    '_retired_ProcessSopBinding_20260906',
-  ];
-  const removedColumns: Array<[string, string]> = [
-    ['Pengguna', 'opdId'],
-    ['Pengguna', 'peran'],
-    ['SOP', 'opdId'],
-    ['Pelaksana', 'opdId'],
-    ['DokumenTte', 'pengajuanEvaluasiId'],
-    ['RiwayatTandaTangan', 'peran'],
-  ];
-
-  const tableResidue = await scalar(
-    `SELECT COUNT(*) AS value FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN (${removedTables.map((name) => `'${name}'`).join(',')})`,
-  );
-  let columnResidue = 0;
-  for (const [tableName, columnName] of removedColumns) {
-    columnResidue += await scalar(
-      `SELECT COUNT(*) AS value FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '${tableName}' AND COLUMN_NAME = '${columnName}'`,
-    );
-  }
-
-  const invalidStatusRows = await scalar(
-    "SELECT COUNT(*) AS value FROM `DetailSOP` WHERE `status` NOT IN ('DRAFT','PROCESS_REVIEW','REVISION_REQUIRED','FINAL_APPROVAL','TTE_PENDING','EFFECTIVE','SUPERSEDED','REVOKED')",
-  );
-  const statusColumnWithLegacyValues = await scalar(
-    "SELECT COUNT(*) AS value FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'DetailSOP' AND COLUMN_NAME = 'status' AND (COLUMN_TYPE LIKE '%SEDANG_DIEVALUASI%' OR COLUMN_TYPE LIKE '%REVISI_DARI_EVALUATOR%' OR COLUMN_TYPE LIKE '%MENUNGGU_TTD_PJ_EVALUATOR%' OR COLUMN_TYPE LIKE '%BERLAKU%' OR COLUMN_TYPE LIKE '%DICABUT%')",
-  );
-  const orphanedProcessSop = await scalar(
-    'SELECT COUNT(*) AS value FROM `SOP` s LEFT JOIN `Process` p ON p.processId = s.processId WHERE s.processId IS NOT NULL AND p.processId IS NULL',
-  );
-  const invalidSigningAuthority = await scalar(
-    "SELECT COUNT(*) AS value FROM `RiwayatTandaTangan` WHERE `authority` NOT IN ('DEAN','HEAD_OF_DEPARTMENT')",
-  );
-
-  const result = {
-    tableResidue,
-    columnResidue,
-    invalidStatusRows,
-    statusColumnWithLegacyValues,
-    orphanedProcessSop,
-    invalidSigningAuthority,
-  };
-  console.log(JSON.stringify(result, null, 2));
-  if (Object.values(result).some((value) => value !== 0)) {
-    throw new Error('FTI post-contraction database invariant gagal');
-  }
-}
-
-run()
-  .catch((error: unknown) => {
-    console.error(error instanceof Error ? error.message : error);
-    process.exitCode = 1;
-  })
-  .finally(async () => prisma.$disconnect());
-""",
-)
-
-save(
-    "server/scripts/full-fti-runtime-audit.cjs",
-    """const fs = require('node:fs');
-const path = require('node:path');
-
-const repoRoot = path.resolve(__dirname, '../..');
-const scanRoots = [
-  'server/src',
-  'server/test',
-  'client/src',
-  'client/e2e',
-];
-const forbidden = [
-  /\\bPeranPengguna\\b/,
-  /\\bKEPALA_OPD\\b/,
-  /\\bPJ_EVALUATOR\\b/,
-  /\\bPJ_PENYUSUN\\b/,
-  /\\bPengajuanEvaluasi\\b/,
-  /\\bLegacySopRetention\\b/,
-  /\\bopdId\\b/,
-  /StatusSOP\\.(?:BERLAKU|DIGANTIKAN|DICABUT|SEDANG_DIEVALUASI|REVISI_DARI_EVALUATOR|MENUNGGU_TTD_PJ_EVALUATOR)/,
-];
-const extensions = new Set(['.ts', '.tsx', '.js', '.cjs', '.mjs']);
-const violations = [];
-
-function walk(dir) {
-  if (!fs.existsSync(dir)) return;
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const absolute = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      walk(absolute);
-      continue;
-    }
-    if (!extensions.has(path.extname(entry.name))) continue;
-    const relative = path.relative(repoRoot, absolute).replaceAll('\\\\', '/');
-    const content = fs.readFileSync(absolute, 'utf8');
-    for (const pattern of forbidden) {
-      if (pattern.test(content)) violations.push(`${relative}: ${pattern}`);
-      pattern.lastIndex = 0;
-    }
-  }
-}
-
-for (const root of scanRoots) walk(path.join(repoRoot, root));
-
-const schema = fs.readFileSync(path.join(repoRoot, 'server/prisma/schema.prisma'), 'utf8');
-for (const pattern of [/model OPD\\b/, /\\bopdId\\s+String/, /enum PeranPengguna\\b/, /model PengajuanEvaluasi\\b/, /\\bperan\\s+PeranPengguna/]) {
-  if (pattern.test(schema)) violations.push(`server/prisma/schema.prisma: ${pattern}`);
-}
-
-if (violations.length > 0) {
-  console.error('FTI-only source audit failed:');
-  for (const violation of violations) console.error(`- ${violation}`);
-  process.exit(1);
-}
-console.log('FTI-only source audit passed. Legacy vocabulary exists only in immutable migration history.');
-""",
-)
-
-# package scripts: legacy-retention command is no longer part of target database operations.
+# Update package test surface: no retired integration or duplicate boundary suite.
 def clean_package(text: str) -> str:
     data = json.loads(text)
-    data["scripts"].pop("db:backfill:legacy-retention", None)
-    return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
-transform("server/package.json", clean_package)
+    scripts = data['scripts']
+    scripts['test:core-unit'] = scripts['test:core-unit'].replace(' native-fti-boundary.spec.ts', '')
+    scripts['test:fti-exit'] = scripts['test:fti-exit'].replace(' native-fti-boundary.spec.ts', '')
+    for key in ['test:integration', 'test:integration:run', 'test:integration:docker']:
+        scripts.pop(key, None)
+    return json.dumps(data, indent=2, ensure_ascii=False) + '\n'
+edit('server/package.json', clean_package)
 
-save(
-    ".github/workflows/migration-smoke.yml",
-    """name: Migration Smoke
+# Canonical repository knowledge: FTI-only current truth. Historical SQL remains self-describing.
+write('.agents/CURRENT_ITERATION.md', '''# CURRENT ITERATION\n\n## State\n\nThe repository is completing the final FTI-only cleanup after persistence contraction.\n\nCurrent target runtime:\n- identity: `Pengguna` + `PlatformRole`;\n- organization: `Department` and `Process`;\n- workflow relationship: Process Owner / Process Member;\n- legal signing authority: `DEAN` or `HEAD_OF_DEPARTMENT`;\n- SOP lifecycle: `DRAFT -> PROCESS_REVIEW -> REVISION_REQUIRED | FINAL_APPROVAL -> TTE_PENDING -> EFFECTIVE -> SUPERSEDED | REVOKED`;\n- active SOP ownership: `SOP.processId`;\n- public archive: Process-first;\n- notification, review, approval, TTE, versioning, and revocation are Process-native.\n\n## Current milestone\n\nRestore a coherent green master after schema contraction by removing stale compatibility callers from runtime, client contracts, tests, tooling, CI, and repository knowledge.\n\n## Done when\n\nOne exact PR head passes Client CI, Server CI, FTI Domain CI, Migration Smoke, Full FTI Exit, and Container Build. Active source must contain no removed organization/global-role model. Historical migration SQL is immutable and excluded from this rule.\n''')
 
-on:
-  push:
-    paths:
-      - 'server/prisma/**'
-      - 'server/src/database/seed/**'
-      - 'server/prisma.config.ts'
-      - 'server/package.json'
-      - '.github/workflows/migration-smoke.yml'
-  pull_request:
-    paths:
-      - 'server/prisma/**'
-      - 'server/src/database/seed/**'
-      - 'server/prisma.config.ts'
-      - 'server/package.json'
-      - '.github/workflows/migration-smoke.yml'
+write('.agents/ARCHITECTURE.md', '''# ARCHITECTURE\n\n## Target architecture\n\n```text\nPengguna + PlatformRole\n        |\n        +--> ProcessOwnerAuthority ----> Process ----> SOP ----> DetailSOP\n        |                                  |             |\n        +--> ProcessMember ----------------+             +--> Review / Approval / TTE / Version\n        |\n        +--> OrganizationalAuthorityAssignment\n                 |\n                 +--> DEAN (Faculty)\n                 +--> HEAD_OF_DEPARTMENT (Department)\n```\n\n### Identity and authorization\n\n`PlatformRole` is only platform administration. Workflow authorization is contextual to Process ownership/membership. Final approval and TTE authorization come only from the organizational authority resolved for the Process scope. No platform administrator bypass exists for workflow approval or signing.\n\n### SOP ownership\n\nAn active SOP belongs directly to one Process through `SOP.processId`. A Process has exactly one owner and zero or more members. Department context is organizational scope metadata, not SOP ownership.\n\n### Lifecycle\n\n`DRAFT -> PROCESS_REVIEW -> REVISION_REQUIRED | FINAL_APPROVAL -> TTE_PENDING -> EFFECTIVE -> SUPERSEDED | REVOKED`. Review, final approval, signing evidence, publication, version replacement, and revocation must transition this lifecycle atomically where required.\n\n### TTE\n\nSigning evidence stores `OrganizationalAuthority` (`DEAN` or `HEAD_OF_DEPARTMENT`) plus signer identity and certificate metadata. Public verification exposes this authority directly.\n\n### Catalogs\n\nPeraturan and Pelaksana are reusable global catalogs. Procedure and diagram engines consume them without organization ownership shadows.\n\n### Persistence history\n\nPreviously applied migration SQL remains immutable so an old database can be migrated forward deterministically. Historical identifiers inside those SQL files are migration mechanics, not application architecture.\n''')
 
-permissions:
-  contents: read
+write('.agents/CODE_PATTERNS.md', '''# CODE PATTERNS\n\n## Domain vocabulary\n\nUse these concepts in new code:\n- `PlatformRole.SUPER_ADMIN | USER`\n- `Process.ownerId`\n- `ProcessMember`\n- `OrganizationalScope.FACULTY | DEPARTMENT`\n- `OrganizationalAuthority.DEAN | HEAD_OF_DEPARTMENT`\n- `StatusSOP.DRAFT | PROCESS_REVIEW | REVISION_REQUIRED | FINAL_APPROVAL | TTE_PENDING | EFFECTIVE | SUPERSEDED | REVOKED`\n- `BagianSOP.REVIEW` for review activity.\n\n## Authorization\n\nResolve authorization from the owning Process and its relationships. Do not infer workflow authority from account profile fields or platform administration. Resolve legal approval/TTE authority using `OrganizationalAuthorityService`.\n\n## Repository boundaries\n\nRepositories should select only fields required by their domain. Keep identity/session, Process relationship, organizational authority, SOP lifecycle, TTE, catalog, and presentation concerns separate.\n\n## Testing\n\nFixtures should represent native actors: platform admin, Process Owner, Process Member, Dean, and Department Head. Test native lifecycle states directly. Prefer focused unit tests plus real-boundary migration/database checks; do not recreate retired product models in fixtures.\n\n## Migration rule\n\nNever edit an already-applied migration merely to rename historical vocabulary. New target code must not depend on historical migration structures.\n''')
 
-concurrency:
-  group: migration-smoke-${{ github.ref }}
-  cancel-in-progress: true
+write('.agents/PROJECT.md', '''# PROJECT\n\n## Product\n\nSOPFlow FTI manages the complete SOP lifecycle for Fakultas Teknologi Informasi: authoring, Process review, contextual final approval, electronic signing, publication, public verification, version replacement, and revocation.\n\n## Actors\n\n- **Platform Admin**: configures accounts, departments, owner eligibility, and organizational authority assignments.\n- **Process Owner**: owns a Process, manages its team, and reviews submitted SOP work.\n- **Process Member / Penyusun SOP**: authors SOPs within Processes they belong to.\n- **Dean**: final approval and TTE authority for Faculty-scoped Processes.\n- **Head of Department**: final approval and TTE authority for that Department's Processes.\n\n## Core journey\n\n```text\nCreate/choose Process\n -> author SOP\n -> submit for Process review\n -> revise or accept\n -> contextual final approval\n -> TTE\n -> Effective/public archive\n -> optional new version or revocation\n```\n\n## Product invariants\n\n- Active SOP ownership is direct to `Process`.\n- Platform administration is not workflow authority.\n- Review authorization is Process-contextual.\n- Final approval and TTE holder are derived from Process organizational scope.\n- Faculty Process resolves to Dean; Department Process resolves to that Department Head.\n- Signing evidence stores contextual organizational authority.\n- Peraturan and Pelaksana are reusable global catalogs.\n- Public archive and public signing verification expose current FTI semantics.\n- Historical migration SQL is immutable implementation history and is not a product contract.\n\n## Engineering boundary\n\nPreserve SOP editor/procedure/diagram behavior unless a requested user outcome requires changing it. Prefer the smallest coherent vertical change and proportional verification.\n''')
 
-jobs:
-  verify-migrations:
-    runs-on: ubuntu-latest
-    timeout-minutes: 12
-    defaults:
-      run:
-        working-directory: server
-    env:
-      DATABASE_HOST: 127.0.0.1
-      DATABASE_PORT: 3307
-      DATABASE_USER: sop_test
-      DATABASE_PASSWORD: sop_test_password
-      DATABASE_NAME: sop_fti_test
-      DATABASE_URL: mysql://sop_test:sop_test_password@127.0.0.1:3307/sop_fti_test
-      E2E_SEED_PASSWORD: MigrationSmoke-CI-Only-123!
+write('.agents/DECISIONS.md', '''# DECISIONS\n\n## Current architectural decisions\n\n1. **Process is the canonical SOP ownership boundary.** Active SOPs reference `Process` directly.\n2. **Authorization axes are separate.** `PlatformRole` controls platform administration; Process relationships control authoring/review; organizational authority controls final approval/TTE.\n3. **Signing authority is contextual.** Faculty -> Dean; Department -> its Head. Signing evidence stores that authority.\n4. **Lifecycle vocabulary is native.** Persist and expose only `DRAFT`, `PROCESS_REVIEW`, `REVISION_REQUIRED`, `FINAL_APPROVAL`, `TTE_PENDING`, `EFFECTIVE`, `SUPERSEDED`, and `REVOKED`.\n5. **Catalogs are global.** Peraturan and Pelaksana are reusable and are not owned by organizational scope.\n6. **Public archive is Process-first.** Search and navigation use Process/Department context.\n7. **Migration history is immutable.** Applied SQL can contain historical schema mechanics, but runtime, tests, tooling, and current docs must not depend on them.\n8. **No compatibility layer after contraction.** Removed product models are not reintroduced through adapters, fallback DTOs, fixtures, or authorization shortcuts.\n''')
 
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.21.0
-          run_install: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: server/pnpm-lock.yaml
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Start MariaDB
-        run: |
-          docker run --detach --name sop-migration-smoke-db --publish 3307:3306 \\
-            --env MARIADB_ROOT_PASSWORD=root_test_password \\
-            --env MARIADB_DATABASE=sop_fti_test \\
-            --env MARIADB_USER=sop_test --env MARIADB_PASSWORD=sop_test_password \\
-            --env TZ=Asia/Jakarta mariadb:11.4 --lower_case_table_names=1
-      - name: Wait for MariaDB
-        run: |
-          for attempt in $(seq 1 60); do
-            docker exec sop-migration-smoke-db healthcheck.sh --connect --innodb_initialized >/dev/null 2>&1 && exit 0
-            sleep 2
-          done
-          docker logs sop-migration-smoke-db
-          exit 1
-      - name: Validate Prisma schema
-        run: pnpm prisma validate
-      - name: Generate Prisma client
-        run: pnpm prisma generate
-      - name: Apply full migration chain
-        run: pnpm prisma migrate deploy
-      - name: Verify migration status
-        run: pnpm prisma migrate status
-      - name: Verify migration history completeness
-        run: |
-          expected="$(find prisma/migrations -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
-          applied="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse \"SELECT COUNT(*) FROM sop_fti_test._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL\")"
-          test "$applied" = "$expected"
-      - name: Seed native FTI graph
-        run: pnpm db:seed:e2e
-      - name: Prove post-contraction FTI invariants
-        run: pnpm db:audit:fti
-""",
-)
+write('server/prisma/DB-INVARIANTS.md', '''# Database invariants — FTI target schema\n\n## Identity\n- `Pengguna.email` and `Pengguna.nip` are unique.\n- Platform administration is represented only by `platformRole`.\n\n## Process\n- A Process has one owner.\n- Faculty Process has no `departmentId`.\n- Department Process has a valid `departmentId`.\n- Process membership is unique by `(processId, penggunaId)`.\n\n## SOP\n- Active SOP ownership is `SOP.processId`.\n- Version identity is unique by `(sopId, versi)`.\n- `DetailSOP.status` uses only the native lifecycle enum.\n- Effective/version replacement/revocation transitions must preserve a coherent version chain.\n\n## Review and approval\n- Process review evidence belongs to the same Process/SOP/detail being transitioned.\n- Final approval references the accepted Process review and resolved organizational authority.\n- Faculty approval authority is Dean. Department approval authority is that Department Head.\n\n## TTE\n- TTE documents for SOPs are bound to `detailSopId` and `processId`.\n- Signing history stores contextual `OrganizationalAuthority` and signer/certificate evidence.\n- A signed version must transition from `TTE_PENDING` to `EFFECTIVE` atomically with signing evidence.\n\n## Catalogs\n- Peraturan identity is unique by `(nomor, tahun)`.\n- Pelaksana name is globally unique.\n\n## Migration-history boundary\nPreviously applied migration SQL is immutable. Post-contraction audits validate the target schema after the full migration chain rather than treating removed structures as active invariants.\n''')
 
-save(
-    ".github/workflows/full-fti-exit.yml",
-    """name: Full FTI Exit
+write('client/e2e/README.md', '''# SOPFlow FTI E2E\n\nThe E2E suite models only current FTI actors and journeys.\n\n## Actors\n- Platform Admin\n- Process Owner\n- Process Member / Penyusun SOP\n- Dean\n- Head of Department\n\n## Seed\nRun the server target seed before browser journeys. The seed creates Departments, Processes, owner eligibility, Process membership, organizational authority assignments, Peraturan, and Pelaksana.\n\n## Environment\nUse the target E2E identities supplied by `client/e2e/fixtures/target-users.ts` and the configured seed password. Do not add global workflow-role fixtures.\n\n## Critical journeys\n- Process-scoped SOP authoring\n- Process Owner review and revision\n- Faculty/Department contextual final approval\n- TTE and public verification\n- version integrity / supersede\n- revocation\n\nTests should assert native lifecycle values directly.\n''')
 
-on:
-  pull_request:
-    paths:
-      - 'server/src/**'
-      - 'server/prisma/**'
-      - 'server/scripts/full-fti-runtime-audit.cjs'
-      - 'server/package.json'
-      - 'client/src/**'
-      - 'client/e2e/**'
-      - '.github/workflows/full-fti-exit.yml'
-  push:
-    paths:
-      - 'server/src/**'
-      - 'server/prisma/**'
-      - 'server/scripts/full-fti-runtime-audit.cjs'
-      - 'server/package.json'
-      - 'client/src/**'
-      - 'client/e2e/**'
-      - '.github/workflows/full-fti-exit.yml'
+# Remove historical terminology from skill guidance without rewriting the whole skills.
+for rel in ['.agents/skill/backend/SKILL.md', '.agents/skill/frontend/SKILL.md']:
+    edit(rel, lambda t: t.replace('PengajuanEvaluasi', 'retired evaluation persistence').replace('OPD', 'retired organization model').replace('KEPALA_OPD', 'organizational authority').replace('PJ_EVALUATOR', 'final approval authority').replace('PJ_PENYUSUN', 'Process Owner'))
 
-permissions:
-  contents: read
-
-concurrency:
-  group: full-fti-exit-${{ github.ref }}
-  cancel-in-progress: true
-
-jobs:
-  qualify:
-    runs-on: ubuntu-latest
-    timeout-minutes: 12
-    defaults:
-      run:
-        working-directory: server
-    env:
-      DATABASE_HOST: 127.0.0.1
-      DATABASE_PORT: 3308
-      DATABASE_USER: sop_test
-      DATABASE_PASSWORD: sop_test_password
-      DATABASE_NAME: sop_full_fti_exit
-      DATABASE_URL: mysql://sop_test:sop_test_password@127.0.0.1:3308/sop_full_fti_exit
-      E2E_SEED_PASSWORD: FullFtiExit-CI-Only-123!
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.21.0
-          run_install: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: server/pnpm-lock.yaml
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Prove FTI-only active source
-        run: node scripts/full-fti-runtime-audit.cjs
-      - name: Validate and generate Prisma
-        run: |
-          pnpm prisma validate
-          pnpm prisma generate
-      - name: Typecheck target runtime
-        run: pnpm typecheck
-      - name: Verify Process-only contracts
-        run: pnpm test:fti-exit
-      - name: Start MariaDB
-        run: |
-          docker run --detach --name sop-full-fti-exit-db --publish 3308:3306 \\
-            --env MARIADB_ROOT_PASSWORD=root_test_password \\
-            --env MARIADB_DATABASE=sop_full_fti_exit \\
-            --env MARIADB_USER=sop_test --env MARIADB_PASSWORD=sop_test_password \\
-            --env TZ=Asia/Jakarta mariadb:11.4 --lower_case_table_names=1
-      - name: Wait for MariaDB
-        run: |
-          for attempt in $(seq 1 60); do
-            docker exec sop-full-fti-exit-db healthcheck.sh --connect --innodb_initialized >/dev/null 2>&1 && exit 0
-            sleep 2
-          done
-          docker logs sop-full-fti-exit-db
-          exit 1
-      - name: Apply full migration chain
-        run: pnpm prisma migrate deploy
-      - name: Seed native FTI graph
-        run: pnpm db:seed:e2e
-      - name: Prove post-contraction database invariants
-        run: pnpm db:audit:fti
-""",
-)
-
-# ---------------------------------------------------------------------------
-# S3/S4 — public contract and client cleanup
-# ---------------------------------------------------------------------------
-def clean_validation_page(text: str) -> str:
-    text = text.replace(
-        'import type { PeranTTE, TTESignaturePayload } from "@/types/dto/tte.dto";',
-        'import type { TTESignaturePayload } from "@/types/dto/tte.dto";',
-    )
-    text = re.sub(
-        r"\nconst HISTORICAL_TTE_ROLE_LABELS:[\s\S]*?\n};\n",
-        "\n",
-        text,
-        count=1,
-    )
-    text = re.sub(
-        r"\nfunction labelPeran\([\s\S]*?\n}\n",
-        "\n",
-        text,
-        count=1,
-    )
-    text = text.replace(
-        '{query.data.authorityLabel ? "Kewenangan" : "Peran historis"}',
-        'Kewenangan',
-    )
-    text = text.replace(
-        '{query.data.authorityLabel ?? labelPeran(query.data.peran)}',
-        '{query.data.authorityLabel}',
-    )
-    return text
-transform("client/src/pages/validasi/ValidasiPengesahanPage.tsx", clean_validation_page)
-
-replace(
-    "client/src/types/dto/tte.dto.ts",
-    {"authorityLabel?: string;": 'authorityLabel: "Dekan" | "Kepala Departemen";'},
-)
-
-save(
-    "client/src/utils/error-codes.ts",
-    """export const ErrorCodes = {
-  SINGLETON_CONSTRAINT_VIOLATION: 'SINGLETON_CONSTRAINT_VIOLATION',
-  USER_EMAIL_EXISTS: 'USER_EMAIL_EXISTS',
-  USER_NIP_EXISTS: 'USER_NIP_EXISTS',
-  USER_NOT_FOUND: 'USER_NOT_FOUND',
-  TIM_ALREADY_EXISTS: 'TIM_ALREADY_EXISTS',
-  TIM_NOT_FOUND: 'TIM_NOT_FOUND',
-  CONFLICT: 'CONFLICT',
-  VALIDATION_ERROR: 'VALIDATION_ERROR',
-  FORBIDDEN: 'FORBIDDEN',
-  UNAUTHORIZED: 'UNAUTHORIZED',
-} as const;
-
-export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
-
-export interface ApiErrorResponse {
-  success: false;
-  statusCode: number;
-  code: ErrorCode;
-  message: string;
-  errors?: string[];
-  path: string;
-  timestamp: string;
-}
-
-export function getUserFriendlyMessage(error: unknown): string {
-  if (!error) return 'Terjadi kesalahan tidak diketahui';
-  const apiError = error as ApiErrorResponse;
-
-  if (apiError?.code) {
-    switch (apiError.code) {
-      case ErrorCodes.SINGLETON_CONSTRAINT_VIOLATION:
-        return 'Penanggung jawab untuk scope ini sudah tersedia. Periksa struktur organisasi dan kewenangan yang aktif.';
-      case ErrorCodes.USER_EMAIL_EXISTS:
-        return 'Email sudah terdaftar. Gunakan email lain atau coba login.';
-      case ErrorCodes.USER_NIP_EXISTS:
-        return 'NIP sudah terdaftar. Gunakan NIP lain atau periksa kembali.';
-      case ErrorCodes.TIM_ALREADY_EXISTS:
-        return 'User sudah menjadi anggota Process ini.';
-      case ErrorCodes.VALIDATION_ERROR:
-        return 'Data yang Anda masukkan tidak valid. Periksa kembali form.';
-      case ErrorCodes.FORBIDDEN:
-        return 'Anda tidak memiliki akses ke fitur ini.';
-      case ErrorCodes.UNAUTHORIZED:
-        return 'Sesi Anda telah berakhir. Silakan login kembali.';
-      default:
-        return apiError.message || 'Terjadi kesalahan. Silakan coba lagi.';
-    }
-  }
-
-  if (apiError?.message) return apiError.message;
-  if (error instanceof Error) return error.message;
-  return 'Terjadi kesalahan tidak diketahui';
-}
-
-export function isErrorCode(error: unknown, code: ErrorCode): boolean {
-  return (error as ApiErrorResponse)?.code === code;
-}
-""",
-)
-
-delete("client/src/types/dto/tim.dto.ts")
-
-transform(
-    "client/src/pages/public/arsip/arsip-search-schema.ts",
-    lambda text: re.sub(
-        r"\n\s*// Accepted only so old bookmarked OPD-first URLs do not fail route validation\.\n\s*opdId: z\.string\(\)\.optional\(\),\n\s*opdPage: z\.coerce\.number\(\)\.int\(\)\.min\(1\)\.optional\(\),",
-        "",
-        text,
-    ),
-)
-
-print(json.dumps({"changed": sorted(set(CHANGED)), "deleted": sorted(set(DELETED))}, indent=2))
+print(json.dumps({'changed': sorted(set(changed)), 'deleted': sorted(set(deleted))}, indent=2))
