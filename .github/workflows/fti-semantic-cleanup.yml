@@ -1,0 +1,281 @@
+name: FTI Semantic Cleanup
+
+on:
+  push:
+    branches:
+      - refactor/fti-only-final-cleanup
+    paths:
+      - '.github/workflows/fti-semantic-cleanup.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/fti-only-final-cleanup
+          fetch-depth: 0
+      - name: Repair semantic cleanup fallout
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+
+          root = Path('.')
+          workflow = '.github/workflows/fti-semantic-cleanup.yml'
+
+          def edit(path_name, replacements=(), remove_lines=()):
+              path = root / path_name
+              text = path.read_text(encoding='utf-8')
+              original = text
+              for old, new in replacements:
+                  text = text.replace(old, new)
+              if remove_lines:
+                  lines = text.splitlines(keepends=True)
+                  lines = [line for line in lines if not any(needle in line for needle in remove_lines)]
+                  text = ''.join(lines)
+              if text != original:
+                  path.write_text(text, encoding='utf-8')
+
+          # Remove the transitional E2E alias and point all callers at the native platform admin.
+          for relative in subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0'):
+              if not relative or relative == workflow or relative.startswith('server/prisma/migrations/'):
+                  continue
+              path = root / relative
+              if path.suffix not in {'.ts', '.tsx'} or not path.is_file():
+                  continue
+              text = path.read_text(encoding='utf-8')
+              updated = text.replace('users.pjEvaluator', 'targetUsers.admin')
+              updated = updated.replace('targetUsers, users', 'targetUsers')
+              updated = updated.replace('users, targetUsers', 'targetUsers')
+              updated = re.sub(r'import \{\s*users\s*\} from (["\'][^"\']*fixtures/users["\'])', r'import { targetUsers } from \1', updated)
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+
+          users_path = root / 'client/e2e/fixtures/users.ts'
+          users_text = users_path.read_text(encoding='utf-8')
+          users_text = re.sub(
+              r'\n/\*\*\n \* Transitional symbol[\s\S]*?\nexport const users = \{ pjEvaluator: targetUsers\.admin \} as const\n',
+              '\n',
+              users_text,
+          )
+          users_path.write_text(users_text, encoding='utf-8')
+
+          edit('client/e2e/journeys/fti-account-bootstrap.spec.ts', [
+              ('SUPER_ADMIN membuat akun melalui target UI tanpa memilih organisasi atau legacy role',
+               'SUPER_ADMIN membuat akun melalui target UI tanpa role workflow global'),
+          ])
+
+          edit('client/e2e/journeys/fti-public-archive.spec.ts', [
+              ('J36 Public Proses Bisnis Discovery — visitor menelusuri Proses Bisnis lalu SOP tanpa organisasi picker',
+               'J36 Public Proses Bisnis Discovery — visitor menelusuri SOP berdasarkan Proses Bisnis'),
+              ('Workspace publik membuka official document tanpa jalur organisasi',
+               'Workspace publik membuka official document melalui konteks Proses Bisnis'),
+              ('J38 Publication Compatibility — target search tidak duplikat dan revocation menghapus current public result',
+               'J38 Publication Integrity — target search tidak duplikat dan revocation menghapus current public result'),
+              ('Target global result hanya memuat satu copy dan legacy API tetap tersedia',
+               'Target global result hanya memuat satu copy'),
+              ("\n      const legacyEndpoint = await request.get(toApiUrl('/sop/public/organisasi?page=1&limit=1'))\n      expect(\n        legacyEndpoint.ok(),\n        'legacy organisasi public endpoint tetap tersedia sebagai compatibility API',\n      ).toBe(true)\n", '\n'),
+          ], remove_lines=["not.toContainText('Pilih organisasi')"])
+
+          edit('client/e2e/support/fti-tte-actions.ts', remove_lines=['catatan evaluator|nilai organisasi|internal evaluasi'])
+
+          edit('client/src/components/sop/__tests__/sop-list-card.test.tsx', [
+              ('DIVERIFIKASI_PJ_EVALUATOR_ORGANISASI', 'FINAL_APPROVAL'),
+              ('Menunggu TTD PJ Evaluator', 'Menunggu persetujuan akhir'),
+          ])
+          edit('client/src/components/ui/__tests__/accessibility-regressions.test.tsx', [
+              ('DIVERIFIKASI_PJ_EVALUATOR_ORGANISASI', 'FINAL_APPROVAL'),
+              ('Menunggu pengesahan Kepala organisasi', 'Menunggu persetujuan akhir'),
+          ])
+          edit('client/src/components/ui/info-field.tsx', [
+              ('Label (e.g. "Tanggal", "organisasi", "Status")', 'Label (e.g. "Tanggal", "Proses Bisnis", "Status")'),
+          ])
+          edit('client/src/lib/print/pengajuan-print.ts', [
+              ('Tersedia setelah seluruh SOP ditandatangani Kepala organisasi (status pengajuan selesai).',
+               'Tersedia setelah SOP selesai melalui persetujuan akhir dan TTE.'),
+              ('saat Kepala organisasi mengesahkan SOP', 'saat pejabat berwenang mengesahkan SOP'),
+          ])
+
+          for test_path in [
+              'client/src/pages/__tests__/public-auth-design-contract.test.ts',
+              'client/src/pages/__tests__/public-landing-hybrid-design-contract.test.ts',
+              'client/src/pages/landing/__tests__/landing-visual-layout.test.tsx',
+          ]:
+              edit(test_path, remove_lines=['Kepala organisasi', 'PJ Evaluator', 'Menunggu TTD PJ Evaluator', 'Contoh paket SOP organisasi', 'organisasi terhubung'])
+
+          edit('client/src/pages/landing/document-traceability.tsx', [('SOP-organisasi-2026-014', 'SOP-FTI-2026-014')])
+          edit('client/src/pages/landing/public-service-gateway.tsx', [
+              ('berdasarkan organisasi atau informasi dokumen', 'berdasarkan Proses Bisnis atau informasi dokumen'),
+          ])
+          edit('client/src/pages/penyusun/sop/detail/components/RelatedPosDialog.tsx', [
+              ('Belum ada SOP lain pada organisasi ini.', 'Belum ada SOP lain pada Proses Bisnis ini.'),
+          ])
+          edit('client/src/pages/penyusun/sop/detail/SopEditorContext.tsx', [
+              ('halaman evaluator', 'halaman read-only'),
+          ])
+
+          # Landing preview is Process Review, not the retired evaluation workflow.
+          for relative in subprocess.check_output(['git', 'ls-files', 'client/src/pages/landing']).decode().splitlines():
+              path = root / relative
+              if path.suffix not in {'.ts', '.tsx'}:
+                  continue
+              text = path.read_text(encoding='utf-8')
+              updated = text.replace("'evaluation'", "'process-review'")
+              updated = updated.replace('EvaluationPreview', 'ProcessReviewPreview')
+              updated = updated.replace('EvaluationRow', 'ProcessReviewRow')
+              updated = updated.replace('Catatan evaluator', 'Catatan Pemilik Proses')
+              updated = updated.replace('Evaluasi selesai', 'Review proses selesai')
+              updated = updated.replace('Berita acara siap', 'Persetujuan akhir')
+              updated = updated.replace('Pengesahan internal', 'TTE selesai')
+              updated = updated.replace('>Evaluasi<', '>Review Proses Bisnis<')
+              updated = updated.replace('Penilaian dan catatan tetap terhubung ke dokumen yang sama.', 'Review dan catatan tetap terhubung ke dokumen yang sama.')
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+
+          edit('server/src/common/auth/password.constants.ts', [
+              ('Kata sandi awal saat admin membuat akun peran (penyusun, evaluator, kepala organisasi).',
+               'Kata sandi awal saat admin membuat akun pengguna FTI.'),
+          ])
+          edit('server/src/common/date/wib-date.util.ts', [
+              ('saat Kepala organisasi mengesahkan SOP', 'saat pengesahan final mengaktifkan SOP'),
+          ])
+          edit('server/src/modules/core/auth/dto/login.dto.ts', [('user@organisasi.go.id', 'user@fti.example')])
+          edit('server/src/modules/core/auth/helpers/auth.shared.ts', [
+              ('never from legacy organisasi/role fields', 'never from retired identity/workflow-role fields'),
+          ])
+          edit('server/src/modules/core/pengguna/dto/create-pengguna-profil.dto.ts', [
+              ('Field profil bersama pembuatan akun pengguna (penyusun, kepala organisasi, evaluator).',
+               'Field profil bersama pembuatan akun pengguna FTI.'),
+          ])
+          edit('server/src/modules/core/pengguna/dto/create-platform-account.dto.ts', [
+              ('Target FTI account provisioning intentionally hides legacy organisasi/workflow-role fields.',
+               'Target FTI account provisioning exposes only native platform-account fields.'),
+          ])
+
+          seed = root / 'server/src/database/seed/initial-seed.service.spec.ts'
+          seed_text = seed.read_text(encoding='utf-8')
+          seed_text = seed_text.replace(
+              "counts: {\n      pengguna?: number;\n      organisasi?: number;\n      peraturan?: number;\n      pelaksana?: number;\n    } = {},",
+              "counts: {\n      pengguna?: number;\n      prosesBisnis?: number;\n      departemen?: number;\n      peraturan?: number;\n      pelaksana?: number;\n    } = {},",
+          )
+          seed_text = seed_text.replace(
+              "pengguna: { count: jest.fn().mockResolvedValue(counts.pengguna ?? 0) },\n      organisasi: { count: jest.fn().mockResolvedValue(counts.organisasi ?? 0) },\n      peraturan:",
+              "pengguna: { count: jest.fn().mockResolvedValue(counts.pengguna ?? 0) },\n      prosesBisnis: { count: jest.fn().mockResolvedValue(counts.prosesBisnis ?? 0) },\n      departemen: { count: jest.fn().mockResolvedValue(counts.departemen ?? 0) },\n      peraturan:",
+          )
+          seed.write_text(seed_text, encoding='utf-8')
+
+          edit('server/src/modules/sop/catalog/sop-catalog.service.spec.ts', [
+              ('        organisasi: null,\n', ''),
+          ])
+          edit('server/src/modules/sop/catalog/sop-workbench.module.ts', [
+              ('does not import organisasi or legacy catalog providers', 'does not import retired organization-scoped catalog providers'),
+          ])
+          edit('server/src/modules/sop/pdf/sop-official-pdf.service.ts', [('Kepala organisasi', 'pejabat berwenang')])
+          edit('server/src/modules/sop/pdf/sop-official-pdf.service.spec.ts', [('Kepala organisasi', 'pejabat berwenang')])
+          edit('server/src/modules/sop/penyusunan-proses-bisnis/sop-terikat-proses-bisnis.guard.ts', [
+              ('must not reintroduce organisasi or\n * global workflow-role authorization',
+               'must not bypass ProsesBisnis authorization with\n * retired global workflow-role compatibility'),
+          ])
+          edit('server/src/modules/sop/prosedur/dto/pelaksana-patch-item.dto.ts', [
+              ('ID master Pelaksana milik organisasi pemilik SOP', 'ID master Pelaksana global yang dipilih untuk SOP'),
+          ])
+          edit('server/src/modules/sop/public/dto/public-arsip-query.dto.ts', [
+              ('Query bersama daftar arsip publik (organisasi / SOP).', 'Query bersama daftar arsip publik Proses Bisnis / SOP.'),
+              ('Pencarian substring (nama organisasi atau judul/nomor SOP)', 'Pencarian substring (nama Proses Bisnis atau judul/nomor SOP)'),
+          ])
+          edit('server/src/modules/tte/core/tte.controller.spec.ts', [('Kepala organisasi', 'Dekan')])
+
+          tte_spec = root / 'server/src/modules/tte/shared/repository/tte.repository.spec.ts'
+          tte_text = tte_spec.read_text(encoding='utf-8')
+          tte_text = tte_text.replace('loads active signer identity without current role or organisasi shadow', 'loads only the native active signer identity projection')
+          tte_text = tte_text.replace(
+              "select: expect.not.objectContaining({\n        peran: expect.anything(),\n        organisasi: expect.anything(),\n      }),",
+              "select: {\n        penggunaId: true,\n        email: true,\n        nama: true,\n        nip: true,\n        jabatan: true,\n        pangkat: true,\n      },",
+          )
+          tte_spec.write_text(tte_text, encoding='utf-8')
+
+          # Reword remaining descriptive references; do not touch identifiers.
+          descriptive_replacements = {
+              'role/organisasi legacy': 'retired identity fields',
+              'role or organisasi shadow': 'retired identity fields',
+              'role atau organisasi shadow': 'retired identity fields',
+              'organisasi shadow': 'retired organization shadow',
+              'organisasi filtering': 'organization scoping',
+              'organisasi resolution or filtering': 'organization scoping',
+              'organisasi ownership link': 'organization ownership link',
+              'organisasi input': 'organization-scoping input',
+              'organisasi storage dependency': 'organization-scoped storage dependency',
+              'independently of organisasi': 'independently of organization scoping',
+              'organisasi compatibility authorization': 'retired compatibility authorization',
+          }
+          for relative in subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0'):
+              if not relative or relative == workflow or relative.startswith('server/prisma/migrations/'):
+                  continue
+              path = root / relative
+              if path.suffix not in {'.ts', '.tsx', '.md'} or not path.is_file():
+                  continue
+              text = path.read_text(encoding='utf-8')
+              updated = text
+              for old, new in descriptive_replacements.items():
+                  updated = updated.replace(old, new)
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+
+          # Docs may discuss a reviewer, but the retired Evaluator role name must disappear.
+          for relative in ['.agents/skill/backend/SKILL.md', '.agents/skill/frontend/SKILL.md']:
+              path = root / relative
+              text = path.read_text(encoding='utf-8')
+              text = re.sub(r'\bEvaluator\b', 'Pemilik Proses', text, flags=re.IGNORECASE)
+              path.write_text(text, encoding='utf-8')
+
+          # Remove remaining stale negative assertions instead of renaming retired labels.
+          for relative in [
+              'client/src/pages/__tests__/public-auth-design-contract.test.ts',
+              'client/src/pages/__tests__/public-landing-hybrid-design-contract.test.ts',
+              'client/src/pages/landing/__tests__/landing-visual-layout.test.tsx',
+          ]:
+              path = root / relative
+              text = path.read_text(encoding='utf-8')
+              lines = [line for line in text.splitlines(keepends=True) if not re.search(r'PJ Evaluator|\bEvaluator\b', line, flags=re.IGNORECASE)]
+              path.write_text(''.join(lines), encoding='utf-8')
+
+          # No retired role/vocabulary or accidental rename may survive active source.
+          offenders = []
+          checks = [
+              re.compile(r'\bOPD\b', re.I),
+              re.compile(r'\bPJ Evaluator\b', re.I),
+              re.compile(r'\bEvaluator\b', re.I),
+              re.compile(r'/sop/public/organisasi'),
+              re.compile(r'\bprisma\.organisasi\b'),
+              re.compile(r'\borganisasi\s*:\s*null'),
+              re.compile(r'\busers\.pjEvaluator\b'),
+          ]
+          for relative in subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0'):
+              if not relative or relative == workflow or relative == 'server/scripts/full-fti-runtime-audit.cjs' or relative.startswith('server/prisma/migrations/'):
+                  continue
+              path = root / relative
+              if path.suffix not in {'.ts', '.tsx', '.js', '.cjs', '.mjs', '.prisma', '.md', '.yml', '.yaml', '.json', '.sh', '.py'} or not path.is_file():
+                  continue
+              text = path.read_text(encoding='utf-8')
+              for check in checks:
+                  if check.search(text):
+                      offenders.append(f'{relative}: {check.pattern}')
+          if offenders:
+              raise SystemExit('Semantic cleanup incomplete:\n' + '\n'.join(offenders))
+          PY
+          rm -f .github/workflows/fti-semantic-cleanup.yml
+      - name: Commit semantic cleanup
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'refactor: complete native FTI semantic cleanup'
+          git push origin HEAD:refactor/fti-only-final-cleanup
