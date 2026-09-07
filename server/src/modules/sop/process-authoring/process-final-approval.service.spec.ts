@@ -19,8 +19,30 @@ const user = { sub: 'dean-1', email: 'dean@fti.example.test' } as never;
 
 function makeService(
   status: StatusSOP = StatusSOP.FINAL_APPROVAL,
-  acceptedReviewId: string | null = null,
+  acceptedReviewId: string | null = 'review-1',
 ) {
+  const findAcceptedReview = jest
+    .fn()
+    .mockResolvedValue(acceptedReviewId === null ? null : { processReviewId: acceptedReviewId });
+  const createApproval = jest.fn().mockResolvedValue({
+    detailSopId: 'detail-a',
+    processId: 'process-a',
+    approvedById: 'dean-1',
+    authority: OrganizationalAuthority.DEAN,
+    authorityKey: 'DEAN',
+  });
+  const tx = {
+    detailSOP: {
+      findUnique: jest.fn().mockResolvedValue({ status }),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+    },
+    processReview: {
+      findFirst: findAcceptedReview,
+    },
+    processFinalApproval: {
+      create: createApproval,
+    },
+  };
   const prisma = {
     detailSOP: {
       findFirst: jest.fn().mockResolvedValue({ detailSopId: 'detail-a' }),
@@ -29,21 +51,12 @@ function makeService(
       findUnique: jest.fn().mockResolvedValue({ processId: 'process-a' }),
     },
     processReview: {
-      findFirst: jest
-        .fn()
-        .mockResolvedValue(
-          acceptedReviewId === null ? null : { processReviewId: acceptedReviewId },
-        ),
+      findFirst: findAcceptedReview,
     },
     processFinalApproval: {
-      create: jest.fn().mockResolvedValue({
-        detailSopId: 'detail-a',
-        processId: 'process-a',
-        approvedById: 'dean-1',
-        authority: OrganizationalAuthority.DEAN,
-        authorityKey: 'DEAN',
-      }),
+      create: createApproval,
     },
+    $transaction: jest.fn(async (callback: (transaction: typeof tx) => unknown) => callback(tx)),
   } as unknown as PrismaService;
   const authority = {
     assertCanApprove: jest.fn().mockResolvedValue({
@@ -68,39 +81,44 @@ function makeService(
   } as unknown as SopCatalogRepository;
   return {
     service: new ProcessFinalApprovalService(prisma, authority, catalog),
-    prisma,
-    authority,
-    catalog,
+    prisma: prisma as any,
+    tx,
+    authority: authority as any,
+    catalog: catalog as any,
   };
 }
 
 describe('ProcessFinalApprovalService', () => {
   it('persists approval only from the contextual resolved authority', async () => {
-    const { service, prisma, authority } = makeService();
+    const { service, tx, authority } = makeService();
 
     await expect(service.approve(user, 'detail-a')).resolves.toMatchObject({
       approvedById: 'dean-1',
       authority: OrganizationalAuthority.DEAN,
     });
     expect(authority.assertCanApprove).toHaveBeenCalledWith('dean-1', 'process-a');
-    expect(prisma.processFinalApproval.create).toHaveBeenCalledWith({
+    expect(tx.detailSOP.updateMany).toHaveBeenCalledWith({
+      where: { detailSopId: 'detail-a', status: StatusSOP.FINAL_APPROVAL },
+      data: { status: StatusSOP.TTE_PENDING, terakhirDieditOlehId: 'dean-1' },
+    });
+    expect(tx.processFinalApproval.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         detailSopId: 'detail-a',
         processId: 'process-a',
         approvedById: 'dean-1',
         authority: OrganizationalAuthority.DEAN,
         authorityKey: 'DEAN',
-        processReviewId: null,
+        processReviewId: 'review-1',
       }),
     });
   });
 
   it('links new approval evidence to the latest accepted Process Owner review', async () => {
-    const { service, prisma } = makeService(StatusSOP.FINAL_APPROVAL, 'review-1');
+    const { service, tx } = makeService(StatusSOP.FINAL_APPROVAL, 'review-accepted');
 
     await service.approve(user, 'detail-a');
 
-    expect(prisma.processReview.findFirst).toHaveBeenCalledWith({
+    expect(tx.processReview.findFirst).toHaveBeenCalledWith({
       where: {
         detailSopId: 'detail-a',
         processId: 'process-a',
@@ -110,8 +128,8 @@ describe('ProcessFinalApprovalService', () => {
       orderBy: { createdAt: 'desc' },
       select: { processReviewId: true },
     });
-    expect(prisma.processFinalApproval.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ processReviewId: 'review-1' }),
+    expect(tx.processFinalApproval.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ processReviewId: 'review-accepted' }),
     });
   });
 
@@ -142,19 +160,27 @@ describe('ProcessFinalApprovalService', () => {
   });
 
   it('rejects approval before Process Owner accepted the SOP', async () => {
-    const { service } = makeService(StatusSOP.PROCESS_REVIEW);
+    const { service } = makeService(StatusSOP.PROCESS_REVIEW, null);
 
     await expect(service.approve(user, 'detail-a')).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it('rejects final approval when accepted Process Owner review evidence is missing', async () => {
+    const { service } = makeService(StatusSOP.FINAL_APPROVAL, null);
+
+    await expect(service.approve(user, 'detail-a')).rejects.toThrow(
+      'Final approval membutuhkan Process Owner review yang diterima',
+    );
+  });
+
   it('rejects direct approval of an older SOP version', async () => {
-    const { service, prisma, authority } = makeService();
-    (prisma.detailSOP.findFirst as jest.Mock).mockResolvedValue({ detailSopId: 'detail-newer' });
+    const { service, prisma, authority, tx } = makeService();
+    prisma.detailSOP.findFirst.mockResolvedValue({ detailSopId: 'detail-newer' });
 
     await expect(service.approve(user, 'detail-a')).rejects.toThrow(
       'Final approval hanya dapat diberikan pada versi SOP terbaru',
     );
     expect(authority.assertCanApprove).not.toHaveBeenCalled();
-    expect(prisma.processFinalApproval.create).not.toHaveBeenCalled();
+    expect(tx.processFinalApproval.create).not.toHaveBeenCalled();
   });
 });
