@@ -1,4 +1,4 @@
-name: Audit Istilah Proses Bisnis
+name: Finalisasi Istilah Proses Bisnis
 
 on:
   push:
@@ -6,87 +6,293 @@ on:
       - refactor/fti-only-final-cleanup
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  audit:
+  refactor:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    env:
+      DATABASE_PASSWORD: ci-not-used
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Audit istilah domain aktif
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: |
+            server/pnpm-lock.yaml
+            client/pnpm-lock.yaml
+
+      - name: Refactor kontrak dan struktur domain
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
           import subprocess
-          import sys
+
+          ROOT = Path('.')
+          EXCLUDED = ('server/prisma/migrations/', 'server/src/generated/', '.github/workflows/')
+
+          def git_mv(src: str, dst: str):
+              s, d = Path(src), Path(dst)
+              if not s.exists():
+                  return
+              if d.exists():
+                  raise RuntimeError(f'rename collision: {src} -> {dst}')
+              d.parent.mkdir(parents=True, exist_ok=True)
+              subprocess.run(['git', 'mv', src, dst], check=True)
+
+          # Domain directories and user-facing route ownership.
+          for src, dst in [
+              ('server/src/modules/core/process', 'server/src/modules/core/proses-bisnis'),
+              ('server/src/modules/notifications/process', 'server/src/modules/notifications/proses-bisnis'),
+              ('server/src/modules/sop/process-authoring', 'server/src/modules/sop/penyusunan-proses-bisnis'),
+              ('client/src/routes/admin/processes', 'client/src/routes/admin/proses-bisnis'),
+              ('client/src/pages/approval', 'client/src/pages/persetujuan'),
+              ('client/src/routes/approval', 'client/src/routes/persetujuan'),
+          ]:
+              git_mv(src, dst)
+
+          filename_map = [
+              ('process-owner-authority', 'kewenangan-penanggung-jawab-proses-bisnis'),
+              ('organizational-authority', 'pejabat-berwenang'),
+              ('process-final-approval', 'persetujuan-akhir-sop'),
+              ('process-owner-review', 'pemeriksaan-penanggung-jawab-proses-bisnis'),
+              ('process-invitation', 'undangan-anggota-proses-bisnis'),
+              ('process-notification', 'notifikasi-proses-bisnis'),
+              ('process-reminder', 'pengingat-proses-bisnis'),
+              ('process-bound-sop', 'sop-terikat-proses-bisnis'),
+              ('process-version', 'versi-sop-proses-bisnis'),
+              ('process-error-handlers', 'penangan-kesalahan-proses-bisnis'),
+              ('process-query-keys', 'kunci-query-proses-bisnis'),
+              ('process-owner', 'penanggung-jawab-proses-bisnis'),
+              ('process-member', 'anggota-proses-bisnis'),
+              ('process-review', 'pemeriksaan-proses-bisnis'),
+              ('process-approval', 'persetujuan-proses-bisnis'),
+              ('process-lifecycle', 'siklus-proses-bisnis'),
+              ('process-audit', 'riwayat-aktivitas-proses-bisnis'),
+              ('sop-proses-bisnis-lifecycle', 'sop-proses-bisnis-siklus'),
+              ('sop-proses-bisnis-revocation', 'pencabutan-sop-proses-bisnis'),
+              ('process.', 'proses-bisnis.'),
+          ]
 
           tracked = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
-          tracked = [p for p in tracked if p]
+          paths = sorted([Path(p) for p in tracked if p], key=lambda p: len(p.parts), reverse=True)
+          for path in paths:
+              rel = path.as_posix()
+              if rel.startswith(EXCLUDED) or not path.exists():
+                  continue
+              new_name = path.name
+              for old, new in filename_map:
+                  new_name = new_name.replace(old, new)
+              if new_name != path.name:
+                  target = path.with_name(new_name)
+                  if target.exists():
+                      raise RuntimeError(f'rename collision: {path} -> {target}')
+                  subprocess.run(['git', 'mv', path.as_posix(), target.as_posix()], check=True)
 
-          excluded_prefixes = (
-              'server/prisma/migrations/',
-              'server/src/generated/',
-              '.github/workflows/',
-          )
-          db_technical = {
-              'server/prisma/schema.prisma',
-              'server/prisma/post-contraction-db-audit.ts',
-              'server/prisma/cleanup-migration-smoke-probes.ts',
-          }
+          # Keep import paths, route paths, and public API paths aligned with renamed files.
+          literal_replacements = [
+              ('server/src/modules/core/process', 'server/src/modules/core/proses-bisnis'),
+              ('modules/core/process', 'modules/core/proses-bisnis'),
+              ('notifications/process', 'notifications/proses-bisnis'),
+              ('process-authoring', 'penyusunan-proses-bisnis'),
+              ('routes/admin/processes', 'routes/admin/proses-bisnis'),
+              ('pages/approval', 'pages/persetujuan'),
+              ('routes/approval', 'routes/persetujuan'),
+              ('process-owner-authority', 'kewenangan-penanggung-jawab-proses-bisnis'),
+              ('organizational-authority', 'pejabat-berwenang'),
+              ('process-final-approval', 'persetujuan-akhir-sop'),
+              ('process-owner-review', 'pemeriksaan-penanggung-jawab-proses-bisnis'),
+              ('process-invitation', 'undangan-anggota-proses-bisnis'),
+              ('process-notification', 'notifikasi-proses-bisnis'),
+              ('process-reminder', 'pengingat-proses-bisnis'),
+              ('process-bound-sop', 'sop-terikat-proses-bisnis'),
+              ('process-version', 'versi-sop-proses-bisnis'),
+              ('process-error-handlers', 'penangan-kesalahan-proses-bisnis'),
+              ('process-query-keys', 'kunci-query-proses-bisnis'),
+              ('process-owner', 'penanggung-jawab-proses-bisnis'),
+              ('process-review', 'pemeriksaan-proses-bisnis'),
+              ('process-approval', 'persetujuan-proses-bisnis'),
+              ('process-lifecycle', 'siklus-proses-bisnis'),
+              ('process-audit', 'riwayat-aktivitas-proses-bisnis'),
+              ('sop-proses-bisnis-lifecycle', 'sop-proses-bisnis-siklus'),
+              ('sop-proses-bisnis-revocation', 'pencabutan-sop-proses-bisnis'),
+              ('/admin/processes', '/admin/proses-bisnis'),
+              ('/approval', '/persetujuan'),
+              ('process-admin', 'administrasi-proses-bisnis'),
+              ('process-context', 'konteks-proses-bisnis'),
+              ("'departments'", "'departemen'"),
+              ('"departments"', '"departemen"'),
+              ("'processes'", "'proses-bisnis'"),
+              ('"processes"', '"proses-bisnis"'),
+              ('Proses Bisnis Team', 'Tim Proses Bisnis'),
+              ('Process Owner', 'Penanggung Jawab Proses Bisnis'),
+              ('Process Member', 'Anggota Proses Bisnis'),
+              ('Process Review', 'Pemeriksaan Proses Bisnis'),
+              ('Process Lifecycle', 'Siklus Proses Bisnis'),
+              ('Process Invitation', 'Undangan Proses Bisnis'),
+              ('Organizational Authority', 'Pejabat Berwenang'),
+              ('organizational authority', 'pejabat berwenang'),
+              ('owner eligibility', 'kelayakan penanggung jawab Proses Bisnis'),
+              ('owner dan members', 'penanggung jawab dan anggota'),
+              ('owner and members', 'penanggung jawab dan anggota'),
+              ('ProsesBisnises', 'Proses Bisnis'),
+              ('Departemens', 'Departemen'),
+          ]
+
+          identifier_replacements = [
+              ('ProcessOwnerAuthority', 'KewenanganPenanggungJawabProsesBisnis'),
+              ('ProcessOwner', 'PenanggungJawabProsesBisnis'),
+              ('ProcessMember', 'AnggotaProsesBisnis'),
+              ('ProcessInvitation', 'UndanganAnggotaProsesBisnis'),
+              ('ProcessReview', 'PemeriksaanProsesBisnis'),
+              ('ProcessFinalApproval', 'PersetujuanAkhirSOP'),
+              ('ProcessLifecycle', 'SiklusProsesBisnis'),
+              ('ProcessAudit', 'RiwayatAktivitasProsesBisnis'),
+              ('ProcessNotification', 'NotifikasiProsesBisnis'),
+              ('ProcessReminder', 'PengingatProsesBisnis'),
+              ('OrganizationalAuthorityAssignment', 'PenugasanPejabatBerwenang'),
+              ('OrganizationalAuthority', 'PejabatBerwenang'),
+              ('processOwnerAuthority', 'kewenanganPenanggungJawabProsesBisnis'),
+              ('processOwner', 'penanggungJawabProsesBisnis'),
+              ('processMember', 'anggotaProsesBisnis'),
+              ('processInvitation', 'undanganAnggotaProsesBisnis'),
+              ('processReview', 'pemeriksaanProsesBisnis'),
+              ('processFinalApproval', 'persetujuanAkhirSOP'),
+              ('processLifecycle', 'siklusProsesBisnis'),
+              ('processAudit', 'riwayatAktivitasProsesBisnis'),
+              ('processNotification', 'notifikasiProsesBisnis'),
+              ('processReminder', 'pengingatProsesBisnis'),
+              ('organizationalAuthorityAssignment', 'penugasanPejabatBerwenang'),
+              ('organizationalAuthority', 'pejabatBerwenang'),
+              ('processService', 'prosesBisnisService'),
+              ('processRepository', 'repositoriProsesBisnis'),
+              ('processId', 'prosesBisnisId'),
+              ('processIds', 'prosesBisnisIds'),
+              ('processName', 'namaProsesBisnis'),
+              ('ownerId', 'penanggungJawabId'),
+              ('ownerName', 'namaPenanggungJawab'),
+              ('ownerEmail', 'emailPenanggungJawab'),
+              ('memberIds', 'anggotaIds'),
+              ('scopeKey', 'kunciLingkup'),
+              ('scopeLabel', 'labelLingkup'),
+          ]
+
           suffixes = {'.ts', '.tsx', '.js', '.cjs', '.mjs', '.md', '.json', '.yml', '.yaml'}
-          patterns = {
-              'ProcessOwner': re.compile(r'\bProcessOwner(?:Authority)?\b'),
-              'ProcessMember': re.compile(r'\bProcessMember\b'),
-              'ProcessReview': re.compile(r'\bProcessReview\b'),
-              'ProcessLifecycle': re.compile(r'\bProcessLifecycle\b'),
-              'ProcessInvitation': re.compile(r'\bProcessInvitation\b'),
-              'ProcessAudit': re.compile(r'\bProcessAudit\b'),
-              'ProcessFinalApproval': re.compile(r'\bProcessFinalApproval\b'),
-              'ProcessNotification': re.compile(r'\bProcessNotification\b'),
-              'ProcessReminder': re.compile(r'\bProcessReminder\b'),
-              'OrganizationalAuthority': re.compile(r'\bOrganizationalAuthority(?:Assignment)?\b'),
-              'Department': re.compile(r'\bDepartment\b'),
-              'processId': re.compile(r'\bprocessId\b'),
-              'processName': re.compile(r'\bprocessName\b'),
-              'departmentId': re.compile(r'\bdepartmentId\b'),
-              'domain phrase': re.compile(r'\b(?:Process Owner|Process Member|Process Review|Process Lifecycle|Process Invitation|Organizational Authority)\b', re.I),
-          }
+          domain_markers = (
+              'ProsesBisnis', 'prosesBisnis', 'Departemen', 'departemenId', 'LingkupOrganisasi',
+              'penanggungJawab', 'anggotaProsesBisnis', 'pemeriksaanProsesBisnis',
+          )
 
-          findings = []
-          for rel in tracked:
-              if rel.startswith(excluded_prefixes) or rel in db_technical:
+          for path in ROOT.rglob('*'):
+              if not path.is_file() or path.suffix not in suffixes:
                   continue
-              path = Path(rel)
-              if path.suffix not in suffixes:
+              rel = path.as_posix()
+              if rel.startswith(EXCLUDED):
                   continue
-              try:
-                  text = path.read_text(encoding='utf-8')
-              except UnicodeDecodeError:
-                  continue
-              for line_no, line in enumerate(text.splitlines(), 1):
-                  for label, pattern in patterns.items():
-                      if pattern.search(line):
-                          findings.append((rel, line_no, label, line.strip()))
+              text = path.read_text(encoding='utf-8')
+              original = text
+              for old, new in literal_replacements:
+                  text = text.replace(old, new)
+              for old, new in identifier_replacements:
+                  text = re.sub(rf'\b{re.escape(old)}\b', new, text)
 
-          path_findings = []
-          for rel in tracked:
-              if rel.startswith(excluded_prefixes):
-                  continue
-              if '/process/' in rel or '/process-' in rel or rel.startswith('process-') or 'Process' in Path(rel).name or '/processes/' in rel:
-                  path_findings.append(rel)
+              domain_file = any(marker in text for marker in domain_markers) or any(part in rel for part in (
+                  '/proses-bisnis/', 'proses-bisnis.', 'administrasi-proses-bisnis',
+                  'penyusunan-proses-bisnis', '/persetujuan/',
+              ))
+              if domain_file:
+                  text = re.sub(r'\bscope\b', 'lingkup', text)
+                  text = re.sub(r'\bScope\b', 'Lingkup', text)
+                  text = re.sub(r'\.owner\b', '.penanggungJawab', text)
+                  text = re.sub(r'\bowner\s*:', 'penanggungJawab:', text)
+                  text = re.sub(r'\.members\b', '.anggota', text)
+                  text = re.sub(r'\bmembers\s*:', 'anggota:', text)
+                  text = re.sub(r'\.department\b', '.departemen', text)
+                  text = re.sub(r'\bdepartment\s*:', 'departemen:', text)
+                  text = re.sub(r'\.process\b', '.prosesBisnis', text)
+                  text = re.sub(r'\bprocess\s*:', 'prosesBisnis:', text)
+                  text = re.sub(r'\.sops\b', '.daftarSop', text)
+                  text = re.sub(r'\bsops\s*:', 'daftarSop:', text)
+              if text != original:
+                  path.write_text(text, encoding='utf-8')
 
-          print('=== ACTIVE DOMAIN TERM RESIDUE ===')
-          for rel, line_no, label, line in findings:
-              print(f'{rel}:{line_no}: [{label}] {line}')
-          print('=== ACTIVE PATH RESIDUE ===')
-          for rel in path_findings:
-              print(rel)
-          print(f'RESIDUE_COUNTS content={len(findings)} paths={len(path_findings)}')
+          # Prisma API is Indonesian, while physical DB names remain immutable via @map/@@map.
+          schema_path = Path('server/prisma/schema.prisma')
+          schema = schema_path.read_text(encoding='utf-8')
+          schema_lines = []
+          outside_replacements = [
+              ('scopeKey', 'kunciLingkup'),
+              ('scope', 'lingkup'),
+              ('ownerId', 'penanggungJawabId'),
+              ('processes', 'prosesBisnis'),
+              ('department', 'departemen'),
+              ('owner', 'penanggungJawab'),
+              ('members', 'anggota'),
+              ('sops', 'daftarSop'),
+              ('process', 'prosesBisnis'),
+          ]
+          quoted = re.compile(r'("(?:\\.|[^"\\])*")')
+          for line in schema.splitlines():
+              parts = quoted.split(line)
+              for i in range(0, len(parts), 2):
+                  segment = parts[i]
+                  for old, new in outside_replacements:
+                      segment = re.sub(rf'\b{re.escape(old)}\b', new, segment)
+                  parts[i] = segment
+              line = ''.join(parts)
+              if re.match(r'^\s*lingkup\s+LingkupOrganisasi\b', line) and '@map(' not in line:
+                  line += ' @map("scope")'
+              if re.match(r'^\s*penanggungJawabId\s+String\b', line) and '@map(' not in line:
+                  line += ' @map("ownerId")'
+              if re.match(r'^\s*kunciLingkup\s+String\b', line) and '@map(' not in line:
+                  line += ' @map("scopeKey")'
+              schema_lines.append(line)
+          schema_path.write_text('\n'.join(schema_lines) + '\n', encoding='utf-8')
 
-          if findings or path_findings:
-              sys.exit(1)
+          print('--- refactor diff summary ---')
+          subprocess.run(['git', 'status', '--short'], check=True)
           PY
+
+      - name: Server install
+        working-directory: server
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate Prisma
+        working-directory: server
+        run: |
+          pnpm exec prisma validate
+          pnpm exec prisma generate
+
+      - name: Server typecheck
+        working-directory: server
+        run: pnpm typecheck
+
+      - name: Client install and typecheck
+        working-directory: client
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm typecheck
+
+      - name: Commit refactor
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git commit -m "refactor: tuntaskan istilah domain Proses Bisnis"
+          git push origin HEAD:refactor/fti-only-final-cleanup
