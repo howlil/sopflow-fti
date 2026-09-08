@@ -87,13 +87,32 @@ jobs:
       - name: Prove baseline reconciliation without reset
         run: |
           mv prisma/migrations prisma/migrations.pre-squash
-          mkdir -p prisma/migrations/0_fti_native_baseline
+          mkdir -p prisma/migrations/0_fti_native_baseline prisma/migrations/1_fti_native_invariants
           cp prisma/fti-baseline.generated.sql prisma/migrations/0_fti_native_baseline/migration.sql
+          cp prisma/fti-invariants.generated.sql prisma/migrations/1_fti_native_invariants/migration.sql
           cp prisma/migrations.pre-squash/migration_lock.toml prisma/migrations/migration_lock.toml
           pnpm exec prisma migrate resolve --applied 0_fti_native_baseline
           pnpm exec prisma migrate status
           pnpm exec prisma migrate deploy
+          pnpm exec prisma generate
           pnpm db:audit:fti
+
+      - name: Prove target trigger set
+        run: |
+          actual="$(docker exec sop-baseline-source-db mariadb -uroot -proot_test_password --batch --skip-column-names \
+            -e "SELECT TRIGGER_NAME FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = 'sop_fti_source' ORDER BY TRIGGER_NAME")"
+          expected="$(printf '%s\n' \
+            trg_detailsop_one_effective_insert \
+            trg_detailsop_one_effective_update \
+            trg_langkahsop_cabang_detail_insert \
+            trg_langkahsop_cabang_detail_update \
+            trg_langkahsop_pelaksana_swimlane_insert \
+            trg_langkahsop_pelaksana_swimlane_update \
+            trg_process_scope_department_insert \
+            trg_process_scope_department_update \
+            trg_sop_terkait_insert \
+            trg_sop_terkait_update)"
+          test "$actual" = "$expected"
 
       - name: Commit generated baseline evidence
         working-directory: .
