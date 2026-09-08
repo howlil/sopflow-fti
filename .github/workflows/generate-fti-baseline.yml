@@ -17,10 +17,17 @@ permissions:
 jobs:
   generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 12
     defaults:
       run:
         working-directory: server
+    env:
+      DATABASE_HOST: 127.0.0.1
+      DATABASE_PORT: 3308
+      DATABASE_USER: sop_test
+      DATABASE_PASSWORD: sop_test_password
+      DATABASE_NAME: sop_fti_source
+      DATABASE_URL: mysql://sop_test:sop_test_password@127.0.0.1:3308/sop_fti_source
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -54,12 +61,35 @@ jobs:
           --script
           --output prisma/fti-baseline.generated.sql
 
-      - name: Commit generated baseline
+      - name: Start source MariaDB
+        run: |
+          docker run --detach --name sop-baseline-source-db --publish 3308:3306 \
+            --env MARIADB_ROOT_PASSWORD=root_test_password \
+            --env MARIADB_DATABASE=sop_fti_source \
+            --env MARIADB_USER=sop_test --env MARIADB_PASSWORD=sop_test_password \
+            --env TZ=Asia/Jakarta mariadb:11.4 --lower_case_table_names=1
+          for attempt in $(seq 1 60); do
+            docker exec sop-baseline-source-db healthcheck.sh --connect --innodb_initialized >/dev/null 2>&1 && exit 0
+            sleep 2
+          done
+          docker logs sop-baseline-source-db
+          exit 1
+
+      - name: Materialize current target database
+        run: pnpm exec prisma migrate deploy
+
+      - name: Capture active triggers
+        run: |
+          docker exec sop-baseline-source-db mariadb -uroot -proot_test_password --batch --skip-column-names \
+            -e "SELECT TRIGGER_NAME, EVENT_MANIPULATION, EVENT_OBJECT_TABLE, ACTION_TIMING, ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = 'sop_fti_source' ORDER BY TRIGGER_NAME" \
+            > prisma/fti-triggers.generated.tsv
+
+      - name: Commit generated baseline evidence
         working-directory: .
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add server/prisma/fti-baseline.generated.sql
+          git add server/prisma/fti-baseline.generated.sql server/prisma/fti-triggers.generated.tsv
           git diff --cached --quiet && exit 0
-          git commit -m 'chore(db): generate FTI native baseline SQL'
+          git commit -m 'chore(db): generate FTI native baseline evidence'
           git push origin HEAD:refactor/fti-native-migration-baseline
