@@ -137,7 +137,7 @@ export function OptionCardPicker<T>({
             )}
             onClick={() => {
               if (!disabled) {
-                onChange(opt.value);
+                onChange(opt.value)
               }
             }}
             onKeyDown={(event) => handleRadioKeyDown(event, index)}
@@ -146,7 +146,7 @@ export function OptionCardPicker<T>({
               <div
                 className={cn(
                   'w-6 h-6 mx-auto mb-1 flex items-center justify-center',
-                  selected ? styles.icon : UNSELECTED_ICON
+                  selected ? styles.icon : UNSELECTED_ICON,
                 )}
               >
                 {opt.icon}
@@ -155,7 +155,7 @@ export function OptionCardPicker<T>({
             <span
               className={cn(
                 'text-xs font-semibold block',
-                selected ? styles.label : UNSELECTED_LABEL
+                selected ? styles.label : UNSELECTED_LABEL,
               )}
             >
               {opt.label}
@@ -166,7 +166,7 @@ export function OptionCardPicker<T>({
               </span>
             )}
           </button>
-        )}
+        )
       })}
     </div>
   )
