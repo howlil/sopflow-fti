@@ -70,21 +70,69 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Unit tests — common/config/database
+      - name: Unit — common/config/database
         run: pnpm exec jest common config database --runInBand
 
-      - name: Unit tests — core
+      - name: Unit — core/auth
         if: always()
-        run: pnpm exec jest modules/core --runInBand
+        run: pnpm exec jest modules/core/auth --runInBand
 
-      - name: Unit tests — notifications
+      - name: Unit — core/pengguna
         if: always()
-        run: pnpm exec jest modules/notifications --runInBand
+        run: pnpm exec jest modules/core/pengguna --runInBand
 
-      - name: Unit tests — SOP
+      - name: Unit — core/peraturan
         if: always()
-        run: pnpm exec jest modules/sop --runInBand
+        run: pnpm exec jest modules/core/peraturan --runInBand
 
-      - name: Unit tests — TTE
+      - name: Unit — core/proses-bisnis
+        if: always()
+        run: pnpm exec jest modules/core/proses-bisnis --runInBand
+
+      - name: Unit — notifications/boundaries
+        if: always()
+        run: pnpm exec jest notification-module-boundaries.spec.ts --runInBand
+
+      - name: Unit — notifications/proses-bisnis
+        if: always()
+        run: pnpm exec jest modules/notifications/proses-bisnis --runInBand
+
+      - name: Unit — notifications/shared
+        if: always()
+        run: pnpm exec jest modules/notifications/shared --runInBand
+
+      - name: Unit — SOP/catalog
+        if: always()
+        run: pnpm exec jest modules/sop/catalog --runInBand
+
+      - name: Unit — SOP/collaboration
+        if: always()
+        run: pnpm exec jest modules/sop/collaboration --runInBand
+
+      - name: Unit — SOP/diagram
+        if: always()
+        run: pnpm exec jest modules/sop/diagram --runInBand
+
+      - name: Unit — SOP/pdf
+        if: always()
+        run: pnpm exec jest modules/sop/pdf --runInBand
+
+      - name: Unit — SOP/pelaksana
+        if: always()
+        run: pnpm exec jest modules/sop/pelaksana --runInBand
+
+      - name: Unit — SOP/penyusunan-proses-bisnis
+        if: always()
+        run: pnpm exec jest modules/sop/penyusunan-proses-bisnis --runInBand
+
+      - name: Unit — SOP/prosedur
+        if: always()
+        run: pnpm exec jest modules/sop/prosedur --runInBand
+
+      - name: Unit — SOP/public
+        if: always()
+        run: pnpm exec jest modules/sop/public --runInBand
+
+      - name: Unit — TTE
         if: always()
         run: pnpm exec jest modules/tte --runInBand
