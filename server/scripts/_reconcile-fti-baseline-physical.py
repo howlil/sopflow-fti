@@ -2,19 +2,25 @@ from pathlib import Path
 
 schema_path = Path('server/prisma/schema.prisma')
 schema = schema_path.read_text()
-replacements = {
+for old, new in {
     'nohp                      String           @db.VarChar(32)': 'nohp                      String           @db.VarChar(15)',
     'tteP12Base64              String?          @db.Text': 'tteP12Base64              String?          @db.LongText',
     'signatureAlgorithm String?                 @db.VarChar(13)': 'signatureAlgorithm String?                 @db.VarChar(32)',
     'kunciLabel  String       @db.VarChar(8)': 'kunciLabel  String       @db.VarChar(255)',
-    'updatedAt   DateTime @updatedAt @db.DateTime(3)': 'updatedAt   DateTime @default(now()) @updatedAt @db.DateTime(3)',
-}
-for old, new in replacements.items():
-    count = schema.count(old)
-    expected = 2 if old == 'updatedAt   DateTime @updatedAt @db.DateTime(3)' else 1
-    if count != expected:
-        raise SystemExit(f'Expected {expected} schema match(es) for {old!r}, found {count}')
-    schema = schema.replace(old, new)
+}.items():
+    if schema.count(old) != 1:
+        raise SystemExit(f'Expected one schema match for {old!r}, found {schema.count(old)}')
+    schema = schema.replace(old, new, 1)
+
+for model in ('PelaksanaAuditAttribution', 'DetailSOPPelaksanaSnapshot'):
+    start = schema.index(f'model {model} {{')
+    end = schema.index('\n}', start) + 2
+    block = schema[start:end]
+    old = '@updatedAt @db.DateTime(3)'
+    if block.count(old) != 1:
+        raise SystemExit(f'Expected one updatedAt marker in {model}')
+    block = block.replace(old, '@default(now()) @updatedAt @db.DateTime(3)', 1)
+    schema = schema[:start] + block + schema[end:]
 schema_path.write_text(schema)
 
 baseline_path = Path('server/prisma/migrations/0_fti_native_baseline/migration.sql')
@@ -26,8 +32,8 @@ for old, new in {
     '`kunciLabel` VARCHAR(8) NOT NULL': '`kunciLabel` VARCHAR(255) NOT NULL',
 }.items():
     if baseline.count(old) != 1:
-        raise SystemExit(f'Expected one baseline match for {old!r}')
-    baseline = baseline.replace(old, new)
+        raise SystemExit(f'Expected one baseline match for {old!r}, found {baseline.count(old)}')
+    baseline = baseline.replace(old, new, 1)
 
 for table in ('PelaksanaAuditAttribution', 'DetailSOPPelaksanaSnapshot'):
     start = baseline.index(f'CREATE TABLE `{table}` (')
@@ -45,6 +51,8 @@ pengguna = baseline[pengguna_start:pengguna_end]
 check = "    CONSTRAINT `Pengguna_nohp_format_chk` CHECK (`nohp` REGEXP '^628[0-9]{7,12}$'),\n"
 if 'Pengguna_nohp_format_chk' not in pengguna:
     marker = '    PRIMARY KEY (`penggunaId`)'
+    if marker not in pengguna:
+        raise SystemExit('Pengguna primary key marker not found')
     pengguna = pengguna.replace(marker, check + marker, 1)
     baseline = baseline[:pengguna_start] + pengguna + baseline[pengguna_end:]
 baseline_path.write_text(baseline)
