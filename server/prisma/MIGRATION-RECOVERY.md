@@ -29,21 +29,23 @@ Use this path only for a database that already matches the current FTI target sc
 pnpm prisma migrate resolve --applied 0_fti_native_baseline
 ```
 
-4. Verify Prisma sees the new baseline correctly:
-
-```sh
-pnpm prisma migrate status
-```
-
-5. Deploy the native invariant migration and re-audit:
+4. Deploy the native invariant migration. This also replaces the stale DetailSOP status trigger with the canonical `EFFECTIVE` invariant:
 
 ```sh
 pnpm prisma migrate deploy
+```
+
+5. Verify final migration state and database invariants:
+
+```sh
+pnpm prisma migrate status
 pnpm prisma generate
 pnpm db:audit:fti
 ```
 
 Do not execute `0_fti_native_baseline` against a populated target database. `migrate resolve --applied` records that the existing schema already represents that baseline; it does not recreate tables or rewrite application data.
+
+The existing historical rows in `_prisma_migrations` do not need to be deleted. They remain database-local operational history; the repository source of truth starts from the FTI-native baseline.
 
 ## Failed migration recovery
 
@@ -63,8 +65,8 @@ inspect failure
   -> apply bounded fix-forward repair when required
   -> verify schema and invariants
   -> prisma migrate resolve when appropriate
-  -> prisma migrate status
   -> prisma migrate deploy
+  -> prisma migrate status
   -> prisma generate
   -> db:audit:fti
 ```
