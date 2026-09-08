@@ -4,7 +4,6 @@ const { execFileSync } = require('node:child_process');
 
 const repoRoot = path.resolve(__dirname, '../..');
 const auditFile = 'server/scripts/full-fti-runtime-audit.cjs';
-const historicalMigrationPrefix = 'server/prisma/migrations/';
 const codeExtensions = new Set([
   '.ts',
   '.tsx',
@@ -73,7 +72,7 @@ const trackedFiles = execFileSync('git', ['ls-files', '-z'], {
 const violations = [];
 
 for (const relative of trackedFiles) {
-  if (relative.startsWith(historicalMigrationPrefix) || relative === auditFile) continue;
+  if (relative === auditFile) continue;
 
   for (const pattern of forbiddenPaths) {
     if (pattern.test(relative)) violations.push(`${relative}: forbidden path ${pattern}`);
@@ -115,7 +114,4 @@ if (violations.length > 0) {
   process.exit(1);
 }
 
-console.log(
-  `FTI-only repository audit passed across ${trackedFiles.length} tracked files. ` +
-    'Superseded vocabulary is permitted only in immutable migration history.',
-);
+console.log(`FTI-only repository audit passed across ${trackedFiles.length} tracked files.`);
