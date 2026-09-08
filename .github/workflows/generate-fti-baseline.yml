@@ -1,0 +1,65 @@
+name: Generate FTI Baseline
+
+on:
+  push:
+    branches:
+      - refactor/fti-native-migration-baseline
+    paths:
+      - '.github/workflows/generate-fti-baseline.yml'
+      - 'server/prisma/schema.prisma'
+      - 'server/prisma.config.ts'
+      - 'server/package.json'
+      - 'server/pnpm-lock.yaml'
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: refactor/fti-native-migration-baseline
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate schema
+        run: pnpm exec prisma validate
+
+      - name: Generate clean FTI baseline SQL
+        run: >-
+          pnpm exec prisma migrate diff
+          --from-empty
+          --to-schema prisma/schema.prisma
+          --script
+          --output prisma/fti-baseline.generated.sql
+
+      - name: Commit generated baseline
+        working-directory: .
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add server/prisma/fti-baseline.generated.sql
+          git diff --cached --quiet && exit 0
+          git commit -m 'chore(db): generate FTI native baseline SQL'
+          git push origin HEAD:refactor/fti-native-migration-baseline
