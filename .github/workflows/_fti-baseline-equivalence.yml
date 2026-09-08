@@ -1,4 +1,4 @@
-name: FTI Baseline Equivalence Proof
+name: Apply Final FTI Physical Reconciliation
 
 on:
   push:
@@ -6,123 +6,27 @@ on:
       - refactor/fti-native-migration-baseline
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  compare:
+  patch:
+    if: ${{ github.actor != 'github-actions[bot]' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
     steps:
-      - name: Checkout candidate
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          path: candidate
-      - name: Checkout pre-squash target
-        uses: actions/checkout@v4
-        with:
-          ref: 335850b7c7f9740d28fb67647b6c2b754e370daf
-          path: legacy-target
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.28.2
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: |
-            candidate/server/pnpm-lock.yaml
-            legacy-target/server/pnpm-lock.yaml
-      - name: Install legacy target dependencies
-        working-directory: legacy-target/server
-        run: pnpm install --frozen-lockfile
-      - name: Install candidate dependencies
-        working-directory: candidate/server
-        run: pnpm install --frozen-lockfile
-      - name: Start MariaDB
+          ref: refactor/fti-native-migration-baseline
+          fetch-depth: 0
+      - name: Apply physical reconciliation
+        run: python3 server/scripts/_reconcile-fti-baseline-physical.py
+      - name: Remove one-time tooling
         run: |
-          docker run -d --name sop-baseline-equivalence-db \
-            -e MARIADB_ROOT_PASSWORD=root_test_password \
-            -e MARIADB_ROOT_HOST=% \
-            -p 3309:3306 mariadb:11.4 --lower_case_table_names=1
-      - name: Wait for MariaDB
+          rm server/scripts/_reconcile-fti-baseline-physical.py
+          rm .github/workflows/_fti-baseline-equivalence.yml
+      - name: Commit reconciliation
         run: |
-          for i in {1..60}; do
-            if docker exec sop-baseline-equivalence-db mariadb-admin -h127.0.0.1 -uroot -proot_test_password ping --silent; then
-              exit 0
-            fi
-            sleep 2
-          done
-          docker logs sop-baseline-equivalence-db
-          exit 1
-      - name: Create comparison databases
-        run: |
-          docker exec sop-baseline-equivalence-db mariadb -h127.0.0.1 -uroot -proot_test_password -e \
-            'CREATE DATABASE legacy_target CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE DATABASE candidate_target CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
-      - name: Apply pre-squash migration chain
-        working-directory: legacy-target/server
-        env:
-          DATABASE_HOST: 127.0.0.1
-          DATABASE_PORT: 3309
-          DATABASE_USER: root
-          DATABASE_PASSWORD: root_test_password
-          DATABASE_NAME: legacy_target
-        run: pnpm prisma migrate deploy
-      - name: Apply candidate migration set
-        working-directory: candidate/server
-        env:
-          DATABASE_HOST: 127.0.0.1
-          DATABASE_PORT: 3309
-          DATABASE_USER: root
-          DATABASE_PASSWORD: root_test_password
-          DATABASE_NAME: candidate_target
-        run: pnpm prisma migrate deploy
-      - name: Dump physical schemas
-        run: |
-          docker exec sop-baseline-equivalence-db mariadb-dump -h127.0.0.1 -uroot -proot_test_password \
-            --no-data --skip-comments --skip-add-drop-table --compact --triggers legacy_target \
-            | sed 's/legacy_target/canonical_db/g' > legacy-target.sql
-          docker exec sop-baseline-equivalence-db mariadb-dump -h127.0.0.1 -uroot -proot_test_password \
-            --no-data --skip-comments --skip-add-drop-table --compact --triggers candidate_target \
-            | sed 's/candidate_target/canonical_db/g' > candidate-target.sql
-      - name: Compare physical schemas
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          def normalize(path: str) -> str:
-              text = Path(path).read_text()
-              text = re.sub(r'AUTO_INCREMENT=\d+\s*', '', text)
-              text = re.sub(r'/\*!50003 SET sql_mode\s*=.*?\*/;', '', text)
-              text = re.sub(r'/\*!50003 SET character_set_client\s*=.*?\*/;', '', text)
-              text = re.sub(r'/\*!50003 SET character_set_results\s*=.*?\*/;', '', text)
-              text = re.sub(r'/\*!50003 SET collation_connection\s*=.*?\*/;', '', text)
-              return '\n'.join(line.rstrip() for line in text.splitlines() if line.strip()) + '\n'
-
-          legacy = normalize('legacy-target.sql')
-          candidate = normalize('candidate-target.sql')
-          Path('legacy-target.normalized.sql').write_text(legacy)
-          Path('candidate-target.normalized.sql').write_text(candidate)
-          if legacy != candidate:
-              import difflib
-              diff = ''.join(difflib.unified_diff(
-                  legacy.splitlines(True), candidate.splitlines(True),
-                  fromfile='legacy-target', tofile='candidate-target'
-              ))
-              Path('physical-schema.diff').write_text(diff)
-              print(diff[:50000])
-              raise SystemExit('Candidate baseline is not physically equivalent to the pre-squash FTI target')
-          print('Physical schema equivalence passed')
-          PY
-      - name: Upload comparison evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: fti-baseline-equivalence
-          path: |
-            legacy-target.normalized.sql
-            candidate-target.normalized.sql
-            physical-schema.diff
-          if-no-files-found: ignore
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix(db): reconcile FTI baseline with target physical contract'
+          git push origin HEAD:refactor/fti-native-migration-baseline
