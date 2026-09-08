@@ -1,63 +1,29 @@
 # Prisma Migration Recovery
 
-Use this runbook only for shared/staging/production databases where `prisma migrate deploy` reports a failed migration such as `P3018` or `P3009`.
+Use this runbook only for shared, staging, or production databases where `prisma migrate deploy` reports an unresolved migration failure such as `P3018` or `P3009`.
 
-The goal is to recover the migration history without resetting or silently rewriting existing data.
+The goal is to recover migration history without resetting or silently rewriting existing data.
 
-## Core Rule
+## Core rules
 
-A failed migration is a database-state incident, not a reason to reset the database.
+- Never run `prisma migrate reset` against a shared, staging, or production database.
+- Never delete or hand-edit rows in `_prisma_migrations` as a shortcut.
+- Do not repeatedly rerun `prisma migrate deploy` while Prisma reports an unresolved failed migration.
+- Treat successfully applied migration files as immutable.
+- Prefer a new fix-forward migration for defects discovered after a migration has completed.
 
-Never run `prisma migrate reset` against a shared, staging, or production database.
-
-Never delete or hand-edit rows in `_prisma_migrations` as a shortcut.
-
-Do not repeatedly rerun `prisma migrate deploy` while Prisma reports an unresolved failed migration.
-
-## Recovery Loop
+## Recovery loop
 
 ```text
 Inspect failed migration
   -> inspect actual database state
   -> choose fix-forward or rollback
-  -> execute only the missing/repair SQL
-  -> verify resulting schema/invariants
+  -> execute only bounded repair SQL
+  -> verify resulting schema and invariants
   -> prisma migrate resolve
   -> prisma migrate status
   -> prisma migrate deploy
 ```
-
-## Incident Procedure — `20260901163000_add_fti_process_foundation`
-
-Use the dedicated recovery script when this migration is the unresolved failed row and the deployment is blocked by the observed `3823` / `P3018` / `P3009` incident:
-
-```sh
-bash server/prisma/recovery/20260901163000_add_fti_process_foundation.sh --inspect
-```
-
-`--inspect` is read-only. It verifies the unresolved migration row and inspects the live partial schema. It fails closed when existing `Departemen`, `ProsesBisnis`, or `AnggotaProsesBisnis` structures are ambiguous rather than dropping or rewriting them.
-
-Before applying recovery, ensure the backend image contains the fixed trigger-based migration. Rebuild/update the backend image when needed; the script also checks this and stops if the image still contains the old failing migration.
-
-Apply the bounded fix-forward only after inspection succeeds:
-
-```sh
-bash server/prisma/recovery/20260901163000_add_fti_process_foundation.sh --apply
-```
-
-The script:
-
-1. verifies the database service is healthy;
-2. verifies exactly one unresolved failed row exists for this migration;
-3. validates any already-applied `Pengguna.platformRole`, `Departemen`, `ProsesBisnis`, and `AnggotaProsesBisnis` state;
-4. creates only missing ProsesBisnis-foundation objects required by the intended migration end-state;
-5. installs the trigger-based ProsesBisnis lingkup invariant;
-6. verifies all four ProsesBisnis/AnggotaProsesBisnis foreign keys and both lingkup triggers;
-7. proves an invalid ProsesBisnis lingkup INSERT is rejected;
-8. runs `prisma migrate resolve --applied 20260901163000_add_fti_process_foundation` only after end-state verification;
-9. runs `prisma migrate status` and resumes `prisma migrate deploy` for remaining migrations.
-
-The script does not run `migrate reset`, delete migration-history rows, drop existing domain tables, restart services, or deploy application images.
 
 ### 1. Identify the failed migration
 
@@ -69,11 +35,11 @@ Inspect the matching migration file and the `_prisma_migrations` row. Record whi
 
 MySQL/MariaDB DDL is not assumed to be transactionally rolled back as a unit. A failed migration may therefore leave a partial schema.
 
-### 2. Inspect the actual database state
+### 2. Inspect actual database state
 
 Check the affected tables, columns, indexes, foreign keys, triggers, and data before running repair SQL.
 
-Do not infer the current state solely from the migration file or from Prisma's error message.
+Do not infer current state solely from the migration file or from Prisma's error message.
 
 ### 3. Choose one recovery direction
 
@@ -81,21 +47,21 @@ Prefer **fix-forward** when earlier statements applied successfully and can safe
 
 Use **rollback** only when the already-applied portion can be reversed safely and unambiguously without destructive data loss.
 
-A destructive rollback, ambiguous data reinterpretation, or ownership change is a stop condition and requires explicit approval.
+A destructive rollback, ambiguous data reinterpretation, ownership change, or security-boundary change requires explicit approval.
 
-### 4. Execute repair SQL explicitly
+### 4. Execute bounded repair SQL
 
-For bounded fix-forward SQL:
+For explicit fix-forward SQL:
 
 ```sh
 pnpm prisma db execute --file /path/to/recovery.sql
 ```
 
-The recovery SQL must be derived from the intended migration end state and the inspected live state. It must not replay statements that already succeeded.
+The SQL must be derived from the intended migration end state and the inspected live state. It must not replay statements that already succeeded.
 
 ### 5. Verify before resolving history
 
-Verify that the repaired database has the intended tables/columns/constraints/triggers and that critical invariants reject invalid writes.
+Verify that the repaired database has the intended tables, columns, constraints, triggers, and critical invariants.
 
 Do not mark a migration applied merely because the repair command exited successfully.
 
@@ -123,16 +89,12 @@ pnpm prisma migrate deploy
 pnpm prisma generate
 ```
 
-`migrate deploy` is resumed only after the failed migration no longer appears unresolved.
+Resume `migrate deploy` only after the failed migration no longer appears unresolved.
 
-## Migration History Rule
-
-Once a migration has successfully applied to a shared or production environment, treat that migration file as immutable. Correct later defects with a new migration.
-
-The narrow exception is an actively failed migration that has not successfully completed and is being repaired as part of an explicit recovery incident. Any edit in that situation must still be followed by state inspection and `migrate resolve`; changing the file alone does not repair the target database.
-
-## CI Boundary
+## CI boundary
 
 `prisma validate` and `prisma generate` validate the Prisma model but do not execute raw migration SQL.
 
-Changes under `prisma/migrations`, Prisma schema files, migration recovery scripts, or `prisma.config.ts` require the dedicated migration smoke gate, which executes the complete migration chain against the same MariaDB major/minor image used by the production Compose runtime.
+Changes under `prisma/migrations`, Prisma schema files, or `prisma.config.ts` require the migration smoke gate, which executes the complete migration chain against the MariaDB version used by the production Compose runtime.
+
+One-off incident repair scripts must not remain as permanent operational tooling after the affected environments have been recovered. Keep durable recovery guidance generic and derive incident-specific repair SQL from the exact live database state.
