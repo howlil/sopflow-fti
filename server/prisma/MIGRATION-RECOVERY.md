@@ -19,7 +19,7 @@ Expected committed migrations:
 
 ## Existing target database: one-time baseline cutover
 
-Use this path only for a database that already matches the current FTI target schema.
+Use this path only for a database that already matches the current FTI target schema. Complete this reconciliation before deploying an application version that expects the squashed migration set.
 
 1. Take a verified database backup.
 2. Run the target-schema audit using the pre-cutover application version.
