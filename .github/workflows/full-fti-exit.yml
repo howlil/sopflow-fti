@@ -8,7 +8,6 @@ on:
       - 'server/scripts/full-fti-runtime-audit.cjs'
       - 'server/package.json'
       - 'client/src/**'
-      - 'client/e2e/**'
       - '.github/workflows/full-fti-exit.yml'
   push:
     paths:
@@ -17,7 +16,6 @@ on:
       - 'server/scripts/full-fti-runtime-audit.cjs'
       - 'server/package.json'
       - 'client/src/**'
-      - 'client/e2e/**'
       - '.github/workflows/full-fti-exit.yml'
 
 permissions:
