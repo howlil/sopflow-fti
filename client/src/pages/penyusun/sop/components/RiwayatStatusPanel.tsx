@@ -17,8 +17,8 @@ const BAGIAN_LABEL: Record<BagianSOP, string> = {
   HEADER: 'Header SOP',
   LANGKAH: 'Langkah',
   STATUS: 'Status',
-  UMPAN_BALIK: 'Umpan balik evaluasi',
-  REVIEW: 'Evaluasi',
+  UMPAN_BALIK: 'Umpan balik review',
+  REVIEW: 'Review proses',
 }
 
 const BAGIAN_BADGE_CLASS: Record<BagianSOP, string> = {
