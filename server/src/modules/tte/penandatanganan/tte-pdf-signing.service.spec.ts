@@ -83,47 +83,6 @@ describe('TtePdfSigningService', () => {
     });
   });
 
-  it('tidak menginjeksi signature baru untuk tipe dokumen yang tidak memerlukan PDF signing', async () => {
-    const userId = '00000000-0000-4000-8000-0000000000aa';
-    const dokumenTteId = '00000000-0000-4000-8000-0000000000bb';
-    repository.findRiwayatForPdfSigning.mockResolvedValue({
-      userId,
-      dokumenTteId,
-      authority: PejabatBerwenang.DEAN,
-      ditandatanganiPada: new Date('2026-05-01T00:00:00.000Z'),
-      dokumenTte: {
-        dokumenTteId,
-        nomorDokumen: 'DOC-NO-CA',
-        judulDokumen: 'Dokumen Tanpa CA',
-        jenisDokumen: JenisDokumenTte.BERITA_ACARA_EVALUASI,
-      },
-      user: {
-        penggunaId: userId,
-        nama: 'Dekan FTI',
-        nip: '198001011234567890',
-        jabatan: 'Dekan',
-      },
-    });
-    const pdfBase64 = (await createSamplePdf()).toString('base64');
-
-    const actual = await service.signPdf(
-      { sub: userId, email: 'dean@example.test' },
-      {
-        pin: '123456',
-        dokumenTteId,
-        userId,
-        jenisDokumen: JenisDokumenTte.BERITA_ACARA_EVALUASI,
-        pdfBase64,
-      },
-    );
-
-    expect(actual.signed).toBe(false);
-    expect(actual.signatureFormat).toBe('UNSIGNED_NOT_REQUIRED');
-    expect(actual.certificate).toBeNull();
-    expect(actual.signedPdfBase64).toBe(pdfBase64);
-    expect(repository.updateRiwayatPdfSignatureMetadata).not.toHaveBeenCalled();
-  });
-
   it('menyimpan metadata sertifikat dan binding TTE pada PDF SOP', async () => {
     const userId = '00000000-0000-4000-8000-0000000000aa';
     const dokumenTteId = '00000000-0000-4000-8000-0000000000bb';

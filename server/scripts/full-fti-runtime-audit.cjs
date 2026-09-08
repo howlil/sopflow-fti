@@ -16,6 +16,7 @@ const codeExtensions = new Set([
   '.mjs',
   '.prisma',
   '.py',
+  '.sh',
 ]);
 
 const forbiddenEverywhere = [
@@ -27,12 +28,19 @@ const forbiddenEverywhere = [
   /\bPJ Evaluator\b/i,
   /\bPJ Penyusun\b/i,
   /\bKepala OPD\b/i,
+  /\bKepala Dinas\b/i,
   /\bEvaluator\b/i,
   /\bPengajuanEvaluasi\b/,
+  /\bpengajuanEvaluasi[A-Za-z0-9_]*\b/,
   /\bLegacySopRetention\b/,
   /\bopdId\b/,
   /\bopdNama\b/,
   /\bARSIP_OPD_[A-Z0-9_]*\b/,
+  /\bBERITA_ACARA_EVALUASI\b/,
+  /\bUNSIGNED_NOT_REQUIRED\b/,
+  /\btandaTanganiBa\b/,
+  /\btandaTanganiSemuaSopPengajuan\b/,
+  /\bUmpan balik evaluasi\b/i,
   /StatusSOP\.(?:BERLAKU|DIGANTIKAN|DICABUT|SEDANG_DIEVALUASI|REVISI_DARI_EVALUATOR|DITOLAK_EVALUATOR|MENUNGGU_TTD_PJ_EVALUATOR)/,
   /BagianSOP\.EVALUASI\b/,
   /\bSiapDievaluasi\b/,
@@ -40,7 +48,9 @@ const forbiddenEverywhere = [
   /\blegacy-unbound\b/i,
 ];
 const forbiddenInCode = [
-  /\bperan\s*:\s*['"](?:PENYUSUN|EVALUATOR|KEPALA_OPD|PJ_EVALUATOR|PJ_PENYUSUN)['"]/,
+  /\bperan\s*:\s*['"](?:PENYUSUN|EVALUATOR|KEPALA_OPD|PJ_EVALUATOR|PJ_PENYUSUN|DEAN|HEAD_OF_DEPARTMENT)['"]/,
+  /\breadonly\s+peran\??\s*:/,
+  /\bAFTER\s+`peran`\b/i,
 ];
 const forbiddenPaths = [
   /(?:^|\/)opd(?:\/|\.|-|_)/i,
@@ -49,6 +59,7 @@ const forbiddenPaths = [
   /fti-legacy-retention-backfill\.ts$/,
   /(?:^|\/)fti-final-codemod\.(?:py|ya?ml)$/i,
   /(?:^|\/)_export-worktree\.ya?ml$/i,
+  /^server\/prisma\/recovery\/20260901163000_add_fti_process_foundation\.sh$/,
 ];
 
 const trackedFiles = execFileSync('git', ['ls-files', '-z'], {

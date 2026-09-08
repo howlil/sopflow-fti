@@ -25,7 +25,7 @@ test.describe('End-to-End Business Journey — Proses Bisnis TTE and public hand
       await expectProsesBisnisSopBerlakuInWorkQueue(anggota.page, sop.title)
     })
 
-    await test.step('Arsip publik menampilkan SOP Proses Bisnis berlaku tanpa data evaluasi internal', async () => {
+    await test.step('Arsip publik menampilkan SOP Proses Bisnis berlaku tanpa data review internal', async () => {
       await expectProsesBisnisSopInPublicArchive(publicPage, sop.title)
     })
   })

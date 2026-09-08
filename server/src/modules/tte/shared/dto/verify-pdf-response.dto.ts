@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PejabatBerwenang } from '../../../../generated/prisma';
 
 export class PdfSignatureChecksDto {
   @ApiProperty()
@@ -49,8 +50,8 @@ export class PdfSignatureTteMatchDto {
   @ApiPropertyOptional()
   readonly userId?: string;
 
-  @ApiPropertyOptional()
-  readonly peran?: string;
+  @ApiPropertyOptional({ enum: PejabatBerwenang })
+  readonly authority?: PejabatBerwenang;
 
   @ApiPropertyOptional()
   readonly jenisDokumen?: string;
