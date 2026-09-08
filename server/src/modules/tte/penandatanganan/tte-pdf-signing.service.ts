@@ -19,7 +19,7 @@ import {
   PDF_BASE64_MAX_LENGTH,
   PDF_BINARY_MAX_BYTES,
 } from '../../../common/http/request-body-limits';
-import { JenisDokumenTte } from '../../../generated/prisma';
+import { JenisDokumenTte, PejabatBerwenang } from '../../../generated/prisma';
 
 import { SignPdfDto } from '../shared/dto/sign-pdf.dto';
 import { VerifyPdfDto } from '../shared/dto/verify-pdf.dto';
@@ -47,7 +47,7 @@ export type SignPdfResponse = {
   readonly signed: boolean;
   readonly signedPdfBase64: string;
   readonly sha256SignedPdf: string;
-  readonly signatureFormat: 'PKCS7_DETACHED' | 'UNSIGNED_DISABLED' | 'UNSIGNED_NOT_REQUIRED';
+  readonly signatureFormat: 'PKCS7_DETACHED' | 'UNSIGNED_DISABLED';
   readonly certificate: PdfCertificateResponse | null;
 };
 
@@ -81,7 +81,7 @@ export type PdfSignatureTteMatch = {
   readonly reason: string;
   readonly dokumenTteId?: string;
   readonly userId?: string;
-  readonly authority?: string;
+  readonly authority?: PejabatBerwenang;
   readonly jenisDokumen?: string;
   readonly nomorDokumen?: string;
   readonly judulDokumen?: string;
@@ -155,9 +155,6 @@ export class TtePdfSigningService {
     }
     if (riwayat.dokumenTte.jenisDokumen !== dto.jenisDokumen) {
       throw new BadRequestException('Jenis dokumen tidak sesuai dengan riwayat TTE.');
-    }
-    if (dto.jenisDokumen !== JenisDokumenTte.SOP_BERLAKU) {
-      return this.buildSkippedCaResponse(pdfBuffer);
     }
     if (!this.isPdfSigningEnabled()) {
       return this.buildDisabledResponse(pdfBuffer);
@@ -373,16 +370,6 @@ export class TtePdfSigningService {
     return pdfBuffer;
   }
 
-  private buildSkippedCaResponse(pdfBuffer: Buffer): SignPdfResponse {
-    return {
-      signed: false,
-      signedPdfBase64: pdfBuffer.toString('base64'),
-      sha256SignedPdf: this.sha256Hex(pdfBuffer),
-      signatureFormat: 'UNSIGNED_NOT_REQUIRED',
-      certificate: null,
-    };
-  }
-
   private buildDisabledResponse(pdfBuffer: Buffer): SignPdfResponse {
     return {
       signed: false,
@@ -435,7 +422,7 @@ export class TtePdfSigningService {
           reason: 'Jenis dokumen pada signature PDF tidak cocok dengan riwayat TTE aplikasi.',
           dokumenTteId: row.dokumenTteId,
           userId: row.userId,
-          authority: String(row.authority),
+          authority: row.authority,
           jenisDokumen: String(row.dokumenTte.jenisDokumen),
         },
       };
@@ -452,7 +439,7 @@ export class TtePdfSigningService {
           reason: 'Riwayat TTE ditemukan, tetapi metadata signature PDF belum tersimpan.',
           dokumenTteId: row.dokumenTteId,
           userId: row.userId,
-          authority: String(row.authority),
+          authority: row.authority,
           jenisDokumen: String(row.dokumenTte.jenisDokumen),
           nomorDokumen: row.dokumenTte.nomorDokumen,
           judulDokumen: row.dokumenTte.judulDokumen,
@@ -474,7 +461,7 @@ export class TtePdfSigningService {
             : 'Signature PDF tidak cocok dengan signature value/fingerprint/serial sertifikat pada riwayat TTE aplikasi.',
         dokumenTteId: row.dokumenTteId,
         userId: row.userId,
-        authority: String(row.authority),
+        authority: row.authority,
         jenisDokumen: String(row.dokumenTte.jenisDokumen),
         nomorDokumen: row.dokumenTte.nomorDokumen,
         judulDokumen: row.dokumenTte.judulDokumen,
