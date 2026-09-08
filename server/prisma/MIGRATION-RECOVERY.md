@@ -1,100 +1,76 @@
-# Prisma Migration Recovery
+# Prisma Migration Operations
 
-Use this runbook only for shared, staging, or production databases where `prisma migrate deploy` reports an unresolved migration failure such as `P3018` or `P3009`.
+## Fresh database
 
-The goal is to recover migration history without resetting or silently rewriting existing data.
+A fresh database starts from the canonical FTI baseline and installs the native database invariants normally:
 
-## Core rules
+```sh
+pnpm prisma migrate deploy
+pnpm prisma generate
+pnpm db:audit:fti
+```
+
+Expected committed migrations:
+
+```text
+0_fti_native_baseline
+1_fti_native_invariants
+```
+
+## Existing target database: one-time baseline cutover
+
+Use this path only for a database that already matches the current FTI target schema.
+
+1. Take a verified database backup.
+2. Run the target-schema audit using the pre-cutover application version.
+3. Mark the canonical baseline as applied without executing its CREATE statements:
+
+```sh
+pnpm prisma migrate resolve --applied 0_fti_native_baseline
+```
+
+4. Verify Prisma sees the new baseline correctly:
+
+```sh
+pnpm prisma migrate status
+```
+
+5. Deploy the native invariant migration and re-audit:
+
+```sh
+pnpm prisma migrate deploy
+pnpm prisma generate
+pnpm db:audit:fti
+```
+
+Do not execute `0_fti_native_baseline` against a populated target database. `migrate resolve --applied` records that the existing schema already represents that baseline; it does not recreate tables or rewrite application data.
+
+## Failed migration recovery
+
+Use this section when `prisma migrate deploy` reports an unresolved migration failure such as `P3018` or `P3009`.
 
 - Never run `prisma migrate reset` against a shared, staging, or production database.
 - Never delete or hand-edit rows in `_prisma_migrations` as a shortcut.
-- Do not repeatedly rerun `prisma migrate deploy` while Prisma reports an unresolved failed migration.
-- Treat successfully applied migration files as immutable.
-- Prefer a new fix-forward migration for defects discovered after a migration has completed.
+- Inspect the actual database state before deciding on a repair.
+- Prefer a bounded fix-forward migration for defects discovered after a migration completed.
+- A destructive rollback, ambiguous data reinterpretation, ownership change, or security-boundary change requires explicit approval.
 
-## Recovery loop
+Recovery sequence:
 
 ```text
-Inspect failed migration
+inspect failure
   -> inspect actual database state
-  -> choose fix-forward or rollback
-  -> execute only bounded repair SQL
-  -> verify resulting schema and invariants
-  -> prisma migrate resolve
+  -> apply bounded fix-forward repair when required
+  -> verify schema and invariants
+  -> prisma migrate resolve when appropriate
   -> prisma migrate status
   -> prisma migrate deploy
+  -> prisma generate
+  -> db:audit:fti
 ```
 
-### 1. Identify the failed migration
-
-```sh
-pnpm prisma migrate status
-```
-
-Inspect the matching migration file and the `_prisma_migrations` row. Record which statement failed and whether earlier DDL statements already committed.
-
-MySQL/MariaDB DDL is not assumed to be transactionally rolled back as a unit. A failed migration may therefore leave a partial schema.
-
-### 2. Inspect actual database state
-
-Check the affected tables, columns, indexes, foreign keys, triggers, and data before running repair SQL.
-
-Do not infer current state solely from the migration file or from Prisma's error message.
-
-### 3. Choose one recovery direction
-
-Prefer **fix-forward** when earlier statements applied successfully and can safely remain. Execute only the missing or corrective SQL required to reach the intended migration end state.
-
-Use **rollback** only when the already-applied portion can be reversed safely and unambiguously without destructive data loss.
-
-A destructive rollback, ambiguous data reinterpretation, ownership change, or security-boundary change requires explicit approval.
-
-### 4. Execute bounded repair SQL
-
-For explicit fix-forward SQL:
-
-```sh
-pnpm prisma db execute --file /path/to/recovery.sql
-```
-
-The SQL must be derived from the intended migration end state and the inspected live state. It must not replay statements that already succeeded.
-
-### 5. Verify before resolving history
-
-Verify that the repaired database has the intended tables, columns, constraints, triggers, and critical invariants.
-
-Do not mark a migration applied merely because the repair command exited successfully.
-
-### 6. Resolve Prisma migration history
-
-If the database now represents the completed migration:
-
-```sh
-pnpm prisma migrate resolve --applied <migration_name>
-```
-
-If the failed migration was safely rolled back instead:
-
-```sh
-pnpm prisma migrate resolve --rolled-back <migration_name>
-```
-
-Use exactly one direction that matches the actual database state.
-
-### 7. Recheck and continue
-
-```sh
-pnpm prisma migrate status
-pnpm prisma migrate deploy
-pnpm prisma generate
-```
-
-Resume `migrate deploy` only after the failed migration no longer appears unresolved.
+MySQL/MariaDB DDL is not assumed to roll back as one transaction. Always inspect tables, columns, indexes, foreign keys, triggers, and affected data before resolving migration state.
 
 ## CI boundary
 
-`prisma validate` and `prisma generate` validate the Prisma model but do not execute raw migration SQL.
-
-Changes under `prisma/migrations`, Prisma schema files, or `prisma.config.ts` require the migration smoke gate, which executes the complete migration chain against the MariaDB version used by the production Compose runtime.
-
-One-off incident repair scripts must not remain as permanent operational tooling after the affected environments have been recovered. Keep durable recovery guidance generic and derive incident-specific repair SQL from the exact live database state.
+Migration changes require the migration smoke gate. The gate creates a fresh MariaDB database, deploys the committed FTI migration set, seeds the native graph, and verifies canonical schema plus database invariants.
