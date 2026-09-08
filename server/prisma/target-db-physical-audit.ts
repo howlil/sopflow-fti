@@ -75,6 +75,22 @@ type IndexRow = {
   columnName: string;
 };
 
+type ExpectedCheck = {
+  table: string;
+  name: string;
+  clause: string;
+};
+
+type CheckRow = {
+  tableName: string;
+  constraintName: string;
+  checkClause: string;
+};
+
+type LowerCaseTableNamesRow = {
+  lowerCaseTableNames: number | string | bigint;
+};
+
 const baseline = readFileSync(
   join(__dirname, 'migrations/0_fti_native_baseline/migration.sql'),
   'utf8',
@@ -82,26 +98,43 @@ const baseline = readFileSync(
 
 function normalizeType(value: string): string {
   const type = value.trim().toLowerCase().replace(/\s+/g, ' ');
-  if (/^integer(?:\(\d+\))?$/.test(type) || /^int(?:\(\d+\))?$/.test(type)) return 'int';
+  if (/^(?:integer|int)(?:\(\d+\))?$/.test(type)) return 'int';
   if (type === 'json') return 'longtext';
   return type;
 }
 
 function normalizeDefault(value: string | null): string | null {
   if (value === null) return null;
-  return String(value).trim().toLowerCase().replace(/\s+/g, '');
+  let normalized = String(value).trim().toLowerCase().replace(/\s+/g, '');
+  if (
+    (normalized.startsWith("'") && normalized.endsWith("'")) ||
+    (normalized.startsWith('"') && normalized.endsWith('"'))
+  ) {
+    normalized = normalized.slice(1, -1);
+  }
+  return normalized;
+}
+
+function normalizeCheck(value: string): string {
+  return value
+    .replaceAll('`', '')
+    .replace(/\s+/g, '')
+    .replace(/^\((.*)\)$/s, '$1')
+    .toLowerCase();
 }
 
 function quotedNames(value: string): string[] {
   return [...value.matchAll(/`([^`]+)`/g)].map((match) => match[1] as string);
 }
 
-function parseExpectedColumnsAndIndexes(): {
+function parseExpectedPhysicalContract(): {
   columns: ExpectedColumn[];
   indexes: ExpectedIndex[];
+  checks: ExpectedCheck[];
 } {
   const columns: ExpectedColumn[] = [];
   const indexes: ExpectedIndex[] = [];
+  const checks: ExpectedCheck[] = [];
   const createTable = /CREATE TABLE `([^`]+)` \(\n([\s\S]*?)\n\) DEFAULT CHARACTER SET/g;
 
   for (const match of baseline.matchAll(createTable)) {
@@ -124,8 +157,9 @@ function parseExpectedColumnsAndIndexes(): {
         }
         const type = definition.slice(0, nullMatch.index).trim();
         const nullable = nullMatch[1] === 'NULL';
-        const afterNull = definition.slice(nullMatch.index + nullMatch[0].length - 1).trim();
-        const defaultMatch = afterNull.match(/(?:^|\s)DEFAULT\s+([^\s]+)(?:\s|$)/i);
+        const defaultMatch = definition.match(
+          /(?:^|\s)DEFAULT\s+('(?:[^']|'')*'|"(?:[^"]|"")*"|[A-Za-z_]+(?:\(\d+\))?|-?\d+(?:\.\d+)?)(?:\s|$)/i,
+        );
         columns.push({
           table,
           column,
@@ -164,11 +198,20 @@ function parseExpectedColumnsAndIndexes(): {
           unique: true,
           columns: quotedNames(primaryKey[1] as string),
         });
+        continue;
+      }
+      const check = line.match(/^CONSTRAINT `([^`]+)` CHECK \((.+)\)$/i);
+      if (check) {
+        checks.push({
+          table,
+          name: check[1] as string,
+          clause: normalizeCheck(check[2] as string),
+        });
       }
     }
   }
 
-  return { columns, indexes };
+  return { columns, indexes, checks };
 }
 
 function parseExpectedForeignKeys(): ExpectedForeignKey[] {
@@ -191,8 +234,14 @@ function parseExpectedForeignKeys(): ExpectedForeignKey[] {
 }
 
 async function run(): Promise<void> {
-  const expected = parseExpectedColumnsAndIndexes();
+  const expected = parseExpectedPhysicalContract();
   const expectedFks = parseExpectedForeignKeys();
+  const lowerCaseRows = await prisma.$queryRawUnsafe<LowerCaseTableNamesRow[]>(
+    'SELECT @@lower_case_table_names AS lowerCaseTableNames',
+  );
+  const lowerCaseTableNames = Number(lowerCaseRows[0]?.lowerCaseTableNames ?? 0);
+  const normalizeTableName = (value: string): string =>
+    lowerCaseTableNames === 0 ? value : value.toLowerCase();
 
   const columnRows = await prisma.$queryRawUnsafe<ColumnRow[]>(
     `SELECT TABLE_NAME AS tableName, COLUMN_NAME AS columnName, COLUMN_TYPE AS columnType,
@@ -201,11 +250,16 @@ async function run(): Promise<void> {
       WHERE TABLE_SCHEMA = DATABASE()`,
   );
   const actualColumns = new Map(
-    columnRows.map((row) => [`${row.tableName}.${row.columnName}`, row] as const),
+    columnRows.map((row) => [
+      `${normalizeTableName(row.tableName)}.${row.columnName}`,
+      row,
+    ] as const),
   );
   const columnProblems: string[] = [];
   for (const column of expected.columns) {
-    const actual = actualColumns.get(`${column.table}.${column.column}`);
+    const actual = actualColumns.get(
+      `${normalizeTableName(column.table)}.${column.column}`,
+    );
     if (!actual) {
       columnProblems.push(`${column.table}.${column.column}: missing`);
       continue;
@@ -255,8 +309,9 @@ async function run(): Promise<void> {
     const columns = rows.map((row) => row.columnName);
     const referencedColumns = rows.map((row) => row.referencedColumnName);
     if (
-      first?.tableName !== fk.table ||
-      first.referencedTableName !== fk.referencedTable ||
+      first === undefined ||
+      normalizeTableName(first.tableName) !== normalizeTableName(fk.table) ||
+      normalizeTableName(first.referencedTableName) !== normalizeTableName(fk.referencedTable) ||
       columns.join(',') !== fk.columns.join(',') ||
       referencedColumns.join(',') !== fk.referencedColumns.join(',') ||
       first.deleteRule !== fk.deleteRule ||
@@ -278,14 +333,16 @@ async function run(): Promise<void> {
   );
   const actualIndexGroups = new Map<string, IndexRow[]>();
   for (const row of indexRows) {
-    const key = `${row.tableName}.${row.indexName}`;
+    const key = `${normalizeTableName(row.tableName)}.${row.indexName}`;
     const rows = actualIndexGroups.get(key) ?? [];
     rows.push(row);
     actualIndexGroups.set(key, rows);
   }
   const indexProblems: string[] = [];
   for (const index of expected.indexes) {
-    const rows = actualIndexGroups.get(`${index.table}.${index.name}`);
+    const rows = actualIndexGroups.get(
+      `${normalizeTableName(index.table)}.${index.name}`,
+    );
     if (!rows) {
       indexProblems.push(`${index.table}.${index.name}: missing`);
       continue;
@@ -297,17 +354,53 @@ async function run(): Promise<void> {
     }
   }
 
+  const checkRows = await prisma.$queryRawUnsafe<CheckRow[]>(
+    `SELECT tc.TABLE_NAME AS tableName, tc.CONSTRAINT_NAME AS constraintName,
+            cc.CHECK_CLAUSE AS checkClause
+       FROM information_schema.TABLE_CONSTRAINTS tc
+       JOIN information_schema.CHECK_CONSTRAINTS cc
+         ON cc.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA
+        AND cc.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
+      WHERE tc.CONSTRAINT_SCHEMA = DATABASE()
+        AND tc.CONSTRAINT_TYPE = 'CHECK'`,
+  );
+  const actualChecks = new Map(
+    checkRows.map((row) => [
+      `${normalizeTableName(row.tableName)}.${row.constraintName}`,
+      normalizeCheck(row.checkClause),
+    ] as const),
+  );
+  const checkProblems: string[] = [];
+  for (const check of expected.checks) {
+    const actual = actualChecks.get(
+      `${normalizeTableName(check.table)}.${check.name}`,
+    );
+    if (actual === undefined) {
+      checkProblems.push(`${check.table}.${check.name}: missing`);
+    } else if (actual !== check.clause) {
+      checkProblems.push(`${check.table}.${check.name}: physical definition mismatch`);
+    }
+  }
+
   const result = {
+    lowerCaseTableNames,
     expectedColumns: expected.columns.length,
     expectedForeignKeys: expectedFks.length,
     expectedDeclaredIndexes: expected.indexes.length,
+    expectedChecks: expected.checks.length,
     columnProblems,
     fkProblems,
     indexProblems,
+    checkProblems,
   };
   console.log(JSON.stringify(result, null, 2));
 
-  if (columnProblems.length || fkProblems.length || indexProblems.length) {
+  if (
+    columnProblems.length ||
+    fkProblems.length ||
+    indexProblems.length ||
+    checkProblems.length
+  ) {
     throw new Error('FTI physical database contract tidak identik dengan canonical baseline');
   }
 }
