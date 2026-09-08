@@ -28,7 +28,7 @@
     "pdf-signing:generate-cert": "node scripts/generate-pdf-signing-cert.cjs",
     "db:seed": "prisma migrate deploy && prisma db seed",
     "db:seed:e2e": "ts-node --transpile-only prisma/cleanup-migration-smoke-probes.ts && ts-node --transpile-only prisma/seed-target-e2e.ts",
-    "db:audit:fti": "ts-node --transpile-only prisma/post-contraction-db-audit.ts",
+    "db:audit:fti": "ts-node --transpile-only prisma/post-contraction-db-audit.ts && ts-node --transpile-only prisma/target-db-trigger-audit.ts",
     "db:fresh": "prisma migrate reset --force"
   },
   "dependencies": {
@@ -36,7 +36,7 @@
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.1.18",
     "@nestjs/jwt": "^11.0.2",
-    "@nestjs/passport": "^11.0.5",
+    "@nestjs/passport": "^0.7.1",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/schedule": "^6.1.3",
     "@nestjs/swagger": "^11.2.6",
@@ -49,7 +49,7 @@
     "@signpdf/signpdf": "^3.3.0",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
-    "class-validator": "^0.15.1",
+    "class-validator": "^0.15.0",
     "cookie-parser": "^1.4.7",
     "ms": "^2.1.3",
     "nest-winston": "^1.10.2",
