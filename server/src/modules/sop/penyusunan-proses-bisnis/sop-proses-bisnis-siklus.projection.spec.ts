@@ -66,10 +66,10 @@ describe('projectProsesBisnisSopLifecycle', () => {
     });
   });
 
-  it('distinguishes persetujuan akhir from TTE for the same authority', () => {
+  it('distinguishes final approval from TTE for the same authority', () => {
     const finalApproval = projectProsesBisnisSopLifecycle({
       ...baseInput,
-      status: StatusSOP.TTE_PENDING,
+      status: StatusSOP.FINAL_APPROVAL,
     });
     const tte = projectProsesBisnisSopLifecycle({
       ...baseInput,
@@ -120,7 +120,7 @@ describe('projectProsesBisnisSopLifecycle', () => {
           lingkup: LingkupOrganisasi.DEPARTMENT,
           namaDepartemen: 'Teknik Informatika',
         },
-        status: StatusSOP.TTE_PENDING,
+        status: StatusSOP.FINAL_APPROVAL,
         authority: { holderId: 'head-1', holderName: 'Kepala TI' },
       }),
     ).toMatchObject({
