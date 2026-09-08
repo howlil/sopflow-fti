@@ -84,6 +84,17 @@ jobs:
             -e "SELECT TRIGGER_NAME, EVENT_MANIPULATION, EVENT_OBJECT_TABLE, ACTION_TIMING, ACTION_STATEMENT FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = 'sop_fti_source' ORDER BY TRIGGER_NAME" \
             > prisma/fti-triggers.generated.tsv
 
+      - name: Prove baseline reconciliation without reset
+        run: |
+          mv prisma/migrations prisma/migrations.pre-squash
+          mkdir -p prisma/migrations/0_fti_native_baseline
+          cp prisma/fti-baseline.generated.sql prisma/migrations/0_fti_native_baseline/migration.sql
+          cp prisma/migrations.pre-squash/migration_lock.toml prisma/migrations/migration_lock.toml
+          pnpm exec prisma migrate resolve --applied 0_fti_native_baseline
+          pnpm exec prisma migrate status
+          pnpm exec prisma migrate deploy
+          pnpm db:audit:fti
+
       - name: Commit generated baseline evidence
         working-directory: .
         run: |
