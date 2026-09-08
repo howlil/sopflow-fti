@@ -55,7 +55,7 @@ export interface OptionCardPickerProps<T> {
   className?: string
   /** Class untuk tiap kartu opsi */
   optionClassName?: string
-  /** Nonaktifkan interaksi (mis. belum ada pengajuan evaluasi di server) */
+  /** Nonaktifkan interaksi saat opsi belum siap dipilih */
   disabled?: boolean
 }
 
@@ -166,7 +166,7 @@ export function OptionCardPicker<T>({
               </span>
             )}
           </button>
-        )
+        )}
       })}
     </div>
   )
