@@ -17,6 +17,38 @@ jobs:
         with:
           ref: refactor/fti-native-migration-baseline
           fetch-depth: 0
+      - name: Normalize matcher input
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          path = Path('server/prisma/schema.prisma')
+          text = path.read_text()
+          start = text.index('model UndanganAnggotaProsesBisnis {')
+          end = text.index('\n}', start) + 2
+          block = text[start:end]
+          widths = {
+            'email': '@db.VarChar(255)',
+            'nama': '@db.VarChar(255)',
+            'nip': '@db.VarChar(32)',
+            'jabatan': '@db.VarChar(255)',
+            'pangkat': '@db.VarChar(64)',
+            'nohp': '@db.VarChar(32)',
+          }
+          spacing = {
+            'email': 'email               String                  ',
+            'nama': 'nama                String                  ',
+            'nip': 'nip                 String                  ',
+            'jabatan': 'jabatan             String                  ',
+            'pangkat': 'pangkat             String                  ',
+            'nohp': 'nohp                String                  ',
+          }
+          for field, dbtype in widths.items():
+            block, count = re.subn(rf'^\s*{field}\s+String\s+@db\.[A-Za-z]+\(\d+\)\s*$', '  ' + spacing[field] + dbtype, block, count=1, flags=re.M)
+            if count != 1:
+              raise SystemExit(f'Could not normalize {field}')
+          path.write_text(text[:start] + block + text[end:])
+          PY
       - name: Apply deterministic repair
         run: python3 server/scripts/_apply-fti-baseline-fix.py
       - name: Remove temporary repair tooling
