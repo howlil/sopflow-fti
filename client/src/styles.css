@@ -67,7 +67,7 @@
   --color-info: #1d4ed8;
   --color-info-subtle: #dbeafe;
   --color-info-foreground: #1e40af;
-  /* Card & button — from Figma Manajemen OPD design */
+  /* Card & button — from product design */
   --color-btn-primary-bg: #030213;
   --color-search-input-bg: #f3f3f5;
   --color-placeholder: #64748b;
@@ -168,10 +168,6 @@ body {
 
 [data-button-appearance="solid"] :where(svg, span) {
   color: inherit;
-}
-
-.manajemen-opd-search::placeholder {
-  color: var(--color-placeholder);
 }
 
 /* ── SOP: preview A4 landscape (297×210mm); lebar diagram tetap, scroll horizontal jika viewport sempit ──────── */
