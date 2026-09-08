@@ -117,7 +117,7 @@ function normalizeDefault(value: string | null): string | null {
 
 function normalizeCheck(value: string): string {
   return value
-    .replaceAll('`', '')
+    .replace(/`/g, '')
     .replace(/\s+/g, '')
     .replace(/^\((.*)\)$/s, '$1')
     .toLowerCase();
