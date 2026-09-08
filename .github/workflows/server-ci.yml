@@ -70,5 +70,21 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Unit tests
-        run: pnpm test
+      - name: Unit tests — common/config/database
+        run: pnpm exec jest common config database --runInBand
+
+      - name: Unit tests — core
+        if: always()
+        run: pnpm exec jest modules/core --runInBand
+
+      - name: Unit tests — notifications
+        if: always()
+        run: pnpm exec jest modules/notifications --runInBand
+
+      - name: Unit tests — SOP
+        if: always()
+        run: pnpm exec jest modules/sop --runInBand
+
+      - name: Unit tests — TTE
+        if: always()
+        run: pnpm exec jest modules/tte --runInBand
