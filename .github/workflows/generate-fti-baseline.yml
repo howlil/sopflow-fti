@@ -92,8 +92,8 @@ jobs:
           cp prisma/fti-invariants.generated.sql prisma/migrations/1_fti_native_invariants/migration.sql
           cp prisma/migrations.pre-squash/migration_lock.toml prisma/migrations/migration_lock.toml
           pnpm exec prisma migrate resolve --applied 0_fti_native_baseline
-          pnpm exec prisma migrate status
           pnpm exec prisma migrate deploy
+          pnpm exec prisma migrate status
           pnpm exec prisma generate
           pnpm db:audit:fti
 
