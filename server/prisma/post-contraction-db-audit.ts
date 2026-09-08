@@ -29,6 +29,10 @@ type ColumnRow = {
   columnType: string;
 };
 
+type LowerCaseTableNamesRow = {
+  lowerCaseTableNames: number | string | bigint;
+};
+
 function parseMariaDbEnum(columnType: string): string[] | null {
   if (!columnType.startsWith('enum(') || !columnType.endsWith(')')) return null;
   const inner = columnType.slice(5, -1);
@@ -88,11 +92,20 @@ function sameSet(left: Iterable<string>, right: Iterable<string>): boolean {
 async function run(): Promise<void> {
   const models = Prisma.dmmf.datamodel.models;
   const enumByName = parseCanonicalEnumValues();
+  const lowerCaseTableNamesRows = await prisma.$queryRawUnsafe<LowerCaseTableNamesRow[]>(
+    'SELECT @@lower_case_table_names AS lowerCaseTableNames',
+  );
+  const lowerCaseTableNames = Number(lowerCaseTableNamesRows[0]?.lowerCaseTableNames ?? 0);
+  const normalizeTableName = (tableName: string): string =>
+    lowerCaseTableNames === 0 ? tableName : tableName.toLowerCase();
 
   const expectedTables = new Set([
     '_prisma_migrations',
     ...models.map((model) => model.dbName ?? model.name),
   ]);
+  const expectedTableByKey = new Map(
+    [...expectedTables].map((tableName) => [normalizeTableName(tableName), tableName] as const),
+  );
   const expectedColumns = new Map<string, Set<string>>();
   const expectedEnumColumns = new Map<string, Set<string>>();
 
@@ -112,25 +125,36 @@ async function run(): Promise<void> {
       if (values === undefined || values.size === 0) {
         throw new Error(`Enum Prisma ${field.type} tidak ditemukan dalam schema canonical`);
       }
-      expectedEnumColumns.set(`${tableName}.${field.dbName ?? field.name}`, values);
+      expectedEnumColumns.set(
+        `${normalizeTableName(tableName)}.${field.dbName ?? field.name}`,
+        values,
+      );
     }
   }
 
   const tableRows = await prisma.$queryRawUnsafe<Array<{ tableName: string }>>(
     'SELECT TABLE_NAME AS tableName FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = \'BASE TABLE\'',
   );
-  const actualTables = new Set(tableRows.map((row) => row.tableName));
-  const missingTables = [...expectedTables].filter((table) => !actualTables.has(table)).sort();
-  const unexpectedTables = [...actualTables].filter((table) => !expectedTables.has(table)).sort();
+  const actualTableByKey = new Map(
+    tableRows.map((row) => [normalizeTableName(row.tableName), row.tableName] as const),
+  );
+  const missingTables = [...expectedTables]
+    .filter((table) => !actualTableByKey.has(normalizeTableName(table)))
+    .sort();
+  const unexpectedTables = tableRows
+    .filter((row) => !expectedTableByKey.has(normalizeTableName(row.tableName)))
+    .map((row) => row.tableName)
+    .sort();
 
   const columnRows = await prisma.$queryRawUnsafe<ColumnRow[]>(
     'SELECT TABLE_NAME AS tableName, COLUMN_NAME AS columnName, COLUMN_TYPE AS columnType FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()',
   );
   const actualColumns = new Map<string, Set<string>>();
   for (const row of columnRows) {
-    const columns = actualColumns.get(row.tableName) ?? new Set<string>();
+    const tableKey = normalizeTableName(row.tableName);
+    const columns = actualColumns.get(tableKey) ?? new Set<string>();
     columns.add(row.columnName);
-    actualColumns.set(row.tableName, columns);
+    actualColumns.set(tableKey, columns);
   }
 
   const columnMismatches: Array<{
@@ -139,7 +163,7 @@ async function run(): Promise<void> {
     unexpected: string[];
   }> = [];
   for (const [table, expected] of expectedColumns) {
-    const actual = actualColumns.get(table) ?? new Set<string>();
+    const actual = actualColumns.get(normalizeTableName(table)) ?? new Set<string>();
     const missing = [...expected].filter((column) => !actual.has(column)).sort();
     const unexpected = [...actual].filter((column) => !expected.has(column)).sort();
     if (missing.length > 0 || unexpected.length > 0) {
@@ -153,13 +177,13 @@ async function run(): Promise<void> {
     actual: string[] | null;
   }> = [];
   for (const row of columnRows) {
-    const key = `${row.tableName}.${row.columnName}`;
+    const key = `${normalizeTableName(row.tableName)}.${row.columnName}`;
     const expected = expectedEnumColumns.get(key);
     if (expected === undefined) continue;
     const actual = parseMariaDbEnum(row.columnType);
     if (actual === null || !sameSet(expected, actual)) {
       enumMismatches.push({
-        column: key,
+        column: `${row.tableName}.${row.columnName}`,
         expected: [...expected].sort(),
         actual: actual?.sort() ?? null,
       });
@@ -167,6 +191,7 @@ async function run(): Promise<void> {
   }
 
   const result = {
+    lowerCaseTableNames,
     missingTables,
     unexpectedTables,
     columnMismatches,
