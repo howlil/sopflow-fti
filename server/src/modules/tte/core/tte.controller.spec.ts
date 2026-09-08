@@ -5,21 +5,20 @@ import type { TteService } from './tte.service';
 describe('Pengujian TteController - Profil', () => {
   const user = {
     sub: 'user-1',
-    email: 'kepala@test.id',
+    email: 'dean@fti.test',
   };
   const req = { user } as Request & { user: typeof user };
   const profil = {
     id: 'user-1',
     userId: 'user-1',
-    peran: 'DEAN' as const,
     createdAt: '2026-05-20T03:04:05.000Z',
     updatedAt: '2026-05-20T03:04:05.000Z',
     user: {
       id: 'user-1',
-      nama: 'Dekan',
-      email: 'kepala@test.id',
+      nama: 'Dekan FTI',
+      email: 'dean@fti.test',
       nip: '198001012006041001',
-      jabatan: 'Kepala Dinas',
+      jabatan: 'Dekan',
       pangkat: 'Pembina',
     },
   };
@@ -30,8 +29,6 @@ describe('Pengujian TteController - Profil', () => {
       registerProfil: jest.fn(),
       updateProfilPin: jest.fn(),
       getPengesahanPublic: jest.fn(),
-      tandaTanganiBa: jest.fn(),
-      tandaTanganiSemuaSopPengajuan: jest.fn(),
       signPdf: jest.fn(),
       getPdfSigningStatus: jest.fn(),
       verifyPdf: jest.fn(),
