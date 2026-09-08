@@ -98,11 +98,9 @@ export class TteController {
   async signPdf(@Req() req: Request & { user: JwtAccessPayload }, @Body() dto: SignPdfDto): Promise<ApiSuccessResponse<SignPdfResponse>> {
     const data = await this.tteService.signPdf(req.user, dto);
     return {
-      message: data.signatureFormat === 'UNSIGNED_NOT_REQUIRED'
-        ? 'PDF tidak memerlukan injeksi CA'
-        : data.signed
-          ? 'PDF berhasil ditandatangani'
-          : 'Penandatanganan PDF server dinonaktifkan',
+      message: data.signed
+        ? 'PDF berhasil ditandatangani'
+        : 'Penandatanganan PDF server dinonaktifkan',
       success: true,
       data,
     };
