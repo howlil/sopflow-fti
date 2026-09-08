@@ -20,7 +20,7 @@ describe('PenanggungJawabProsesBisnisService', () => {
         findFirst: jest.fn(),
         findMany: jest.fn(),
       },
-      siklusProsesBisnis: {
+      statusProsesBisnis: {
         create: jest.fn(),
         findMany: jest.fn(),
         findUnique: jest.fn(),
@@ -81,7 +81,13 @@ describe('PenanggungJawabProsesBisnisService', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
       departemen: null,
-      penanggungJawab: { penggunaId: penanggungJawabId, nama: 'Owner', email: 'owner@fti.test', nip: '1', platformRole: 'USER' },
+      penanggungJawab: {
+        penggunaId: penanggungJawabId,
+        nama: 'Owner',
+        email: 'owner@fti.test',
+        nip: '1',
+        platformRole: 'USER',
+      },
       anggota: [],
     });
     prisma.statusProsesBisnis.findMany.mockResolvedValue([
@@ -156,10 +162,7 @@ describe('PenanggungJawabProsesBisnisService', () => {
 
     expect(prisma.pengguna.findFirst).toHaveBeenNthCalledWith(1, {
       where: {
-        OR: [
-          { email: 'email-baru@fti.test' },
-          { nip: existingUser.nip },
-        ],
+        OR: [{ email: 'email-baru@fti.test' }, { nip: existingUser.nip }],
       },
     });
     expect(prisma.anggotaProsesBisnis.create).toHaveBeenCalledWith({
