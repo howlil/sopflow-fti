@@ -8,13 +8,13 @@ CREATE TABLE `Pengguna` (
     `nip` VARCHAR(32) NOT NULL,
     `jabatan` VARCHAR(255) NOT NULL,
     `pangkat` VARCHAR(64) NOT NULL,
-    `nohp` VARCHAR(32) NOT NULL,
+    `nohp` VARCHAR(15) NOT NULL,
     `sesiTokenVersion` INTEGER NOT NULL DEFAULT 0,
     `refreshTokenHash` VARCHAR(60) NULL,
     `refreshTokenExpiresAt` DATETIME(3) NULL,
     `passwordChangedAt` DATETIME(3) NULL,
     `ttePinHash` VARCHAR(60) NULL,
-    `tteP12Base64` TEXT NULL,
+    `tteP12Base64` LONGTEXT NULL,
     `tteP12PassphraseEncrypted` VARCHAR(255) NULL,
     `deletedAt` DATETIME(3) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -23,6 +23,7 @@ CREATE TABLE `Pengguna` (
     UNIQUE INDEX `Pengguna_email_key`(`email`),
     UNIQUE INDEX `Pengguna_nip_key`(`nip`),
     INDEX `Pengguna_platformRole_deletedAt_idx`(`platformRole`, `deletedAt`),
+    CONSTRAINT `Pengguna_nohp_format_chk` CHECK (`nohp` REGEXP '^628[0-9]{7,12}$'),
     PRIMARY KEY (`penggunaId`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -295,7 +296,7 @@ CREATE TABLE `RiwayatTandaTangan` (
     `dokumenTteId` CHAR(36) NOT NULL,
     `authority` ENUM('DEAN', 'HEAD_OF_DEPARTMENT') NOT NULL,
     `signatureValue` LONGTEXT NULL,
-    `signatureAlgorithm` VARCHAR(13) NULL,
+    `signatureAlgorithm` VARCHAR(32) NULL,
     `signatureFormat` VARCHAR(14) NULL,
     `certSerialNumber` VARCHAR(40) NULL,
     `certIssuer` TEXT NULL,
@@ -359,7 +360,7 @@ CREATE TABLE `TitikTekukPanahDiagramSOP` (
 CREATE TABLE `OverrideLabelDiagramSOP` (
     `detailSopId` CHAR(36) NOT NULL,
     `jenis` ENUM('FLOWCHART', 'BPMN') NOT NULL,
-    `kunciLabel` VARCHAR(8) NOT NULL,
+    `kunciLabel` VARCHAR(255) NOT NULL,
     `posisiX` DOUBLE NOT NULL,
     `posisiY` DOUBLE NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -542,7 +543,7 @@ CREATE TABLE `PelaksanaAuditAttribution` (
     `createdById` CHAR(36) NULL,
     `updatedById` CHAR(36) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updatedAt` DATETIME(3) NOT NULL,
+    `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     INDEX `PelaksanaAuditAttribution_createdById_idx`(`createdById`),
     INDEX `PelaksanaAuditAttribution_updatedById_idx`(`updatedById`),
@@ -555,7 +556,7 @@ CREATE TABLE `DetailSOPPelaksanaSnapshot` (
     `pelaksanaId` CHAR(36) NOT NULL,
     `namaSnapshot` VARCHAR(15) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updatedAt` DATETIME(3) NOT NULL,
+    `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     INDEX `DetailSOPPelaksanaSnapshot_pelaksanaId_idx`(`pelaksanaId`),
     PRIMARY KEY (`detailSopId`, `pelaksanaId`)

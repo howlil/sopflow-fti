@@ -22,13 +22,13 @@ model Pengguna {
   nip                       String           @unique @db.VarChar(32)
   jabatan                   String           @db.VarChar(255)
   pangkat                   String           @db.VarChar(64)
-  nohp                      String           @db.VarChar(32)
+  nohp                      String           @db.VarChar(15)
   sesiTokenVersion          Int              @default(0)
   refreshTokenHash          String?          @db.VarChar(60)
   refreshTokenExpiresAt     DateTime?
   passwordChangedAt         DateTime?
   ttePinHash                String?          @db.VarChar(60)
-  tteP12Base64              String?          @db.Text
+  tteP12Base64              String?          @db.LongText
   tteP12PassphraseEncrypted String?          @db.VarChar(255)
   deletedAt                 DateTime?
   createdAt                 DateTime         @default(now())
@@ -350,7 +350,7 @@ model RiwayatTandaTangan {
   dokumenTteId       String                  @db.Char(36)
   authority          PejabatBerwenang
   signatureValue     String?                 @db.LongText
-  signatureAlgorithm String?                 @db.VarChar(13)
+  signatureAlgorithm String?                 @db.VarChar(32)
   signatureFormat    String?                 @db.VarChar(14)
   certSerialNumber   String?                 @db.VarChar(40)
   certIssuer         String?                 @db.Text
@@ -494,7 +494,7 @@ model TitikTekukPanahDiagramSOP {
 model OverrideLabelDiagramSOP {
   detailSopId String       @db.Char(36)
   jenis       JenisDiagram
-  kunciLabel  String       @db.VarChar(8)
+  kunciLabel  String       @db.VarChar(255)
   posisiX     Float
   posisiY     Float
   createdAt   DateTime     @default(now())
@@ -786,7 +786,7 @@ model PelaksanaAuditAttribution {
   createdById String?  @db.Char(36)
   updatedById String?  @db.Char(36)
   createdAt   DateTime @default(now()) @db.DateTime(3)
-  updatedAt   DateTime @updatedAt @db.DateTime(3)
+  updatedAt   DateTime @default(now()) @updatedAt @db.DateTime(3)
 
   @@index([createdById], map: "PelaksanaAuditAttribution_createdById_idx")
   @@index([updatedById], map: "PelaksanaAuditAttribution_updatedById_idx")
@@ -799,7 +799,7 @@ model DetailSOPPelaksanaSnapshot {
   pelaksanaId  String   @db.Char(36)
   namaSnapshot String   @db.VarChar(15)
   createdAt    DateTime @default(now()) @db.DateTime(3)
-  updatedAt    DateTime @updatedAt @db.DateTime(3)
+  updatedAt    DateTime @default(now()) @updatedAt @db.DateTime(3)
 
   @@id([detailSopId, pelaksanaId])
   @@index([pelaksanaId], map: "DetailSOPPelaksanaSnapshot_pelaksanaId_idx")
