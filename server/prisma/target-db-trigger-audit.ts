@@ -38,7 +38,42 @@ const expectedTriggerNames = new Set([
   'trg_process_scope_department_update',
   'trg_sop_terkait_insert',
   'trg_sop_terkait_update',
+  'trg_detailsop_active_process_insert',
+  'trg_detailsop_active_process_update',
+  'trg_sop_active_process_update',
+  'trg_process_review_contract_insert',
+  'trg_process_review_contract_update',
+  'trg_authority_assignment_contract_insert',
+  'trg_authority_assignment_contract_update',
+  'trg_process_final_approval_contract_insert',
+  'trg_process_final_approval_contract_update',
+  'trg_dokumen_tte_process_contract_insert',
+  'trg_dokumen_tte_process_contract_update',
 ]);
+
+const semanticRequirements: Record<string, string[]> = {
+  trg_process_review_contract_insert: [
+    "'REVISION'",
+    "'REVISION_REQUIRED'",
+    "'ACCEPT'",
+    "'FINAL_APPROVAL'",
+    '`ownerId`',
+  ],
+  trg_process_final_approval_contract_insert: [
+    "'ACCEPT'",
+    '`authorityKey`',
+    '`holderId`',
+    "'DEAN'",
+    "'HEAD_OF_DEPARTMENT'",
+  ],
+  trg_dokumen_tte_process_contract_insert: ['`detailSopId`', '`processId`', '`SOP`'],
+  trg_authority_assignment_contract_insert: [
+    "'DEAN'",
+    "'HEAD_OF_DEPARTMENT:'",
+    '`departmentId`',
+  ],
+  trg_detailsop_active_process_insert: ["'DRAFT'", "'TTE_PENDING'", '`processId`'],
+};
 
 async function run(): Promise<void> {
   const rows = await prisma.$queryRawUnsafe<TriggerRow[]>(
@@ -64,10 +99,27 @@ async function run(): Promise<void> {
     .map((row) => row.triggerName)
     .sort();
 
-  const result = { missing, unexpected, effectiveTriggerProblems };
+  const rowByName = new Map(rows.map((row) => [row.triggerName, row] as const));
+  const semanticProblems: string[] = [];
+  for (const [name, requirements] of Object.entries(semanticRequirements)) {
+    const row = rowByName.get(name);
+    if (!row) continue;
+    for (const token of requirements) {
+      if (!row.actionStatement.includes(token)) {
+        semanticProblems.push(`${name}: missing ${token}`);
+      }
+    }
+  }
+
+  const result = { missing, unexpected, effectiveTriggerProblems, semanticProblems };
   console.log(JSON.stringify(result, null, 2));
 
-  if (missing.length > 0 || unexpected.length > 0 || effectiveTriggerProblems.length > 0) {
+  if (
+    missing.length > 0 ||
+    unexpected.length > 0 ||
+    effectiveTriggerProblems.length > 0 ||
+    semanticProblems.length > 0
+  ) {
     throw new Error('FTI database trigger set tidak identik dengan target canonical');
   }
 }
