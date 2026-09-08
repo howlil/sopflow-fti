@@ -1,0 +1,320 @@
+import 'dotenv/config';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import { PrismaClient } from '../src/generated/prisma';
+
+const required = (name: string): string => {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`${name} wajib diisi untuk FTI physical-schema audit`);
+  return value;
+};
+
+const prisma = new PrismaClient({
+  adapter: new PrismaMariaDb({
+    host: required('DATABASE_HOST'),
+    port: Number(process.env.DATABASE_PORT ?? '3306'),
+    user: required('DATABASE_USER'),
+    password: required('DATABASE_PASSWORD'),
+    database: required('DATABASE_NAME'),
+    connectionLimit: 2,
+    connectTimeout: 15_000,
+    allowPublicKeyRetrieval: true,
+  }),
+});
+
+type ExpectedColumn = {
+  table: string;
+  column: string;
+  type: string;
+  nullable: boolean;
+  defaultValue: string | null;
+};
+
+type ColumnRow = {
+  tableName: string;
+  columnName: string;
+  columnType: string;
+  isNullable: 'YES' | 'NO';
+  columnDefault: string | null;
+};
+
+type ExpectedForeignKey = {
+  name: string;
+  table: string;
+  columns: string[];
+  referencedTable: string;
+  referencedColumns: string[];
+  deleteRule: string;
+  updateRule: string;
+};
+
+type ForeignKeyRow = {
+  constraintName: string;
+  tableName: string;
+  columnName: string;
+  referencedTableName: string;
+  referencedColumnName: string;
+  ordinalPosition: number | bigint;
+  deleteRule: string;
+  updateRule: string;
+};
+
+type ExpectedIndex = {
+  table: string;
+  name: string;
+  unique: boolean;
+  columns: string[];
+};
+
+type IndexRow = {
+  tableName: string;
+  indexName: string;
+  nonUnique: number | bigint;
+  seqInIndex: number | bigint;
+  columnName: string;
+};
+
+const baseline = readFileSync(
+  join(__dirname, 'migrations/0_fti_native_baseline/migration.sql'),
+  'utf8',
+);
+
+function normalizeType(value: string): string {
+  const type = value.trim().toLowerCase().replace(/\s+/g, ' ');
+  if (/^integer(?:\(\d+\))?$/.test(type) || /^int(?:\(\d+\))?$/.test(type)) return 'int';
+  if (type === 'json') return 'longtext';
+  return type;
+}
+
+function normalizeDefault(value: string | null): string | null {
+  if (value === null) return null;
+  return String(value).trim().toLowerCase().replace(/\s+/g, '');
+}
+
+function quotedNames(value: string): string[] {
+  return [...value.matchAll(/`([^`]+)`/g)].map((match) => match[1] as string);
+}
+
+function parseExpectedColumnsAndIndexes(): {
+  columns: ExpectedColumn[];
+  indexes: ExpectedIndex[];
+} {
+  const columns: ExpectedColumn[] = [];
+  const indexes: ExpectedIndex[] = [];
+  const createTable = /CREATE TABLE `([^`]+)` \(\n([\s\S]*?)\n\) DEFAULT CHARACTER SET/g;
+
+  for (const match of baseline.matchAll(createTable)) {
+    const table = match[1];
+    const body = match[2];
+    if (!table || body === undefined) continue;
+
+    for (const rawLine of body.split('\n')) {
+      const line = rawLine.trim().replace(/,$/, '');
+      if (!line) continue;
+
+      const columnMatch = line.match(/^`([^`]+)`\s+(.+)$/);
+      if (columnMatch) {
+        const column = columnMatch[1];
+        const definition = columnMatch[2];
+        if (!column || !definition) continue;
+        const nullMatch = definition.match(/\s+(NOT NULL|NULL)(?:\s|$)/);
+        if (!nullMatch || nullMatch.index === undefined) {
+          throw new Error(`Tidak dapat parse nullability baseline ${table}.${column}: ${line}`);
+        }
+        const type = definition.slice(0, nullMatch.index).trim();
+        const nullable = nullMatch[1] === 'NULL';
+        const afterNull = definition.slice(nullMatch.index + nullMatch[0].length - 1).trim();
+        const defaultMatch = afterNull.match(/(?:^|\s)DEFAULT\s+([^\s]+)(?:\s|$)/i);
+        columns.push({
+          table,
+          column,
+          type: normalizeType(type),
+          nullable,
+          defaultValue: normalizeDefault(defaultMatch?.[1] ?? null),
+        });
+        continue;
+      }
+
+      const uniqueIndex = line.match(/^UNIQUE INDEX `([^`]+)`\((.+)\)$/);
+      if (uniqueIndex) {
+        indexes.push({
+          table,
+          name: uniqueIndex[1] as string,
+          unique: true,
+          columns: quotedNames(uniqueIndex[2] as string),
+        });
+        continue;
+      }
+      const normalIndex = line.match(/^INDEX `([^`]+)`\((.+)\)$/);
+      if (normalIndex) {
+        indexes.push({
+          table,
+          name: normalIndex[1] as string,
+          unique: false,
+          columns: quotedNames(normalIndex[2] as string),
+        });
+        continue;
+      }
+      const primaryKey = line.match(/^PRIMARY KEY \((.+)\)$/);
+      if (primaryKey) {
+        indexes.push({
+          table,
+          name: 'PRIMARY',
+          unique: true,
+          columns: quotedNames(primaryKey[1] as string),
+        });
+      }
+    }
+  }
+
+  return { columns, indexes };
+}
+
+function parseExpectedForeignKeys(): ExpectedForeignKey[] {
+  const result: ExpectedForeignKey[] = [];
+  const pattern = /ALTER TABLE `([^`]+)` ADD CONSTRAINT `([^`]+)` FOREIGN KEY \(([^)]+)\) REFERENCES `([^`]+)`\(([^)]+)\) ON DELETE (CASCADE|RESTRICT|SET NULL|NO ACTION) ON UPDATE (CASCADE|RESTRICT|SET NULL|NO ACTION);/g;
+  for (const match of baseline.matchAll(pattern)) {
+    const [, table, name, columns, referencedTable, referencedColumns, deleteRule, updateRule] = match;
+    if (!table || !name || !columns || !referencedTable || !referencedColumns || !deleteRule || !updateRule) continue;
+    result.push({
+      table,
+      name,
+      columns: quotedNames(columns),
+      referencedTable,
+      referencedColumns: quotedNames(referencedColumns),
+      deleteRule,
+      updateRule,
+    });
+  }
+  return result.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+async function run(): Promise<void> {
+  const expected = parseExpectedColumnsAndIndexes();
+  const expectedFks = parseExpectedForeignKeys();
+
+  const columnRows = await prisma.$queryRawUnsafe<ColumnRow[]>(
+    `SELECT TABLE_NAME AS tableName, COLUMN_NAME AS columnName, COLUMN_TYPE AS columnType,
+            IS_NULLABLE AS isNullable, COLUMN_DEFAULT AS columnDefault
+       FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()`,
+  );
+  const actualColumns = new Map(
+    columnRows.map((row) => [`${row.tableName}.${row.columnName}`, row] as const),
+  );
+  const columnProblems: string[] = [];
+  for (const column of expected.columns) {
+    const actual = actualColumns.get(`${column.table}.${column.column}`);
+    if (!actual) {
+      columnProblems.push(`${column.table}.${column.column}: missing`);
+      continue;
+    }
+    const actualType = normalizeType(actual.columnType);
+    if (actualType !== column.type) {
+      columnProblems.push(`${column.table}.${column.column}: type ${actualType} != ${column.type}`);
+    }
+    if ((actual.isNullable === 'YES') !== column.nullable) {
+      columnProblems.push(`${column.table}.${column.column}: nullable ${actual.isNullable}`);
+    }
+    const actualDefault = normalizeDefault(actual.columnDefault);
+    if (actualDefault !== column.defaultValue) {
+      columnProblems.push(`${column.table}.${column.column}: default ${actualDefault} != ${column.defaultValue}`);
+    }
+  }
+
+  const fkRows = await prisma.$queryRawUnsafe<ForeignKeyRow[]>(
+    `SELECT k.CONSTRAINT_NAME AS constraintName, k.TABLE_NAME AS tableName,
+            k.COLUMN_NAME AS columnName, k.REFERENCED_TABLE_NAME AS referencedTableName,
+            k.REFERENCED_COLUMN_NAME AS referencedColumnName, k.ORDINAL_POSITION AS ordinalPosition,
+            r.DELETE_RULE AS deleteRule, r.UPDATE_RULE AS updateRule
+       FROM information_schema.KEY_COLUMN_USAGE k
+       JOIN information_schema.REFERENTIAL_CONSTRAINTS r
+         ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA
+        AND r.CONSTRAINT_NAME = k.CONSTRAINT_NAME
+        AND r.TABLE_NAME = k.TABLE_NAME
+      WHERE k.CONSTRAINT_SCHEMA = DATABASE()
+        AND k.REFERENCED_TABLE_NAME IS NOT NULL
+      ORDER BY k.CONSTRAINT_NAME, k.ORDINAL_POSITION`,
+  );
+  const actualFkGroups = new Map<string, ForeignKeyRow[]>();
+  for (const row of fkRows) {
+    const rows = actualFkGroups.get(row.constraintName) ?? [];
+    rows.push(row);
+    actualFkGroups.set(row.constraintName, rows);
+  }
+  const fkProblems: string[] = [];
+  const expectedFkNames = new Set(expectedFks.map((fk) => fk.name));
+  for (const fk of expectedFks) {
+    const rows = actualFkGroups.get(fk.name);
+    if (!rows) {
+      fkProblems.push(`${fk.name}: missing`);
+      continue;
+    }
+    const first = rows[0];
+    const columns = rows.map((row) => row.columnName);
+    const referencedColumns = rows.map((row) => row.referencedColumnName);
+    if (
+      first?.tableName !== fk.table ||
+      first.referencedTableName !== fk.referencedTable ||
+      columns.join(',') !== fk.columns.join(',') ||
+      referencedColumns.join(',') !== fk.referencedColumns.join(',') ||
+      first.deleteRule !== fk.deleteRule ||
+      first.updateRule !== fk.updateRule
+    ) {
+      fkProblems.push(`${fk.name}: physical definition mismatch`);
+    }
+  }
+  for (const name of actualFkGroups.keys()) {
+    if (!expectedFkNames.has(name)) fkProblems.push(`${name}: unexpected foreign key`);
+  }
+
+  const indexRows = await prisma.$queryRawUnsafe<IndexRow[]>(
+    `SELECT TABLE_NAME AS tableName, INDEX_NAME AS indexName, NON_UNIQUE AS nonUnique,
+            SEQ_IN_INDEX AS seqInIndex, COLUMN_NAME AS columnName
+       FROM information_schema.STATISTICS
+      WHERE TABLE_SCHEMA = DATABASE()
+      ORDER BY TABLE_NAME, INDEX_NAME, SEQ_IN_INDEX`,
+  );
+  const actualIndexGroups = new Map<string, IndexRow[]>();
+  for (const row of indexRows) {
+    const key = `${row.tableName}.${row.indexName}`;
+    const rows = actualIndexGroups.get(key) ?? [];
+    rows.push(row);
+    actualIndexGroups.set(key, rows);
+  }
+  const indexProblems: string[] = [];
+  for (const index of expected.indexes) {
+    const rows = actualIndexGroups.get(`${index.table}.${index.name}`);
+    if (!rows) {
+      indexProblems.push(`${index.table}.${index.name}: missing`);
+      continue;
+    }
+    const columns = rows.map((row) => row.columnName);
+    const unique = Number(rows[0]?.nonUnique ?? 1) === 0;
+    if (unique !== index.unique || columns.join(',') !== index.columns.join(',')) {
+      indexProblems.push(`${index.table}.${index.name}: physical definition mismatch`);
+    }
+  }
+
+  const result = {
+    expectedColumns: expected.columns.length,
+    expectedForeignKeys: expectedFks.length,
+    expectedDeclaredIndexes: expected.indexes.length,
+    columnProblems,
+    fkProblems,
+    indexProblems,
+  };
+  console.log(JSON.stringify(result, null, 2));
+
+  if (columnProblems.length || fkProblems.length || indexProblems.length) {
+    throw new Error('FTI physical database contract tidak identik dengan canonical baseline');
+  }
+}
+
+run()
+  .catch((error: unknown) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  })
+  .finally(async () => prisma.$disconnect());
