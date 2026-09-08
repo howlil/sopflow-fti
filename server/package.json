@@ -28,7 +28,7 @@
     "pdf-signing:generate-cert": "node scripts/generate-pdf-signing-cert.cjs",
     "db:seed": "prisma migrate deploy && prisma db seed",
     "db:seed:e2e": "ts-node --transpile-only prisma/cleanup-migration-smoke-probes.ts && ts-node --transpile-only prisma/seed-target-e2e.ts",
-    "db:audit:fti": "ts-node --transpile-only prisma/post-contraction-db-audit.ts",
+    "db:audit:fti": "ts-node --transpile-only prisma/post-contraction-db-audit.ts && ts-node --transpile-only prisma/target-db-physical-audit.ts && ts-node --transpile-only prisma/target-db-trigger-audit.ts && ts-node --transpile-only prisma/target-db-domain-invariant-audit.ts",
     "db:fresh": "prisma migrate reset --force"
   },
   "dependencies": {

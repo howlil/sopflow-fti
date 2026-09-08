@@ -15,20 +15,20 @@ datasource db {
 /// =========================
 model Pengguna {
   penggunaId                String           @id @default(uuid()) @db.Char(36)
-  email                     String           @unique @db.VarChar(31)
-  nama                      String           @db.VarChar(31)
-  kataSandi                 String           @db.Char(60)
+  email                     String           @unique @db.VarChar(255)
+  nama                      String           @db.VarChar(255)
+  kataSandi                 String           @db.VarChar(60)
   platformRole              PlatformRole     @default(USER)
-  nip                       String           @unique @db.Char(18)
-  jabatan                   String           @db.VarChar(28)
-  pangkat                   String           @db.VarChar(25)
-  nohp                      String           @db.VarChar(13)
+  nip                       String           @unique @db.VarChar(32)
+  jabatan                   String           @db.VarChar(255)
+  pangkat                   String           @db.VarChar(64)
+  nohp                      String           @db.VarChar(15)
   sesiTokenVersion          Int              @default(0)
-  refreshTokenHash          String?          @db.Char(60)
+  refreshTokenHash          String?          @db.VarChar(60)
   refreshTokenExpiresAt     DateTime?
   passwordChangedAt         DateTime?
-  ttePinHash                String?          @db.Char(60)
-  tteP12Base64              String?          @db.Text
+  ttePinHash                String?          @db.VarChar(60)
+  tteP12Base64              String?          @db.LongText
   tteP12PassphraseEncrypted String?          @db.VarChar(255)
   deletedAt                 DateTime?
   createdAt                 DateTime         @default(now())
@@ -92,10 +92,10 @@ model AnggotaProsesBisnis {
 /// =========================
 model Peraturan {
   peraturanId    String    @id @default(uuid()) @db.Char(36)
-  nama           String    @db.VarChar(31)
-  nomor          String    @db.VarChar(28)
+  nama           String    @db.VarChar(500)
+  nomor          String    @db.VarChar(255)
   tahun          Int
-  tentang        String    @db.VarChar(73)
+  tentang        String    @db.VarChar(2000)
   lastEditedById String?   @db.Char(36)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -112,7 +112,7 @@ model Peraturan {
 model SOP {
   sopId      String      @id @default(uuid()) @db.Char(36)
   prosesBisnisId  String?     @db.Char(36) @map("processId")
-  judul      String      @db.VarChar(42)
+  judul      String      @db.VarChar(500)
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
   detailSops DetailSOP[]
@@ -128,11 +128,11 @@ model DetailSOP {
 
   status                         StatusSOP                        @default(DRAFT)
   versi                          Int                              @default(1)
-  nomorSOP                       String                           @unique @db.VarChar(24)
+  nomorSOP                       String                           @unique @db.VarChar(255)
   tanggalPembuatan               DateTime                         @default(now())
   tanggalRevisi                  DateTime?
   tanggalEfektif                 DateTime?
-  namaLembaga                    String                           @db.VarChar(28)
+  namaLembaga                    String                           @db.VarChar(2000)
   dibuatOlehId                   String?                          @db.Char(36)
   terakhirDieditOlehId           String?                          @db.Char(36)
   revisiDariDetailSopId          String?                          @db.Char(36)
@@ -235,14 +235,14 @@ model SopTerkait {
 model LangkahSOP {
   langkahSopId               String                    @id @default(uuid()) @db.Char(36)
   detailSopId                String                    @db.Char(36)
-  kegiatan                   String                    @db.VarChar(55)
+  kegiatan                   String                    @db.VarChar(2000)
   jenis                      JenisLangkahProsedur      @default(KEGIATAN)
   urutan                     Int
-  kelengkapan                String                    @db.VarChar(34)
-  keluaran                   String                    @db.VarChar(23)
+  kelengkapan                String                    @db.VarChar(2000)
+  keluaran                   String                    @db.VarChar(2000)
   waktu                      Int
   satuanWaktu                SatuanWaktu
-  keterangan                 String                    @db.VarChar(37)
+  keterangan                 String                    @db.VarChar(2000)
   pelaksanaId                String                    @db.Char(36)
   langkahSelanjutnyaYaId     String?                   @db.Char(36)
   langkahSelanjutnyaTidakId  String?                   @db.Char(36)
@@ -265,7 +265,7 @@ model LangkahSOP {
 
 model Pelaksana {
   pelaksanaId String               @id @default(uuid()) @db.Char(36)
-  nama        String               @unique(map: "Pelaksana_nama_key") @db.VarChar(15)
+  nama        String               @unique(map: "Pelaksana_nama_key") @db.VarChar(255)
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
   sopDetails  DetailSOPPelaksana[]
@@ -342,7 +342,7 @@ model DokumenTte {
 
   @@index([jenisDokumen, createdAt], map: "DokumenTte_jenisDokumen_createdAt_idx")
   @@index([jenisDokumen, pdfStatus], map: "DokumenTte_jenisDokumen_pdfStatus_idx")
-  @@index([prosesBisnisId], map: "DokumenTte_prosesBisnisId_idx")
+  @@index([prosesBisnisId], map: "DokumenTte_processId_idx")
 }
 
 model RiwayatTandaTangan {
@@ -350,7 +350,7 @@ model RiwayatTandaTangan {
   dokumenTteId       String                  @db.Char(36)
   authority          PejabatBerwenang
   signatureValue     String?                 @db.LongText
-  signatureAlgorithm String?                 @db.VarChar(13)
+  signatureAlgorithm String?                 @db.VarChar(32)
   signatureFormat    String?                 @db.VarChar(14)
   certSerialNumber   String?                 @db.VarChar(40)
   certIssuer         String?                 @db.Text
@@ -494,7 +494,7 @@ model TitikTekukPanahDiagramSOP {
 model OverrideLabelDiagramSOP {
   detailSopId String       @db.Char(36)
   jenis       JenisDiagram
-  kunciLabel  String       @db.VarChar(8)
+  kunciLabel  String       @db.VarChar(255)
   posisiX     Float
   posisiY     Float
   createdAt   DateTime     @default(now())
@@ -740,9 +740,9 @@ model UndanganAnggotaProsesBisnis {
   email               String                  @db.VarChar(31)
   nama                String                  @db.VarChar(31)
   nip                 String                  @db.Char(18)
-  jabatan              String                  @db.VarChar(28)
-  pangkat              String                  @db.VarChar(25)
-  nohp                 String                  @db.VarChar(13)
+  jabatan             String                  @db.VarChar(28)
+  pangkat             String                  @db.VarChar(25)
+  nohp                String                  @db.VarChar(13)
   tokenHash            String                  @unique @db.Char(64)
   status               StatusUndanganAnggotaProsesBisnis @default(PENDING)
   invitedById          String                  @db.Char(36)
@@ -786,7 +786,7 @@ model PelaksanaAuditAttribution {
   createdById String?  @db.Char(36)
   updatedById String?  @db.Char(36)
   createdAt   DateTime @default(now()) @db.DateTime(3)
-  updatedAt   DateTime @updatedAt @db.DateTime(3)
+  updatedAt   DateTime @default(now()) @updatedAt @db.DateTime(3)
 
   @@index([createdById], map: "PelaksanaAuditAttribution_createdById_idx")
   @@index([updatedById], map: "PelaksanaAuditAttribution_updatedById_idx")
@@ -799,7 +799,7 @@ model DetailSOPPelaksanaSnapshot {
   pelaksanaId  String   @db.Char(36)
   namaSnapshot String   @db.VarChar(15)
   createdAt    DateTime @default(now()) @db.DateTime(3)
-  updatedAt    DateTime @updatedAt @db.DateTime(3)
+  updatedAt    DateTime @default(now()) @updatedAt @db.DateTime(3)
 
   @@id([detailSopId, pelaksanaId])
   @@index([pelaksanaId], map: "DetailSOPPelaksanaSnapshot_pelaksanaId_idx")

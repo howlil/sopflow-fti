@@ -56,7 +56,7 @@ jobs:
           cache-dependency-path: server/pnpm-lock.yaml
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Prove FTI-only active source
+      - name: Prove FTI-only repository source
         run: node scripts/full-fti-runtime-audit.cjs
       - name: Validate and generate Prisma
         run: |
@@ -81,9 +81,9 @@ jobs:
           done
           docker logs sop-full-fti-exit-db
           exit 1
-      - name: Apply full migration chain
+      - name: Apply FTI migration set
         run: pnpm prisma migrate deploy
       - name: Seed native FTI graph
         run: pnpm db:seed:e2e
-      - name: Prove post-contraction database invariants
+      - name: Prove FTI database invariants
         run: pnpm db:audit:fti
