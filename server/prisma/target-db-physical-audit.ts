@@ -97,7 +97,11 @@ const baseline = readFileSync(
 );
 
 function normalizeType(value: string): string {
-  const type = value.trim().toLowerCase().replace(/\s+/g, ' ');
+  const type = value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/,\s+/g, ',');
   if (/^(?:integer|int)(?:\(\d+\))?$/.test(type)) return 'int';
   if (type === 'json') return 'longtext';
   return type;
@@ -106,6 +110,7 @@ function normalizeType(value: string): string {
 function normalizeDefault(value: string | null): string | null {
   if (value === null) return null;
   let normalized = String(value).trim().toLowerCase().replace(/\s+/g, '');
+  if (normalized === 'null') return null;
   if (
     (normalized.startsWith("'") && normalized.endsWith("'")) ||
     (normalized.startsWith('"') && normalized.endsWith('"'))
