@@ -44,95 +44,85 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 11.21.0
           run_install: false
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
           cache-dependency-path: server/pnpm-lock.yaml
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
       - name: Validate Prisma schema
         run: pnpm prisma validate
-
       - name: Generate Prisma client
         run: pnpm prisma generate
-
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Unit — common/config/database
-        run: pnpm exec jest common config database --runInBand
-
-      - name: Unit — core/auth
+      - name: Core ProsesBisnis — proses-bisnis
+        run: pnpm exec jest proses-bisnis.service.spec.ts --runInBand
+      - name: Core ProsesBisnis — pejabat-berwenang
         if: always()
-        run: pnpm exec jest modules/core/auth --runInBand
-
-      - name: Unit — core/pengguna
+        run: pnpm exec jest pejabat-berwenang.service.spec.ts --runInBand
+      - name: Core ProsesBisnis — konteks
         if: always()
-        run: pnpm exec jest modules/core/pengguna --runInBand
-
-      - name: Unit — core/peraturan
+        run: pnpm exec jest konteks-proses-bisnis.service.spec.ts --runInBand
+      - name: Core ProsesBisnis — penanggung-jawab
         if: always()
-        run: pnpm exec jest modules/core/peraturan --runInBand
-
-      - name: Unit — core/proses-bisnis
+        run: pnpm exec jest penanggung-jawab-proses-bisnis.service.spec.ts --runInBand
+      - name: Core ProsesBisnis — kewenangan
         if: always()
-        run: pnpm exec jest modules/core/proses-bisnis --runInBand
+        run: pnpm exec jest kewenangan-penanggung-jawab-proses-bisnis.service.spec.ts --runInBand
 
-      - name: Unit — notifications/boundaries
+      - name: Notifications — notifikasi ProsesBisnis
         if: always()
-        run: pnpm exec jest notification-module-boundaries.spec.ts --runInBand
+        run: pnpm exec jest notifikasi-proses-bisnis.service.spec.ts --runInBand
+      - name: Notifications — pengingat ProsesBisnis
+        if: always()
+        run: pnpm exec jest pengingat-proses-bisnis.service.spec.ts --runInBand
 
-      - name: Unit — notifications/proses-bisnis
+      - name: SOP catalog — mapper
         if: always()
-        run: pnpm exec jest modules/notifications/proses-bisnis --runInBand
+        run: pnpm exec jest sop-catalog.mapper.spec.ts --runInBand
+      - name: SOP catalog — service
+        if: always()
+        run: pnpm exec jest sop-catalog.service.spec.ts --runInBand
+      - name: SOP catalog — repository
+        if: always()
+        run: pnpm exec jest sop-catalog.repository.spec.ts --runInBand
+      - name: SOP catalog — completeness
+        if: always()
+        run: pnpm exec jest sop-completeness.validator.spec.ts --runInBand
+      - name: SOP catalog — repo errors
+        if: always()
+        run: pnpm exec jest sop-catalog-repo-error.util.spec.ts --runInBand
+      - name: SOP catalog — workbench reader
+        if: always()
+        run: pnpm exec jest sop-workbench-reader.service.spec.ts --runInBand
 
-      - name: Unit — notifications/shared
+      - name: SOP Process — final approval
         if: always()
-        run: pnpm exec jest modules/notifications/shared --runInBand
-
-      - name: Unit — SOP/catalog
+        run: pnpm exec jest persetujuan-akhir-sop.service.spec.ts --runInBand
+      - name: SOP Process — binding guard
         if: always()
-        run: pnpm exec jest modules/sop/catalog --runInBand
-
-      - name: Unit — SOP/collaboration
+        run: pnpm exec jest sop-terikat-proses-bisnis.guard.spec.ts --runInBand
+      - name: SOP Process — versioning
         if: always()
-        run: pnpm exec jest modules/sop/collaboration --runInBand
-
-      - name: Unit — SOP/diagram
+        run: pnpm exec jest versi-sop-proses-bisnis.service.spec.ts --runInBand
+      - name: SOP Process — lifecycle projection
         if: always()
-        run: pnpm exec jest modules/sop/diagram --runInBand
-
-      - name: Unit — SOP/pdf
+        run: pnpm exec jest sop-proses-bisnis-siklus.projection.spec.ts --runInBand
+      - name: SOP Process — authoring
         if: always()
-        run: pnpm exec jest modules/sop/pdf --runInBand
-
-      - name: Unit — SOP/pelaksana
+        run: pnpm exec jest sop-proses-bisnis-authoring.service.spec.ts --runInBand
+      - name: SOP Process — revocation
         if: always()
-        run: pnpm exec jest modules/sop/pelaksana --runInBand
-
-      - name: Unit — SOP/penyusunan-proses-bisnis
+        run: pnpm exec jest pencabutan-sop-proses-bisnis.service.spec.ts --runInBand
+      - name: SOP Process — owner review
         if: always()
-        run: pnpm exec jest modules/sop/penyusunan-proses-bisnis --runInBand
-
-      - name: Unit — SOP/prosedur
-        if: always()
-        run: pnpm exec jest modules/sop/prosedur --runInBand
-
-      - name: Unit — SOP/public
-        if: always()
-        run: pnpm exec jest modules/sop/public --runInBand
-
-      - name: Unit — TTE
-        if: always()
-        run: pnpm exec jest modules/tte --runInBand
+        run: pnpm exec jest pemeriksaan-penanggung-jawab-proses-bisnis.service.spec.ts --runInBand
