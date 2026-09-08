@@ -44,11 +44,12 @@ jobs:
         run: |
           docker run -d --name sop-baseline-equivalence-db \
             -e MARIADB_ROOT_PASSWORD=root_test_password \
+            -e MARIADB_ROOT_HOST=% \
             -p 3309:3306 mariadb:11.4
       - name: Wait for MariaDB
         run: |
           for i in {1..60}; do
-            if docker exec sop-baseline-equivalence-db mariadb-admin ping -uroot -proot_test_password --silent; then
+            if docker exec sop-baseline-equivalence-db mariadb-admin -h127.0.0.1 -uroot -proot_test_password ping --silent; then
               exit 0
             fi
             sleep 2
@@ -57,7 +58,7 @@ jobs:
           exit 1
       - name: Create comparison databases
         run: |
-          docker exec sop-baseline-equivalence-db mariadb -uroot -proot_test_password -e \
+          docker exec sop-baseline-equivalence-db mariadb -h127.0.0.1 -uroot -proot_test_password -e \
             'CREATE DATABASE legacy_target CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE DATABASE candidate_target CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
       - name: Apply pre-squash migration chain
         working-directory: legacy-target/server
@@ -79,10 +80,10 @@ jobs:
         run: pnpm prisma migrate deploy
       - name: Dump physical schemas
         run: |
-          docker exec sop-baseline-equivalence-db mariadb-dump -uroot -proot_test_password \
+          docker exec sop-baseline-equivalence-db mariadb-dump -h127.0.0.1 -uroot -proot_test_password \
             --no-data --skip-comments --skip-add-drop-table --compact --triggers legacy_target \
             | sed 's/legacy_target/canonical_db/g' > legacy-target.sql
-          docker exec sop-baseline-equivalence-db mariadb-dump -uroot -proot_test_password \
+          docker exec sop-baseline-equivalence-db mariadb-dump -h127.0.0.1 -uroot -proot_test_password \
             --no-data --skip-comments --skip-add-drop-table --compact --triggers candidate_target \
             | sed 's/candidate_target/canonical_db/g' > candidate-target.sql
       - name: Compare physical schemas
@@ -93,7 +94,6 @@ jobs:
 
           def normalize(path: str) -> str:
               text = Path(path).read_text()
-              # Prisma ledger contents differ by design, but its physical table does not.
               text = re.sub(r'AUTO_INCREMENT=\d+\s*', '', text)
               text = re.sub(r'/\*!50003 SET sql_mode\s*=.*?\*/;', '', text)
               text = re.sub(r'/\*!50003 SET character_set_client\s*=.*?\*/;', '', text)
