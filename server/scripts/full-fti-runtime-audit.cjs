@@ -5,21 +5,18 @@ const { execFileSync } = require('node:child_process');
 const repoRoot = path.resolve(__dirname, '../..');
 const auditFile = 'server/scripts/full-fti-runtime-audit.cjs';
 const historicalMigrationPrefix = 'server/prisma/migrations/';
-const textExtensions = new Set([
+const codeExtensions = new Set([
   '.ts',
   '.tsx',
+  '.mts',
+  '.cts',
   '.js',
+  '.jsx',
   '.cjs',
   '.mjs',
   '.prisma',
-  '.md',
-  '.yml',
-  '.yaml',
-  '.json',
-  '.sh',
   '.py',
 ]);
-const codeExtensions = new Set(['.ts', '.tsx', '.js', '.cjs', '.mjs', '.prisma', '.py']);
 
 const forbiddenEverywhere = [
   /\bOPD\b/i,
@@ -50,6 +47,8 @@ const forbiddenPaths = [
   /(?:^|\/)tim\.dto\.ts$/,
   /identity-shadow-audit\.ts$/,
   /fti-legacy-retention-backfill\.ts$/,
+  /(?:^|\/)fti-final-codemod\.(?:py|ya?ml)$/i,
+  /(?:^|\/)_export-worktree\.ya?ml$/i,
 ];
 
 const trackedFiles = execFileSync('git', ['ls-files', '-z'], {
@@ -71,10 +70,10 @@ for (const relative of trackedFiles) {
   }
 
   const extension = path.extname(relative);
-  if (!textExtensions.has(extension)) continue;
-
   const absolute = path.join(repoRoot, relative);
-  const content = fs.readFileSync(absolute, 'utf8');
+  const buffer = fs.readFileSync(absolute);
+  if (buffer.includes(0)) continue;
+  const content = buffer.toString('utf8');
   for (const pattern of forbiddenEverywhere) {
     if (pattern.test(content)) violations.push(`${relative}: ${pattern}`);
     pattern.lastIndex = 0;
