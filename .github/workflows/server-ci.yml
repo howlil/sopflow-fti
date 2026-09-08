@@ -44,85 +44,31 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 11.21.0
           run_install: false
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
           cache-dependency-path: server/pnpm-lock.yaml
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
       - name: Validate Prisma schema
         run: pnpm prisma validate
+
       - name: Generate Prisma client
         run: pnpm prisma generate
+
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Core ProsesBisnis — proses-bisnis
-        run: pnpm exec jest --runTestsByPath src/modules/core/proses-bisnis/proses-bisnis.service.spec.ts --runInBand
-      - name: Core ProsesBisnis — pejabat-berwenang
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/core/proses-bisnis/pejabat-berwenang.service.spec.ts --runInBand
-      - name: Core ProsesBisnis — konteks
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/core/proses-bisnis/konteks-proses-bisnis.service.spec.ts --runInBand
-      - name: Core ProsesBisnis — penanggung-jawab
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/core/proses-bisnis/penanggung-jawab-proses-bisnis.service.spec.ts --runInBand
-      - name: Core ProsesBisnis — kewenangan
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/core/proses-bisnis/kewenangan-penanggung-jawab-proses-bisnis.service.spec.ts --runInBand
-
-      - name: Notifications — notifikasi ProsesBisnis
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/notifications/proses-bisnis/notifikasi-proses-bisnis.service.spec.ts --runInBand
-      - name: Notifications — pengingat ProsesBisnis
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/notifications/proses-bisnis/pengingat-proses-bisnis.service.spec.ts --runInBand
-
-      - name: SOP catalog — mapper
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/sop/catalog/sop-catalog.mapper.spec.ts --runInBand
-      - name: SOP catalog — service
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/sop/catalog/sop-catalog.service.spec.ts --runInBand
-      - name: SOP catalog — repository
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/sop/catalog/sop-catalog.repository.spec.ts --runInBand
-      - name: SOP catalog — completeness
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/sop/catalog/sop-completeness.validator.spec.ts --runInBand
-      - name: SOP catalog — repo errors
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/sop/catalog/sop-catalog-repo-error.util.spec.ts --runInBand
-      - name: SOP catalog — workbench reader
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/sop/catalog/sop-workbench-reader.service.spec.ts --runInBand
-
-      - name: SOP Process — final approval
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/sop/penyusunan-proses-bisnis/persetujuan-akhir-sop.service.spec.ts --runInBand
-      - name: SOP Process — binding guard
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/sop/penyusunan-proses-bisnis/sop-terikat-proses-bisnis.guard.spec.ts --runInBand
-      - name: SOP Process — versioning
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/sop/penyusunan-proses-bisnis/versi-sop-proses-bisnis.service.spec.ts --runInBand
-      - name: SOP Process — lifecycle projection
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/sop/penyusunan-proses-bisnis/sop-proses-bisnis-siklus.projection.spec.ts --runInBand
-      - name: SOP Process — authoring
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/sop/penyusunan-proses-bisnis/sop-proses-bisnis-authoring.service.spec.ts --runInBand
-      - name: SOP Process — revocation
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/sop/penyusunan-proses-bisnis/pencabutan-sop-proses-bisnis.service.spec.ts --runInBand
-      - name: SOP Process — owner review
-        if: always()
-        run: pnpm exec jest --runTestsByPath src/modules/sop/penyusunan-proses-bisnis/pemeriksaan-penanggung-jawab-proses-bisnis.service.spec.ts --runInBand
+      - name: Unit tests
+        run: pnpm test
