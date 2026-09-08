@@ -342,7 +342,7 @@ model DokumenTte {
 
   @@index([jenisDokumen, createdAt], map: "DokumenTte_jenisDokumen_createdAt_idx")
   @@index([jenisDokumen, pdfStatus], map: "DokumenTte_jenisDokumen_pdfStatus_idx")
-  @@index([prosesBisnisId], map: "DokumenTte_prosesBisnisId_idx")
+  @@index([prosesBisnisId], map: "DokumenTte_processId_idx")
 }
 
 model RiwayatTandaTangan {
@@ -737,12 +737,12 @@ model StatusProsesBisnis {
 model UndanganAnggotaProsesBisnis {
   undanganAnggotaProsesBisnisId String                  @id @default(uuid()) @db.Char(36) @map("processInvitationId")
   prosesBisnisId           String                  @db.Char(36) @map("processId")
-  email               String                  @db.VarChar(255)
-  nama                String                  @db.VarChar(255)
-  nip                 String                  @db.VarChar(32)
-  jabatan              String                  @db.VarChar(255)
-  pangkat              String                  @db.VarChar(64)
-  nohp                 String                  @db.VarChar(32)
+  email               String                  @db.VarChar(31)
+  nama                String                  @db.VarChar(31)
+  nip                 String                  @db.Char(18)
+  jabatan             String                  @db.VarChar(28)
+  pangkat             String                  @db.VarChar(25)
+  nohp                String                  @db.VarChar(13)
   tokenHash            String                  @unique @db.Char(64)
   status               StatusUndanganAnggotaProsesBisnis @default(PENDING)
   invitedById          String                  @db.Char(36)

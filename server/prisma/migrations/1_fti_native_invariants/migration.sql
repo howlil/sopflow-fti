@@ -1,39 +1,10 @@
 -- FTI-native database invariants that are not expressible in Prisma schema.
 
--- Normalize DetailSOP trigger state without depending on superseded trigger names.
-SET @detailsop_trigger_name = (
-  SELECT TRIGGER_NAME
-  FROM information_schema.TRIGGERS
-  WHERE TRIGGER_SCHEMA = DATABASE()
-    AND LOWER(EVENT_OBJECT_TABLE) = 'detailsop'
-  ORDER BY TRIGGER_NAME
-  LIMIT 1
-);
-SET @drop_detailsop_trigger_sql = IF(
-  @detailsop_trigger_name IS NULL,
-  'SELECT 1',
-  CONCAT('DROP TRIGGER `', REPLACE(@detailsop_trigger_name, '`', '``'), '`')
-);
-PREPARE drop_detailsop_trigger_stmt FROM @drop_detailsop_trigger_sql;
-EXECUTE drop_detailsop_trigger_stmt;
-DEALLOCATE PREPARE drop_detailsop_trigger_stmt;
-
-SET @detailsop_trigger_name = (
-  SELECT TRIGGER_NAME
-  FROM information_schema.TRIGGERS
-  WHERE TRIGGER_SCHEMA = DATABASE()
-    AND LOWER(EVENT_OBJECT_TABLE) = 'detailsop'
-  ORDER BY TRIGGER_NAME
-  LIMIT 1
-);
-SET @drop_detailsop_trigger_sql = IF(
-  @detailsop_trigger_name IS NULL,
-  'SELECT 1',
-  CONCAT('DROP TRIGGER `', REPLACE(@detailsop_trigger_name, '`', '``'), '`')
-);
-PREPARE drop_detailsop_trigger_stmt FROM @drop_detailsop_trigger_sql;
-EXECUTE drop_detailsop_trigger_stmt;
-DEALLOCATE PREPARE drop_detailsop_trigger_stmt;
+-- Replace the one-active-version invariant deterministically.
+DROP TRIGGER IF EXISTS `trg_detailsop_one_berlaku_insert`;
+DROP TRIGGER IF EXISTS `trg_detailsop_one_berlaku_update`;
+DROP TRIGGER IF EXISTS `trg_detailsop_one_effective_insert`;
+DROP TRIGGER IF EXISTS `trg_detailsop_one_effective_update`;
 
 CREATE TRIGGER `trg_detailsop_one_effective_insert`
 BEFORE INSERT ON `DetailSOP`

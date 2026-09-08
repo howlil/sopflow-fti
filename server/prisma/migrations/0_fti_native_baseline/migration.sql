@@ -285,7 +285,7 @@ CREATE TABLE `DokumenTte` (
     UNIQUE INDEX `DokumenTte_detailSopId_key`(`detailSopId`),
     INDEX `DokumenTte_jenisDokumen_createdAt_idx`(`jenisDokumen`, `createdAt`),
     INDEX `DokumenTte_jenisDokumen_pdfStatus_idx`(`jenisDokumen`, `pdfStatus`),
-    INDEX `DokumenTte_prosesBisnisId_idx`(`processId`),
+    INDEX `DokumenTte_processId_idx`(`processId`),
     PRIMARY KEY (`dokumenTteId`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -498,12 +498,12 @@ CREATE TABLE `ProcessLifecycle` (
 CREATE TABLE `ProcessInvitation` (
     `processInvitationId` CHAR(36) NOT NULL,
     `processId` CHAR(36) NOT NULL,
-    `email` VARCHAR(255) NOT NULL,
-    `nama` VARCHAR(255) NOT NULL,
-    `nip` VARCHAR(32) NOT NULL,
-    `jabatan` VARCHAR(255) NOT NULL,
-    `pangkat` VARCHAR(64) NOT NULL,
-    `nohp` VARCHAR(32) NOT NULL,
+    `email` VARCHAR(31) NOT NULL,
+    `nama` VARCHAR(31) NOT NULL,
+    `nip` CHAR(18) NOT NULL,
+    `jabatan` VARCHAR(28) NOT NULL,
+    `pangkat` VARCHAR(25) NOT NULL,
+    `nohp` VARCHAR(13) NOT NULL,
     `tokenHash` CHAR(64) NOT NULL,
     `status` ENUM('PENDING', 'ACCEPTED', 'REVOKED', 'EXPIRED') NOT NULL DEFAULT 'PENDING',
     `invitedById` CHAR(36) NOT NULL,
@@ -668,3 +668,38 @@ ALTER TABLE `TitikTekukPanahDiagramSOP` ADD CONSTRAINT `TitikTekukPanahDiagramSO
 
 -- AddForeignKey
 ALTER TABLE `OverrideLabelDiagramSOP` ADD CONSTRAINT `OverrideLabelDiagramSOP_detailSopId_jenis_fkey` FOREIGN KEY (`detailSopId`, `jenis`) REFERENCES `KonfigurasiDiagramSOP`(`detailSopId`, `jenis`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- FTI-native foreign keys represented as scalar-only Prisma fields.
+-- These constraints are part of the canonical physical database contract.
+ALTER TABLE `OrganizationalAuthorityAssignment` ADD CONSTRAINT `OrganizationalAuthorityAssignment_departmentId_fkey` FOREIGN KEY (`departmentId`) REFERENCES `Department`(`departmentId`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `OrganizationalAuthorityAssignment` ADD CONSTRAINT `OrganizationalAuthorityAssignment_holderId_fkey` FOREIGN KEY (`holderId`) REFERENCES `Pengguna`(`penggunaId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessFinalApproval` ADD CONSTRAINT `ProcessFinalApproval_detailSopId_fkey` FOREIGN KEY (`detailSopId`) REFERENCES `DetailSOP`(`detailSopId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessFinalApproval` ADD CONSTRAINT `ProcessFinalApproval_processId_fkey` FOREIGN KEY (`processId`) REFERENCES `Process`(`processId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessFinalApproval` ADD CONSTRAINT `ProcessFinalApproval_approvedById_fkey` FOREIGN KEY (`approvedById`) REFERENCES `Pengguna`(`penggunaId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessFinalApproval` ADD CONSTRAINT `ProcessFinalApproval_authorityKey_fkey` FOREIGN KEY (`authorityKey`) REFERENCES `OrganizationalAuthorityAssignment`(`authorityKey`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessFinalApproval` ADD CONSTRAINT `ProcessFinalApproval_processReviewId_fkey` FOREIGN KEY (`processReviewId`) REFERENCES `ProcessReview`(`processReviewId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessReview` ADD CONSTRAINT `ProcessReview_detailSopId_fkey` FOREIGN KEY (`detailSopId`) REFERENCES `DetailSOP`(`detailSopId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessReview` ADD CONSTRAINT `ProcessReview_sopId_fkey` FOREIGN KEY (`sopId`) REFERENCES `SOP`(`sopId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessReview` ADD CONSTRAINT `ProcessReview_processId_fkey` FOREIGN KEY (`processId`) REFERENCES `Process`(`processId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessReview` ADD CONSTRAINT `ProcessReview_reviewedById_fkey` FOREIGN KEY (`reviewedById`) REFERENCES `Pengguna`(`penggunaId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessReminder` ADD CONSTRAINT `ProcessReminder_detailSopId_fkey` FOREIGN KEY (`detailSopId`) REFERENCES `DetailSOP`(`detailSopId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessReminder` ADD CONSTRAINT `ProcessReminder_sopId_fkey` FOREIGN KEY (`sopId`) REFERENCES `SOP`(`sopId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessReminder` ADD CONSTRAINT `ProcessReminder_processId_fkey` FOREIGN KEY (`processId`) REFERENCES `Process`(`processId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessReminder` ADD CONSTRAINT `ProcessReminder_penggunaId_fkey` FOREIGN KEY (`penggunaId`) REFERENCES `Pengguna`(`penggunaId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessOwnerAuthority` ADD CONSTRAINT `ProcessOwnerAuthority_penggunaId_fkey` FOREIGN KEY (`penggunaId`) REFERENCES `Pengguna`(`penggunaId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessOwnerAuthority` ADD CONSTRAINT `ProcessOwnerAuthority_departmentId_fkey` FOREIGN KEY (`departmentId`) REFERENCES `Department`(`departmentId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessOwnerAuthority` ADD CONSTRAINT `ProcessOwnerAuthority_grantedById_fkey` FOREIGN KEY (`grantedById`) REFERENCES `Pengguna`(`penggunaId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessLifecycle` ADD CONSTRAINT `ProcessLifecycle_processId_fkey` FOREIGN KEY (`processId`) REFERENCES `Process`(`processId`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ProcessInvitation` ADD CONSTRAINT `ProcessInvitation_processId_fkey` FOREIGN KEY (`processId`) REFERENCES `Process`(`processId`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `ProcessInvitation` ADD CONSTRAINT `ProcessInvitation_invitedById_fkey` FOREIGN KEY (`invitedById`) REFERENCES `Pengguna`(`penggunaId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessInvitation` ADD CONSTRAINT `ProcessInvitation_acceptedById_fkey` FOREIGN KEY (`acceptedById`) REFERENCES `Pengguna`(`penggunaId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessAudit` ADD CONSTRAINT `ProcessAudit_processId_fkey` FOREIGN KEY (`processId`) REFERENCES `Process`(`processId`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `ProcessAudit` ADD CONSTRAINT `ProcessAudit_actorId_fkey` FOREIGN KEY (`actorId`) REFERENCES `Pengguna`(`penggunaId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `ProcessAudit` ADD CONSTRAINT `ProcessAudit_targetUserId_fkey` FOREIGN KEY (`targetUserId`) REFERENCES `Pengguna`(`penggunaId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `PelaksanaAuditAttribution` ADD CONSTRAINT `PelaksanaAuditAttribution_pelaksanaId_fkey` FOREIGN KEY (`pelaksanaId`) REFERENCES `Pelaksana`(`pelaksanaId`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `PelaksanaAuditAttribution` ADD CONSTRAINT `PelaksanaAuditAttribution_createdById_fkey` FOREIGN KEY (`createdById`) REFERENCES `Pengguna`(`penggunaId`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `PelaksanaAuditAttribution` ADD CONSTRAINT `PelaksanaAuditAttribution_updatedById_fkey` FOREIGN KEY (`updatedById`) REFERENCES `Pengguna`(`penggunaId`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `DetailSOPPelaksanaSnapshot` ADD CONSTRAINT `DetailSOPPelaksanaSnapshot_detailSopId_fkey` FOREIGN KEY (`detailSopId`) REFERENCES `DetailSOP`(`detailSopId`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `DetailSOPPelaksanaSnapshot` ADD CONSTRAINT `DetailSOPPelaksanaSnapshot_pelaksanaId_fkey` FOREIGN KEY (`pelaksanaId`) REFERENCES `Pelaksana`(`pelaksanaId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `DokumenTte` ADD CONSTRAINT `DokumenTte_processId_fkey` FOREIGN KEY (`processId`) REFERENCES `Process`(`processId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
