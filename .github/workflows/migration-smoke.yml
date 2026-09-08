@@ -71,16 +71,16 @@ jobs:
         run: pnpm prisma validate
       - name: Generate Prisma client
         run: pnpm prisma generate
-      - name: Apply full migration chain
+      - name: Apply FTI migration set
         run: pnpm prisma migrate deploy
       - name: Verify migration status
         run: pnpm prisma migrate status
-      - name: Verify migration history completeness
+      - name: Verify FTI migration set completeness
         run: |
           expected="$(find prisma/migrations -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
           applied="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse 'SELECT COUNT(*) FROM sop_fti_test._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL')"
           test "$applied" = "$expected"
       - name: Seed native FTI graph
         run: pnpm db:seed:e2e
-      - name: Prove post-contraction FTI invariants
+      - name: Prove FTI database invariants
         run: pnpm db:audit:fti
