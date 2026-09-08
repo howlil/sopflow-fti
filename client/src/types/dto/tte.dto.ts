@@ -54,7 +54,7 @@ export interface SignPdfResponse {
   signed: boolean;
   signedPdfBase64: string;
   sha256SignedPdf: string;
-  signatureFormat: "PKCS7_DETACHED" | "UNSIGNED_DISABLED" | "UNSIGNED_NOT_REQUIRED";
+  signatureFormat: "PKCS7_DETACHED" | "UNSIGNED_DISABLED";
   certificate: PdfCertificateInfo | null;
 }
 
