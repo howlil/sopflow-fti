@@ -45,7 +45,7 @@ jobs:
           docker run -d --name sop-baseline-equivalence-db \
             -e MARIADB_ROOT_PASSWORD=root_test_password \
             -e MARIADB_ROOT_HOST=% \
-            -p 3309:3306 mariadb:11.4
+            -p 3309:3306 mariadb:11.4 --lower_case_table_names=1
       - name: Wait for MariaDB
         run: |
           for i in {1..60}; do
