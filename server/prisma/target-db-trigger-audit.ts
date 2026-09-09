@@ -57,6 +57,9 @@ const expectedTriggerNames = new Set([
   'trg_process_final_approval_contract_update',
   'trg_dokumen_tte_process_contract_insert',
   'trg_dokumen_tte_process_contract_update',
+  'trg_sop_drafter_assignment_insert',
+  'trg_sop_drafter_assignment_update',
+  'trg_process_member_clear_sop_assignment',
 ]);
 
 const semanticRequirements: Record<string, string[]> = {
@@ -81,6 +84,9 @@ const semanticRequirements: Record<string, string[]> = {
   trg_authority_holder_identity_insert: ['`holderId`', '`platformRole`', "'USER'"],
   trg_process_owner_authority_identity_insert: ['`penggunaId`', '`platformRole`', "'USER'"],
   trg_detailsop_active_process_insert: ["'DRAFT'", "'TTE_PENDING'", '`processId`'],
+  trg_sop_drafter_assignment_insert: ['`SOP`', '`ProcessMember`', '`ownerId`', '`penyusunId`', '`assignedById`'],
+  trg_sop_drafter_assignment_update: ['`SOP`', '`ProcessMember`', '`ownerId`', '`penyusunId`', '`assignedById`'],
+  trg_process_member_clear_sop_assignment: ['`SopDrafterAssignment`', '`penyusunId`', '`processId`'],
 };
 
 async function run(): Promise<void> {
