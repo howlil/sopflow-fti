@@ -10,10 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { FormDialog } from '@/components/ui/form-dialog'
 import { Input } from '@/components/ui/input'
 import { Table } from '@/components/ui/data-table'
-import type {
-  InviteAnggotaProsesBisnisPayload,
-  LingkupOrganisasi,
-} from '@/types/dto/proses-bisnis.dto'
+import type { InviteAnggotaProsesBisnisPayload } from '@/types/dto/proses-bisnis.dto'
 
 const EMPTY_INVITE: InviteAnggotaProsesBisnisPayload = {
   nama: '',
@@ -57,19 +54,27 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
   const [renameValue, setRenameValue] = useState('')
   const [membersProcessId, setMembersProcessId] = useState<string | null>(null)
   const [memberId, setMemberId] = useState('')
-  const [inviteOpen, setInviteOpen] = useState(false)
+  const [inviteProcessId, setInviteProcessId] = useState<string | null>(null)
   const [invite, setInvite] = useState<InviteAnggotaProsesBisnisPayload>(EMPTY_INVITE)
   const [activationPath, setActivationPath] = useState<string | null>(null)
-  const [archiveId, setArchiveId] = useState<string | null>(null)
-  const [archiveReason, setArchiveReason] = useState('')
   const [assignmentProcessId, setAssignmentProcessId] = useState<string | null>(null)
   const [assignmentDraft, setAssignmentDraft] = useState<Record<string, string>>({})
+  const [archiveId, setArchiveId] = useState<string | null>(null)
+  const [archiveReason, setArchiveReason] = useState('')
 
   const assignment = useProsesBisnisSopAssignments(assignmentProcessId)
 
   const selectedMembersProcess = useMemo(
     () => prosesBisnis.find((row) => row.prosesBisnisId === membersProcessId) ?? null,
     [prosesBisnis, membersProcessId],
+  )
+  const inviteProcess = useMemo(
+    () => prosesBisnis.find((row) => row.prosesBisnisId === inviteProcessId) ?? null,
+    [prosesBisnis, inviteProcessId],
+  )
+  const assignmentProcess = useMemo(
+    () => prosesBisnis.find((row) => row.prosesBisnisId === assignmentProcessId) ?? null,
+    [prosesBisnis, assignmentProcessId],
   )
   const renameProcess = useMemo(
     () => prosesBisnis.find((row) => row.prosesBisnisId === renameId) ?? null,
@@ -79,10 +84,6 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
     () => prosesBisnis.find((row) => row.prosesBisnisId === archiveId) ?? null,
     [prosesBisnis, archiveId],
   )
-  const assignmentProcess = useMemo(
-    () => prosesBisnis.find((row) => row.prosesBisnisId === assignmentProcessId) ?? null,
-    [prosesBisnis, assignmentProcessId],
-  )
 
   const selectedMemberIds = new Set(
     selectedMembersProcess?.anggota.map((anggota) => anggota.penggunaId) ?? [],
@@ -90,9 +91,9 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
   const availableUsers = users.filter(
     (user) =>
       user.penggunaId !== selectedMembersProcess?.penanggungJawabId &&
-      !selectedMemberIds.has(user.penggunaId),
+      !selectedMemberIds.has(user.penggunaId) &&
+      !user.deletedAt,
   )
-
   const selectedScope = scopes.find((scope) => scope.kunciLingkup === kunciLingkup) ?? null
   const canCreate = namaBaru.trim().length >= 2 && selectedScope !== null
   const activationUrl = activationPath
@@ -100,16 +101,22 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
     : null
 
   if (!isLoading && scopes.length === 0 && prosesBisnis.length === 0) {
-    return <p className="text-sm text-secondary-foreground">Anda belum mempunyai kewenangan Penanggung Jawab Proses Bisnis.</p>
+    return (
+      <p className="text-sm text-secondary-foreground">
+        Anda belum mempunyai kewenangan Penanggung Jawab Proses Bisnis.
+      </p>
+    )
   }
 
   return (
     <section className="space-y-4" aria-labelledby="process-owner-title">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 id="process-owner-title" className="text-sm font-semibold text-foreground">Proses Bisnis yang Anda tanggung</h2>
+          <h2 id="process-owner-title" className="text-sm font-semibold text-foreground">
+            Proses Bisnis yang Anda tanggung
+          </h2>
           <p className="mt-1 text-sm text-secondary-foreground">
-            Atur tim Penyusun dan pembagian tanggung jawab SOP. Penanggung Jawab memeriksa hasil, bukan mengedit isi SOP.
+            Atur tim Penyusun dan penugasan SOP. Penanggung Jawab memeriksa hasil, bukan mengedit isi SOP.
           </p>
         </div>
         {scopes.length > 0 ? (
@@ -140,7 +147,9 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
               ) : prosesBisnis.map((process) => (
                 <Table.BodyRow key={process.prosesBisnisId}>
                   <Table.Td className="font-medium">{process.nama}</Table.Td>
-                  <Table.Td>{process.lingkup === 'FACULTY' ? 'Fakultas' : process.departemen?.nama ?? 'Departemen'}</Table.Td>
+                  <Table.Td>
+                    {process.lingkup === 'FACULTY' ? 'Fakultas' : process.departemen?.nama ?? 'Departemen'}
+                  </Table.Td>
                   <Table.Td>{process.anggota.length} Penyusun</Table.Td>
                   <Table.Td>
                     <Badge variant={process.siklusStatus === 'ARCHIVED' ? 'secondary' : 'success'}>
@@ -149,15 +158,35 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                   </Table.Td>
                   <Table.ActionTd>
                     <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" onClick={() => setMembersProcessId(process.prosesBisnisId)}>Penyusun</Button>
-                      <Button size="sm" variant="outline" onClick={() => setAssignmentProcessId(process.prosesBisnisId)}>Penugasan SOP</Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setMembersProcessId(process.prosesBisnisId)}
+                      >
+                        Penyusun
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setAssignmentProcessId(process.prosesBisnisId)}
+                      >
+                        Penugasan SOP
+                      </Button>
                       {process.siklusStatus !== 'ARCHIVED' ? (
                         <>
-                          <Button size="sm" variant="ghost" onClick={() => {
-                            setRenameId(process.prosesBisnisId)
-                            setRenameValue(process.nama)
-                          }}>Ubah</Button>
-                          <Button size="sm" variant="ghost" onClick={() => setArchiveId(process.prosesBisnisId)}>Arsipkan</Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setRenameId(process.prosesBisnisId)
+                              setRenameValue(process.nama)
+                            }}
+                          >
+                            Ubah
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setArchiveId(process.prosesBisnisId)}>
+                            Arsipkan
+                          </Button>
                         </>
                       ) : null}
                     </div>
@@ -188,12 +217,16 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
             nama: namaBaru.trim(),
             lingkup: selectedScope.lingkup,
             departemenId: selectedScope.departemenId,
-          }).then(() => setCreateOpen(false))
+          }).then(() => {
+            setCreateOpen(false)
+            setNamaBaru('')
+            setKunciLingkup('')
+          })
         }}
       >
         <label className="space-y-1.5 text-sm font-medium text-foreground">
           <span>Nama Proses Bisnis</span>
-          <Input value={namaBaru} onChange={(event) => setNamaBaru(event.target.value)} placeholder="Nama Proses Bisnis" />
+          <Input value={namaBaru} onChange={(event) => setNamaBaru(event.target.value)} />
         </label>
         <label className="space-y-1.5 text-sm font-medium text-foreground">
           <span>Lingkup</span>
@@ -214,14 +247,24 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
 
       <FormDialog
         open={renameProcess !== null}
-        onOpenChange={(open) => { if (!open) setRenameId(null) }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRenameId(null)
+            setRenameValue('')
+          }
+        }}
         title="Ubah Proses Bisnis"
         confirmLabel="Simpan Perubahan"
         confirmDisabled={renameValue.trim().length < 2 || renameValue.trim() === renameProcess?.nama || isSaving}
         onConfirm={() => {
           if (!renameProcess) return
-          void renameProsesBisnis({ prosesBisnisId: renameProcess.prosesBisnisId, nama: renameValue.trim() })
-            .then(() => setRenameId(null))
+          void renameProsesBisnis({
+            prosesBisnisId: renameProcess.prosesBisnisId,
+            nama: renameValue.trim(),
+          }).then(() => {
+            setRenameId(null)
+            setRenameValue('')
+          })
         }}
       >
         <label className="space-y-1.5 text-sm font-medium text-foreground">
@@ -230,7 +273,15 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
         </label>
       </FormDialog>
 
-      <Dialog open={selectedMembersProcess !== null} onOpenChange={(open) => { if (!open) setMembersProcessId(null) }}>
+      <Dialog
+        open={selectedMembersProcess !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMembersProcessId(null)
+            setMemberId('')
+          }
+        }}
+      >
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Penyusun — {selectedMembersProcess?.nama}</DialogTitle>
@@ -245,19 +296,30 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                     onChange={(event) => setMemberId(event.target.value)}
                   >
                     <option value="">Pilih pengguna aktif</option>
-                    {availableUsers.map((user) => <option key={user.penggunaId} value={user.penggunaId}>{user.nama} · {user.email}</option>)}
+                    {availableUsers.map((user) => (
+                      <option key={user.penggunaId} value={user.penggunaId}>
+                        {user.nama} · {user.email}
+                      </option>
+                    ))}
                   </select>
                   <Button
                     size="sm"
                     disabled={!memberId || isSaving}
-                    onClick={() => void addMember({ prosesBisnisId: selectedMembersProcess.prosesBisnisId, penggunaId: memberId }).then(() => setMemberId(''))}
+                    onClick={() => void addMember({
+                      prosesBisnisId: selectedMembersProcess.prosesBisnisId,
+                      penggunaId: memberId,
+                    }).then(() => setMemberId(''))}
                   >
                     Tambah Penyusun
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => {
-                    setMembersProcessId(null)
-                    setInviteOpen(true)
-                  }}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setInviteProcessId(selectedMembersProcess.prosesBisnisId)
+                      setMembersProcessId(null)
+                    }}
+                  >
                     Undang Pengguna Baru
                   </Button>
                 </div>
@@ -288,7 +350,10 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                                 size="sm"
                                 variant="outline"
                                 disabled={isSaving}
-                                onClick={() => void hapusAnggota({ prosesBisnisId: selectedMembersProcess.prosesBisnisId, penggunaId: anggota.penggunaId })}
+                                onClick={() => void hapusAnggota({
+                                  prosesBisnisId: selectedMembersProcess.prosesBisnisId,
+                                  penggunaId: anggota.penggunaId,
+                                })}
                               >
                                 Cabut
                               </Button>
@@ -306,25 +371,31 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
       </Dialog>
 
       <FormDialog
-        open={inviteOpen}
+        open={inviteProcess !== null}
         onOpenChange={(open) => {
-          setInviteOpen(open)
           if (!open) {
+            setInviteProcessId(null)
             setInvite(EMPTY_INVITE)
             setActivationPath(null)
           }
         }}
-        title="Undang Penyusun SOP"
-        description="Akun baru akan bergabung sebagai Anggota Proses Bisnis setelah menyelesaikan aktivasi."
+        title={`Undang Penyusun SOP${inviteProcess ? ` — ${inviteProcess.nama}` : ''}`}
+        description="Akun baru akan menjadi Anggota Proses Bisnis ini setelah menyelesaikan aktivasi."
         confirmLabel="Buat Undangan"
-        confirmDisabled={!membersProcessId && prosesBisnis.length === 0 || Object.values(invite).some((value) => value.trim() === '') || isSaving}
+        confirmDisabled={
+          !inviteProcess ||
+          Object.values(invite).some((value) => value.trim() === '') ||
+          isSaving
+        }
         onConfirm={() => {
-          const targetProcessId = membersProcessId ?? assignmentProcessId ?? prosesBisnis[0]?.prosesBisnisId
-          if (!targetProcessId) return
-          void undangAnggota({ prosesBisnisId: targetProcessId, payload: invite }).then((result) => {
+          if (!inviteProcess) return
+          void undangAnggota({
+            prosesBisnisId: inviteProcess.prosesBisnisId,
+            payload: invite,
+          }).then((result) => {
             setInvite(EMPTY_INVITE)
             setActivationPath(result.kind === 'INVITATION_CREATED' ? result.activationPath : null)
-            if (result.kind === 'MEMBER_ADDED') setInviteOpen(false)
+            if (result.kind === 'MEMBER_ADDED') setInviteProcessId(null)
           })
         }}
       >
@@ -340,23 +411,33 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
           <div className="space-y-2 border-t border-border pt-3">
             <p className="text-sm font-medium">Tautan aktivasi satu kali</p>
             <Input readOnly value={activationUrl} />
-            <Button type="button" size="sm" variant="outline" onClick={() => void navigator.clipboard?.writeText(activationUrl)}>Salin tautan</Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => void navigator.clipboard?.writeText(activationUrl)}
+            >
+              Salin tautan
+            </Button>
           </div>
         ) : null}
       </FormDialog>
 
-      <Dialog open={assignmentProcess !== null} onOpenChange={(open) => {
-        if (!open) {
-          setAssignmentProcessId(null)
-          setAssignmentDraft({})
-        }
-      }}>
+      <Dialog
+        open={assignmentProcess !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAssignmentProcessId(null)
+            setAssignmentDraft({})
+          }
+        }}
+      >
         <DialogContent className="max-w-5xl">
           <DialogHeader>
             <DialogTitle>Penugasan SOP — {assignmentProcess?.nama}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-secondary-foreground">
-            Penugasan menentukan Penyusun utama untuk koordinasi. Semua Anggota Proses Bisnis tetap memiliki hak membuat/edit SOP sesuai aturan authoring.
+            Tetapkan Penyusun utama untuk koordinasi. Assignment tidak mengubah hak edit; hak edit tetap milik Anggota Proses Bisnis.
           </p>
           <Table.Card>
             <Table.Root aria-label="Penugasan Penyusun SOP">
@@ -377,7 +458,10 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                     <Table.BodyRow><Table.Td colSpan={5}>Belum ada SOP pada Proses Bisnis ini.</Table.Td></Table.BodyRow>
                   ) : assignment.rows.map((row) => {
                     const selected = assignmentDraft[row.sopId] ?? row.penyusun?.penggunaId ?? ''
-                    const assignable = row.status === 'DRAFT' || row.status === 'REVISION_REQUIRED' || row.status === 'PROCESS_REVIEW'
+                    const assignable =
+                      row.status === 'DRAFT' ||
+                      row.status === 'REVISION_REQUIRED' ||
+                      row.status === 'PROCESS_REVIEW'
                     return (
                       <Table.BodyRow key={row.sopId}>
                         <Table.Td>{row.nomorSOP ?? '—'}</Table.Td>
@@ -388,11 +472,16 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                             <select
                               className="h-8 min-w-48 rounded-control border border-border bg-surface px-2 text-sm"
                               value={selected}
-                              onChange={(event) => setAssignmentDraft((current) => ({ ...current, [row.sopId]: event.target.value }))}
+                              onChange={(event) => setAssignmentDraft((current) => ({
+                                ...current,
+                                [row.sopId]: event.target.value,
+                              }))}
                             >
                               <option value="">Belum ditugaskan</option>
                               {assignmentProcess.anggota.map((anggota) => (
-                                <option key={anggota.penggunaId} value={anggota.penggunaId}>{anggota.pengguna.nama}</option>
+                                <option key={anggota.penggunaId} value={anggota.penggunaId}>
+                                  {anggota.pengguna.nama}
+                                </option>
                               ))}
                             </select>
                           ) : row.penyusun?.nama ?? 'Belum ditugaskan'}
@@ -430,17 +519,22 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
         title="Arsipkan Proses Bisnis"
         description="Proses Bisnis hanya dapat diarsipkan jika tidak ada SOP aktif yang masih berjalan."
         confirmLabel="Arsipkan"
-        confirmDisabled={archiveReason.trim().length < 3 || isSaving}
         confirmVariant="destructive"
+        confirmDisabled={archiveReason.trim().length < 3 || isSaving}
         onConfirm={() => {
           if (!archiveProcess) return
-          void archiveProsesBisnis({ prosesBisnisId: archiveProcess.prosesBisnisId, reason: archiveReason.trim() })
-            .then(() => setArchiveId(null))
+          void archiveProsesBisnis({
+            prosesBisnisId: archiveProcess.prosesBisnisId,
+            reason: archiveReason.trim(),
+          }).then(() => {
+            setArchiveId(null)
+            setArchiveReason('')
+          })
         }}
       >
         <label className="space-y-1.5 text-sm font-medium text-foreground">
           <span>Alasan arsip</span>
-          <Input value={archiveReason} onChange={(event) => setArchiveReason(event.target.value)} placeholder="Alasan arsip" />
+          <Input value={archiveReason} onChange={(event) => setArchiveReason(event.target.value)} />
         </label>
       </FormDialog>
     </section>
