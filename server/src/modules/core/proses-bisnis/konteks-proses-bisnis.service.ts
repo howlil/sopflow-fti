@@ -22,6 +22,11 @@ const prosesBisnisInclude = {
 export class ProsesBisnisContextService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Semua Proses Bisnis tempat pengguna mempunyai tanggung jawab aktif, baik
+   * sebagai Penanggung Jawab maupun Anggota. Gunakan ini untuk navigasi/konteks
+   * umum, bukan sebagai authoring authorization.
+   */
   async listForUser(penggunaId: string) {
     const archivedIds = await this.archivedProsesBisnisIds();
     return this.prisma.prosesBisnis.findMany({
@@ -34,6 +39,40 @@ export class ProsesBisnisContextService {
     });
   }
 
+  /** Authoring SOP hanya untuk Anggota Proses Bisnis/Penyusun SOP. */
+  async listAuthoringForUser(penggunaId: string) {
+    const archivedIds = await this.archivedProsesBisnisIds();
+    return this.prisma.prosesBisnis.findMany({
+      where: {
+        ...(archivedIds.length > 0 ? { prosesBisnisId: { notIn: archivedIds } } : {}),
+        anggota: { some: { penggunaId } },
+      },
+      include: prosesBisnisInclude,
+      orderBy: [{ lingkup: 'asc' }, { nama: 'asc' }],
+    });
+  }
+
+  /**
+   * Katalog Peraturan/Pelaksana bersifat global, tetapi hanya pengguna yang
+   * sedang menjadi Penanggung Jawab atau Anggota Proses Bisnis aktif yang boleh
+   * memutasi katalog tersebut.
+   */
+  async assertCanManageGlobalCatalog(penggunaId: string): Promise<void> {
+    const archivedIds = await this.archivedProsesBisnisIds();
+    const prosesBisnis = await this.prisma.prosesBisnis.findFirst({
+      where: {
+        ...(archivedIds.length > 0 ? { prosesBisnisId: { notIn: archivedIds } } : {}),
+        OR: [{ penanggungJawabId: penggunaId }, { anggota: { some: { penggunaId } } }],
+      },
+      select: { prosesBisnisId: true },
+    });
+    if (prosesBisnis === null) {
+      throw new ForbiddenException(
+        'Akses ditolak: katalog global hanya dapat dikelola Penanggung Jawab atau Anggota Proses Bisnis aktif',
+      );
+    }
+  }
+
   async assertCanAuthor(penggunaId: string, prosesBisnisId: string) {
     if (await this.isArchived(prosesBisnisId)) {
       throw new ForbiddenException('Proses Bisnis sudah diarsipkan dan bersifat read-only');
@@ -41,12 +80,14 @@ export class ProsesBisnisContextService {
     const prosesBisnis = await this.prisma.prosesBisnis.findFirst({
       where: {
         prosesBisnisId,
-        OR: [{ penanggungJawabId: penggunaId }, { anggota: { some: { penggunaId } } }],
+        anggota: { some: { penggunaId } },
       },
       include: prosesBisnisInclude,
     });
     if (prosesBisnis === null) {
-      throw new ForbiddenException('Akses ditolak: pengguna bukan Penanggung Jawab Proses Bisnis atau Anggota Proses Bisnis');
+      throw new ForbiddenException(
+        'Akses ditolak: hanya Anggota Proses Bisnis/Penyusun SOP yang dapat membuat atau mengedit SOP',
+      );
     }
     return prosesBisnis;
   }
@@ -60,7 +101,9 @@ export class ProsesBisnisContextService {
       include: prosesBisnisInclude,
     });
     if (prosesBisnis === null) {
-      throw new ForbiddenException('Akses ditolak: hanya Penanggung Jawab Proses Bisnis yang dapat melakukan review');
+      throw new ForbiddenException(
+        'Akses ditolak: hanya Penanggung Jawab Proses Bisnis yang dapat melakukan pemeriksaan',
+      );
     }
     return prosesBisnis;
   }
