@@ -13,6 +13,8 @@ import type {
   ProsesBisnisDto,
   AnggotaProsesBisnisOnboardingResult,
   KewenanganPenanggungJawabProsesBisnisDto,
+  PenugasanPenyusunSopRowDto,
+  AssignPenyusunSopResultDto,
 } from '@/types/dto/proses-bisnis.dto'
 import { STALE_TIME } from '@/utils/constants'
 
@@ -48,6 +50,42 @@ export const processOwnerApi = {
     ),
   audit: (prosesBisnisId: string): Promise<RiwayatAktivitasProsesBisnisDto[]> =>
     unwrapApiData(apiClient.get<ApiSuccessResponse<RiwayatAktivitasProsesBisnisDto[]>>(`/penanggung-jawab-proses-bisnis/proses-bisnis/${prosesBisnisId}/audit`)),
+  sopAssignments: (prosesBisnisId: string): Promise<PenugasanPenyusunSopRowDto[]> =>
+    unwrapApiData(
+      apiClient.get<ApiSuccessResponse<PenugasanPenyusunSopRowDto[]>>(
+        `/penanggung-jawab-proses-bisnis/proses-bisnis/${prosesBisnisId}/penugasan-sop`,
+      ),
+    ),
+  assignSop: (sopId: string, penggunaId: string): Promise<AssignPenyusunSopResultDto> =>
+    unwrapApiData(
+      apiClient.put<ApiSuccessResponse<AssignPenyusunSopResultDto>>(
+        `/penanggung-jawab-proses-bisnis/sop/${sopId}/penyusun`,
+        { penggunaId },
+      ),
+    ),
+}
+
+export function useProsesBisnisSopAssignments(prosesBisnisId: string | null) {
+  const assignmentKey = ['processOwner', 'sopAssignments', prosesBisnisId] as const
+  const query = useQuery({
+    queryKey: assignmentKey,
+    queryFn: () => processOwnerApi.sopAssignments(prosesBisnisId as string),
+    enabled: prosesBisnisId !== null,
+    staleTime: STALE_TIME.SHORT,
+  })
+  const assign = useMutationWithToast({
+    mutationFn: ({ sopId, penggunaId }: { sopId: string; penggunaId: string }) =>
+      processOwnerApi.assignSop(sopId, penggunaId),
+    invalidateKeys: [assignmentKey],
+    successMessage: 'Penyusun utama SOP berhasil ditetapkan',
+    errorMessagePrefix: 'Gagal menetapkan Penyusun utama SOP',
+  })
+  return {
+    rows: query.data ?? [],
+    isLoading: query.isLoading,
+    assign: assign.mutateAsync,
+    isSaving: assign.isPending,
+  }
 }
 
 export function useProsesBisnisOwnerSelfService() {
@@ -70,7 +108,7 @@ export function useProsesBisnisOwnerSelfService() {
     enabled: hasOwnerCapability,
   })
 
-  const commonInvalidation = [queryKeys.processOwnerProsesBisnises, processQueryKeys.mine]
+  const commonInvalidation = [queryKeys.processOwnerProsesBisnises, processQueryKeys.mine, processQueryKeys.authoring]
   const createProsesBisnis = useMutationWithToast({
     mutationFn: processOwnerApi.createProsesBisnis,
     invalidateKeys: commonInvalidation,
