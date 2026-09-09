@@ -249,7 +249,7 @@ export class SopCatalogRepository {
 
   async findDetailIdByDetailOrSopId(
     detailOrSopId: string,
-  ): Promise<{ detailSopId: string; sopId: string; prosesBisnisId: string | null } | null> {
+  ): Promise<{ detailSopId: string; sopId: string; prosesBisnisId: string } | null> {
     const direct = await this.prisma.detailSOP.findUnique({
       where: { detailSopId: detailOrSopId },
       select: {
@@ -287,7 +287,7 @@ export class SopCatalogRepository {
     detailSopId: string;
     sopId: string;
     status: StatusSOP;
-    prosesBisnisId: string | null;
+    prosesBisnisId: string;
   } | null> {
     const resolved = await this.findDetailIdByDetailOrSopId(detailOrSopId);
     if (resolved === null) return null;
@@ -531,7 +531,10 @@ export class SopCatalogRepository {
 
       if (source.lampiranPeringatan.length > 0) {
         await tx.lampiranPeringatan.createMany({
-          data: source.lampiranPeringatan.map((item) => ({ detailSopId: newDetailId, teks: item.teks })),
+          data: source.lampiranPeringatan.map((item) => ({
+            detailSopId: newDetailId,
+            teks: item.teks,
+          })),
         });
       }
       if (source.lampiranKualifikasiPelaksanaan.length > 0) {
