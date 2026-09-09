@@ -78,7 +78,7 @@ Aturan konfigurasi:
 
 ## Notifikasi
 
-Sprint 1 hanya mengaktifkan notifikasi in-app. Backend membuat histori notifikasi yang dapat dibaca lewat endpoint `notifications`, ringkasan unread, dan stream Server-Sent Events. Tidak ada konfigurasi outbound WhatsApp atau webhook delivery eksternal pada runtime saat ini.
+Runtime saat ini menggunakan notifikasi in-app. Backend menyimpan histori notifikasi, unread state, action destination, dan stream Server-Sent Events. Tidak ada outbound WhatsApp atau webhook delivery eksternal.
 
 ## TTE dan PDF signing
 
@@ -109,7 +109,16 @@ Gunakan Docker Compose deployment.
 
 Set hanya lima environment dari `.env.example` melalui project settings MyPaas. Jangan menambahkan `PORT`/`APP_PORT`, database defaults, `DATABASE_URL`, atau frontend listener env hanya untuk public routing; image dan Compose sudah menetapkan nilai stabil tersebut.
 
-Backend menjalankan `pnpm prisma migrate deploy` sebelum `pnpm start:prod`.
+Backend production runtime sengaja **tidak bergantung pada pnpm/Corepack atau akses npm registry setelah image selesai dibangun**. Urutan startup aktual:
+
+```text
+wait MariaDB TCP
+  -> ./node_modules/.bin/prisma migrate deploy
+  -> node dist/src/database/seed/seed-initial.js
+  -> node dist/src/main.js
+```
+
+Failure migration non-transient menghentikan startup; hanya kegagalan reachability database seperti Prisma `P1001/P1002` yang di-retry oleh entrypoint.
 
 ## Seed data
 
@@ -133,14 +142,25 @@ cd client
 pnpm test
 ```
 
-Gunakan integration, migration, Compose, dan container checks hanya ketika changed boundary memerlukannya sesuai `.agents/QUALITY.md`. Manual acceptance testing, browser E2E/black-box testing, live-browser verification, dan manual visual review bukan milestone, merge, atau release gates.
+Automatic CI bersifat unit-first:
+
+- `Server CI`: Prisma validate/generate, typecheck, complete Jest unit suite;
+- `Client CI`: production build/route consistency, typecheck, complete Vitest suite;
+- Compose dan container checks hanya berjalan untuk input yang memang mengubah boundary tersebut.
+
+Migration Smoke dan Full FTI Exit adalah manual qualification workflows. Browser E2E juga manual dan dipilih berdasarkan business use case di `client/e2e/use-cases.json`, misalnya:
+
+```sh
+cd client
+pnpm test:e2e:usecase -- UC01
+```
+
+Jangan menjadikan browser E2E, full migration qualification, atau full suite sebagai gate permanen setiap perubahan. Gunakan sesuai changed risk boundary di `.agents/QUALITY.md`.
 
 Dokumentasi unit/integration yang masih relevan:
 
 - `docs/unit-test.md`
 - `docs/integration-test.md`
-
-Dokumen/harness E2E lama dapat dipakai sebagai diagnostic/reference tooling, tetapi bukan source of truth untuk completion atau CI policy.
 
 Jumlah test dan coverage yang tercatat pada dokumen penelitian adalah historical snapshot. Status commit terkini ditentukan oleh automated test/CI yang relevan pada commit tersebut.
 
