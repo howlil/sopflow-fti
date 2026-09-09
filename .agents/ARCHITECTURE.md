@@ -5,36 +5,80 @@
 ```text
 Pengguna + PlatformRole
         |
-        +--> KewenanganPenanggungJawabProsesBisnis ----> ProsesBisnis ----> SOP ----> DetailSOP
-        |                                  |             |
-        +--> AnggotaProsesBisnis ----------------+             +--> Review / Approval / TTE / Version
+        +--> Administrator Sistem
+        |      -> akun / Departemen / kewenangan PJ / Pejabat Berwenang
+        |
+        +--> KewenanganPenanggungJawabProsesBisnis
+        |      -> Penanggung Jawab Proses Bisnis
+        |      -> bentuk Proses Bisnis / kelola Penyusun / assign SOP / pemeriksaan
+        |
+        +--> AnggotaProsesBisnis
+        |      -> Penyusun SOP
+        |      -> buat & edit SOP
         |
         +--> PenugasanPejabatBerwenang
-                 |
-                 +--> DEAN (Faculty)
-                 +--> HEAD_OF_DEPARTMENT (Departemen)
+               -> DEAN (Fakultas)
+               -> HEAD_OF_DEPARTMENT (Departemen)
+               -> pengesahan + TTE
+
+ProsesBisnis ----> SOP ----> DetailSOP
+     |              |
+     |              +--> PenugasanPenyusunSOP (coordination, bukan ACL)
+     +--> AnggotaProsesBisnis
 ```
 
 ### Identity and authorization
 
-`PlatformRole` is only platform administration. Workflow authorization is contextual to ProsesBisnis ownership/keanggotaan. Final approval and TTE authorization come only from the pejabat berwenang resolved for the ProsesBisnis lingkup. No platform administrator bypass exists for workflow approval or signing.
+`PlatformRole` hanya untuk administrasi sistem. Authorization workflow dipisahkan secara eksplisit:
 
-### SOP ownership
+- **authoring**: hanya `AnggotaProsesBisnis` / Penyusun SOP;
+- **pemeriksaan**: hanya `ProsesBisnis.penanggungJawabId`;
+- **pengesahan dan TTE**: hanya `PejabatBerwenang` yang di-resolve dari lingkup Proses Bisnis;
+- **katalog global Peraturan/Pelaksana**: mutasi oleh pengguna yang aktif sebagai Penanggung Jawab atau Anggota Proses Bisnis.
 
-An active SOP belongs directly to one ProsesBisnis through `SOP.prosesBisnisId`. A ProsesBisnis has exactly one owner and zero or more members. Departemen context is organizational lingkup metadata, not SOP ownership.
+Administrator Sistem tidak mempunyai bypass workflow.
 
-### Lifecycle
+### SOP ownership and assignment
 
-`DRAFT -> PROCESS_REVIEW -> REVISION_REQUIRED | FINAL_APPROVAL -> TTE_PENDING -> EFFECTIVE -> SUPERSEDED | REVOKED`. Review, final approval, signing evidence, publication, version replacement, and revocation must transition this siklus atomically where required.
+SOP aktif dimiliki langsung oleh satu Proses Bisnis melalui `SOP.prosesBisnisId`. Proses Bisnis mempunyai satu Penanggung Jawab dan nol atau lebih Anggota/Penyusun.
+
+`PenugasanPenyusunSOP` menentukan **Penyusun utama** untuk koordinasi pekerjaan. Penugasan bukan ACL: hak membuat/edit tetap berasal dari keanggotaan Proses Bisnis. Penanggung Jawab dapat mengganti Penyusun utama tanpa memperoleh hak mengedit isi SOP.
+
+Departemen hanya metadata lingkup organisasi, bukan pemilik SOP.
+
+### Workflow
+
+```text
+Penyusun: DRAFT
+   -> kirim untuk pemeriksaan
+PJ: PROCESS_REVIEW
+   -> REVISION_REQUIRED -> kembali ke Penyusun
+   -> FINAL_APPROVAL -> siap diajukan
+Pejabat Berwenang: pengesahan
+   -> TTE_PENDING
+Pejabat Berwenang: TTE
+   -> EFFECTIVE
+   -> SUPERSEDED | REVOKED
+```
+
+Pemeriksaan, pengesahan, signing evidence, publication, version replacement, dan revocation harus melakukan transition atomically bila diperlukan.
 
 ### TTE
 
-Signing evidence stores `PejabatBerwenang` (`DEAN` or `HEAD_OF_DEPARTMENT`) plus signer identity and certificate metadata. Public verification exposes this authority directly.
+Signing evidence menyimpan `PejabatBerwenang` (`DEAN` atau `HEAD_OF_DEPARTMENT`) beserta identitas penandatangan dan metadata sertifikat. Public verification mengekspos kewenangan kontekstual tersebut.
 
 ### Catalogs
 
-Peraturan and Pelaksana are reusable global catalogs. Procedure and diagram engines consume them without organization ownership shadows.
+Peraturan dan Pelaksana adalah katalog global FTI. Tidak ada ownership Departemen, Proses Bisnis, maupun pengguna pada katalog. Penanggung Jawab dan Anggota Proses Bisnis aktif dapat mengelola katalog; Procedure/diagram engine hanya mereferensikan katalog tersebut.
+
+### Frontend boundaries
+
+- Route authorization mengikuti capability backend, bukan role dashboard generik.
+- Operational CRUD memakai table sebagai primary surface dan dialog untuk create/edit.
+- PJ melakukan pemeriksaan melalui dokumen read-only, bukan SOP edit workspace.
+- Pejabat Berwenang melakukan pemeriksaan read-only, pengesahan, dan TTE.
+- SOP edit workspace hanya untuk Penyusun/Anggota dan tetap protected dari redesign incidental.
 
 ### Persistence history
 
-Previously applied migration SQL remains immutable so an old database can be migrated forward deterministically. Historical identifiers inside those SQL files are migration mechanics, not application architecture.
+Migration SQL yang sudah diterapkan tetap immutable agar database lama dapat dimigrasikan deterministically. Historical identifiers di migration merupakan mechanics persistence, bukan product language.
