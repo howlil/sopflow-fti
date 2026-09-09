@@ -1,8 +1,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const clientDir = fileURLToPath(new URL('..', import.meta.url))
+const repoDir = path.resolve(clientDir, '..')
 const journeyDir = path.join(clientDir, 'e2e', 'journeys')
 const useCasePath = path.join(clientDir, 'e2e', 'use-cases.json')
 const useCases = JSON.parse(fs.readFileSync(useCasePath, 'utf8'))
@@ -21,13 +23,6 @@ const forbiddenImports = [
   '../support/business-preconditions',
   '../support/business-actions',
   '../support/business-audit',
-]
-const forbiddenLegacyTokens = [
-  /\bPJ_PENYUSUN\b/,
-  /\bPJ_EVALUATOR\b/,
-  /\bKEPALA_OPD\b/,
-  /\bopdId\b/,
-  /\bperan\s*:\s*['"](?:PENYUSUN|EVALUATOR|PJ_PENYUSUN|PJ_EVALUATOR|KEPALA_OPD)['"]/,
 ]
 
 const files = fs
@@ -101,12 +96,6 @@ for (const file of files) {
       violations.push(`${file}: retired support import '${forbiddenImport}' harus dihapus`)
     }
   }
-
-  for (const legacyPattern of forbiddenLegacyTokens) {
-    if (legacyPattern.test(content)) {
-      violations.push(`${file}: mengandung executable legacy workflow vocabulary ${legacyPattern}`)
-    }
-  }
 }
 
 if (violations.length > 0) {
@@ -114,6 +103,14 @@ if (violations.length > 0) {
   for (const violation of violations) console.error(` - ${violation}`)
   process.exit(1)
 }
+
+const repositoryAudit = spawnSync(
+  process.execPath,
+  [path.join(repoDir, 'server', 'scripts', 'full-fti-runtime-audit.cjs')],
+  { cwd: repoDir, stdio: 'inherit' },
+)
+if (repositoryAudit.error) throw repositoryAudit.error
+if (repositoryAudit.status !== 0) process.exit(repositoryAudit.status ?? 1)
 
 console.log(`FTI use-case E2E audit passed (${Object.keys(useCases).length} use cases, ${files.length} specs).`)
 for (const [useCaseId, useCase] of Object.entries(useCases)) {
