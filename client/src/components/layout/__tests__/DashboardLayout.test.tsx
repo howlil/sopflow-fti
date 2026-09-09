@@ -3,7 +3,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let mockProsesBisnises: Array<{ prosesBisnisId: string }> = [];
+let mockAuthoringProcesses: Array<{ prosesBisnisId: string }> = [];
 let mockAuthorities: Array<{ kunciPejabatBerwenang: string }> = [];
+let mockOwnerProcesses: Array<{ prosesBisnisId: string }> = [];
+let mockOwnerScopes: Array<{ kunciLingkup: string }> = [];
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ to, children, ...props }: { to: string; children: ReactNode }) => (
@@ -13,9 +16,27 @@ vi.mock("@tanstack/react-router", () => ({
   useLocation: () => ({ pathname: "/work/queue" }),
 }));
 
-vi.mock("@/api/konteks-proses-bisnis", () => ({ useMyProsesBisnises: () => ({ data: mockProsesBisnises }) }));
+vi.mock("@/api/konteks-proses-bisnis", () => ({
+  useMyProsesBisnises: () => ({ data: mockProsesBisnises }),
+  useMyAuthoringProsesBisnises: () => ({ data: mockAuthoringProcesses }),
+}));
 vi.mock("@/api/pejabat-berwenang", () => ({
   useMyOrganizationalAuthorities: () => ({ data: mockAuthorities }),
+}));
+vi.mock("@/api/penanggung-jawab-proses-bisnis", () => ({
+  useProsesBisnisOwnerSelfService: () => ({
+    scopes: mockOwnerScopes,
+    prosesBisnis: mockOwnerProcesses,
+    users: [],
+    isLoading: false,
+    createProsesBisnis: vi.fn(),
+    renameProsesBisnis: vi.fn(),
+    addMember: vi.fn(),
+    hapusAnggota: vi.fn(),
+    undangAnggota: vi.fn(),
+    archiveProsesBisnis: vi.fn(),
+    isSaving: false,
+  }),
 }));
 vi.mock("@/components/layout/HeaderBar", () => ({ HeaderBar: () => <div>Header</div> }));
 vi.mock("@/components/layout/PageHeaderProvider", () => ({
@@ -41,7 +62,10 @@ describe("DashboardLayout desktop sidebar", () => {
     window.localStorage.clear();
     useUIStore.setState({ sidebarOpen: true });
     mockProsesBisnises = [];
+    mockAuthoringProcesses = [];
     mockAuthorities = [];
+    mockOwnerProcesses = [];
+    mockOwnerScopes = [];
   });
 
   it("dapat ditutup, tetap menamai menu, dan dapat dibuka kembali", () => {
@@ -59,25 +83,42 @@ describe("DashboardLayout desktop sidebar", () => {
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe("false");
   });
 
-  it("menampilkan pekerjaan SOP hanya dari hubungan Proses Bisnis", () => {
+  it("memisahkan konteks pekerjaan umum dari hak authoring Penyusun", () => {
     mockProsesBisnises = [{ prosesBisnisId: "process-1" }];
     render(<DashboardLayout />);
-    expect(screen.getAllByRole("link", { name: "Tugas Saya" })).not.toHaveLength(0);
-    expect(screen.getAllByRole("link", { name: "Semua SOP" })).not.toHaveLength(0);
+    expect(screen.getAllByRole("link", { name: "Pekerjaan SOP" })).not.toHaveLength(0);
+    expect(screen.queryByRole("link", { name: "Daftar SOP" })).not.toBeInTheDocument();
+
+    mockAuthoringProcesses = [{ prosesBisnisId: "process-1" }];
   });
 
-  it("menampilkan persetujuan hanya dari kewenangan organisasi", () => {
+  it("menampilkan daftar SOP hanya untuk Anggota/Penyusun", () => {
+    mockProsesBisnises = [{ prosesBisnisId: "process-1" }];
+    mockAuthoringProcesses = [{ prosesBisnisId: "process-1" }];
+    render(<DashboardLayout />);
+    expect(screen.getAllByRole("link", { name: "Daftar SOP" })).not.toHaveLength(0);
+    expect(screen.getAllByRole("link", { name: "Peraturan" })).not.toHaveLength(0);
+    expect(screen.getAllByRole("link", { name: "Pelaksana" })).not.toHaveLength(0);
+  });
+
+  it("menampilkan pengelolaan Proses Bisnis hanya untuk Penanggung Jawab", () => {
+    mockOwnerProcesses = [{ prosesBisnisId: "process-1" }];
+    render(<DashboardLayout />);
+    expect(screen.getAllByRole("link", { name: "Kelola Proses Bisnis" })).not.toHaveLength(0);
+  });
+
+  it("menampilkan pengesahan hanya dari kewenangan Pejabat Berwenang", () => {
     mockAuthorities = [{ kunciPejabatBerwenang: "DEAN" }];
     render(<DashboardLayout />);
-    expect(screen.getAllByRole("link", { name: "Persetujuan & TTE" })).not.toHaveLength(0);
+    expect(screen.getAllByRole("link", { name: "Pengesahan & TTE" })).not.toHaveLength(0);
   });
 
-  it("tanpa konteks tetap menyediakan beranda netral tanpa menu workflow palsu", () => {
+  it("tanpa capability tidak menampilkan menu workflow palsu", () => {
     render(<DashboardLayout />);
-    expect(screen.getAllByRole("link", { name: "Beranda Kerja" })).not.toHaveLength(0);
-    expect(screen.queryByRole("link", { name: "Tugas Saya" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Semua SOP" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Persetujuan & TTE" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Pekerjaan SOP" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Daftar SOP" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Kelola Proses Bisnis" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Pengesahan & TTE" })).not.toBeInTheDocument();
   });
 
   it("memulihkan preferensi sidebar yang tersimpan", async () => {
