@@ -1,184 +1,157 @@
 # SOPFlow Quality
 
-This file is the canonical owner for repository verification, required checks, CI gate selection, and release-readiness evidence. Product behavior belongs in `PROJECT.md`; architecture boundaries belong in `ARCHITECTURE.md`; active milestone evidence belongs in `CURRENT_ITERATION.md`.
+This file owns repository verification, CI gate selection, and release-readiness evidence. Product behavior belongs in `PROJECT.md`; architecture boundaries belong in `ARCHITECTURE.md`; current delivery state belongs in `CURRENT_ITERATION.md`.
 
-## Quality Principle
+## Principle
 
-Verification optimizes for the **smallest sufficient automated evidence for the changed risk boundary**.
+Use the **smallest automated evidence that directly proves the changed risk**. More tests are not automatically more confidence.
 
-Do not equate more tests with more confidence. Do not run a deeper layer only because it exists. Do not claim a broader delivery state than the evidence proves.
+For each logical change:
 
-Manual acceptance testing, black-box/browser E2E testing, and human visual review are not required milestone, merge, or release gates. If an environment-specific behavior cannot be reproduced deterministically, record residual risk rather than creating a manual/browser qualification step.
+1. identify the observable behavior or contract that changed;
+2. identify the boundary where it can fail;
+3. run the cheapest deterministic repository-owned check that observes that failure;
+4. escalate only when a material risk is still invisible.
 
-For every logical change, answer:
+Browser E2E, manual acceptance, and visual review are not default merge or release gates.
 
-1. What observable behavior or contract changed?
-2. At which boundary can that change fail?
-3. What is the cheapest automated evidence that directly observes that failure?
-4. What material failure remains invisible after that evidence?
-5. Is there another deterministic repository-owned boundary that should be exercised?
+## Gate classes
 
-Only escalate when #5 is yes.
-
-```text
-changed risk
-  -> cheapest direct automated evidence
-  -> residual-risk check
-  -> deeper deterministic boundary evidence only when justified
-```
-
-This is not a mandatory test ladder.
-
-## Gate Classes
-
-| Gate | Purpose | Typical evidence | Default use |
-| --- | --- | --- | --- |
-| G0 — No executable gate | No executable/runtime risk changed | documentation consistency | pure docs, agent knowledge, comments, non-executable metadata |
-| G1 — Package integrity | Prove affected package still compiles/builds | install, typecheck, build, generated-file consistency | executable client/server changes |
-| G2 — Focused behavior | Prove changed policy/interaction | unit, component, focused domain tests | behavior-bearing code |
-| G3 — Runtime boundary | Prove persistence/runtime/container contract | integration, migration smoke, container build | DB, transaction, file/artifact, Docker/Compose boundaries |
-| G4 — Broad deterministic qualification | Broaden regression confidence when blast radius is genuinely wide | selected/full deterministic package, domain, integration, migration, container checks | shared infrastructure or explicit release qualification |
-
-A higher gate does not replace a cheaper gate when both prove different risks. Conversely, a higher gate must not be added merely as ceremony.
-
-## Default Gate Selection Matrix
-
-| Changed boundary | Automatic repository gate | Additional evidence only when required |
+| Gate | Purpose | Typical evidence |
 | --- | --- | --- |
-| `.agents/**`, Markdown, non-executable docs | none | factual consistency check when claims depend on code/runtime |
-| `client/src/**` and client build inputs | Client CI | focused component/integration tests for changed semantics |
-| generic `server/src/**` and server build inputs | Server CI | focused integration when DB/transaction/runtime behavior is not proven by units |
-| FTI ProsesBisnis / contextual authority / ProsesBisnis notification / ProsesBisnis TTE code | Server CI + FTI Domain CI | targeted repository-owned integration for affected cross-owner contracts |
-| Prisma schema/migration/recovery inputs | Server CI when schema/build input applies + Migration Smoke | targeted persistence/integration for affected product behavior |
-| Compose/environment contract | Compose Config | Container Build when production container inputs are affected |
-| Dockerfiles / production container runtime files | Container Build | automated deployment smoke only when release/deploy is explicitly in lingkup |
-| cross-boundary user journey | package/domain gates for touched code + focused deterministic integration | broader deterministic regression only if blast radius cannot be bounded |
+| G0 | No executable risk changed | documentation consistency |
+| G1 | Package remains buildable | build, route generation, typecheck |
+| G2 | Behavior remains correct | unit/component tests |
+| G3 | Runtime boundary remains valid | MariaDB migration smoke, Compose validation, container build |
+| G4 | Broad qualification for genuinely wide risk | selected full suites, Full FTI Exit, selected use-case E2E |
 
-The matrix is a default. A logical change may require less or more automated evidence if the actual risk boundary differs, but skipped relevant deterministic gates must be explained.
-
-## CI Ownership
+## Current CI model
 
 ### Client CI
 
-Client CI is the automatic G1/G2 baseline for application-facing client inputs.
+Automatic for application-facing client/build inputs.
 
-It verifies:
+It runs:
 
 1. frozen dependency install;
 2. production build and route generation;
-3. committed generated route-tree consistency;
+3. generated route-tree consistency;
 4. TypeScript typecheck;
-5. unit/component tests.
+5. the complete Vitest unit/component suite.
 
 ### Server CI
 
-Server CI is the automatic G1/G2 baseline for executable server source, package/build configuration, and Prisma schema inputs needed by application compilation.
+Automatic for executable server/build inputs and Prisma schema inputs needed by compilation.
 
-It verifies:
+It runs:
 
 1. frozen dependency install;
-2. Prisma validation and client generation;
+2. Prisma validate and generate;
 3. TypeScript typecheck;
-4. core unit tests.
+4. the complete Jest unit suite.
 
-Do not use Server CI as a proxy for Dockerfile, migration SQL, or deployment correctness.
-
-### FTI Domain CI
-
-FTI Domain CI is a focused G2 gate for the target FTI workflow boundary. It runs only when ProsesBisnis administration/context, pejabat berwenang, ProsesBisnis-bound authoring/review/persetujuan/revocation, ProsesBisnis notifications, ProsesBisnis TTE, or their persisted Prisma contract changes.
-
-It protects the target-domain policies that are intentionally outside the broad legacy/core unit baseline. It must not become a universal server gate.
-
-### Migration Smoke
-
-Migration Smoke is G3 evidence and runs only for migration-relevant inputs.
-
-It must verify the runtime-matched MariaDB path, including:
-
-- recovery-script syntax where applicable;
-- Prisma schema validation/client generation;
-- full migration chain from an empty database;
-- `prisma migrate status` clean state;
-- migration-history completeness;
-- durable database invariants that the migration chain promises;
-- target fixture/seed compatibility when the changed migration/seed boundary requires it.
-
-Schema validation alone is not proof that migration SQL works.
+FTI workflow/domain tests live in the normal server Jest suite. There is no separate `FTI Domain CI` workflow.
 
 ### Compose Config
 
-Compose Config is a cheap G3 configuration gate. It validates production and integration-test Compose resolution plus the canonical external production environment contract. It does not prove that a Dockerfile can build.
+Automatic only for Compose/environment-contract inputs. It validates production/test Compose resolution and the external production environment contract.
 
 ### Container Build
 
-Container Build is G3 evidence for production container inputs. It runs only when production Compose build wiring, Dockerfiles, or production container runtime files change.
+Automatic only for production container inputs. It proves the backend/frontend production images build through the Compose production contract.
 
-It builds the backend and frontend images through the production Compose build contract. Do not run application domain suites merely because a Dockerfile or container entrypoint changed.
+## Manual qualification workflows
 
-## Mandatory Evidence by Risk Boundary
+These exist for explicit qualification; they are not automatic taxes on every PR.
 
-### Bounded code behavior
+### Migration Smoke
 
-Usually require focused behavior evidence when meaningful plus affected package typecheck/build evidence appropriate to the package. Use targeted lint only when lint is relevant and its baseline is trustworthy.
+Use when migration SQL, database invariants, seed compatibility, or a release qualification needs proof against runtime-matched MariaDB.
 
-### User-visible frontend workflow
+It should prove:
 
-Use component/unit evidence for local interaction and focused repository-owned integration when router, server contract, authentication, persistence, or multi-step workflow integration materially matters. Do not require a browser journey to establish completion.
+- Prisma schema validation/client generation;
+- the migration chain from an empty MariaDB database;
+- clean `prisma migrate status`;
+- migration-history completeness;
+- database checks/triggers/invariants promised by the target schema;
+- seed compatibility when relevant.
 
-### Authorization / ProsesBisnis relationship / pejabat berwenang
+Schema validation alone does not prove migration SQL works.
 
-Verify both permitted and denied paths. For ProsesBisnis access, include unrelated ProsesBisnis/ProsesBisnis Team denial when relevant.
+### Full FTI Exit
 
-For final authority resolution:
+Use for explicit FTI release/cutover qualification or when a cross-cutting change could reintroduce retired organization/role semantics. It is not a normal per-change gate.
+
+### Browser E2E
+
+Browser E2E is manual and use-case driven. `client/e2e/use-cases.json` owns the business-use-case mapping. Run `pnpm test:e2e:usecase -- UCxx` only when a real cross-boundary risk needs browser-level evidence or when diagnosing a regression.
+
+Do not restore permanent J-number or cumulative historical milestone gates.
+
+## Default gate selection
+
+| Changed boundary | Default evidence | Escalate only when needed |
+| --- | --- | --- |
+| `.agents/**`, Markdown, non-executable metadata | G0 factual consistency | none |
+| `client/src/**` and client build inputs | Client CI | focused integration / selected UC E2E for cross-boundary failure risk |
+| `server/src/**` and server build inputs | Server CI | focused persistence/integration when unit evidence cannot prove the invariant |
+| Prisma schema | Server CI | Migration Smoke when runtime DB behavior changes |
+| migration SQL / DB triggers / DB invariant scripts | Migration Smoke | Full FTI Exit for explicit release/cutover qualification |
+| Compose/environment contract | Compose Config | Container Build when build/runtime image inputs are affected |
+| Dockerfiles / production container runtime files | Container Build | deployment smoke only when deployment is in scope |
+| wide FTI cutover / release qualification | affected automatic gates | Full FTI Exit and selected UC E2E only for remaining material risk |
+
+## Important risk boundaries
+
+### Authorization and organizational context
+
+Verify both allowed and denied paths when authorization changes.
 
 ```text
 FACULTY    -> DEAN
 DEPARTMENT -> relevant HEAD_OF_DEPARTMENT
 ```
 
-The same contextual authority boundary applies to ProsesBisnis-bound revocation. `SUPER_ADMIN` is not an implicit workflow bypass.
+`SUPER_ADMIN` is platform administration only and must not become a ProsesBisnis Owner, ProsesBisnis Member, or contextual workflow authority.
 
 ### Workflow transition / concurrency
 
-When the change affects workflow state or atomicity, verify valid source state, stale/invalid transition behavior, persistence/audit side effects, no orphan side effects after failed/raced transitions, and transaction boundaries when atomicity is part of the product promise.
+When workflow state or atomicity changes, verify:
 
-Unit evidence is insufficient when the invariant depends on actual persistence or transaction behavior.
+- valid source state;
+- stale/invalid transition rejection;
+- persistence/audit side effects;
+- no orphan side effects after failure/race;
+- transaction behavior when atomicity is part of the product contract.
+
+Use real persistence evidence when the invariant depends on database behavior.
 
 ### TTE / PDF / public verification
 
-Select deterministic evidence for the changed part of the chain: contextual authority, credential/error handling, signing operation, persisted signing evidence, artifact generation/storage, effective-state transition, and QR/public verification.
-
-For a complete cross-owner chain, prefer focused API/domain/persistence integration that directly exercises the owned contracts. Do not force a browser acceptance layer.
+Select evidence for the changed part of the chain: contextual authority, credential/error handling, signing, persisted signing evidence, artifact storage, `EFFECTIVE` transition, and public/QR verification.
 
 ### Public archive / discovery
 
-When ProsesBisnis-native public discovery changes, protect applicable invariants such as native `SOP.prosesBisnisId` classification, current `BERLAKU` + official `PUBLISHED` artifact filtering, faculty/department context, ProsesBisnis-scoped lists, legacy/unbound compatibility, official persisted artifact resolution, and revocation behavior.
-
-Use focused repository-owned integration across SQL/HTTP/projection boundaries when the change spans them. Browser E2E is not a required gate.
+Protect current FTI semantics: direct `SOP.prosesBisnisId` ownership, current `EFFECTIVE` SOPs, official published artifacts, Faculty/Departemen context, ProsesBisnis-scoped discovery, and revoked/version-replaced behavior.
 
 ### Notifications
 
-Protect recipient resolution, event mapping, read/unread behavior, action destination, absence of unintended delivery, ProsesBisnis/legacy isolation, duplicate-recipient collapse, and transaction participation when atomic feedback is promised.
+Protect recipient resolution, event mapping, read/unread state, action destination, duplicate-recipient collapse, and transaction participation when atomic feedback is promised. Realtime refresh must not be emitted for a rolled-back transition.
 
-Realtime refresh is post-commit presentation behavior and must not be emitted for a rolled-back transition.
+## Broad-suite rule
 
-## Integration / Full-Suite Rule
+Do not run full integration, migration, Compose, container, browser, or release qualification on every change.
 
-Do not run full integration, coverage, Compose, migration, or deployment checks on every change.
+Escalate when:
 
-Run broader deterministic integration evidence when persistence/transaction behavior cannot be proven by unit tests, a shared adapter/runtime contract changed, blast radius crosses module/package boundaries in a way focused tests cannot bound, or an observed failure indicates hidden coupling.
+- persistence/transaction behavior cannot be proven by units;
+- a shared runtime adapter/contract changed broadly;
+- blast radius cannot be bounded with focused evidence;
+- targeted evidence exposes hidden coupling;
+- release/cutover qualification is explicitly required.
 
-Run a broad/full deterministic suite when release qualification explicitly requires it, shared test/auth/seed/database infrastructure changed broadly, a cross-cutting change has genuinely unbounded blast radius, or targeted evidence exposed a regression pattern that warrants expansion.
-
-Broad testing is an escalation response to risk, not a completion ritual.
-
-## Lint / Static Analysis
-
-Keep TypeScript strictness intact. Do not make a noisy pre-existing repository-wide lint baseline a universal blocker. Use targeted lint for changed code and promote broader lint only when the baseline is stable enough to be decision-useful.
-
-## Delivery State Semantics
-
-Use exactly these states:
+## Delivery states
 
 ```text
 IMPLEMENTED
@@ -189,43 +162,21 @@ IMPLEMENTED
   -> DEPLOYED
 ```
 
-- **IMPLEMENTED** — code/config exists; no verification claim yet.
-- **VERIFIED** — mandatory risk-selected automated evidence is green for the exact source revision.
-- **INTEGRATED** — the change is merged and relevant integrated-master baseline evidence is green.
-- **RELEASE_READY** — integrated behavior satisfies the approved product outcome, mandatory automated risk gates are green, no unresolved stop condition remains, and residual/skipped risk is explicit.
+- **IMPLEMENTED** — code/config exists.
+- **VERIFIED** — required risk-selected evidence is green for the exact source revision.
+- **INTEGRATED** — merged and relevant master evidence is green.
+- **RELEASE_READY** — integrated product outcome is complete, required automated evidence is green, and material residual risk is explicit.
 - **RELEASED** — an authorized release action completed.
-- **DEPLOYED** — the authorized target environment successfully deployed the released artifact.
+- **DEPLOYED** — the released artifact is running successfully in the target environment.
 
-A branch-green result is not `INTEGRATED` evidence.
+## Release-ready rule
 
-## Milestone Gate
+A product milestone can be `RELEASE_READY` when:
 
-A milestone may become `RELEASE_READY` only when:
+- the approved user capability is complete;
+- relevant automatic CI is green;
+- required runtime qualification for changed DB/container boundaries is green;
+- no unresolved material blocker remains;
+- `CURRENT_ITERATION.md` records the actual evidence and residual risk.
 
-- approved milestone behavior is satisfied end-to-end at the product level;
-- each Slice has sufficient deterministic evidence for its changed risk boundary;
-- mandatory cross-slice/integrated evidence is green;
-- relevant master CI is green;
-- no unresolved stop condition remains;
-- `CURRENT_ITERATION.md` reflects the actual state and exact evidence;
-- skipped relevant automated gates and residual risk are explicit.
-
-Milestone completion is about integrated user capability, not number of tests, PRs, or green badges.
-
-## Documentation Verification
-
-When a change modifies durable product truth, architecture, repository conventions, quality gates, material rationale, or active iteration state, update the canonical owner only.
-
-## Completion Reporting
-
-Report only decision-useful evidence:
-
-- changed behavior/boundary;
-- exact source revision;
-- checks that passed or failed;
-- relevant automated gates intentionally skipped and why;
-- unresolved risk/blockers;
-- integration state;
-- next meaningful action when work remains.
-
-Do not upgrade confidence beyond the evidence collected.
+Completion is about integrated user capability, not test count, PR count, or number of green badges.
