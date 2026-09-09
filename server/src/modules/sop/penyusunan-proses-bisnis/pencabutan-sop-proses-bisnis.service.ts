@@ -73,9 +73,13 @@ export class ProsesBisnisSopRevocationService {
     });
     if (prosesBisnis.length === 0) return [];
 
-    const prosesBisnisById = new Map(prosesBisnis.map((prosesBisnis) => [prosesBisnis.prosesBisnisId, prosesBisnis]));
+    const prosesBisnisById = new Map(
+      prosesBisnis.map((prosesBisnis) => [prosesBisnis.prosesBisnisId, prosesBisnis]),
+    );
     const nativeSops = await this.prisma.sOP.findMany({
-      where: { prosesBisnisId: { in: prosesBisnis.map((prosesBisnis) => prosesBisnis.prosesBisnisId) } },
+      where: {
+        prosesBisnisId: { in: prosesBisnis.map((prosesBisnis) => prosesBisnis.prosesBisnisId) },
+      },
       select: { sopId: true, prosesBisnisId: true },
     });
     if (nativeSops.length === 0) return [];
@@ -103,7 +107,6 @@ export class ProsesBisnisSopRevocationService {
 
     const rows: ProsesBisnisRevocationQueueRow[] = [];
     for (const sop of nativeSops) {
-      if (sop.prosesBisnisId === null) continue;
       const prosesBisnis = prosesBisnisById.get(sop.prosesBisnisId);
       const sopDetails = detailsBySopId.get(sop.sopId) ?? [];
       if (!prosesBisnis || sopDetails.length === 0) continue;
@@ -132,17 +135,7 @@ export class ProsesBisnisSopRevocationService {
     if (resolved === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
-
-    const sop = await this.prisma.sOP.findUnique({
-      where: { sopId: resolved.sopId },
-      select: { prosesBisnisId: true },
-    });
-    if (sop?.prosesBisnisId == null) {
-      throw new ConflictException(
-        'SOP tanpa Proses Bisnis hanya tersedia sebagai riwayat compatibility dan tidak dapat dicabut dari runtime FTI',
-      );
-    }
-    const prosesBisnisId = sop.prosesBisnisId;
+    const prosesBisnisId = resolved.prosesBisnisId;
 
     await this.authorityService.assertCanApprove(user.sub, prosesBisnisId);
 
