@@ -9,12 +9,12 @@ export function requirePenyusunContext() {
     if (typeof window === 'undefined') return
 
     const prosesBisnis = await queryClient.ensureQueryData({
-      queryKey: processQueryKeys.mine,
-      queryFn: processContextApi.mine,
+      queryKey: processQueryKeys.authoring,
+      queryFn: processContextApi.authoring,
     })
 
     if (prosesBisnis.length === 0) {
-      throw redirect({ to: ROUTES.WORK_QUEUE })
+      throw redirect({ to: ROUTES.WORK })
     }
   }
 }
