@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { assertDetailSopEditable } from '../../../common/status/sop-editable.util';
 import type { JwtAccessPayload } from '../../../common';
 import { StatusSOP } from '../../../generated/prisma';
@@ -31,11 +26,6 @@ export class SopDiagramService {
     const resolved = await this.sopDiagramRepository.findDetailIdByDetailOrSopId(detailOrSopId);
     if (resolved === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
-    }
-    if (resolved.prosesBisnisId === null) {
-      throw new ConflictException(
-        'SOP belum memiliki Penanggung Jawab kepemilikan Proses Bisnis dan tidak tersedia pada endpoint native',
-      );
     }
     await this.konteksProsesBisnisService.assertCanAuthor(user.sub, resolved.prosesBisnisId);
     const detailStatus = await this.sopDiagramRepository.findDetailStatus(resolved.detailSopId);
