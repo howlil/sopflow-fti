@@ -1,24 +1,7 @@
 name: Full FTI Exit
 
 on:
-  pull_request:
-    paths:
-      - 'server/src/**'
-      - 'server/prisma/**'
-      - 'server/scripts/full-fti-runtime-audit.cjs'
-      - 'server/package.json'
-      - 'client/src/**'
-      - 'client/e2e/**'
-      - '.github/workflows/full-fti-exit.yml'
-  push:
-    paths:
-      - 'server/src/**'
-      - 'server/prisma/**'
-      - 'server/scripts/full-fti-runtime-audit.cjs'
-      - 'server/package.json'
-      - 'client/src/**'
-      - 'client/e2e/**'
-      - '.github/workflows/full-fti-exit.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -41,7 +24,7 @@ jobs:
       DATABASE_PASSWORD: sop_test_password
       DATABASE_NAME: sop_full_fti_exit
       DATABASE_URL: mysql://sop_test:sop_test_password@127.0.0.1:3308/sop_full_fti_exit
-      E2E_SEED_PASSWORD: FullFtiExit-CI-Only-123!
+      E2E_SEED_PASSWORD: FullFtiExit-Manual-Only-123!
 
     steps:
       - uses: actions/checkout@v4

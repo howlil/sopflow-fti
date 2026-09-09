@@ -6,10 +6,10 @@ import { ProsesBisnisContextService } from './konteks-proses-bisnis.service';
 describe('ProsesBisnisContextService', () => {
   it('returns only active prosesBisnis where the user is owner or anggota', async () => {
     const findMany = jest.fn().mockResolvedValue([{ prosesBisnisId: 'prosesBisnis-a' }]);
-    const siklusFindMany = jest.fn().mockResolvedValue([{ prosesBisnisId: 'prosesBisnis-archived' }]);
+    const statusFindMany = jest.fn().mockResolvedValue([{ prosesBisnisId: 'prosesBisnis-archived' }]);
     const prisma = {
       prosesBisnis: { findMany },
-      siklusProsesBisnis: { findMany: siklusFindMany },
+      statusProsesBisnis: { findMany: statusFindMany },
     } as unknown as PrismaService;
     const service = new ProsesBisnisContextService(prisma);
 
@@ -28,7 +28,7 @@ describe('ProsesBisnisContextService', () => {
     const findFirst = jest.fn().mockResolvedValue(null);
     const prisma = {
       prosesBisnis: { findFirst },
-      siklusProsesBisnis: { findUnique: jest.fn().mockResolvedValue(null) },
+      statusProsesBisnis: { findUnique: jest.fn().mockResolvedValue(null) },
     } as unknown as PrismaService;
     const service = new ProsesBisnisContextService(prisma);
 
@@ -40,7 +40,7 @@ describe('ProsesBisnisContextService', () => {
   it('rejects authoring when the Proses Bisnis is archived', async () => {
     const prisma = {
       prosesBisnis: { findFirst: jest.fn() },
-      siklusProsesBisnis: {
+      statusProsesBisnis: {
         findUnique: jest.fn().mockResolvedValue({ status: StatusKeaktifanProsesBisnis.ARCHIVED }),
       },
     } as unknown as PrismaService;
@@ -58,7 +58,7 @@ describe('ProsesBisnisContextService', () => {
       .mockResolvedValueOnce(null);
     const prisma = {
       prosesBisnis: { findFirst },
-      siklusProsesBisnis: { findUnique: jest.fn().mockResolvedValue(null) },
+      statusProsesBisnis: { findUnique: jest.fn().mockResolvedValue(null) },
     } as unknown as PrismaService;
     const service = new ProsesBisnisContextService(prisma);
 

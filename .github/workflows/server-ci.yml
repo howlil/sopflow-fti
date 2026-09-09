@@ -70,5 +70,5 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Core unit tests
-        run: pnpm test:core-unit
+      - name: Unit tests
+        run: pnpm test

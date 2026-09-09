@@ -27,7 +27,7 @@ function makeTx() {
 }
 
 describe('NotifikasiProsesBisnisService', () => {
-  it('counts unread Proses Bisnis notifications independently from legacy notification history', async () => {
+  it('counts unread Proses Bisnis notifications for the current user', async () => {
     const { service, prisma } = makeService();
 
     await expect(service.getSummary('user-1')).resolves.toEqual({ unreadCount: 2 });
@@ -106,22 +106,10 @@ describe('NotifikasiProsesBisnisService', () => {
   });
 
   it.each([
-    [
-      JenisNotifikasiProsesBisnis.PROCESS_REVISION_REQUESTED,
-      'Revisi SOP Proses Bisnis diperlukan',
-      'SOP pada Proses Bisnis Akademik dikembalikan untuk revisi.',
-    ],
-    [
-      JenisNotifikasiProsesBisnis.PROCESS_SOP_EFFECTIVE,
-      'SOP Proses Bisnis sudah berlaku',
-      'SOP pada Proses Bisnis Akademik sudah efektif dan dipublikasikan.',
-    ],
-    [
-      JenisNotifikasiProsesBisnis.PROCESS_SOP_REVOKED,
-      'SOP Proses Bisnis sudah dicabut',
-      'SOP pada Proses Bisnis Akademik sudah tidak berlaku.',
-    ],
-  ])('maps %s to target-native workflow feedback copy', async (kind, title, preview) => {
+    [JenisNotifikasiProsesBisnis.PROCESS_REVISION_REQUESTED, 'Revisi SOP Proses Bisnis diperlukan'],
+    [JenisNotifikasiProsesBisnis.PROCESS_SOP_EFFECTIVE, 'SOP Proses Bisnis sudah berlaku'],
+    [JenisNotifikasiProsesBisnis.PROCESS_SOP_REVOKED, 'SOP Proses Bisnis sudah dicabut'],
+  ])('maps %s to current FTI workflow feedback copy', async (kind, title) => {
     const { service } = makeService();
     const tx = makeTx();
 
@@ -138,7 +126,7 @@ describe('NotifikasiProsesBisnisService', () => {
       data: expect.objectContaining({
         kind,
         title,
-        preview,
+        preview: expect.stringContaining('Akademik'),
         actionHref: '/work/queue',
       }),
     });

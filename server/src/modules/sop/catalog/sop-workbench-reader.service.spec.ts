@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import type { PrismaService } from '../../../common/prisma/prisma.service';
 import type { SopWorkbenchDbPayload, SopCatalogRepository } from './sop-catalog.repository';
 import { mapWorkbenchPayload } from './sop-catalog.mapper';
 import { SopWorkbenchReader } from './sop-workbench-reader.service';
@@ -12,18 +13,31 @@ describe('SopWorkbenchReader', () => {
     typeof mapWorkbenchPayload
   >;
   let repository: jest.Mocked<Pick<SopCatalogRepository, 'findWorkbenchPayloadByDetailOrSopId'>>;
+  let prisma: PrismaService;
   let reader: SopWorkbenchReader;
 
   beforeEach(() => {
     repository = {
       findWorkbenchPayloadByDetailOrSopId: jest.fn(),
     };
-    reader = new SopWorkbenchReader(repository as unknown as SopCatalogRepository);
+    prisma = {
+      prosesBisnis: { findUnique: jest.fn() },
+      penugasanPejabatBerwenang: { findUnique: jest.fn() },
+      pengguna: { findFirst: jest.fn() },
+    } as unknown as PrismaService;
+    reader = new SopWorkbenchReader(repository as unknown as SopCatalogRepository, prisma);
     mapWorkbenchPayloadMock.mockReset();
   });
 
+  function currentPayload(): SopWorkbenchDbPayload {
+    return {
+      detailSopId: 'detail-1',
+      sop: { prosesBisnisId: null },
+    } as unknown as SopWorkbenchDbPayload;
+  }
+
   it('uses the default log limit and maps the repository payload', async () => {
-    const payload = { detailSopId: 'detail-1' } as unknown as SopWorkbenchDbPayload;
+    const payload = currentPayload();
     const mapped = { detail: { id: 'detail-1' } } as never;
     repository.findWorkbenchPayloadByDetailOrSopId.mockResolvedValue(payload);
     mapWorkbenchPayloadMock.mockReturnValue(mapped);
@@ -34,10 +48,8 @@ describe('SopWorkbenchReader', () => {
   });
 
   it('clamps an explicit log limit to the supported range', async () => {
-    repository.findWorkbenchPayloadByDetailOrSopId.mockResolvedValue(
-      {} as unknown as SopWorkbenchDbPayload,
-    );
-    mapWorkbenchPayloadMock.mockReturnValue({} as never);
+    repository.findWorkbenchPayloadByDetailOrSopId.mockResolvedValue(currentPayload());
+    mapWorkbenchPayloadMock.mockReturnValue({ detail: {} } as never);
 
     await reader.getForDetail('detail-1', 999.9);
 

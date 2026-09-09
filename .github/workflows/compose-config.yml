@@ -4,7 +4,6 @@ on:
   pull_request:
     paths:
       - 'compose.yml'
-      - 'docker-compose.test.yml'
       - '.env.example'
       - 'server/Dockerfile'
       - 'client/Dockerfile'
@@ -14,7 +13,6 @@ on:
       - master
     paths:
       - 'compose.yml'
-      - 'docker-compose.test.yml'
       - '.env.example'
       - 'server/Dockerfile'
       - 'client/Dockerfile'
@@ -34,9 +32,6 @@ jobs:
       - name: Validate production Compose
         run: docker compose --env-file .env.example -f compose.yml config >/dev/null
 
-      - name: Validate integration-test Compose
-        run: docker compose -f docker-compose.test.yml config >/dev/null
-
       - name: Guard canonical production environment contract
         shell: bash
         run: |
@@ -47,7 +42,7 @@ jobs:
 
           diff -u <(printf '%s\n' "$example_vars") <(printf '%s\n' "$compose_vars")
 
-          if grep -RE '\$\{(DB_PASSWORD|APP_VERSION)([:}]|$)' compose.yml docker-compose.test.yml; then
+          if grep -RE '\$\{(DB_PASSWORD|APP_VERSION)([:}]|$)' compose.yml; then
             echo 'Legacy deployment environment alias detected.' >&2
             exit 1
           fi

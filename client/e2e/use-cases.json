@@ -1,0 +1,75 @@
+{
+  "UC01": {
+    "name": "Admin menyiapkan konteks kerja FTI",
+    "actor": "Platform Admin",
+    "goal": "Membuat akun, Departemen, ProsesBisnis, Owner/Member, dan pejabat berwenang tanpa memberi workflow bypass ke admin.",
+    "outcome": "Aktor target dapat login dan hanya menerima capability sesuai assignment kontekstualnya.",
+    "specs": [
+      "fti-account-bootstrap.spec.ts",
+      "fti-administration-bootstrap.spec.ts"
+    ]
+  },
+  "UC02": {
+    "name": "Member menyusun SOP dan Owner melakukan Process Review",
+    "actor": "ProsesBisnis Member / ProsesBisnis Owner",
+    "goal": "Member mengerjakan dan submit SOP, lalu Owner mereview, meminta revisi bila perlu, atau menerima hasil kerja.",
+    "outcome": "SOP bergerak dari authoring ke Process Review dan feedback kembali ke aktor yang tepat.",
+    "specs": [
+      "fti-contextual-entry.spec.ts",
+      "fti-pemeriksaan-proses-bisnis.spec.ts",
+      "fti-workflow-feedback.spec.ts"
+    ]
+  },
+  "UC03": {
+    "name": "SOP lingkup Fakultas disetujui, ditandatangani, dan dipublikasikan",
+    "actor": "Dean",
+    "goal": "Dean menerima SOP yang sudah lolos Process Review, memberi final approval, lalu melakukan TTE.",
+    "outcome": "SOP Fakultas menjadi EFFECTIVE dan tersedia pada kanal publik dengan bukti penandatanganan yang benar.",
+    "specs": [
+      "fti-final-approval.spec.ts",
+      "fti-tte-public-integrity.spec.ts"
+    ]
+  },
+  "UC04": {
+    "name": "SOP lingkup Departemen disetujui, ditandatangani, dan dipublikasikan",
+    "actor": "Head of Department",
+    "goal": "Kepala Departemen yang relevan menangani review akhir dan TTE tanpa authority leak ke Departemen lain.",
+    "outcome": "SOP Departemen menjadi EFFECTIVE dan publik hanya melalui authority Departemen yang benar.",
+    "specs": [
+      "fti-departemen-context.spec.ts",
+      "fti-departemen-review.spec.ts",
+      "fti-departemen-approval.spec.ts",
+      "fti-departemen-tte-public.spec.ts"
+    ]
+  },
+  "UC05": {
+    "name": "Publik menemukan dan memverifikasi SOP efektif",
+    "actor": "Public user",
+    "goal": "Mencari SOP FTI yang berlaku dan melihat informasi publik yang berasal dari ProsesBisnis serta artefak resmi.",
+    "outcome": "Hanya SOP publik yang valid dan current yang dapat ditemukan serta diverifikasi.",
+    "specs": [
+      "fti-public-archive.spec.ts"
+    ]
+  },
+  "UC06": {
+    "name": "Penyusun menerbitkan versi baru tanpa merusak versi yang sedang berlaku",
+    "actor": "ProsesBisnis Member / contextual authority",
+    "goal": "Membuat versi baru dari SOP EFFECTIVE, menjalankannya melalui approval/TTE, lalu mengganti versi lama secara aman.",
+    "outcome": "Versi baru menjadi EFFECTIVE pada saat yang tepat dan versi sebelumnya tetap konsisten sebagai histori.",
+    "specs": [
+      "fti-versi-sop-proses-bisnis-creation.spec.ts",
+      "fti-faculty-version-replacement.spec.ts",
+      "fti-departemen-version-replacement.spec.ts",
+      "fti-version-integrity.spec.ts"
+    ]
+  },
+  "UC07": {
+    "name": "Authority mencabut SOP efektif dalam lingkupnya",
+    "actor": "Dean / Head of Department",
+    "goal": "Mencabut SOP EFFECTIVE hanya ketika authority memiliki lingkup organisasi yang sesuai.",
+    "outcome": "SOP menjadi REVOKED dan kanal publik mencerminkan status pencabutan tanpa authority leak.",
+    "specs": [
+      "fti-contextual-revocation.spec.ts"
+    ]
+  }
+}

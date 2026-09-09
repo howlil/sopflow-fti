@@ -22,7 +22,11 @@ const user = {
   sesiTokenVersion: 1,
 };
 
-function makeService(options?: { owner?: boolean; status?: StatusSOP; transitionCount?: number }) {
+function makeService(options?: {
+  penanggungJawab?: boolean;
+  status?: StatusSOP;
+  transitionCount?: number;
+}) {
   const tx = {
     detailSOP: {
       updateMany: jest.fn().mockResolvedValue({ count: options?.transitionCount ?? 1 }),
@@ -186,7 +190,12 @@ describe('ProsesBisnisOwnerReviewService', () => {
         status: StatusSOP.PROCESS_REVIEW,
       });
 
-    await service.review(user, 'detail-a', KeputusanPemeriksaanProsesBisnis.REVISION, 'Perbaiki langkah 2');
+    await service.review(
+      user,
+      'detail-a',
+      KeputusanPemeriksaanProsesBisnis.REVISION,
+      'Perbaiki langkah 2',
+    );
 
     expect(processContext.assertCanReview).toHaveBeenCalledWith('user-1', 'prosesBisnis-a');
     expect(prisma.detailSOP.findUnique).toHaveBeenCalledWith({
