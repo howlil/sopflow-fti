@@ -29,10 +29,6 @@ export class TteVerifikasiService {
     }
 
     const { detailSopId, prosesBisnisId } = row.dokumenTte;
-    if (detailSopId === null || prosesBisnisId === null) {
-      throw new NotFoundException('Dokumen TTE bukan artefak SOP FTI yang aktif');
-    }
-
     const approval = await this.processVerificationRepository.findApprovalForSignedDetail(
       detailSopId,
       row.userId,
