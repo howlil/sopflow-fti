@@ -36,7 +36,9 @@ function resolveDatabaseUrl(): string {
 }
 
 export default defineConfig({
-  schema: 'prisma/schema.prisma',
+  // Prisma 7 supports schema folders; schema.prisma remains the main file and
+  // domain additions can live under prisma/models/*.prisma.
+  schema: 'prisma',
   migrations: {
     path: 'prisma/migrations',
     seed: 'ts-node --compiler-options {"module":"CommonJS"} prisma/seed.ts',
