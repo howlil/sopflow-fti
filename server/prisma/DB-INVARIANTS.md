@@ -17,10 +17,8 @@
 
 ## SOP
 
-- Active SOP ownership is `SOP.processId`.
-- Active workflow versions (`DRAFT`, `PROCESS_REVIEW`, `REVISION_REQUIRED`, `FINAL_APPROVAL`, `TTE_PENDING`) must belong to an SOP with a non-null `processId`.
-- An active SOP cannot have its Process ownership removed while an active workflow version exists.
-- Imported archive rows may remain unbound only outside the active workflow states above.
+- Every SOP belongs to exactly one ProsesBisnis through required `SOP.processId` ownership.
+- `SOP.processId` cannot be null for active, effective, superseded, or revoked SOPs.
 - Version identity is unique by `(sopId, versi)`.
 - `DetailSOP.status` uses only the native lifecycle enum.
 - At most one `DetailSOP` per SOP may be `EFFECTIVE`; database triggers enforce this on insert and update.
@@ -70,5 +68,6 @@
 - `0_fti_native_baseline` is the canonical schema baseline for a fresh database.
 - `1_fti_native_invariants` installs database invariants that Prisma schema cannot express.
 - `2_fti_workflow_identity_invariants` prevents platform-admin identities from entering workflow relationships through direct writes.
-- Existing target databases mark `0_fti_native_baseline` as applied once, then deploy `1_fti_native_invariants` normally.
+- `3_require_sop_process_ownership` contracts `SOP.processId` to `NOT NULL` and removes transitional null-ownership triggers.
+- Existing databases must contain no SOP with null `processId` before migration 3 can apply; the migration fails instead of deleting or inventing ownership.
 - Every migration committed after this baseline must be forward-only and FTI-native.
