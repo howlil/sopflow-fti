@@ -2,73 +2,84 @@
 
 ## State
 
-The FTI-native product model is integrated on `master`. Legacy OPD/global-workflow-role runtime and historical migration-chain source have been retired from the target application.
+The FTI-native runtime is being realigned to the canonical actor responsibilities on `master`.
 
-Current runtime model:
+Current actor model:
 
 - identity: `Pengguna` + `PlatformRole`;
-- organization: `Departemen` + `ProsesBisnis`;
-- platform administration: Admin creates accounts/Departemen, grants ProsesBisnis Owner eligibility/scope, and assigns contextual organizational authority;
-- ProsesBisnis ownership: authorized Owner creates/renames/archives ProsesBisnis and manages/invites Members;
-- authoring: ProsesBisnis Member / Penyusun SOP;
-- review: ProsesBisnis Owner;
-- final approval and TTE: `FACULTY -> DEAN`, `DEPARTMENT -> relevant HEAD_OF_DEPARTMENT`;
-- SOP lifecycle: `DRAFT -> PROCESS_REVIEW -> REVISION_REQUIRED | FINAL_APPROVAL -> TTE_PENDING -> EFFECTIVE -> SUPERSEDED | REVOKED`;
-- active SOP ownership: direct `SOP.prosesBisnisId`;
-- public archive, signing verification, notification, versioning, and revocation are ProsesBisnis-native;
-- `SUPER_ADMIN` is platform administration only and is forbidden from becoming Owner, Member, or contextual workflow authority, including through database-level invariants.
+- administration: **Administrator Sistem** manages accounts, Departemen, PJ eligibility/scope, and Pejabat Berwenang assignments only;
+- authoring: **Penyusun SOP / Anggota Proses Bisnis** exclusively creates and edits SOP;
+- coordination: **Penanggung Jawab Proses Bisnis (PJ Penyusun / Process Owner)** creates/manages Proses Bisnis, manages Penyusun, assigns a primary Penyusun to an SOP, performs pemeriksaan, requests revision, or declares the SOP ready to be submitted;
+- legal/organizational authority: **Pejabat Berwenang** performs pengesahan and TTE; `FACULTY -> DEAN`, `DEPARTMENT -> relevant HEAD_OF_DEPARTMENT`;
+- Peraturan and Pelaksana are global FTI catalogs; active PJ or Anggota may mutate them, while the catalog itself has no organizational/user ownership;
+- active SOP ownership remains direct `SOP.prosesBisnisId`;
+- `PenugasanPenyusunSOP` is coordination metadata, not an authoring ACL;
+- `SUPER_ADMIN` remains administration-only and cannot bypass workflow authorization.
 
-## Integrated product capability
+## Workflow
 
 ```text
-Admin setup
-  -> Owner creates ProsesBisnis + team
-  -> Member authors/submits SOP
-  -> Owner Process Review
-  -> Dean / relevant Head final approval
-  -> contextual TTE
-  -> EFFECTIVE + public discovery/verification
-  -> optional version replacement or revocation
+Administrator Sistem
+  -> konfigurasi akun / Departemen / kewenangan
+
+Penanggung Jawab Proses Bisnis
+  -> bentuk Proses Bisnis
+  -> kelola Penyusun
+  -> assign Penyusun utama per SOP
+
+Penyusun SOP
+  -> buat / edit SOP
+  -> kirim untuk pemeriksaan
+
+Penanggung Jawab Proses Bisnis
+  -> Minta Revisi -> Penyusun
+  -> Nyatakan Siap Diajukan -> Pejabat Berwenang
+
+Pejabat Berwenang
+  -> Pengesahan
+  -> TTE
+  -> EFFECTIVE
 ```
 
-`client/e2e/use-cases.json` maps this product lifecycle into UC01-UC07. Browser E2E is manual/use-case driven and is not a permanent merge gate.
+## Frontend realignment
 
-## Evidence
+Current change set replaces generic dashboard/card CRUD with domain-driven surfaces:
 
-Latest behavior-bearing master head before documentation-only closure: `437f1019d686f6376f45c3becbdd51d658bbf360`.
+- capability-specific route guards for authoring, PJ management, and Pejabat Berwenang;
+- `/work` is a capability resolver rather than a duplicate launcher page;
+- Administration surfaces use table-first CRUD with create/edit dialogs;
+- Pekerjaan SOP is table-first;
+- PJ pemeriksaan uses a read-only SOP preview and never opens the protected SOP edit workspace;
+- Pejabat Berwenang uses table + read-only inspection + pengesahan/TTE actions;
+- Process management, Penyusun management, and SOP assignment use tables/dialogs;
+- SOP edit workspace remains protected and unchanged.
 
-Green automatic evidence on that exact revision:
+## Persistence change
 
-- Server CI #681 — PASS: Prisma validate/generate, TypeScript typecheck, complete Jest unit suite.
-- Client CI #613 — PASS: production build/route consistency, TypeScript typecheck, complete Vitest suite.
+New additive model/migrations:
 
-Following closure commits only synchronize repository knowledge/use-case documentation and therefore are G0 under `QUALITY.md`:
+- `PenugasanPenyusunSOP` / table `SopDrafterAssignment`;
+- DB invariants require the assigned Penyusun to be a `ProcessMember`, the SOP to belong to the same Process, and the assigner to be the Process owner;
+- removing a ProcessMember clears that user's SOP coordination assignments.
 
-- `d5cd979ed56a848ecd522711abb319b97f9375a3` — quality policy aligned with unit-first CI;
-- `103d9b3c91eca8f09ba58d213169ef80ec620a2a` — UC01 aligned with Owner self-service ownership;
-- `81374a2ccbca49b2af9a4b46e668d57dd14190c7` — README aligned with actual package-manager-independent backend startup.
+Prisma is configured as a multi-file schema folder (`prisma/`) so the assignment model can live under `prisma/models/` without expanding the legacy canonical schema file.
 
-## Remaining release qualification
+## Verification state
 
-No product feature gap is currently identified from the repository's canonical FTI lifecycle.
+The previous green revisions predate this actor-boundary/UI change and are not evidence for the current head.
 
-Before claiming `RELEASE_READY` for the current database/runtime cutover, run once on the current release candidate:
+Required before claiming this change green:
 
-1. **Migration Smoke** — required because the latest behavior change added MariaDB workflow-identity triggers/invariants.
-2. **Full FTI Exit** — explicit one-time cutover/release qualification to ensure retired semantics have not re-entered source or target DB invariants.
+1. Prisma validate/generate against the multi-file schema.
+2. Server TypeScript typecheck + focused workflow/unit tests.
+3. Client TypeScript/build + focused UI tests.
+4. Migration smoke for the new assignment table/triggers.
+5. FTI DB audit because the physical target schema changed.
 
-UC01-UC07 browser E2E is optional diagnostic/release evidence, not a required gate. Run only if browser-level cross-boundary confidence is desired or deterministic lower-layer evidence exposes a gap.
+Browser E2E remains optional unless lower-layer evidence exposes a cross-boundary issue.
 
 ## Current delivery state
 
-`INTEGRATED`.
+`IMPLEMENTED_ON_MASTER_AWAITING_CURRENT_HEAD_CI`.
 
-Do not start another cleanup/refactor milestone unless qualification exposes a real defect. The next meaningful transition is:
-
-```text
-Migration Smoke + Full FTI Exit green
-  -> RELEASE_READY
-  -> authorized release/deploy
-```
-
-If the deployment target requires legally recognized government electronic signatures, replacing the current internal P12/CA signing boundary with the applicable PSrE/BSrE integration is a separate production requirement, not part of the completed internal/TA FTI workflow.
+Do not treat historical CI from earlier revisions as proof for this change. The next meaningful transition is current-head CI + migration/DB evidence green.
