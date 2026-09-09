@@ -15,7 +15,6 @@ export type SatuanWaktu = "m" | "h" | "d" | "w" | "mo" | "y";
 /** Selaras dengan enum `BagianSOP` di server (sumber log aktivitas + komentar). */
 export type BagianSOP = "HEADER" | "LANGKAH" | "STATUS" | "UMPAN_BALIK" | "REVIEW";
 
-/** Baris daftar dari GET /sop (versi DetailSOP terbaru per header). */
 export interface TerakhirDieditRingkas {
   nama: string | null;
   waktu: string | null;
@@ -29,14 +28,14 @@ export interface SopDaftarVersiSlice {
   statusLabel: string;
 }
 
+/** Baris daftar SOP FTI; setiap SOP dimiliki satu ProsesBisnis. */
 export interface SopDaftarRow {
   id: string;
-  prosesBisnisId?: string | null;
-  namaProsesBisnis?: string | null;
+  prosesBisnisId: string;
+  namaProsesBisnis: string;
   detailSopId: string | null;
   judul: string;
   nomorSop: string | null;
-  /** Nomor versi DetailSOP terbaru (selaras GET /sop). */
   versi?: number | null;
   pembuat: string | null;
   terakhirDiedit: TerakhirDieditRingkas;
@@ -102,8 +101,8 @@ export interface SopRiwayatVersiRow {
 
 export interface Sop {
   id: string;
-  prosesBisnisId?: string | null;
-  namaProsesBisnis?: string | null;
+  prosesBisnisId: string;
+  namaProsesBisnis: string;
   judul: string;
   createdAt: string;
   updatedAt: string;
@@ -161,9 +160,9 @@ export interface SopDetail {
   langkahSOP?: LangkahSOP[];
   swimlanes?: DetailSOPPelaksana[];
   signingAuthority?: SigningAuthorityRingkas | null;
-  /** ID peraturan dasar hukum (urut createdAt asc), dari GET workbench. */
+  /** ID peraturan dasar hukum (urut createdAt asc), dari workbench. */
   dasarHukumPeraturanIds?: string[];
-  /** ID DetailSOP terkait (relasi keluar), dari GET workbench. */
+  /** ID DetailSOP terkait (relasi keluar), dari workbench. */
   sopTerkaitDetailIds?: string[];
 }
 
@@ -173,7 +172,7 @@ export interface PenyusunWorkbenchLogEditMeta {
   count: number;
 }
 
-/** Satu entri log pada GET workbench. Sesi yang masih berlangsung: `closedAt = null`. `id` bukan UUID — lihat encode komposit server. */
+/** Satu entri log workbench. Sesi yang masih berlangsung: `closedAt = null`. */
 export interface PenyusunWorkbenchLogEdit {
   /** Identitas stabil dari server (gabungan detailSopId + userId + createdAt), bukan UUID. */
   id: string;
@@ -188,7 +187,7 @@ export interface PenyusunWorkbenchLogEdit {
   user?: { id: string; nama: string; email: string };
 }
 
-/** Respons GET `/sop/penyusun-workbench/:detailSopId`. */
+/** Respons workbench SOP ProsesBisnis. */
 export interface PenyusunWorkbenchData {
   siklus?: ProsesBisnisSopLifecycleProjection;
   detail: SopDetail;
@@ -323,7 +322,7 @@ export interface UpdateMetadataDto {
   tanggalEfektif?: string;
 }
 
-/** Payload PATCH `/sop/header/:detailSopId` — semua field opsional, hanya yang dikirim yang disimpan. */
+/** Payload PATCH header SOP ProsesBisnis — semua field opsional, hanya yang dikirim yang disimpan. */
 export interface UpdateSopHeaderDto {
   judul?: string;
   nomorSOP?: string;
@@ -343,12 +342,12 @@ export interface UpdateSopHeaderMutationDto {
   payload: UpdateSopHeaderDto;
 }
 
-/** Satu entri swimlane pada PATCH `/sop/langkah/:detailSopId`. Urutan = posisi index. */
+/** Satu entri swimlane pada update prosedur. Urutan = posisi index. */
 export interface PelaksanaPatchItem {
   pelaksanaId: string;
 }
 
-/** Satu langkah prosedur pada PATCH `/sop/langkah/:detailSopId`. */
+/** Satu langkah prosedur pada update prosedur. */
 export interface LangkahPatchItem {
   /** ID stabil di payload (existing UUID langkahSopId atau client-generated). */
   tempId: string;
@@ -367,10 +366,7 @@ export interface LangkahPatchItem {
   langkahSelanjutnyaTidakTempId?: string | null;
 }
 
-/**
- * Payload PATCH `/sop/langkah/:detailSopId` — replace-all per section yang dikirim.
- * Hanya field yang di-set yang dieksekusi; debounce autosave-friendly.
- */
+/** Replace-all per section yang dikirim; hanya field yang di-set yang dieksekusi. */
 export interface UpdateSopProsedurDto {
   pelaksana?: PelaksanaPatchItem[];
   langkah?: LangkahPatchItem[];
@@ -417,8 +413,7 @@ export interface CreateDetailSOPPelaksanaDto {
   urutan?: number;
 }
 
-// Catatan: DTO create lampiran spesifik belum diekspos; lampiran dimutasi via PATCH header (`UpdateSopHeaderDto.lampiran`).
-
+// DTO create lampiran spesifik tidak diekspos; lampiran dimutasi via update header.
 export interface CreateDasarHukumDto {
   judul: string;
   nomor: string;
