@@ -1,9 +1,9 @@
 {
   "UC01": {
-    "name": "Admin menyiapkan konteks kerja FTI",
-    "actor": "Platform Admin",
-    "goal": "Membuat akun, Departemen, ProsesBisnis, Owner/Member, dan pejabat berwenang tanpa memberi workflow bypass ke admin.",
-    "outcome": "Aktor target dapat login dan hanya menerima capability sesuai assignment kontekstualnya.",
+    "name": "Admin menyiapkan konteks; Owner membentuk ProsesBisnis",
+    "actor": "Platform Admin / ProsesBisnis Owner",
+    "goal": "Admin membuat akun dan Departemen, memberi eligibility/scope Owner serta menetapkan pejabat berwenang; setelah itu Owner membuat ProsesBisnis dan mengelola Member tanpa workflow bypass dari Admin.",
+    "outcome": "Aktor target dapat login dan hanya menerima capability sesuai assignment kontekstualnya; ProsesBisnis dan tim dimiliki serta dikelola oleh Owner.",
     "specs": [
       "fti-account-bootstrap.spec.ts",
       "fti-administration-bootstrap.spec.ts"
@@ -33,7 +33,7 @@
   "UC04": {
     "name": "SOP lingkup Departemen disetujui, ditandatangani, dan dipublikasikan",
     "actor": "Head of Department",
-    "goal": "Kepala Departemen yang relevan menangani review akhir dan TTE tanpa authority leak ke Departemen lain.",
+    "goal": "Kepala Departemen yang relevan menangani approval akhir dan TTE tanpa authority leak ke Departemen lain.",
     "outcome": "SOP Departemen menjadi EFFECTIVE dan publik hanya melalui authority Departemen yang benar.",
     "specs": [
       "fti-departemen-context.spec.ts",
@@ -54,7 +54,7 @@
   "UC06": {
     "name": "Penyusun menerbitkan versi baru tanpa merusak versi yang sedang berlaku",
     "actor": "ProsesBisnis Member / contextual authority",
-    "goal": "Membuat versi baru dari SOP EFFECTIVE, menjalankannya melalui approval/TTE, lalu mengganti versi lama secara aman.",
+    "goal": "Membuat versi baru dari SOP EFFECTIVE, menjalankannya melalui review/approval/TTE, lalu mengganti versi lama secara aman.",
     "outcome": "Versi baru menjadi EFFECTIVE pada saat yang tepat dan versi sebelumnya tetap konsisten sebagai histori.",
     "specs": [
       "fti-versi-sop-proses-bisnis-creation.spec.ts",
