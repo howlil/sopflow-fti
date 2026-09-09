@@ -1,14 +1,17 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { Plus, Search } from 'lucide-react'
 import {
   usePlatformAccounts,
   type CreatePlatformAccountPayload,
   type PlatformAccountDto,
 } from '@/api/platform-accounts'
-import { DataSurface } from '@/components/data/data-surface'
 import { ListPageLayout } from '@/components/layout/ListPageLayout'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { FormDialog } from '@/components/ui/form-dialog'
 import { Input } from '@/components/ui/input'
+import { Table } from '@/components/ui/data-table'
 
 const EMPTY_FORM: CreatePlatformAccountPayload = {
   nama: '',
@@ -19,37 +22,72 @@ const EMPTY_FORM: CreatePlatformAccountPayload = {
   nohp: '',
 }
 
-export function AccountManagementPage() {
-  const { accounts, isLoading, createAccount, updateAccount, isSaving } = usePlatformAccounts()
-  const [form, setForm] = useState<CreatePlatformAccountPayload>(EMPTY_FORM)
-  const [editingAccount, setEditingAccount] = useState<PlatformAccountDto | null>(null)
-  const [editForm, setEditForm] = useState<CreatePlatformAccountPayload>(EMPTY_FORM)
-  const [deactivatingAccount, setDeactivatingAccount] = useState<PlatformAccountDto | null>(null)
+function AccountFields({
+  value,
+  onChange,
+}: {
+  value: CreatePlatformAccountPayload
+  onChange: (field: keyof CreatePlatformAccountPayload, value: string) => void
+}) {
+  const fields: Array<{
+    key: keyof CreatePlatformAccountPayload
+    label: string
+    placeholder: string
+    type?: 'text' | 'email'
+  }> = [
+    { key: 'nama', label: 'Nama lengkap', placeholder: 'Nama lengkap' },
+    { key: 'nip', label: 'NIP', placeholder: '198001012010011001' },
+    { key: 'email', label: 'Email', placeholder: 'nama@fti.example', type: 'email' },
+    { key: 'jabatan', label: 'Jabatan', placeholder: 'Jabatan' },
+    { key: 'pangkat', label: 'Pangkat/Golongan', placeholder: 'III/a' },
+    { key: 'nohp', label: 'Nomor HP', placeholder: '081234567890' },
+  ]
 
-  const canSubmit =
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {fields.map((field) => (
+        <label key={field.key} className="space-y-1.5 text-sm font-medium text-foreground">
+          <span>{field.label}</span>
+          <Input
+            type={field.type ?? 'text'}
+            value={value[field.key]}
+            placeholder={field.placeholder}
+            onChange={(event) => onChange(field.key, event.target.value)}
+          />
+        </label>
+      ))}
+    </div>
+  )
+}
+
+function isValid(form: CreatePlatformAccountPayload) {
+  return (
     form.nama.trim().length >= 2 &&
     form.nip.trim().length > 0 &&
     form.email.includes('@') &&
     form.jabatan.trim().length > 0 &&
     form.pangkat.trim().length > 0 &&
     form.nohp.trim().length > 0
+  )
+}
 
-  const submit = async () => {
-    if (!canSubmit) return
-    try {
-      await createAccount({
-        nama: form.nama.trim(),
-        nip: form.nip.trim(),
-        email: form.email.trim().toLowerCase(),
-        jabatan: form.jabatan.trim(),
-        pangkat: form.pangkat.trim(),
-        nohp: form.nohp.trim(),
-      })
-      setForm(EMPTY_FORM)
-    } catch {
-      // Toast mutation owns error presentation; preserve entered values for correction.
-    }
-  }
+export function AccountManagementPage() {
+  const { accounts, isLoading, createAccount, updateAccount, isSaving } = usePlatformAccounts()
+  const [query, setQuery] = useState('')
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createForm, setCreateForm] = useState<CreatePlatformAccountPayload>(EMPTY_FORM)
+  const [editingAccount, setEditingAccount] = useState<PlatformAccountDto | null>(null)
+  const [editForm, setEditForm] = useState<CreatePlatformAccountPayload>(EMPTY_FORM)
+  const [deactivatingAccount, setDeactivatingAccount] = useState<PlatformAccountDto | null>(null)
+
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    if (!needle) return accounts
+    return accounts.filter((account) =>
+      [account.nama, account.nip, account.email, account.jabatan, account.pangkat]
+        .some((value) => value.toLowerCase().includes(needle)),
+    )
+  }, [accounts, query])
 
   const openEdit = (account: PlatformAccountDto) => {
     setEditingAccount(account)
@@ -63,182 +101,157 @@ export function AccountManagementPage() {
     })
   }
 
-  const submitEdit = async () => {
-    if (editingAccount === null) return
-    try {
-      await updateAccount({
-        penggunaId: editingAccount.penggunaId,
-        payload: {
-          ...editForm,
-          nama: editForm.nama.trim(),
-          nip: editForm.nip.trim(),
-          email: editForm.email.trim().toLowerCase(),
-          jabatan: editForm.jabatan.trim(),
-          pangkat: editForm.pangkat.trim(),
-          nohp: editForm.nohp.trim(),
-        },
-      })
-      setEditingAccount(null)
-    } catch {
-      // Toast mutation owns error presentation; preserve entered values for correction.
-    }
-  }
-
-  const setEditField = (field: keyof CreatePlatformAccountPayload, value: string) => {
-    setEditForm((current) => ({ ...current, [field]: value }))
-  }
-
-  const field = (
-    label: keyof CreatePlatformAccountPayload,
-    title: string,
-    placeholder: string,
-    type: 'text' | 'email' = 'text',
-  ) => (
-    <label className="block space-y-1.5 text-sm font-medium text-foreground">
-      {title}
-      <Input
-        type={type}
-        value={form[label]}
-        placeholder={placeholder}
-        onChange={(event) =>
-          setForm((current) => ({ ...current, [label]: event.target.value }))
-        }
-      />
-    </label>
-  )
+  const normalize = (form: CreatePlatformAccountPayload): CreatePlatformAccountPayload => ({
+    nama: form.nama.trim(),
+    nip: form.nip.trim(),
+    email: form.email.trim().toLowerCase(),
+    jabatan: form.jabatan.trim(),
+    pangkat: form.pangkat.trim(),
+    nohp: form.nohp.trim(),
+  })
 
   return (
     <ListPageLayout
-      breadcrumb={[{ label: 'Administrasi' }, { label: 'Akun FTI' }]}
-      title="Akun FTI"
+      breadcrumb={[{ label: 'Administrasi Sistem' }, { label: 'Pengguna' }]}
+      title="Pengguna"
+      description="Kelola identitas pengguna FTI. Hak workflow diberikan terpisah melalui penugasan Proses Bisnis atau Pejabat Berwenang."
     >
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(340px,0.8fr)]">
-        <DataSurface.Root>
-          <DataSurface.Header>
-            <div className="space-y-0.5">
-                <h2 className="text-sm font-semibold text-foreground">Akun FTI</h2>
-              <p className="text-sm text-secondary-foreground">
-                Akun tidak memperoleh akses Proses Bisnis atau kewenangan organisasi sampai ditugaskan secara eksplisit.
-              </p>
-            </div>
-          </DataSurface.Header>
-          <div className="divide-y divide-border">
-            {isLoading ? (
-              <p className="p-4 text-sm text-secondary-foreground">Memuat akun...</p>
-            ) : accounts.length === 0 ? (
-              <p className="p-4 text-sm text-secondary-foreground">Belum ada akun.</p>
-            ) : (
-              accounts.map((account) => (
-                <div key={account.penggunaId} className="flex flex-wrap items-start justify-between gap-3 p-4">
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-medium text-foreground">{account.nama}</h3>
-                      <span className="rounded-full border border-border px-2 py-0.5 text-xs text-secondary-foreground">
-                        {account.platformRole === 'SUPER_ADMIN' ? 'Platform Admin' : 'User'}
-                      </span>
-                      <span className={`rounded-full border px-2 py-0.5 text-xs ${account.deletedAt ? 'border-danger/30 text-danger' : 'border-border text-secondary-foreground'}`}>
-                        {account.deletedAt ? 'Nonaktif' : 'Aktif'}
-                      </span>
-                    </div>
-                    <p className="text-sm text-secondary-foreground">
-                      {account.email} · NIP {account.nip}
-                    </p>
-                    <p className="text-xs text-secondary-foreground">
-                      {account.jabatan} · {account.pangkat}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 gap-2">
-                    <Button type="button" size="sm" variant="outline" onClick={() => openEdit(account)}>
-                      Edit
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={account.deletedAt ? 'outline' : 'destructive'}
-                      disabled={isSaving}
-                      onClick={() => {
-                        if (account.deletedAt) {
-                          void updateAccount({ penggunaId: account.penggunaId, payload: { status: 'AKTIF' } })
-                        } else {
-                          setDeactivatingAccount(account)
-                        }
-                      }}
-                    >
-                      {account.deletedAt ? 'Aktifkan' : 'Nonaktifkan'}
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </DataSurface.Root>
-
-        {editingAccount ? (
-          <DataSurface.Root>
-            <DataSurface.Header>
-              <div className="space-y-0.5">
-                <h2 className="text-sm font-semibold text-foreground">Edit profil</h2>
-                <p className="text-sm text-secondary-foreground">
-                  Platform role dikelola sistem dan tidak dapat diubah dari sini.
-                </p>
-              </div>
-            </DataSurface.Header>
-            <div className="space-y-4 p-4">
-              {(['nama', 'nip', 'email', 'jabatan', 'pangkat', 'nohp'] as const).map((field) => (
-                <label key={field} className="block space-y-1.5 text-sm font-medium text-foreground">
-                  {field === 'nohp' ? 'Nomor HP' : field[0].toUpperCase() + field.slice(1)}
-                  <Input
-                    type={field === 'email' ? 'email' : 'text'}
-                    value={editForm[field]}
-                    onChange={(event) => setEditField(field, event.target.value)}
-                  />
-                </label>
-              ))}
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setEditingAccount(null)}>
-                  Batal
-                </Button>
-                <Button type="button" disabled={isSaving} onClick={submitEdit}>
-                  {isSaving ? 'Menyimpan...' : 'Simpan profil'}
-                </Button>
-              </div>
-            </div>
-          </DataSurface.Root>
-        ) : null}
-
-        <DataSurface.Root>
-          <DataSurface.Header>
-            <div className="space-y-0.5">
-              <h2 className="text-sm font-semibold text-foreground">Tambah akun</h2>
-              <p className="text-sm text-secondary-foreground">
-                Akun dibuat sebagai User FTI aktif dengan sandi awal yang dikelola server.
-              </p>
-            </div>
-          </DataSurface.Header>
-          <div className="space-y-4 p-4">
-            {field('nama', 'Nama', 'Contoh: Dwi Pratama')}
-            {field('nip', 'NIP', '198001012010011001')}
-            {field('email', 'Email', 'dwi@fti.example', 'email')}
-            {field('jabatan', 'Jabatan', 'Dosen')}
-            {field('pangkat', 'Pangkat', 'III/a')}
-            {field('nohp', 'Nomor HP', '081234567890')}
-            <Button type="button" disabled={!canSubmit || isSaving} onClick={submit} className="w-full">
-              {isSaving ? 'Menyimpan...' : 'Buat Akun'}
-            </Button>
-          </div>
-        </DataSurface.Root>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Cari nama, NIP, email, atau jabatan"
+            className="pl-9"
+          />
+        </div>
+        <Button onClick={() => setCreateOpen(true)} className="gap-2">
+          <Plus className="h-4 w-4" aria-hidden />
+          Tambah Pengguna
+        </Button>
       </div>
+
+      <Table.Card>
+        <Table.Root aria-label="Daftar pengguna FTI">
+          <Table.Table>
+            <thead>
+              <Table.HeadRow>
+                <Table.Th>Nama</Table.Th>
+                <Table.Th>NIP</Table.Th>
+                <Table.Th>Jabatan</Table.Th>
+                <Table.Th>Kontak</Table.Th>
+                <Table.Th>Akses Sistem</Table.Th>
+                <Table.Th>Status</Table.Th>
+                <Table.ActionTh>Aksi</Table.ActionTh>
+              </Table.HeadRow>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <Table.BodyRow><Table.Td colSpan={7}>Memuat pengguna...</Table.Td></Table.BodyRow>
+              ) : filtered.length === 0 ? (
+                <Table.BodyRow><Table.Td colSpan={7}>Tidak ada pengguna yang sesuai.</Table.Td></Table.BodyRow>
+              ) : filtered.map((account) => (
+                <Table.BodyRow key={account.penggunaId}>
+                  <Table.Td>
+                    <p className="font-medium text-foreground">{account.nama}</p>
+                    <p className="text-xs text-secondary-foreground">{account.pangkat}</p>
+                  </Table.Td>
+                  <Table.Td>{account.nip}</Table.Td>
+                  <Table.Td>{account.jabatan}</Table.Td>
+                  <Table.Td>
+                    <p>{account.email}</p>
+                    <p className="text-xs text-secondary-foreground">{account.nohp}</p>
+                  </Table.Td>
+                  <Table.Td>
+                    <Badge variant="outline">
+                      {account.platformRole === 'SUPER_ADMIN' ? 'Administrator Sistem' : 'Pengguna'}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    <Badge variant={account.deletedAt ? 'secondary' : 'success'}>
+                      {account.deletedAt ? 'Nonaktif' : 'Aktif'}
+                    </Badge>
+                  </Table.Td>
+                  <Table.ActionTd>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="outline" onClick={() => openEdit(account)}>Ubah</Button>
+                      <Button
+                        size="sm"
+                        variant={account.deletedAt ? 'outline' : 'ghost'}
+                        disabled={isSaving}
+                        onClick={() => {
+                          if (account.deletedAt) {
+                            void updateAccount({ penggunaId: account.penggunaId, payload: { status: 'AKTIF' } })
+                          } else {
+                            setDeactivatingAccount(account)
+                          }
+                        }}
+                      >
+                        {account.deletedAt ? 'Aktifkan' : 'Nonaktifkan'}
+                      </Button>
+                    </div>
+                  </Table.ActionTd>
+                </Table.BodyRow>
+              ))}
+            </tbody>
+          </Table.Table>
+        </Table.Root>
+      </Table.Card>
+
+      <FormDialog
+        open={createOpen}
+        onOpenChange={(open) => {
+          setCreateOpen(open)
+          if (!open) setCreateForm(EMPTY_FORM)
+        }}
+        title="Tambah Pengguna"
+        description="Buat identitas pengguna FTI. Penugasan workflow dilakukan terpisah."
+        confirmLabel="Tambah Pengguna"
+        confirmDisabled={!isValid(createForm) || isSaving}
+        size="lg"
+        onConfirm={() => {
+          void createAccount(normalize(createForm)).then(() => {
+            setCreateOpen(false)
+            setCreateForm(EMPTY_FORM)
+          })
+        }}
+      >
+        <AccountFields
+          value={createForm}
+          onChange={(field, value) => setCreateForm((current) => ({ ...current, [field]: value }))}
+        />
+      </FormDialog>
+
+      <FormDialog
+        open={editingAccount !== null}
+        onOpenChange={(open) => { if (!open) setEditingAccount(null) }}
+        title="Ubah Pengguna"
+        description="Perubahan ini hanya mengubah profil pengguna, bukan kewenangan workflow."
+        confirmLabel="Simpan Perubahan"
+        confirmDisabled={!isValid(editForm) || isSaving}
+        size="lg"
+        onConfirm={() => {
+          if (!editingAccount) return
+          void updateAccount({ penggunaId: editingAccount.penggunaId, payload: normalize(editForm) })
+            .then(() => setEditingAccount(null))
+        }}
+      >
+        <AccountFields
+          value={editForm}
+          onChange={(field, value) => setEditForm((current) => ({ ...current, [field]: value }))}
+        />
+      </FormDialog>
+
       <ConfirmDialog
         open={deactivatingAccount !== null}
-        onOpenChange={(open) => {
-          if (!open) setDeactivatingAccount(null)
-        }}
-        title="Nonaktifkan akun?"
-        description="Akun tidak dapat login lagi. Jika masih menjadi Owner atau pemegang kewenangan aktif, server akan menolak tindakan ini sampai dialihkan atau dicabut."
+        onOpenChange={(open) => { if (!open) setDeactivatingAccount(null) }}
+        title="Nonaktifkan pengguna?"
+        description="Pengguna tidak dapat masuk ke sistem. Server akan menolak jika kewenangan aktif masih harus dialihkan terlebih dahulu."
         confirmLabel="Nonaktifkan"
         destructive
         onConfirm={() => {
-          if (deactivatingAccount === null) return
+          if (!deactivatingAccount) return
           void updateAccount({
             penggunaId: deactivatingAccount.penggunaId,
             payload: { status: 'NONAKTIF' },
