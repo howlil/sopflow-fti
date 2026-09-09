@@ -23,7 +23,6 @@ type ProsesBisnisTteContextFailure = {
   readonly error:
     | 'NOT_FOUND'
     | 'NOT_LATEST'
-    | 'UNASSIGNED_ARCHIVE'
     | 'NOT_APPROVED'
     | 'APPROVAL_CONTEXT_DRIFT'
     | 'BAD_STATUS';
@@ -312,8 +311,6 @@ export class ProsesBisnisTteRepository {
     }
 
     const prosesBisnisId = detail.sop.prosesBisnisId;
-    if (prosesBisnisId === null) return { error: 'UNASSIGNED_ARCHIVE' as const };
-
     const approval = await tx.persetujuanAkhirSOP.findUnique({
       where: { detailSopId: detail.detailSopId },
       select: {
