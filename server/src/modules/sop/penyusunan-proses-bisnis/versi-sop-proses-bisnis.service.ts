@@ -1,7 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { JwtAccessPayload } from '../../../common';
 import { isPrismaUniqueConstraintError } from '../../../common/prisma/prisma-error.util';
-import { PrismaService } from '../../../common/prisma/prisma.service';
 import { TERMINAL_DETAIL_STATUSES, hasRevisiInFlight } from '../../../common/status/sop-editable.util';
 import { displayStatusSop } from '../../../common/status/status-display';
 import { ProsesBisnisContextService } from '../../core/proses-bisnis/konteks-proses-bisnis.service';
@@ -14,7 +13,6 @@ import { SopWorkbenchReader } from '../catalog/sop-workbench-reader.service';
 @Injectable()
 export class ProsesBisnisVersionService {
   constructor(
-    private readonly prisma: PrismaService,
     private readonly konteksProsesBisnisService: ProsesBisnisContextService,
     private readonly sopCatalogRepository: SopCatalogRepository,
     private readonly sopWorkbenchReader: SopWorkbenchReader,
@@ -28,16 +26,13 @@ export class ProsesBisnisVersionService {
     const resolved = await this.sopCatalogRepository.findDetailIdByDetailOrSopId(detailOrSopId);
     if (resolved === null) throw new NotFoundException('DetailSOP tidak ditemukan');
 
-    const sop = await this.prisma.sOP.findUnique({
-      where: { sopId: resolved.sopId },
-      select: { prosesBisnisId: true },
-    });
-    if (sop?.prosesBisnisId == null) {
-      throw new ConflictException('SOP tanpa Proses Bisnis hanya tersedia sebagai riwayat compatibility');
-    }
-
-    const prosesBisnis = await this.konteksProsesBisnisService.assertCanAuthor(user.sub, sop.prosesBisnisId);
-    const source = await this.sopCatalogRepository.findLatestDetailStatusContext(resolved.detailSopId);
+    const prosesBisnis = await this.konteksProsesBisnisService.assertCanAuthor(
+      user.sub,
+      resolved.prosesBisnisId,
+    );
+    const source = await this.sopCatalogRepository.findLatestDetailStatusContext(
+      resolved.detailSopId,
+    );
     if (source === null) throw new NotFoundException('DetailSOP tidak ditemukan');
 
     try {
@@ -53,24 +48,30 @@ export class ProsesBisnisVersionService {
         detail: {
           ...workbench.detail,
           sop: workbench.detail.sop
-            ? ({ ...workbench.detail.sop, prosesBisnisId: prosesBisnis.prosesBisnisId, namaProsesBisnis: prosesBisnis.nama } as typeof workbench.detail.sop)
+            ? ({
+                ...workbench.detail.sop,
+                prosesBisnisId: prosesBisnis.prosesBisnisId,
+                namaProsesBisnis: prosesBisnis.nama,
+              } as typeof workbench.detail.sop)
             : workbench.detail.sop,
         },
       };
     } catch (error) {
       if (isPrismaUniqueConstraintError(error)) {
-        throw new ConflictException('Versi baru lain telah dibuat secara bersamaan. Muat ulang riwayat versi.');
+        throw new ConflictException(
+          'Versi baru lain telah dibuat secara bersamaan. Muat ulang riwayat versi.',
+        );
       }
       throw error;
     }
   }
 
-  async getVersionHistory(user: JwtAccessPayload, sopId: string): Promise<SopRiwayatVersiRowDto[]> {
+  async getVersionHistory(
+    user: JwtAccessPayload,
+    sopId: string,
+  ): Promise<SopRiwayatVersiRowDto[]> {
     const resolved = await this.sopCatalogRepository.findDetailIdByDetailOrSopId(sopId);
     if (resolved === null) throw new NotFoundException('SOP tidak ditemukan');
-    if (resolved.prosesBisnisId === null) {
-      throw new ConflictException('Riwayat SOP tanpa Proses Bisnis hanya tersedia sebagai compatibility history');
-    }
 
     await this.konteksProsesBisnisService.assertCanAuthor(user.sub, resolved.prosesBisnisId);
     const rows = await this.sopCatalogRepository.findRiwayatVersiBySopId(resolved.sopId);
