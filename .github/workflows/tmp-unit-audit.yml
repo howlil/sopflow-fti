@@ -1,0 +1,59 @@
+name: Temporary Unit Audit
+
+on:
+  pull_request:
+    paths:
+      - 'server/src/**'
+      - '.github/workflows/tmp-unit-audit.yml'
+  push:
+    branches:
+      - test/unit-ci-fti-cleanup
+    paths:
+      - 'server/src/**'
+      - '.github/workflows/tmp-unit-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      files: ${{ steps.specs.outputs.files }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: specs
+        shell: bash
+        run: |
+          files=$(find server/src/modules/core/proses-bisnis server/src/modules/notifications server/src/modules/sop -type f -name '*.spec.ts' | sort | jq -R -s -c 'split("\n")[:-1]')
+          echo "files=$files" >> "$GITHUB_OUTPUT"
+
+  unit:
+    needs: discover
+    if: ${{ needs.discover.outputs.files != '[]' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        file: ${{ fromJson(needs.discover.outputs.files) }}
+    name: unit ${{ matrix.file }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: server
+    env:
+      DATABASE_PASSWORD: ci-not-used
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm prisma generate
+      - run: pnpm exec jest --runInBand --runTestsByPath "${{ matrix.file#server/ }}"
