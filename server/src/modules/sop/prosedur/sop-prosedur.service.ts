@@ -40,11 +40,6 @@ export class SopProsedurService {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
 
-    if (resolved.prosesBisnisId === null) {
-      throw new ConflictException(
-        'SOP belum memiliki Penanggung Jawab kepemilikan Proses Bisnis dan tidak tersedia pada endpoint native',
-      );
-    }
     await this.konteksProsesBisnisService.assertCanAuthor(user.sub, resolved.prosesBisnisId);
 
     const detailStatus = await this.sopProsedurRepository.findDetailStatus(resolved.detailSopId);
