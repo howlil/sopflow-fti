@@ -9,11 +9,12 @@
 
 ## ProsesBisnis
 
-- A ProsesBisnis has one owner.
+- A ProsesBisnis has one Penanggung Jawab (`ownerId`).
 - Faculty ProsesBisnis has no `departmentId`.
 - Department ProsesBisnis has a valid `departmentId`.
 - ProsesBisnis membership is unique by `(processId, penggunaId)`.
 - Database triggers reject inconsistent `scope` / `departmentId` combinations on insert and update.
+- Authoring authority is derived from `ProcessMember`, not from Process ownership.
 
 ## SOP
 
@@ -29,12 +30,22 @@
 - A branch target in `LangkahSOP` must belong to the same `DetailSOP`.
 - A `LangkahSOP` pelaksana must already be selected as a swimlane for the same `DetailSOP`.
 
+## Penugasan Penyusun SOP
+
+- `SopDrafterAssignment` stores one optional primary Penyusun assignment per SOP.
+- Assignment is coordination metadata, not authoring ACL. Every active `ProcessMember` remains an authorized Penyusun according to application authorization.
+- `SopDrafterAssignment.processId` must equal the Process that owns the assigned SOP.
+- `penyusunId` must be a `ProcessMember` of that same Process.
+- `assignedById` must be the Process owner/Penanggung Jawab.
+- Removing a `ProcessMember` clears that user's SOP assignments before the membership row is deleted; SOP content and history remain intact.
+- Insert/update/member-removal triggers enforce these relationships against direct database writes.
+
 ## Process review
 
 - `REVISION` review evidence must transition `PROCESS_REVIEW -> REVISION_REQUIRED` and include a non-empty note.
 - `ACCEPT` review evidence must transition `PROCESS_REVIEW -> FINAL_APPROVAL`.
 - Review evidence must refer to the same `DetailSOP`, SOP, and Process ownership chain.
-- `reviewedById` must be the owner of that Process.
+- `reviewedById` must be the owner/Penanggung Jawab of that Process.
 - These rules are enforced by database triggers on insert and update, not only by service validation.
 
 ## Organizational authority and final approval
@@ -44,7 +55,7 @@
 - Organizational authority holders must be workflow `USER` identities.
 - Final approval must reference an `ACCEPT` Process review for the same `detailSopId` and `processId`.
 - `approvedById`, `authority`, and `authorityKey` must resolve to the holder of the organizational authority assignment for that Process scope.
-- Faculty approval authority is Dean. Department approval authority is that Department Head.
+- Faculty approval authority is Dekan. Department approval authority is that Kepala Departemen.
 - Database triggers enforce these cross-table relationships on insert and update.
 
 ## TTE
@@ -58,6 +69,8 @@
 
 - Peraturan identity is unique by `(nomor, tahun)`.
 - Pelaksana name is globally unique.
+- Peraturan and Pelaksana are global catalogs; they do not carry Process/Department/user ownership.
+- Application mutation authorization requires an active Penanggung Jawab or Anggota Proses Bisnis context.
 
 ## Enforcement boundary
 
@@ -70,5 +83,7 @@
 - `0_fti_native_baseline` is the canonical schema baseline for a fresh database.
 - `1_fti_native_invariants` installs database invariants that Prisma schema cannot express.
 - `2_fti_workflow_identity_invariants` prevents platform-admin identities from entering workflow relationships through direct writes.
-- Existing target databases mark `0_fti_native_baseline` as applied once, then deploy `1_fti_native_invariants` normally.
+- `3_sop_drafter_assignment` adds primary Penyusun assignment without changing authoring ACL.
+- `4_cleanup_drafter_assignment_on_member_removal` keeps assignment state consistent when membership is removed.
+- Existing target databases mark `0_fti_native_baseline` as applied once, then deploy subsequent migrations normally.
 - Every migration committed after this baseline must be forward-only and FTI-native.
