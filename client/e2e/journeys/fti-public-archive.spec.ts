@@ -23,9 +23,9 @@ interface PublicSopPage {
     sopId: string
     judul: string
     nomorSOP: string
-    prosesBisnisId: string | null
-    namaProsesBisnis: string | null
-    lingkup: 'FACULTY' | 'DEPARTMENT' | null
+    prosesBisnisId: string
+    namaProsesBisnis: string
+    lingkup: 'FACULTY' | 'DEPARTMENT'
     namaDepartemen: string | null
     pdfUrl: string
   }>
@@ -50,7 +50,7 @@ async function ensureEffectiveSop(
 }
 
 test.describe.serial('End-to-End Business Journey — FTI-native public archive', () => {
-  test('J35 Public FTI Catalog — ProsesBisnisSopBinding menjadi klasifikasi public Proses Bisnis', async ({
+  test('J35 Public FTI Catalog — Process ownership menjadi klasifikasi public Proses Bisnis', async ({
     request,
     roleApi,
     roleSession,
@@ -59,7 +59,7 @@ test.describe.serial('End-to-End Business Journey — FTI-native public archive'
       ensureEffectiveSop(roleApi, roleSession),
     )
 
-    await test.step('Public Proses Bisnis catalog menemukan Proses Bisnis dan SOP melalui ProsesBisnisSopBinding', async () => {
+    await test.step('Public Proses Bisnis catalog menemukan SOP melalui ownership Proses Bisnis', async () => {
       const processPage = await apiGet<PublicProsesBisnisPage>(
         request,
         `/sop/public/fti/prosesBisnis?search=${encodeURIComponent(sop.namaProsesBisnis)}`,
@@ -167,7 +167,6 @@ test.describe.serial('End-to-End Business Journey — FTI-native public archive'
         `/sop/public/fti/sop?search=${encodeURIComponent(sop.title)}`,
       )
       expect(before.items.filter((item) => item.detailSopId === sop.detailSopId)).toHaveLength(1)
-
     })
 
     await test.step('Revocation menghapus SOP dari target archive dan menutup PDF current', async () => {
