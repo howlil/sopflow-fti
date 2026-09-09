@@ -19,7 +19,7 @@ const baseInput: ProsesBisnisSopLifecycleProjectionInput = {
 };
 
 describe('projectProsesBisnisSopLifecycle', () => {
-  it('projects authoring as an actionable current-user stage', () => {
+  it('projects authoring as an actionable Penyusun stage', () => {
     expect(projectProsesBisnisSopLifecycle(baseInput)).toEqual({
       stage: 'AUTHORING',
       stateLabel: 'Draft',
@@ -33,7 +33,18 @@ describe('projectProsesBisnisSopLifecycle', () => {
     });
   });
 
-  it('projects Penanggung Jawab Proses Bisnis review as waiting on the contextual owner', () => {
+  it('does not project edit authority to the Penanggung Jawab during authoring', () => {
+    expect(
+      projectProsesBisnisSopLifecycle({ ...baseInput, currentUserId: 'owner-1' }),
+    ).toMatchObject({
+      stage: 'AUTHORING',
+      stateLabel: 'Dalam penyusunan',
+      responsibility: { type: 'DRAFTER', name: 'Penyusun SOP' },
+      action: null,
+    });
+  });
+
+  it('projects pemeriksaan as waiting on the contextual Penanggung Jawab', () => {
     expect(
       projectProsesBisnisSopLifecycle({
         ...baseInput,
@@ -41,14 +52,14 @@ describe('projectProsesBisnisSopLifecycle', () => {
       }),
     ).toMatchObject({
       stage: 'PROCESS_REVIEW',
-      stateLabel: 'Menunggu review Penanggung Jawab Proses Bisnis',
+      stateLabel: 'Menunggu pemeriksaan Penanggung Jawab Proses Bisnis',
       responsibility: { type: 'PROCESS_OWNER', name: 'Penanggung Jawab Proses Bisnis FTI' },
       action: null,
-      blockingReason: 'Menunggu review Penanggung Jawab Proses Bisnis FTI.',
+      blockingReason: 'Menunggu pemeriksaan Penanggung Jawab Proses Bisnis FTI.',
     });
   });
 
-  it('projects the owner review action for the current Penanggung Jawab Proses Bisnis', () => {
+  it('projects the pemeriksaan action for the current Penanggung Jawab Proses Bisnis', () => {
     expect(
       projectProsesBisnisSopLifecycle({
         ...baseInput,
@@ -59,14 +70,14 @@ describe('projectProsesBisnisSopLifecycle', () => {
       responsibility: { type: 'CURRENT_USER', name: 'Anda' },
       action: {
         type: 'REVIEW_PROCESS',
-        label: 'Review SOP',
+        label: 'Periksa SOP',
         destination: 'SOP_DETAIL',
       },
       blockingReason: null,
     });
   });
 
-  it('distinguishes final approval from TTE for the same authority', () => {
+  it('distinguishes pengesahan from TTE for the same authority', () => {
     const finalApproval = projectProsesBisnisSopLifecycle({
       ...baseInput,
       status: StatusSOP.FINAL_APPROVAL,
@@ -80,7 +91,7 @@ describe('projectProsesBisnisSopLifecycle', () => {
 
     expect(finalApproval).toMatchObject({
       stage: 'FINAL_APPROVAL',
-      stateLabel: 'Menunggu persetujuan akhir',
+      stateLabel: 'Menunggu pengesahan',
       responsibility: { type: 'DEAN', name: 'Dekan FTI' },
       action: null,
     });
@@ -90,7 +101,7 @@ describe('projectProsesBisnisSopLifecycle', () => {
       responsibility: { type: 'CURRENT_USER', name: 'Anda' },
       action: {
         type: 'SIGN_TTE',
-        label: 'Tanda tangani',
+        label: 'Tanda Tangani',
         destination: 'APPROVAL_INBOX',
       },
     });
@@ -111,7 +122,7 @@ describe('projectProsesBisnisSopLifecycle', () => {
     });
   });
 
-  it('projects a department Proses Bisnis to its contextual Head of Departemen', () => {
+  it('projects a department Proses Bisnis to its contextual Kepala Departemen', () => {
     expect(
       projectProsesBisnisSopLifecycle({
         ...baseInput,
@@ -126,7 +137,7 @@ describe('projectProsesBisnisSopLifecycle', () => {
     ).toMatchObject({
       stage: 'FINAL_APPROVAL',
       responsibility: { type: 'HEAD_OF_DEPARTMENT', name: 'Kepala TI' },
-      blockingReason: 'Menunggu persetujuan akhir Kepala TI.',
+      blockingReason: 'Menunggu pengesahan Kepala TI.',
     });
   });
 });
