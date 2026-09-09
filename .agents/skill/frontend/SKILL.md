@@ -1,12 +1,10 @@
 # SOPFlow Frontend Skill
 
-Use this skill for frontend implementation in `client/`. It codifies the patterns already used by SOPFlow so new work looks and behaves like existing code instead of introducing a parallel frontend architecture.
+Use this skill for frontend work in `client/`. Product semantics and protected-surface rules remain owned by the canonical `.agents` files.
 
-This is a task-specific implementation playbook, not a product specification. Before changing behavior, read the relevant canonical sources in `.agents/`, especially `PROJECT.md`, `ARCHITECTURE.md`, `CURRENT_ITERATION.md`, `CODE_PATTERNS.md`, `QUALITY.md`, and `PROTECTED_SURFACES.md` when applicable.
+Read the relevant parts of `PROJECT.md`, `ARCHITECTURE.md`, `CURRENT_ITERATION.md`, `CODE_PATTERNS.md`, `QUALITY.md`, and `PROTECTED_SURFACES.md` before changing behavior.
 
 ## Stack
-
-Current frontend stack:
 
 ```text
 React 19
@@ -19,217 +17,76 @@ Zustand for genuine shared client state
 Vitest + Testing Library
 ```
 
-Do not introduce another routing, server-state, form-state, styling, global-state, browser-testing, or acceptance-testing framework unless the current requirement explicitly justifies a material architecture change.
+Do not add another routing, server-state, form-state, styling, global-state, or acceptance-testing framework without a material need.
 
-## Existing Ownership Model
-
-Use this placement model first:
+## Ownership
 
 ```text
-client/src/routes
-  -> route definition/wiring only
-
-client/src/pages
-  -> screen-level composition and workflow UI
-
-client/src/api
-  -> API client functions + TanStack Query hooks/mutations
-
-client/src/config/query-keys.ts
-client/src/config/kunci-query-proses-bisnis.ts
-  -> centralized query keys
-
-client/src/lib/api
-  -> shared transport/response/cache helpers
-
-client/src/components/ui
-  -> reusable primitives
-
-client/src/components
-client/src/hooks
-client/src/lib
-  -> cohesive reusable behavior that is not owned by one page
-
-client/src/stores
-  -> genuine shared client state
-
-client/src/types/dto
-  -> API/domain DTO types used by the frontend
+client/src/routes       route wiring
+client/src/pages        screen/workflow composition
+client/src/api          API functions + Query hooks/mutations
+client/src/config       query-key ownership
+client/src/lib/api      shared transport/response/cache helpers
+client/src/components   reusable UI/behavior
+client/src/stores       genuine shared client-owned state
+client/src/types/dto    frontend API/domain DTOs
 ```
 
-Default rule: put behavior in the narrowest existing owner that can coherently own it.
+Put behavior in the narrowest existing owner that can coherently own it.
 
-## Route Pattern
+## Routes
 
-TanStack file routes should stay thin.
+Keep TanStack route files thin. Pages own screen implementations.
 
-Preferred shape:
+When routes change:
 
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { WorkHomePage } from '@/pages/work/WorkHomePage'
+- follow existing file-route naming;
+- use central route constants where application code references a route;
+- run the repository build/route generator;
+- commit `client/src/routeTree.gen.ts` when generated output changes;
+- never hand-edit generated route output as source code.
 
-export const Route = createFileRoute('/work/')({
-  component: WorkHomePage,
-})
-```
+## Pages
 
-Route files may own route-specific parsing, guards, loaders, or prefetch when needed, but should not become full screen implementations.
-
-When adding or changing routes:
-
-1. follow existing file-route naming/location;
-2. use central `ROUTES` constants when application code needs route references;
-3. run the repository route generator/build path;
-4. commit `client/src/routeTree.gen.ts` when generated output changes;
-5. do not hand-edit generated route output as the source of truth.
-
-## Page Pattern
-
-Pages compose existing behavior; they should not become transport/state infrastructure.
-
-Preferred screen shape:
+Pages should:
 
 ```text
-page
-  -> read auth/context hooks
-  -> read query hooks
-  -> derive presentation state
-  -> compose layout + local reusable components
-  -> call mutation hooks for explicit user actions
+read auth/context hooks
+-> read query hooks
+-> derive presentation state
+-> compose existing layouts/components
+-> call mutations for explicit actions
 ```
 
-Example qualities already present in the codebase:
+Keep backend authorization authoritative. Frontend capability checks only control discoverability/presentation.
 
-- use `ListPageLayout` / `DetailPageLayout` instead of recreating page chrome;
-- use local helper components when they clarify one page without creating a generic abstraction;
-- derive counts/capabilities directly from loaded context rather than copying them into local/global state;
-- use `useDocumentTitle` for page title behavior;
-- use `Link` for navigation rather than imperative navigation when the interaction is fundamentally a link.
+## API + Query Pattern
 
-Keep business permission truth on the backend. Frontend capability checks are for discoverability/presentation and must not replace server authorization.
+Use `apiClient`, repository response helpers, centralized query keys, and existing stale-time categories.
 
-## API Module Pattern
+Do not scatter raw `fetch` calls through pages/components or create ad-hoc query-key arrays.
 
-Prefer colocating transport functions and their query/mutation hooks in `client/src/api/<domain>.ts` when the module remains cohesive.
+Default mutation path is the existing shared mutation helper when its behavior fits. Use custom `useMutation` only for real differences such as optimistic updates or caller-owned error behavior.
 
-Existing shape:
+Invalidate only the affected cache boundary.
 
-```ts
-import { useQuery } from '@tanstack/react-query'
-import { apiClient } from '@/lib/api/api-client'
-import { unwrapApiData } from '@/lib/api/response'
-import { queryKeys } from '@/config/query-keys'
-import { STALE_TIME } from '@/utils/constants'
+## State
 
-export const domainApi = {
-  list: () =>
-    unwrapApiData(
-      apiClient.get<ApiSuccessResponse<DomainDto[]>>('/domain'),
-    ),
-}
+Use TanStack Query for server-owned state:
 
-export function useDomain() {
-  return useQuery({
-    queryKey: queryKeys.domain,
-    queryFn: domainApi.list,
-    staleTime: STALE_TIME.MEDIUM,
-  })
-}
-```
-
-Rules:
-
-- use `apiClient`; do not scatter raw `fetch` calls through pages/components;
-- unwrap the repository-standard API envelope with `unwrapApiData` / `unwrapApiVoid`;
-- type transport responses with existing DTO/envelope types;
-- keep query keys centralized;
-- use existing `STALE_TIME` categories rather than arbitrary per-hook numbers unless the domain requires it;
-- keep HTTP path construction in the API module, not the page;
-- expose hooks/use-cases that make page code simple.
-
-For large domains, split transport/query/mutation files only when ownership/readability materially improves, as already done for SOP/evaluation APIs.
-
-## Query Key Pattern
-
-Never create ad hoc arrays repeatedly in screens.
-
-Prefer:
-
-```ts
-queryKey: queryKeys.processAdminProsesBisnises
-```
-
-or a domain-specific key owner such as `processQueryKeys`.
-
-When adding a query:
-
-1. find the existing key family;
-2. add a stable key/factory there;
-3. use the same owner for invalidation and cache writes;
-4. invalidate the smallest affected ownership boundary.
-
-Avoid `invalidateQueries()` with no useful lingkup.
-
-## Mutation Pattern
-
-Default to `useMutationWithToast` for ordinary mutations that follow the existing success/error/invalidation UX.
-
-Existing shape:
-
-```ts
-const renameProsesBisnis = useMutationWithToast({
-  mutationFn: ({ prosesBisnisId, payload }) =>
-    processOwnerApi.renameProsesBisnis(prosesBisnisId, payload.nama),
-  invalidateKeys: [queryKeys.processOwnerProsesBisnises],
-  successMessage: 'ProsesBisnis berhasil diperbarui',
-  errorMessagePrefix: 'Gagal memperbarui ProsesBisnis',
-})
-```
-
-Use custom `useMutation` only when the behavior genuinely needs something the shared mutation helper does not model cleanly, such as optimistic updates, unusual multi-step side effects, or caller-owned error presentation.
-
-For caller-owned errors, use the existing suppression/error-handling mechanism rather than creating a second toast system.
-
-Mutation UX rules:
-
-- disable or otherwise guard repeated actions while pending where double submission matters;
-- invalidate/cache-update only data affected by the mutation;
-- use Indonesian user-facing success/error copy consistent with the surrounding feature;
-- do not hide domain errors behind generic success/failure state.
-
-## Server State vs Client State
-
-### TanStack Query
-
-Use for server-owned state:
-
-- entities;
-- lists;
-- work queues;
-- authorization context returned by the server;
+- entities/lists;
 - workflow state;
-- persisted notifications;
+- authorization context;
+- notifications;
 - admin configuration.
 
-### Local React state
+Use local React state for local interaction state. Use Zustand only for genuinely shared client-owned state.
 
-Use for local interaction state:
+Do not mirror query data into Zustand by default.
 
-- dialog open/close;
-- currently selected row;
-- local form draft when not server-owned;
-- ephemeral view controls.
+## FTI Capability Model
 
-### Zustand
-
-Use only for state genuinely shared across screens/layouts that is client-owned, such as existing auth/UI store concerns.
-
-Do not mirror query data into Zustand just to make it globally accessible.
-
-## Contextual Capability Pattern
-
-FTI target screens should derive visible entry points from separate capability dimensions:
+Visible entry points derive from separate current capabilities:
 
 ```text
 ProsesBisnis relationship
@@ -237,71 +94,31 @@ Pejabat berwenang
 Platform role
 ```
 
-Do not rebuild target UI around one legacy global `peran` check.
-
 Examples:
 
-- ProsesBisnis Owner/Member work comes from `useMyProsesBisnises()`;
-- approval/TTE entry comes from pejabat berwenang hooks;
-- platform administration comes from `platformRole`;
-- legacy role routing is compatibility fallback only where still required.
+- Owner/Member work comes from ProsesBisnis context;
+- final approval/TTE comes from contextual authority;
+- platform administration comes from `platformRole`.
 
-Always assume the backend remains the final authorization authority.
+Do not route current workflow UI through retired global role semantics or add compatibility fallbacks for them.
 
-## Component Pattern
+## SOP Ownership Types
 
-Create a local component when it makes a screen easier to read and has one clear responsibility.
+Every current SOP belongs to one ProsesBisnis. Frontend DTOs for current SOP entities should therefore expose a required ProsesBisnis ID unless the endpoint is explicitly returning a different object where process ownership is not applicable.
 
-Promote to shared component only when:
+Do not preserve `string | null` SOP ownership merely for historical fixtures.
 
-- it is reused or clearly reusable across multiple owners;
-- behavior/interaction consistency matters across screens;
-- the abstraction has a stable responsibility.
+## Components / Styling
 
-Avoid extracting every JSX block into a component merely to reduce file length.
+Prefer existing primitives and semantic design tokens. Search before creating another primitive or variant.
 
-Prefer existing primitives:
+Create a local component when it clarifies one owner. Promote it to shared only when reuse or interaction consistency is real.
 
-```text
-Button
-Card
-Badge
-Dialog / ConfirmDialog
-DataSurface
-EmptyState
-ListPageLayout
-DetailPageLayout
-```
-
-Search before creating a new primitive or variant.
-
-## Styling Pattern
-
-Use existing semantic tokens/utilities:
-
-```text
-bg-background
-bg-surface
-bg-surface-muted
-text-foreground
-text-secondary-foreground
-text-muted-foreground
-border-border
-bg-primary-subtle
-rounded-control
-rounded-surface
-shadow-surface
-```
-
-Prefer semantic design-system classes over raw palette values.
-
-Keep workflow UI clear, compact, and operational. Do not add decorative gradients, glow, excessive glass effects, novelty animation, or inconsistent cards merely to make a screen look more modern.
-
-Use responsive utilities following nearby screens rather than inventing a new breakpoint system.
+Avoid decorative gradients, glow, novelty animation, inconsistent card systems, and abstraction solely to shorten a file.
 
 ## User-Facing Vocabulary
 
-For target FTI surfaces use product language from `PROJECT.md`:
+Use current FTI product language:
 
 ```text
 ProsesBisnis
@@ -314,78 +131,60 @@ TTE
 Pekerjaan SOP
 ```
 
-Do not expose migration/internal terminology such as `legacy`, `target`, `authoring`, internal enum names, or retired workflow-role semantics unless the surface is explicitly a compatibility/admin/debug surface where that distinction is necessary.
-
-Translate persisted legacy status names into target-facing labels at the presentation/domain mapping boundary instead of renaming database concepts opportunistically.
+Do not expose migration terms, retired OPD/workflow-role names, or internal enum names in normal product UI.
 
 ## Protected Edit SOP Workspace
 
-Before touching any Edit SOP code, read `.agents/PROTECTED_SURFACES.md`.
+Before touching Edit SOP code, read `.agents/PROTECTED_SURFACES.md`.
 
-Default rule: **do not modify its observable layout, UX, editor composition, controls, autosave/edit flow, or copy unless the current user explicitly asks for an Edit SOP workspace change.**
+Do not modify its observable layout, controls, autosave/edit flow, or copy unless the user explicitly requests an Edit SOP workspace change.
 
-It is allowed to link to the existing workspace from new surrounding navigation/queue surfaces.
-
-Do not use a general vocabulary cleanup or refactor as permission to alter the protected workspace.
+A cleanup elsewhere is not permission to redesign the protected workspace.
 
 ## Error / Loading / Empty States
 
-Use explicit states appropriate to the owning screen:
+Use explicit states following the nearest existing pattern:
 
-- loading text/spinner/skeleton using existing local pattern;
-- `EmptyState` for meaningful empty workflow states;
-- mutation pending state on the initiating control;
-- domain error handling through API/error helpers and existing toast behavior.
+- loading state;
+- meaningful `EmptyState`;
+- pending state on the initiating action;
+- domain errors through existing API/toast helpers.
 
-Do not silently render an empty screen when data is loading or failed.
+Do not silently render an empty screen for loading/failure.
 
-## Testing Pattern
+## Testing
 
-For frontend changes, protect observable behavior with deterministic repository-owned evidence.
+Protect observable behavior with deterministic repository-owned evidence.
 
-Preferred tests:
+Good frontend tests assert visible content, capability-driven actions, interaction outcomes, link destinations, and material loading/empty states.
 
-```text
-component/page test
-  -> visible content
-  -> available/hidden action by capability
-  -> interaction outcome
-  -> link destination
-  -> loading/empty state when material
-```
+Mock stable boundaries such as API hooks/router/stores. Avoid asserting private component decomposition.
 
-Mock at stable external boundaries such as router/API hooks/stores where appropriate. Avoid tests that assert private component decomposition.
+Automatic merge gates are the Client CI checks defined in `.agents/QUALITY.md`. Browser E2E remains manual/use-case-driven unless a specific release qualification requires it.
 
-When changing route, query, or layout behavior, run the specific unit/component tests plus the automated quality gates required by `.agents/QUALITY.md`. Use focused API/domain/integration coverage when correctness crosses repository-owned boundaries that isolated frontend tests cannot establish.
-
-Manual acceptance testing, Playwright/browser E2E or black-box testing, live-browser verification, and manual screenshot review are not required merge, milestone, or release gates. If an environment-specific behavior cannot be reproduced deterministically, record the residual risk rather than introducing a browser/human acceptance requirement.
+Do not keep skipped tests or no-op compatibility helpers for code paths that no longer exist.
 
 ## Implementation Workflow
 
-For a frontend task:
-
 ```text
-1. Read affected product/architecture/protection rules.
-2. Inspect the nearest existing page/API/component pattern.
-3. Identify the current owner for route, transport, server state, UI state, and presentation.
-4. Implement the smallest coherent vertical behavior.
-5. Reuse existing primitives, query keys, API helpers, and mutation helpers.
-6. Add/update focused observable-behavior tests when warranted.
-7. Run focused test + typecheck; add build/router/integration gates only when the changed boundary requires them.
-8. Check that generated route output is committed when routes changed.
-9. Check that no protected surface changed unintentionally.
+1. Read product/architecture/protection constraints.
+2. Inspect nearest page/API/component pattern.
+3. Identify route, transport, server-state, UI-state and presentation owners.
+4. Implement the smallest coherent behavior.
+5. Reuse existing primitives/query keys/API helpers.
+6. Add focused tests when changed risk warrants them.
+7. Run build/typecheck/tests required by QUALITY.md.
+8. Confirm generated routes/protected surfaces did not drift.
 ```
 
 ## Do Not
 
-- put raw API calls inside pages/components when an API owner exists;
-- invent a second query-key convention;
-- store server state in Zustand by default;
-- create a generic design/component system beside the existing one;
-- use imperative navigation for ordinary links;
-- copy backend authorization logic as the sole permission enforcement;
-- propagate retired organization/workflow-role semantics into new target UI;
-- modify generated route files manually as source code;
-- alter the protected Edit SOP workspace without explicit user direction;
-- add browser/manual acceptance gates as completion ceremony;
-- refactor unrelated UI while delivering a bounded feature.
+- put raw API calls in pages when an API owner exists;
+- invent another query-key/state convention;
+- copy backend authorization as the sole enforcement;
+- reintroduce retired role or unbound-SOP compatibility paths;
+- keep no-op exports solely for removed consumers;
+- hand-edit generated route files;
+- alter the protected Edit SOP workspace without explicit direction;
+- add browser/manual acceptance gates as ceremony;
+- refactor unrelated UI while delivering a bounded change.
