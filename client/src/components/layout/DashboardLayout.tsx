@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
-import { Users, FileText, LayoutDashboard, List, Menu, X, Workflow, ShieldCheck, BookOpen, UserRoundCog } from "lucide-react";
-import { useMyProsesBisnises } from "@/api/konteks-proses-bisnis";
+import { Users, FileText, List, Menu, X, Workflow, ShieldCheck, BookOpen, UserRoundCog } from "lucide-react";
+import { useMyAuthoringProsesBisnises, useMyProsesBisnises } from "@/api/konteks-proses-bisnis";
 import { useMyOrganizationalAuthorities } from "@/api/pejabat-berwenang";
+import { useProsesBisnisOwnerSelfService } from "@/api/penanggung-jawab-proses-bisnis";
 import logoSvg from "@/assets/logo.svg";
 import { HeaderBar } from "@/components/layout/HeaderBar";
 import { PageHeaderProvider } from "@/components/layout/PageHeaderProvider";
@@ -17,7 +18,6 @@ import { ROUTES } from "@/utils/constants";
 const DESKTOP_SIDEBAR_STORAGE_KEY = "ui:desktop-sidebar-collapsed";
 
 function isActivePath(pathname: string, itemTo: string): boolean {
-  if (itemTo === ROUTES.WORK) return pathname === ROUTES.WORK || pathname === `${ROUTES.WORK}/`;
   return pathname.startsWith(itemTo.replace("/$id", ""));
 }
 
@@ -26,39 +26,45 @@ export function DashboardLayout() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
   const { data: prosesBisnisSaya = [] } = useMyProsesBisnises();
+  const { data: authoringProsesBisnis = [] } = useMyAuthoringProsesBisnises();
   const { data: myAuthorities = [] } = useMyOrganizationalAuthorities();
+  const ownerContext = useProsesBisnisOwnerSelfService();
   const isDesktopNavOpen = useUIStore((state) => state.sidebarOpen);
   const setDesktopNavOpen = useUIStore((state) => state.setSidebarOpen);
-  const contextualItems: AppSidebarItem[] = [
-    { to: ROUTES.WORK, label: "Beranda Kerja", icon: LayoutDashboard },
-    ...(user?.platformRole === "SUPER_ADMIN"
-      ? [{ to: ROUTES.ADMIN.HOME, label: "Ringkasan Admin", icon: LayoutDashboard }]
+
+  const hasProsesBisnisResponsibility = prosesBisnisSaya.length > 0;
+  const canAuthorSop = authoringProsesBisnis.length > 0;
+  const canManageProcesses = ownerContext.scopes.length > 0 || ownerContext.prosesBisnis.length > 0;
+
+  const sidebarItems: AppSidebarItem[] = [
+    ...(hasProsesBisnisResponsibility
+      ? [{ to: ROUTES.WORK_QUEUE, label: "Pekerjaan SOP", icon: FileText }]
       : []),
-    ...(prosesBisnisSaya.length > 0
-      ? [{ to: ROUTES.WORK_QUEUE, label: "Tugas Saya", icon: FileText }]
+    ...(canAuthorSop
+      ? [{ to: ROUTES.PENYUSUN.SOP, label: "Daftar SOP", icon: List }]
       : []),
-    ...(prosesBisnisSaya.length > 0
+    ...(canManageProcesses
+      ? [{ to: ROUTES.WORK_PROCESSES, label: "Kelola Proses Bisnis", icon: Workflow }]
+      : []),
+    ...(hasProsesBisnisResponsibility
       ? [
-          { to: ROUTES.PENYUSUN.SOP, label: "Semua SOP", icon: List },
           { to: ROUTES.PENYUSUN.PERATURAN, label: "Peraturan", icon: BookOpen },
           { to: ROUTES.PENYUSUN.PELAKSANA, label: "Pelaksana", icon: UserRoundCog },
         ]
       : []),
     ...(myAuthorities.length > 0
-      ? [{ to: ROUTES.APPROVAL.INBOX, label: "Persetujuan & TTE", icon: ShieldCheck }]
+      ? [{ to: ROUTES.APPROVAL.INBOX, label: "Pengesahan & TTE", icon: ShieldCheck }]
       : []),
     ...(user?.platformRole === "SUPER_ADMIN"
       ? [
-          { to: ROUTES.ADMIN.ACCOUNTS, label: "Akun FTI", icon: Users },
-          { to: ROUTES.ADMIN.PROCESSES, label: "Proses FTI", icon: Workflow },
-          { to: ROUTES.ADMIN.AUTHORITIES, label: "Kewenangan Organisasi", icon: ShieldCheck },
+          { to: ROUTES.ADMIN.HOME, label: "Administrasi Sistem", icon: ShieldCheck },
+          { to: ROUTES.ADMIN.ACCOUNTS, label: "Pengguna", icon: Users },
+          { to: ROUTES.ADMIN.PROCESSES, label: "Struktur & Kewenangan", icon: Workflow },
+          { to: ROUTES.ADMIN.AUTHORITIES, label: "Pejabat Berwenang", icon: ShieldCheck },
         ]
       : []),
   ];
 
-  // First-party navigation is owned by ProsesBisnis relationships, pejabat berwenang,
-  // and platform administration. Legacy role routing is no longer a navigation fallback.
-  const sidebarItems = contextualItems;
   const activeItem = sidebarItems.find(({ to }) => isActivePath(pathname, to));
 
   useEffect(() => {
@@ -91,11 +97,7 @@ export function DashboardLayout() {
         Lewati ke konten utama
       </a>
 
-      <nav
-        data-print-hide
-        className="shrink-0 border-b border-border bg-surface lg:hidden"
-        aria-label="Navigasi utama"
-      >
+      <nav data-print-hide className="shrink-0 border-b border-border bg-surface lg:hidden" aria-label="Navigasi utama">
         <div className="flex min-h-[var(--header-height)] items-center gap-3 px-4 md:px-5">
           <img src={logoSvg} alt={APP_DISPLAY_NAME} className="h-8 w-8 shrink-0" />
           <span className="min-w-0 flex-1 text-ui-body font-semibold text-foreground">
@@ -109,32 +111,18 @@ export function DashboardLayout() {
             aria-controls="mobile-main-navigation"
             onClick={() => setIsMobileNavOpen((open) => !open)}
           >
-            {isMobileNavOpen ? (
-              <X className="h-5 w-5" aria-hidden />
-            ) : (
-              <Menu className="h-5 w-5" aria-hidden />
-            )}
+            {isMobileNavOpen ? <X className="h-5 w-5" aria-hidden /> : <Menu className="h-5 w-5" aria-hidden />}
           </button>
         </div>
       </nav>
 
       {isMobileNavOpen ? (
         <div className="fixed inset-0 z-overlay lg:hidden" data-print-hide>
-          <button
-            type="button"
-            className="absolute inset-0 bg-gray-950/40"
-            aria-label="Tutup navigasi"
-            onClick={() => setIsMobileNavOpen(false)}
-          />
-          <div
-            id="mobile-main-navigation"
-            className="relative flex h-full w-[248px] flex-col border-r border-border bg-surface shadow-overlay"
-          >
+          <button type="button" className="absolute inset-0 bg-gray-950/40" aria-label="Tutup navigasi" onClick={() => setIsMobileNavOpen(false)} />
+          <div id="mobile-main-navigation" className="relative flex h-full w-[248px] flex-col border-r border-border bg-surface shadow-overlay">
             <div className="flex h-[var(--header-height)] shrink-0 items-center gap-2.5 border-b border-border px-3">
               <img src={logoSvg} alt="" aria-hidden className="h-8 w-8 shrink-0" />
-              <span className="min-w-0 flex-1 text-ui-body font-semibold text-foreground">
-                {APP_DISPLAY_NAME}
-              </span>
+              <span className="min-w-0 flex-1 text-ui-body font-semibold text-foreground">{APP_DISPLAY_NAME}</span>
               <button
                 type="button"
                 className="inline-flex h-10 w-10 items-center justify-center rounded-control text-secondary-foreground hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -176,13 +164,10 @@ export function DashboardLayout() {
         onOpenChange={handleDesktopSidebarOpenChange}
       />
 
-      <div suppressHydrationWarning className="flex-1 flex flex-col min-w-0 min-h-0">
+      <div suppressHydrationWarning className="flex min-h-0 min-w-0 flex-1 flex-col">
         <PageHeaderProvider>
           <HeaderBar />
-          <main
-            id="main-content"
-            className="relative flex-1 overflow-auto bg-background"
-          >
+          <main id="main-content" className="relative flex-1 overflow-auto bg-background">
             <div data-scroll-content className="min-h-full p-4 md:p-5 lg:p-6">
               <div data-app-content className="w-full">
                 <Outlet />
