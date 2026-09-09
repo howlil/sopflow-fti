@@ -21,14 +21,15 @@ describe('PenggunaRepository native platform accounts', () => {
 
     await repo.listPlatformAccounts();
 
-    expect(prismaMock.pengguna.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { deletedAt: null },
-        select: expect.not.objectContaining({
-          peran: expect.anything(),
-        }),
-      }),
-    );
+    const findManyMock = prismaMock.pengguna.findMany as unknown as {
+      mock: { calls: unknown[][] };
+    };
+    const args = findManyMock.mock.calls[0]?.[0] as {
+      orderBy: unknown;
+      select: Record<string, unknown>;
+    };
+    expect(args.orderBy).toEqual([{ deletedAt: 'asc' }, { nama: 'asc' }, { email: 'asc' }]);
+    expect(args.select).not.toHaveProperty('peran');
   });
 
   it('creates a native USER without fabricated retired identity fields', async () => {
@@ -47,13 +48,12 @@ describe('PenggunaRepository native platform accounts', () => {
       kataSandi: 'hash',
     });
 
-    expect(prismaMock.pengguna.create).toHaveBeenCalledWith({
-      data: expect.not.objectContaining({
-        peran: expect.anything(),
-      }),
-      select: expect.not.objectContaining({
-        peran: expect.anything(),
-      }),
-    });
+    const createMock = prismaMock.pengguna.create as unknown as { mock: { calls: unknown[][] } };
+    const args = createMock.mock.calls[0]?.[0] as {
+      data: Record<string, unknown>;
+      select: Record<string, unknown>;
+    };
+    expect(args.data).not.toHaveProperty('peran');
+    expect(args.select).not.toHaveProperty('peran');
   });
 });

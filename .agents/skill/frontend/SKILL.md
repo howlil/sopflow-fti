@@ -178,10 +178,10 @@ Default to `useMutationWithToast` for ordinary mutations that follow the existin
 Existing shape:
 
 ```ts
-const updateProsesBisnis = useMutationWithToast({
+const renameProsesBisnis = useMutationWithToast({
   mutationFn: ({ prosesBisnisId, payload }) =>
-    processAdminApi.updateProsesBisnis(prosesBisnisId, payload),
-  invalidateKeys: [queryKeys.processAdminProsesBisnises],
+    processOwnerApi.renameProsesBisnis(prosesBisnisId, payload.nama),
+  invalidateKeys: [queryKeys.processOwnerProsesBisnises],
   successMessage: 'ProsesBisnis berhasil diperbarui',
   errorMessagePrefix: 'Gagal memperbarui ProsesBisnis',
 })

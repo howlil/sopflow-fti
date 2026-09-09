@@ -34,7 +34,7 @@ test.describe('End-to-End Business Journey — Proses Bisnis version historical/
 
     await test.step('Failed V2 signing does not supersede V1 or publish V2', async () => {
       const deanApi = await roleApi(targetUsers.dean)
-      const response = await deanApi.post(toApiUrl(`/tte-proses-bisnis/${fixture.v2.id}/sign`), {
+      const response = await deanApi.post(toApiUrl(`/process-tte/${fixture.v2.id}/sign`), {
         data: {
           pin: `${e2ePin}-wrong`,
           nomorDokumen: fixture.v2.nomorSOP,

@@ -47,7 +47,7 @@ test.describe('End-to-End Business Journey — Departemen Penanggung Jawab Prose
 
       const unrelatedApi = await roleApi(targetUsers.otherDepartemenMember)
       const response = await unrelatedApi.get(
-        toApiUrl(`/sop-proses-bisnis/workbench/${sop.detailSopId}`),
+        toApiUrl(`/prosesBisnis-sop/workbench/${sop.detailSopId}`),
       )
       expect(response.status()).toBe(403)
     })

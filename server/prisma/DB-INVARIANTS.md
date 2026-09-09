@@ -5,6 +5,7 @@
 - `Pengguna.email` and `Pengguna.nip` are unique.
 - Platform administration is represented only by `platformRole`.
 - `Pengguna.nohp` must satisfy the canonical Indonesian mobile-number database check.
+- `SUPER_ADMIN` cannot be a Process owner/member, Process Owner authority recipient, or organizational authority holder; workflow relationships use `USER` identities.
 
 ## ProsesBisnis
 
@@ -40,6 +41,7 @@
 
 - `DEAN` assignment uses `authorityKey = DEAN` and has no `departmentId`.
 - `HEAD_OF_DEPARTMENT` assignment requires a Department and uses `authorityKey = HEAD_OF_DEPARTMENT:<departmentId>`.
+- Organizational authority holders must be workflow `USER` identities.
 - Final approval must reference an `ACCEPT` Process review for the same `detailSopId` and `processId`.
 - `approvedById`, `authority`, and `authorityKey` must resolve to the holder of the organizational authority assignment for that Process scope.
 - Faculty approval authority is Dean. Department approval authority is that Department Head.
@@ -67,5 +69,6 @@
 
 - `0_fti_native_baseline` is the canonical schema baseline for a fresh database.
 - `1_fti_native_invariants` installs database invariants that Prisma schema cannot express.
+- `2_fti_workflow_identity_invariants` prevents platform-admin identities from entering workflow relationships through direct writes.
 - Existing target databases mark `0_fti_native_baseline` as applied once, then deploy `1_fti_native_invariants` normally.
 - Every migration committed after this baseline must be forward-only and FTI-native.

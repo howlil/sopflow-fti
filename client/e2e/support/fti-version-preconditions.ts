@@ -53,7 +53,7 @@ export async function seedPublishedProsesBisnisSop(
     authorityUser,
   })
   const authorityApi = await apiFor(authorityUser)
-  await apiPost(authorityApi, `/tte-proses-bisnis/${sop.detailSopId}/sign`, {
+  await apiPost(authorityApi, `/process-tte/${sop.detailSopId}/sign`, {
     pin: e2ePin,
     nomorDokumen: sop.number,
     judulDokumen: sop.title,
@@ -63,7 +63,7 @@ export async function seedPublishedProsesBisnisSop(
   const actorApi = await apiFor(options.actor ?? targetUsers.anggotaProsesBisnis)
   const workbench = await apiGet<ProsesBisnisVersionWorkbench>(
     actorApi,
-    `/sop-proses-bisnis/workbench/${sop.detailSopId}`,
+    `/prosesBisnis-sop/workbench/${sop.detailSopId}`,
   )
   if (workbench.detail.status !== 'EFFECTIVE') {
     throw new Error(`Precondition V1 harus BERLAKU, ditemukan ${workbench.detail.status}`)
@@ -78,7 +78,7 @@ export async function createProsesBisnisVersion(
   sourceDetailSopId: string,
 ): Promise<ProsesBisnisVersionWorkbench> {
   const api = await apiFor(actor)
-  return apiPost<ProsesBisnisVersionWorkbench>(api, `/sop-proses-bisnis/${sourceDetailSopId}/version`)
+  return apiPost<ProsesBisnisVersionWorkbench>(api, `/prosesBisnis-sop/${sourceDetailSopId}/version`)
 }
 
 /** Prepare V2 through submit, Owner ACCEPT, and contextual final approval; signing stays the journey action. */
@@ -95,14 +95,14 @@ export async function seedReplacementReadyForTte(
   const ownerApi = await apiFor(targetUsers.penanggungJawabProsesBisnis)
   const authorityApi = await apiFor(authorityUser)
 
-  await apiPost(actorApi, `/sop-proses-bisnis/${v2Workbench.detail.id}/submit-review`)
-  await apiPost(ownerApi, `/sop-proses-bisnis/${v2Workbench.detail.id}/review`, { decision: 'ACCEPT' })
-  await apiPost(authorityApi, `/persetujuan-akhir-sop/${v2Workbench.detail.id}/approve`)
+  await apiPost(actorApi, `/prosesBisnis-sop/${v2Workbench.detail.id}/submit-review`)
+  await apiPost(ownerApi, `/prosesBisnis-sop/${v2Workbench.detail.id}/review`, { decision: 'ACCEPT' })
+  await apiPost(authorityApi, `/persetujuan-proses-bisnis/${v2Workbench.detail.id}/approve`)
   await ensureTteReady(authorityApi)
 
   const ready = await apiGet<ProsesBisnisVersionWorkbench>(
     actorApi,
-    `/sop-proses-bisnis/workbench/${v2Workbench.detail.id}`,
+    `/prosesBisnis-sop/workbench/${v2Workbench.detail.id}`,
   )
   if (ready.detail.status !== 'TTE_PENDING') {
     throw new Error(`Precondition V2 harus siap TTE, ditemukan ${ready.detail.status}`)
@@ -117,5 +117,5 @@ export async function getProsesBisnisVersionHistory(
   sopId: string,
 ): Promise<ProsesBisnisVersionHistoryRow[]> {
   const api = await apiFor(actor)
-  return apiGet<ProsesBisnisVersionHistoryRow[]>(api, `/sop-proses-bisnis/${sopId}/history`)
+  return apiGet<ProsesBisnisVersionHistoryRow[]>(api, `/prosesBisnis-sop/${sopId}/history`)
 }

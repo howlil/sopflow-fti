@@ -25,23 +25,23 @@ async function unwrapWorkbench(
 export const sopApi = {
   findAll: (params?: SopListQueryParams) =>
     unwrapApiData(
-      apiClient.get<ApiSuccessResponse<SopDaftarRow[]>>(`/sop-proses-bisnis${buildQueryString(params)}`),
+      apiClient.get<ApiSuccessResponse<SopDaftarRow[]>>(`/prosesBisnis-sop${buildQueryString(params)}`),
     ),
 
   create: (payload: CreateProsesBisnisSopRequestDto) =>
-    unwrapApiData(apiClient.post<ApiSuccessResponse<SopDaftarRow>>('/sop-proses-bisnis', payload)),
+    unwrapApiData(apiClient.post<ApiSuccessResponse<SopDaftarRow>>('/prosesBisnis-sop', payload)),
 
   getPenyusunWorkbench: (detailSopId: string, params?: PenyusunWorkbenchQueryParams) =>
     unwrapWorkbench(
       apiClient.get<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/sop-proses-bisnis/workbench/${detailSopId}${buildQueryString(params)}`,
+        `/prosesBisnis-sop/workbench/${detailSopId}${buildQueryString(params)}`,
       ),
     ),
 
   updateSopHeader: (detailSopId: string, payload: UpdateSopHeaderDto) =>
     unwrapWorkbench(
       apiClient.patch<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/sop-proses-bisnis/header/${detailSopId}`,
+        `/prosesBisnis-sop/header/${detailSopId}`,
         payload,
       ),
     ),
@@ -49,7 +49,7 @@ export const sopApi = {
   updateSopProsedur: (detailSopId: string, payload: UpdateSopProsedurDto) =>
     unwrapWorkbench(
       apiClient.patch<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/sop-proses-bisnis/langkah/${detailSopId}`,
+        `/process-sop/langkah/${detailSopId}`,
         payload,
       ),
     ),
@@ -57,7 +57,7 @@ export const sopApi = {
   updateSopDiagram: (detailSopId: string, payload: UpdateSopDiagramDto) =>
     unwrapWorkbench(
       apiClient.patch<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/sop-proses-bisnis/diagram/${detailSopId}`,
+        `/process-sop/diagram/${detailSopId}`,
         payload,
       ),
     ),
@@ -65,22 +65,22 @@ export const sopApi = {
   buatVersiBaru: (detailSopId: string, params?: PenyusunWorkbenchQueryParams) =>
     unwrapWorkbench(
       apiClient.post<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/sop-proses-bisnis/${detailSopId}/version${buildQueryString(params)}`,
+        `/prosesBisnis-sop/${detailSopId}/version${buildQueryString(params)}`,
       ),
     ),
 
   getRiwayatVersi: (sopId: string) =>
     unwrapApiData(
-      apiClient.get<ApiSuccessResponse<SopRiwayatVersiRow[]>>(`/sop-proses-bisnis/${sopId}/history`),
+      apiClient.get<ApiSuccessResponse<SopRiwayatVersiRow[]>>(`/prosesBisnis-sop/${sopId}/history`),
     ),
 
   hapusVersiDraft: (detailSopId: string) =>
     unwrapApiData(
-      apiClient.delete<ApiSuccessResponse<null>>(`/sop-proses-bisnis/${detailSopId}/versi-draft`),
+      apiClient.delete<ApiSuccessResponse<null>>(`/prosesBisnis-sop/${detailSopId}/versi-draft`),
     ),
 
   hapusSopDraftAwal: (detailSopId: string) =>
-    unwrapApiData(apiClient.delete<ApiSuccessResponse<null>>(`/sop-proses-bisnis/${detailSopId}/draft`)),
+    unwrapApiData(apiClient.delete<ApiSuccessResponse<null>>(`/prosesBisnis-sop/${detailSopId}/draft`)),
 
   findPelaksana: () =>
     unwrapApiData(apiClient.get<ApiSuccessResponse<Pelaksana[]>>('/pelaksana')),

@@ -62,13 +62,13 @@ test.describe('End-to-End Business Journey — Departemen context isolation', ()
 
       const unrelatedApi = await roleApi(targetUsers.otherDepartemenMember)
       const unrelatedResponse = await unrelatedApi.get(
-        toApiUrl(`/sop-proses-bisnis/workbench/${sop.detailSopId}`),
+        toApiUrl(`/prosesBisnis-sop/workbench/${sop.detailSopId}`),
       )
       expect(unrelatedResponse.status()).toBe(403)
 
       const superAdminApi = await roleApi(targetUsers.admin)
       const superAdminResponse = await superAdminApi.get(
-        toApiUrl(`/sop-proses-bisnis/workbench/${sop.detailSopId}`),
+        toApiUrl(`/prosesBisnis-sop/workbench/${sop.detailSopId}`),
       )
       expect(superAdminResponse.status()).toBe(403)
     })

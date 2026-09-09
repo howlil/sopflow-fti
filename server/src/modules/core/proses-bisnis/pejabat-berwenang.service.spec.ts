@@ -1,6 +1,6 @@
-import { ForbiddenException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
-import { PejabatBerwenang, LingkupOrganisasi } from '../../../generated/prisma';
+import { PejabatBerwenang, LingkupOrganisasi, PlatformRole } from '../../../generated/prisma';
 import { PejabatBerwenangService } from './pejabat-berwenang.service';
 
 describe('PejabatBerwenangService', () => {
@@ -23,7 +23,11 @@ describe('PejabatBerwenangService', () => {
         }),
       },
       pengguna: {
-        findFirst: jest.fn().mockResolvedValue({ penggunaId: 'dean-1', nama: 'Dean FTI' }),
+        findFirst: jest.fn().mockResolvedValue({
+          penggunaId: 'dean-1',
+          nama: 'Dean FTI',
+          platformRole: PlatformRole.USER,
+        }),
       },
     } as unknown as PrismaService;
     const service = new PejabatBerwenangService(prisma);
@@ -54,7 +58,11 @@ describe('PejabatBerwenangService', () => {
         }),
       },
       pengguna: {
-        findFirst: jest.fn().mockResolvedValue({ penggunaId: 'kadep-ti', nama: 'Kadep TI' }),
+        findFirst: jest.fn().mockResolvedValue({
+          penggunaId: 'kadep-ti',
+          nama: 'Kadep TI',
+          platformRole: PlatformRole.USER,
+        }),
       },
     } as unknown as PrismaService;
     const service = new PejabatBerwenangService(prisma);
@@ -85,7 +93,11 @@ describe('PejabatBerwenangService', () => {
         }),
       },
       pengguna: {
-        findFirst: jest.fn().mockResolvedValue({ penggunaId: 'dean-1', nama: 'Dean FTI' }),
+        findFirst: jest.fn().mockResolvedValue({
+          penggunaId: 'dean-1',
+          nama: 'Dean FTI',
+          platformRole: PlatformRole.USER,
+        }),
       },
     } as unknown as PrismaService;
     const service = new PejabatBerwenangService(prisma);
@@ -93,5 +105,19 @@ describe('PejabatBerwenangService', () => {
     await expect(service.assertCanApprove('admin-1', 'prosesBisnis-a')).rejects.toBeInstanceOf(
       ForbiddenException,
     );
+  });
+
+  it('does not allow SUPER_ADMIN to become a workflow authority holder', async () => {
+    const upsert = jest.fn();
+    const prisma = {
+      pengguna: {
+        findFirst: jest.fn().mockResolvedValue({ platformRole: PlatformRole.SUPER_ADMIN }),
+      },
+      penugasanPejabatBerwenang: { upsert },
+    } as unknown as PrismaService;
+    const service = new PejabatBerwenangService(prisma);
+
+    await expect(service.assignDean('admin-1')).rejects.toBeInstanceOf(ConflictException);
+    expect(upsert).not.toHaveBeenCalled();
   });
 });

@@ -41,15 +41,6 @@ export interface ProsesBisnisDto {
   archivedReason?: string | null
 }
 
-/** Administrative repair/bootstrap payload. Normal ProsesBisnis creation is owner self-service. */
-export interface ProsesBisnisPayload {
-  nama: string
-  lingkup: LingkupOrganisasi
-  departemenId: string | null
-  penanggungJawabId: string
-  anggotaIds: string[]
-}
-
 export interface KewenanganPenanggungJawabProsesBisnisDto {
   kewenanganPenanggungJawabProsesBisnisId: string
   penggunaId: string

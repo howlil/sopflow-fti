@@ -20,34 +20,34 @@ export const processOwnerApi = {
   scopes: (): Promise<KewenanganPenanggungJawabProsesBisnisDto[]> =>
     unwrapApiData(apiClient.get<ApiSuccessResponse<KewenanganPenanggungJawabProsesBisnisDto[]>>('/penanggung-jawab-proses-bisnis/scopes')),
   prosesBisnis: (): Promise<ProsesBisnisDto[]> =>
-    unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisDto[]>>('/penanggung-jawab-proses-bisnis/prosesBisnis')),
+    unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisDto[]>>('/penanggung-jawab-proses-bisnis/proses-bisnis')),
   users: (): Promise<ProsesBisnisAssignableUserDto[]> =>
     unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisAssignableUserDto[]>>('/penanggung-jawab-proses-bisnis/users')),
   createProsesBisnis: (payload: CreateOwnedProsesBisnisPayload): Promise<ProsesBisnisDto> =>
-    unwrapApiData(apiClient.post<ApiSuccessResponse<ProsesBisnisDto>>('/penanggung-jawab-proses-bisnis/prosesBisnis', payload)),
+    unwrapApiData(apiClient.post<ApiSuccessResponse<ProsesBisnisDto>>('/penanggung-jawab-proses-bisnis/proses-bisnis', payload)),
   renameProsesBisnis: (prosesBisnisId: string, nama: string): Promise<ProsesBisnisDto> =>
-    unwrapApiData(apiClient.patch<ApiSuccessResponse<ProsesBisnisDto>>(`/penanggung-jawab-proses-bisnis/prosesBisnis/${prosesBisnisId}`, { nama })),
+    unwrapApiData(apiClient.patch<ApiSuccessResponse<ProsesBisnisDto>>(`/penanggung-jawab-proses-bisnis/proses-bisnis/${prosesBisnisId}`, { nama })),
   addMember: (prosesBisnisId: string, penggunaId: string): Promise<ProsesBisnisAssignableUserDto> =>
     unwrapApiData(
-      apiClient.post<ApiSuccessResponse<ProsesBisnisAssignableUserDto>>(`/penanggung-jawab-proses-bisnis/prosesBisnis/${prosesBisnisId}/members`, {
+      apiClient.post<ApiSuccessResponse<ProsesBisnisAssignableUserDto>>(`/penanggung-jawab-proses-bisnis/proses-bisnis/${prosesBisnisId}/members`, {
         penggunaId,
       }),
     ),
   hapusAnggota: (prosesBisnisId: string, penggunaId: string): Promise<void> =>
-    unwrapApiVoid(apiClient.delete(`/penanggung-jawab-proses-bisnis/prosesBisnis/${prosesBisnisId}/members/${penggunaId}`)),
+    unwrapApiVoid(apiClient.delete(`/penanggung-jawab-proses-bisnis/proses-bisnis/${prosesBisnisId}/members/${penggunaId}`)),
   undangAnggota: (prosesBisnisId: string, payload: InviteAnggotaProsesBisnisPayload): Promise<AnggotaProsesBisnisOnboardingResult> =>
     unwrapApiData(
       apiClient.post<ApiSuccessResponse<AnggotaProsesBisnisOnboardingResult>>(
-        `/penanggung-jawab-proses-bisnis/prosesBisnis/${prosesBisnisId}/invitations`,
+        `/penanggung-jawab-proses-bisnis/proses-bisnis/${prosesBisnisId}/invitations`,
         payload,
       ),
     ),
   archiveProsesBisnis: (prosesBisnisId: string, reason: string): Promise<null> =>
     unwrapApiData(
-      apiClient.post<ApiSuccessResponse<null>>(`/penanggung-jawab-proses-bisnis/prosesBisnis/${prosesBisnisId}/archive`, { reason }),
+      apiClient.post<ApiSuccessResponse<null>>(`/penanggung-jawab-proses-bisnis/proses-bisnis/${prosesBisnisId}/archive`, { reason }),
     ),
   audit: (prosesBisnisId: string): Promise<RiwayatAktivitasProsesBisnisDto[]> =>
-    unwrapApiData(apiClient.get<ApiSuccessResponse<RiwayatAktivitasProsesBisnisDto[]>>(`/penanggung-jawab-proses-bisnis/prosesBisnis/${prosesBisnisId}/audit`)),
+    unwrapApiData(apiClient.get<ApiSuccessResponse<RiwayatAktivitasProsesBisnisDto[]>>(`/penanggung-jawab-proses-bisnis/proses-bisnis/${prosesBisnisId}/audit`)),
 }
 
 export function useProsesBisnisOwnerSelfService() {

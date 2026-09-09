@@ -27,12 +27,25 @@ export interface CreatePlatformAccountPayload {
   nohp: string
 }
 
+export interface UpdatePlatformAccountPayload {
+  nama?: string
+  nip?: string
+  email?: string
+  jabatan?: string
+  pangkat?: string
+  nohp?: string
+  status?: 'AKTIF' | 'NONAKTIF'
+}
+
 export const platformAccountsApi = {
   list: (): Promise<PlatformAccountDto[]> =>
     unwrapApiData(apiClient.get<ApiSuccessResponse<PlatformAccountDto[]>>('/platform-accounts')),
 
   create: (payload: CreatePlatformAccountPayload): Promise<PlatformAccountDto> =>
     unwrapApiData(apiClient.post<ApiSuccessResponse<PlatformAccountDto>>('/platform-accounts', payload)),
+
+  update: (penggunaId: string, payload: UpdatePlatformAccountPayload): Promise<PlatformAccountDto> =>
+    unwrapApiData(apiClient.patch<ApiSuccessResponse<PlatformAccountDto>>(`/platform-accounts/${penggunaId}`, payload)),
 }
 
 export function usePlatformAccounts() {
@@ -49,10 +62,19 @@ export function usePlatformAccounts() {
     errorMessagePrefix: 'Gagal membuat akun FTI',
   })
 
+  const updateAccount = useMutationWithToast({
+    mutationFn: ({ penggunaId, payload }: { penggunaId: string; payload: UpdatePlatformAccountPayload }) =>
+      platformAccountsApi.update(penggunaId, payload),
+    invalidateKeys: [queryKeys.platformAccounts, queryKeys.processAdminUsers],
+    successMessage: 'Akun FTI berhasil diperbarui',
+    errorMessagePrefix: 'Gagal memperbarui akun FTI',
+  })
+
   return {
     accounts: accountsQuery.data ?? [],
     isLoading: accountsQuery.isLoading,
     createAccount: createAccount.mutateAsync,
-    isSaving: createAccount.isPending,
+    updateAccount: updateAccount.mutateAsync,
+    isSaving: createAccount.isPending || updateAccount.isPending,
   }
 }

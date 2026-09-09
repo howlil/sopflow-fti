@@ -1,7 +1,7 @@
 import { expect, test } from '../fixtures/business-test'
 import { targetUsers } from '../fixtures/users'
 import {
-  createDepartemenProsesBisnisViaAdminUi,
+  createDepartemenViaAdminUi,
   assignDeanViaAdminUi,
   assignDepartemenHeadViaAdminUi,
 } from '../support/fti-admin-actions'
@@ -15,6 +15,9 @@ import {
   listAdminUsers,
   listMyAuthorities,
   listMyProsesBisnises,
+  addProcessMemberViaOwnerApi,
+  createProsesBisnisViaOwnerApi,
+  grantOwnerAuthorityViaAdminApi,
   requireAdminUser,
   requireDepartemen,
   requireProsesBisnis,
@@ -44,7 +47,7 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
       ).toBeVisible()
 
       const api = await adminApi(roleApi)
-      expect((await api.get(toApiUrl('/administrasi-proses-bisnis/prosesBisnis'))).status()).toBe(200)
+      expect((await api.get(toApiUrl('/administrasi-proses-bisnis/proses-bisnis'))).status()).toBe(200)
       expect((await api.get(toApiUrl('/pejabat-berwenang/configuration'))).status()).toBe(200)
     })
 
@@ -66,7 +69,7 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
         ).toHaveCount(0)
 
         const api = await roleApi(actor)
-        expect((await api.get(toApiUrl('/administrasi-proses-bisnis/prosesBisnis'))).status()).toBe(403)
+        expect((await api.get(toApiUrl('/administrasi-proses-bisnis/proses-bisnis'))).status()).toBe(403)
         expect((await api.get(toApiUrl('/pejabat-berwenang/configuration'))).status()).toBe(403)
       }
     })
@@ -79,7 +82,7 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
       expect(process).toBeDefined()
       const fixture = sopFixture('J20')
       const api = await adminApi(roleApi)
-      const response = await api.post(toApiUrl('/sop-proses-bisnis'), {
+      const response = await api.post(toApiUrl('/prosesBisnis-sop'), {
         data: {
           prosesBisnisId: process.prosesBisnisId,
           judul: fixture.title,
@@ -91,7 +94,7 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
     })
   })
 
-  test('J21 Proses Bisnis Configuration Bootstrap — admin UI membuat Departemen dan Tim Proses Bisnis valid', async ({
+  test('J21 Proses Bisnis Configuration Bootstrap — admin memberi lingkup lalu Owner membuat Process', async ({
     roleApi,
     roleSession,
   }) => {
@@ -102,14 +105,20 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
     const owner = requireAdminUser(adminUsers, targetUsers.penanggungJawabProsesBisnis.email)
     const anggota = requireAdminUser(adminUsers, targetUsers.departmentMember.email)
 
-    await test.step('SUPER_ADMIN membuat Departemen dan Departemen Proses Bisnis melalui UI target', async () => {
+    await test.step('SUPER_ADMIN membuat Departemen melalui UI governance', async () => {
       const admin = await roleSession(targetUsers.admin)
-      await createDepartemenProsesBisnisViaAdminUi(admin.page, {
-        namaDepartemen,
-        namaProsesBisnis,
-        ownerLabel: adminUserLabel(owner),
-        memberLabels: [adminUserLabel(anggota)],
+      await createDepartemenViaAdminUi(admin.page, namaDepartemen)
+    })
+
+    await test.step('Admin memberi kewenangan lalu Owner membuat Process dan menambah Member', async () => {
+      const department = requireDepartemen(await listAdminDepartemens(roleApi), namaDepartemen)
+      await grantOwnerAuthorityViaAdminApi(roleApi, owner.penggunaId, 'DEPARTMENT', department.departemenId)
+      const process = await createProsesBisnisViaOwnerApi(roleApi, targetUsers.penanggungJawabProsesBisnis, {
+        nama: namaProsesBisnis,
+        lingkup: 'DEPARTMENT',
+        departemenId: department.departemenId,
       })
+      await addProcessMemberViaOwnerApi(roleApi, targetUsers.penanggungJawabProsesBisnis, process.prosesBisnisId, anggota.penggunaId)
     })
 
     await test.step('Persisted lingkup, Departemen, Owner, dan Member sama dengan intent UI', async () => {
@@ -212,19 +221,25 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
     const anggota = requireAdminUser(adminUsers, targetUsers.departmentMember.email)
     const departmentHead = requireAdminUser(adminUsers, targetUsers.headOfDepartemen.email)
 
-    await test.step('SUPER_ADMIN bootstrap Departemen, Tim Proses Bisnis, dan Kadep melalui UI administrasi', async () => {
+    await test.step('SUPER_ADMIN bootstrap Departemen dan Kadep melalui UI administrasi', async () => {
       const admin = await roleSession(targetUsers.admin)
-      await createDepartemenProsesBisnisViaAdminUi(admin.page, {
-        namaDepartemen,
-        namaProsesBisnis,
-        ownerLabel: adminUserLabel(owner),
-        memberLabels: [adminUserLabel(anggota)],
-      })
+      await createDepartemenViaAdminUi(admin.page, namaDepartemen)
       await assignDepartemenHeadViaAdminUi(
         admin.page,
         namaDepartemen,
         adminUserLabel(departmentHead),
       )
+    })
+
+    await test.step('Admin memberi lingkup; Owner membuat Process dan mengelola Member', async () => {
+      const department = requireDepartemen(await listAdminDepartemens(roleApi), namaDepartemen)
+      await grantOwnerAuthorityViaAdminApi(roleApi, owner.penggunaId, 'DEPARTMENT', department.departemenId)
+      const process = await createProsesBisnisViaOwnerApi(roleApi, targetUsers.penanggungJawabProsesBisnis, {
+        nama: namaProsesBisnis,
+        lingkup: 'DEPARTMENT',
+        departemenId: department.departemenId,
+      })
+      await addProcessMemberViaOwnerApi(roleApi, targetUsers.penanggungJawabProsesBisnis, process.prosesBisnisId, anggota.penggunaId)
     })
 
     const sop = await seedReadyProsesBisnisSop(roleApi, 'J23-BOOTSTRAP', {
@@ -249,7 +264,7 @@ test.describe('End-to-End Business Journey — FTI administration bootstrap', ()
       expect(adminProsesBisnises.some((row) => row.prosesBisnisId === sop.prosesBisnisId)).toBe(false)
 
       const api = await adminApi(roleApi)
-      const response = await api.post(toApiUrl(`/sop-proses-bisnis/${sop.detailSopId}/review`), {
+      const response = await api.post(toApiUrl(`/prosesBisnis-sop/${sop.detailSopId}/review`), {
         data: { decision: 'REVISION' },
       })
       expect(response.status()).toBe(403)

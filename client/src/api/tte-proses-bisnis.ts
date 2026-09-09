@@ -16,7 +16,7 @@ export const processTteApi = {
   ): Promise<TandaTanganiProsesBisnisSopResponse> =>
     unwrapApiData(
       apiClient.post<ApiSuccessResponse<TandaTanganiProsesBisnisSopResponse>>(
-        `/tte-proses-bisnis/${detailSopId}/sign`,
+        `/process-tte/${detailSopId}/sign`,
         payload,
       ),
     ),

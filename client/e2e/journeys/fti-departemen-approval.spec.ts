@@ -54,7 +54,7 @@ test.describe('End-to-End Business Journey — Departemen persetujuan akhir', ()
       const deniedUsers = [targetUsers.dean, targetUsers.otherHeadOfDepartemen, targetUsers.admin]
       for (const user of deniedUsers) {
         const api = await roleApi(user)
-        const response = await api.post(toApiUrl(`/persetujuan-akhir-sop/${sop.detailSopId}/approve`))
+        const response = await api.post(toApiUrl(`/persetujuan-proses-bisnis/${sop.detailSopId}/approve`))
         expect(response.status()).toBe(403)
       }
     })

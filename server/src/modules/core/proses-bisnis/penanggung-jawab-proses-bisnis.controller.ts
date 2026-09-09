@@ -35,13 +35,25 @@ export class PenanggungJawabProsesBisnisController {
   constructor(private readonly service: PenanggungJawabProsesBisnisService) {}
 
   @Get('scopes')
-  async scopes(@Req() req: Request & { user: JwtAccessPayload }): Promise<ApiSuccessResponse<unknown>> {
-    return { message: 'Lingkup Penanggung Jawab Proses Bisnis berhasil diambil', success: true, data: await this.service.listLingkup(req.user.sub) };
+  async scopes(
+    @Req() req: Request & { user: JwtAccessPayload },
+  ): Promise<ApiSuccessResponse<unknown>> {
+    return {
+      message: 'Lingkup Penanggung Jawab Proses Bisnis berhasil diambil',
+      success: true,
+      data: await this.service.listLingkup(req.user.sub),
+    };
   }
 
   @Get('proses-bisnis')
-  async prosesBisnis(@Req() req: Request & { user: JwtAccessPayload }): Promise<ApiSuccessResponse<unknown>> {
-    return { message: 'Proses Bisnis milik Anda berhasil diambil', success: true, data: await this.service.listOwnedProsesBisnis(req.user.sub) };
+  async prosesBisnis(
+    @Req() req: Request & { user: JwtAccessPayload },
+  ): Promise<ApiSuccessResponse<unknown>> {
+    return {
+      message: 'Proses Bisnis milik Anda berhasil diambil',
+      success: true,
+      data: await this.service.listOwnedProsesBisnis(req.user.sub),
+    };
   }
 
   @Get('users')
@@ -62,29 +74,41 @@ export class PenanggungJawabProsesBisnisController {
     @Req() req: Request & { user: JwtAccessPayload },
     @Body() dto: CreateOwnedProsesBisnisDto,
   ): Promise<ApiSuccessResponse<unknown>> {
-    return { message: 'Proses Bisnis berhasil dibuat', success: true, data: await this.service.createProsesBisnis(req.user.sub, dto) };
+    return {
+      message: 'Proses Bisnis berhasil dibuat',
+      success: true,
+      data: await this.service.createProsesBisnis(req.user.sub, dto),
+    };
   }
 
-  @Patch('prosesBisnis/:prosesBisnisId')
+  @Patch('proses-bisnis/:prosesBisnisId')
   async renameProsesBisnis(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('prosesBisnisId', ParseUUIDPipe) prosesBisnisId: string,
     @Body() dto: RenameOwnedProsesBisnisDto,
   ): Promise<ApiSuccessResponse<unknown>> {
-    return { message: 'Proses Bisnis berhasil diperbarui', success: true, data: await this.service.renameProsesBisnis(req.user.sub, prosesBisnisId, dto) };
+    return {
+      message: 'Proses Bisnis berhasil diperbarui',
+      success: true,
+      data: await this.service.renameProsesBisnis(req.user.sub, prosesBisnisId, dto),
+    };
   }
 
-  @Post('prosesBisnis/:prosesBisnisId/members')
+  @Post('proses-bisnis/:prosesBisnisId/members')
   @HttpCode(HttpStatus.CREATED)
   async addMember(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('prosesBisnisId', ParseUUIDPipe) prosesBisnisId: string,
     @Body() dto: AddAnggotaProsesBisnisDto,
   ): Promise<ApiSuccessResponse<unknown>> {
-    return { message: 'Penyusun SOP berhasil ditambahkan', success: true, data: await this.service.tambahAnggotaTerdaftar(req.user.sub, prosesBisnisId, dto.penggunaId) };
+    return {
+      message: 'Penyusun SOP berhasil ditambahkan',
+      success: true,
+      data: await this.service.tambahAnggotaTerdaftar(req.user.sub, prosesBisnisId, dto.penggunaId),
+    };
   }
 
-  @Delete('prosesBisnis/:prosesBisnisId/members/:penggunaId')
+  @Delete('proses-bisnis/:prosesBisnisId/members/:penggunaId')
   @HttpCode(HttpStatus.NO_CONTENT)
   async hapusAnggota(
     @Req() req: Request & { user: JwtAccessPayload },
@@ -94,18 +118,24 @@ export class PenanggungJawabProsesBisnisController {
     await this.service.hapusAnggota(req.user.sub, prosesBisnisId, penggunaId);
   }
 
-  @Post('prosesBisnis/:prosesBisnisId/invitations')
+  @Post('proses-bisnis/:prosesBisnisId/invitations')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Tambahkan akun yang sudah ada atau buat undangan onboarding satu kali' })
+  @ApiOperation({
+    summary: 'Tambahkan akun yang sudah ada atau buat undangan onboarding satu kali',
+  })
   async undangAnggota(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('prosesBisnisId', ParseUUIDPipe) prosesBisnisId: string,
     @Body() dto: InviteAnggotaProsesBisnisDto,
   ): Promise<ApiSuccessResponse<unknown>> {
-    return { message: 'Onboarding Penyusun SOP berhasil dibuat', success: true, data: await this.service.undangAnggota(req.user.sub, prosesBisnisId, dto) };
+    return {
+      message: 'Onboarding Penyusun SOP berhasil dibuat',
+      success: true,
+      data: await this.service.undangAnggota(req.user.sub, prosesBisnisId, dto),
+    };
   }
 
-  @Post('prosesBisnis/:prosesBisnisId/archive')
+  @Post('proses-bisnis/:prosesBisnisId/archive')
   async archiveProsesBisnis(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('prosesBisnisId', ParseUUIDPipe) prosesBisnisId: string,
@@ -115,11 +145,15 @@ export class PenanggungJawabProsesBisnisController {
     return { message: 'Proses Bisnis berhasil diarsipkan', success: true, data: null };
   }
 
-  @Get('prosesBisnis/:prosesBisnisId/audit')
+  @Get('proses-bisnis/:prosesBisnisId/audit')
   async audit(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('prosesBisnisId', ParseUUIDPipe) prosesBisnisId: string,
   ): Promise<ApiSuccessResponse<unknown>> {
-    return { message: 'Audit Proses Bisnis berhasil diambil', success: true, data: await this.service.listRiwayatAktivitas(req.user.sub, prosesBisnisId) };
+    return {
+      message: 'Audit Proses Bisnis berhasil diambil',
+      success: true,
+      data: await this.service.listRiwayatAktivitas(req.user.sub, prosesBisnisId),
+    };
   }
 }

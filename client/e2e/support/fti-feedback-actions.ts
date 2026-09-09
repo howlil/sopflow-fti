@@ -28,7 +28,7 @@ export async function requestProsesBisnisRevisionViaApi(
   detailSopId: string,
   catatan?: string,
 ): Promise<void> {
-  await apiPost(ownerApi, `/sop-proses-bisnis/${detailSopId}/review`, {
+  await apiPost(ownerApi, `/prosesBisnis-sop/${detailSopId}/review`, {
     decision: 'REVISION',
     ...(catatan !== undefined ? { catatan } : {}),
   })

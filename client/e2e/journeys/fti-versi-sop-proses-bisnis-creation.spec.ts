@@ -49,7 +49,7 @@ test.describe('End-to-End Business Journey — Proses Bisnis version creation', 
     await test.step('Actor tanpa Proses Bisnis relationship tidak dapat membuat versi target', async () => {
       for (const deniedUser of [targetUsers.dean, targetUsers.departmentMember, targetUsers.admin]) {
         const api = await roleApi(deniedUser)
-        const response = await api.post(toApiUrl(`/sop-proses-bisnis/${v1.detailSopId}/version`))
+        const response = await api.post(toApiUrl(`/prosesBisnis-sop/${v1.detailSopId}/version`))
         expect(response.status()).toBe(403)
       }
     })
@@ -60,7 +60,7 @@ test.describe('End-to-End Business Journey — Proses Bisnis version creation', 
       })
       const memberApi = await roleApi(targetUsers.anggotaProsesBisnis)
       const ownerApi = await roleApi(targetUsers.penanggungJawabProsesBisnis)
-      const endpoint = toApiUrl(`/sop-proses-bisnis/${raceV1.detailSopId}/version`)
+      const endpoint = toApiUrl(`/prosesBisnis-sop/${raceV1.detailSopId}/version`)
       const responses = await Promise.all([memberApi.post(endpoint), ownerApi.post(endpoint)])
       expect(responses.map((response) => response.status()).sort()).toEqual([201, 409])
 

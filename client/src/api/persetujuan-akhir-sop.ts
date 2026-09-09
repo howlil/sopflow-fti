@@ -13,15 +13,15 @@ export const approvalQueueKey = ['persetujuan-proses-bisnis'] as const
 
 export const processApprovalApi = {
   list: (): Promise<ProsesBisnisApprovalQueueRowDto[]> =>
-    unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisApprovalQueueRowDto[]>>('/persetujuan-akhir-sop')),
+    unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisApprovalQueueRowDto[]>>('/persetujuan-proses-bisnis')),
   document: (detailSopId: string): Promise<ProsesBisnisApprovalDocumentDto> =>
     unwrapApiData(
       apiClient.get<ApiSuccessResponse<ProsesBisnisApprovalDocumentDto>>(
-        `/persetujuan-akhir-sop/${detailSopId}/document`,
+        `/persetujuan-proses-bisnis/${detailSopId}/document`,
       ),
     ),
   approve: (detailSopId: string): Promise<PersetujuanAkhirSOPDto> =>
-    unwrapApiData(apiClient.post<ApiSuccessResponse<PersetujuanAkhirSOPDto>>(`/persetujuan-akhir-sop/${detailSopId}/approve`)),
+    unwrapApiData(apiClient.post<ApiSuccessResponse<PersetujuanAkhirSOPDto>>(`/persetujuan-proses-bisnis/${detailSopId}/approve`)),
 }
 
 export function useProsesBisnisApprovalQueue() {

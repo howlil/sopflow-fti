@@ -20,11 +20,14 @@ export function HalamanPengelolaanProsesBisnis() {
     ownerAuthorities,
     isLoading,
     createDepartemen,
+    updateDepartemen,
     grantOwnerAuthority,
     revokeOwnerAuthority,
     isSaving,
   } = useProsesBisnisAdministration()
   const [namaDepartemen, setDepartemenName] = useState('')
+  const [editingDepartemenId, setEditingDepartemenId] = useState<string | null>(null)
+  const [editingDepartemenName, setEditingDepartemenName] = useState('')
   const [authority, setAuthority] = useState<GrantKewenanganPenanggungJawabProsesBisnisPayload>(EMPTY_AUTHORITY)
 
   const eligibleUsers = useMemo(
@@ -221,12 +224,66 @@ export function HalamanPengelolaanProsesBisnis() {
             </div>
             <div className="flex flex-wrap gap-2">
               {departemen.map((department) => (
-                <span
+                <div
                   key={department.departemenId}
-                  className="rounded-full border border-border px-2.5 py-1 text-xs text-secondary-foreground"
+                  className="flex items-center gap-1 rounded-full border border-border px-2 py-1"
                 >
-                  {department.nama}
-                </span>
+                  {editingDepartemenId === department.departemenId ? (
+                    <Input
+                      className="h-7 min-w-0 w-40 border-0 px-1 text-xs focus-visible:ring-0"
+                      value={editingDepartemenName}
+                      onChange={(event) => setEditingDepartemenName(event.target.value)}
+                      aria-label={`Nama ${department.nama}`}
+                    />
+                  ) : (
+                    <span className="px-0.5 text-xs text-secondary-foreground">{department.nama}</span>
+                  )}
+                  {editingDepartemenId === department.departemenId ? (
+                    <>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        disabled={editingDepartemenName.trim().length < 2 || isSaving}
+                        onClick={async () => {
+                          try {
+                            await updateDepartemen({
+                              departemenId: department.departemenId,
+                              nama: editingDepartemenName.trim(),
+                            })
+                            setEditingDepartemenId(null)
+                          } catch {
+                            // Toast already reports the error.
+                          }
+                        }}
+                      >
+                        Simpan
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => setEditingDepartemenId(null)}
+                      >
+                        Batal
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => {
+                        setEditingDepartemenId(department.departemenId)
+                        setEditingDepartemenName(department.nama)
+                      }}
+                    >
+                      Edit
+                    </Button>
+                  )}
+                </div>
               ))}
             </div>
           </div>

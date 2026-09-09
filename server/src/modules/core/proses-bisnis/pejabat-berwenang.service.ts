@@ -1,6 +1,11 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { PejabatBerwenang, LingkupOrganisasi } from '../../../generated/prisma';
+import { PejabatBerwenang, LingkupOrganisasi, PlatformRole } from '../../../generated/prisma';
 
 export interface ResolvedPejabatBerwenang {
   kunciPejabatBerwenang: string;
@@ -31,7 +36,13 @@ export class PejabatBerwenangService {
       orderBy: { kunciPejabatBerwenang: 'asc' },
     });
     const holderIds = [...new Set(assignments.map((assignment) => assignment.holderId))];
-    const departemenIds = [...new Set(assignments.flatMap((assignment) => assignment.departemenId ? [assignment.departemenId] : []))];
+    const departemenIds = [
+      ...new Set(
+        assignments.flatMap((assignment) =>
+          assignment.departemenId ? [assignment.departemenId] : [],
+        ),
+      ),
+    ];
     const [holders, departemen] = await Promise.all([
       this.prisma.pengguna.findMany({
         where: { penggunaId: { in: holderIds } },
@@ -43,11 +54,15 @@ export class PejabatBerwenangService {
       }),
     ]);
     const holderById = new Map(holders.map((holder) => [holder.penggunaId, holder]));
-    const departmentById = new Map(departemen.map((department) => [department.departemenId, department]));
+    const departmentById = new Map(
+      departemen.map((department) => [department.departemenId, department]),
+    );
     return assignments.map((assignment) => ({
       ...assignment,
       holder: holderById.get(assignment.holderId) ?? null,
-      departemen: assignment.departemenId ? departmentById.get(assignment.departemenId) ?? null : null,
+      departemen: assignment.departemenId
+        ? (departmentById.get(assignment.departemenId) ?? null)
+        : null,
     }));
   }
 
@@ -71,7 +86,10 @@ export class PejabatBerwenangService {
 
   async assignDepartemenHead(departemenId: string, holderId: string) {
     const [department] = await Promise.all([
-      this.prisma.departemen.findUnique({ where: { departemenId }, select: { departemenId: true } }),
+      this.prisma.departemen.findUnique({
+        where: { departemenId },
+        select: { departemenId: true },
+      }),
       this.assertActiveUser(holderId),
     ]);
     if (department === null) {
@@ -103,15 +121,20 @@ export class PejabatBerwenangService {
       throw new NotFoundException('Proses Bisnis tidak ditemukan');
     }
 
-    const authority = prosesBisnis.lingkup === LingkupOrganisasi.FACULTY
-      ? PejabatBerwenang.DEAN
-      : PejabatBerwenang.HEAD_OF_DEPARTMENT;
-    if (prosesBisnis.lingkup === LingkupOrganisasi.DEPARTMENT && prosesBisnis.departemenId === null) {
+    const authority =
+      prosesBisnis.lingkup === LingkupOrganisasi.FACULTY
+        ? PejabatBerwenang.DEAN
+        : PejabatBerwenang.HEAD_OF_DEPARTMENT;
+    if (
+      prosesBisnis.lingkup === LingkupOrganisasi.DEPARTMENT &&
+      prosesBisnis.departemenId === null
+    ) {
       throw new ConflictException('Proses Bisnis DEPARTMENT tidak memiliki konteks department');
     }
-    const kunciPejabatBerwenang = prosesBisnis.lingkup === LingkupOrganisasi.FACULTY
-      ? this.deanKey()
-      : this.departmentHeadKey(prosesBisnis.departemenId as string);
+    const kunciPejabatBerwenang =
+      prosesBisnis.lingkup === LingkupOrganisasi.FACULTY
+        ? this.deanKey()
+        : this.departmentHeadKey(prosesBisnis.departemenId as string);
 
     const assignment = await this.prisma.penugasanPejabatBerwenang.findUnique({
       where: { kunciPejabatBerwenang },
@@ -131,10 +154,10 @@ export class PejabatBerwenangService {
     }
     const holder = await this.prisma.pengguna.findFirst({
       where: { penggunaId: assignment.holderId, deletedAt: null },
-      select: { penggunaId: true, nama: true, nip: true, jabatan: true },
+      select: { penggunaId: true, nama: true, nip: true, jabatan: true, platformRole: true },
     });
-    if (holder === null) {
-      throw new ConflictException('Pemegang pejabat berwenang tidak aktif');
+    if (holder === null || holder.platformRole !== PlatformRole.USER) {
+      throw new ConflictException('Pemegang pejabat berwenang harus pengguna workflow aktif');
     }
     return {
       kunciPejabatBerwenang,
@@ -150,10 +173,15 @@ export class PejabatBerwenangService {
     };
   }
 
-  async assertCanApprove(userId: string, prosesBisnisId: string): Promise<ResolvedPejabatBerwenang> {
+  async assertCanApprove(
+    userId: string,
+    prosesBisnisId: string,
+  ): Promise<ResolvedPejabatBerwenang> {
     const resolved = await this.resolveForProsesBisnis(prosesBisnisId);
     if (resolved.holderId !== userId) {
-      throw new ForbiddenException('Anda bukan final approver untuk organizational lingkup Proses Bisnis ini');
+      throw new ForbiddenException(
+        'Anda bukan final approver untuk organizational lingkup Proses Bisnis ini',
+      );
     }
     return resolved;
   }
@@ -167,9 +195,15 @@ export class PejabatBerwenangService {
   }
 
   private async assertActiveUser(userId: string): Promise<void> {
-    const exists = await this.prisma.pengguna.count({ where: { penggunaId: userId, deletedAt: null } });
-    if (exists !== 1) {
+    const user = await this.prisma.pengguna.findFirst({
+      where: { penggunaId: userId, deletedAt: null },
+      select: { platformRole: true },
+    });
+    if (user === null) {
       throw new NotFoundException('Pengguna aktif tidak ditemukan');
+    }
+    if (user.platformRole !== PlatformRole.USER) {
+      throw new ConflictException('SUPER_ADMIN tidak digunakan sebagai pejabat berwenang workflow');
     }
   }
 }

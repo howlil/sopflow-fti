@@ -31,13 +31,13 @@ export async function seedProsesBisnisSopReadyForTte(
   const ownerApi = await apiFor(targetUsers.penanggungJawabProsesBisnis)
   const authorityApi = await apiFor(authorityUser)
 
-  await apiPost(ownerApi, `/sop-proses-bisnis/${sop.detailSopId}/review`, {
+  await apiPost(ownerApi, `/prosesBisnis-sop/${sop.detailSopId}/review`, {
     decision: 'ACCEPT',
   })
-  await apiPost(authorityApi, `/persetujuan-akhir-sop/${sop.detailSopId}/approve`)
+  await apiPost(authorityApi, `/persetujuan-proses-bisnis/${sop.detailSopId}/approve`)
   await ensureTteReady(authorityApi)
 
-  const rows = await apiGet<ApprovalRow[]>(authorityApi, '/persetujuan-akhir-sop')
+  const rows = await apiGet<ApprovalRow[]>(authorityApi, '/persetujuan-proses-bisnis')
   const row = rows.find((candidate) => candidate.detailSopId === sop.detailSopId)
   if (!row || row.approval === null) {
     throw new Error('Precondition Proses Bisnis TTE harus memiliki persetujuan akhir dan siap TTE')

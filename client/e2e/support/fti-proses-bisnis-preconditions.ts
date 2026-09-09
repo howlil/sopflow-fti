@@ -91,19 +91,20 @@ export async function seedReadyProsesBisnisSop(
     tahun: 2026,
     tentang: `Dasar hukum ProsesBisnis E2E ${fixture.suffix}`,
   })
-  const relatedSop = await apiPost<SopRow>(memberApi, '/sop', {
+  const relatedSop = await apiPost<SopRow>(memberApi, '/prosesBisnis-sop', {
+    prosesBisnisId: process.prosesBisnisId,
     judul: relatedFixture.title,
     nomorSop: relatedFixture.number,
     namaLembaga: institutionName,
   })
-  const sop = await apiPost<SopRow>(memberApi, '/sop-proses-bisnis', {
+  const sop = await apiPost<SopRow>(memberApi, '/prosesBisnis-sop', {
     prosesBisnisId: process.prosesBisnisId,
     judul: fixture.title,
     nomorSop: fixture.number,
     namaLembaga: institutionName,
   })
 
-  await apiPatch<Workbench>(memberApi, `/sop-proses-bisnis/header/${sop.detailSopId}`, {
+  await apiPatch<Workbench>(memberApi, `/prosesBisnis-sop/header/${sop.detailSopId}`, {
     namaLembaga: institutionName,
     dasarHukumPeraturanIds: [peraturan.id],
     sopTerkaitDetailIds: [relatedSop.detailSopId],
@@ -115,7 +116,7 @@ export async function seedReadyProsesBisnisSop(
     },
   })
 
-  await apiPatch<Workbench>(memberApi, `/sop/langkah/${sop.detailSopId}`, {
+  await apiPatch<Workbench>(memberApi, `/process-sop/langkah/${sop.detailSopId}`, {
     pelaksana: [{ pelaksanaId: pelaksana.id }],
     langkah: [
       {
@@ -156,7 +157,7 @@ export async function seedReadyProsesBisnisSop(
 
   const workbench = await apiGet<Workbench>(
     memberApi,
-    `/sop-proses-bisnis/workbench/${sop.detailSopId}`,
+    `/prosesBisnis-sop/workbench/${sop.detailSopId}`,
   )
   if (workbench.detail.status !== 'DRAFT') {
     throw new Error(`Precondition ProsesBisnis SOP harus tetap DRAFT, ditemukan ${workbench.detail.status}`)

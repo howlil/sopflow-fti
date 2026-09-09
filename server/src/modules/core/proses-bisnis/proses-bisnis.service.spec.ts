@@ -1,6 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { LingkupOrganisasi } from '../../../generated/prisma';
 import { ProsesBisnisRepository } from './proses-bisnis.repository';
 import { ProsesBisnisService } from './proses-bisnis.service';
 
@@ -12,13 +11,8 @@ describe('ProsesBisnisService', () => {
       | 'listDepartemen'
       | 'createDepartemen'
       | 'updateDepartemen'
-      | 'departmentExists'
       | 'listAssignableUsers'
-      | 'findActiveUsersByIds'
       | 'listProsesBisnis'
-      | 'findProsesBisnisById'
-      | 'createProsesBisnis'
-      | 'updateProsesBisnis'
     >
   >;
 
@@ -27,101 +21,47 @@ describe('ProsesBisnisService', () => {
       listDepartemen: jest.fn(),
       createDepartemen: jest.fn(),
       updateDepartemen: jest.fn(),
-      departmentExists: jest.fn(),
       listAssignableUsers: jest.fn(),
-      findActiveUsersByIds: jest.fn(),
       listProsesBisnis: jest.fn(),
-      findProsesBisnisById: jest.fn(),
-      createProsesBisnis: jest.fn(),
-      updateProsesBisnis: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ProsesBisnisService,
-        { provide: ProsesBisnisRepository, useValue: repository },
-      ],
+      providers: [ProsesBisnisService, { provide: ProsesBisnisRepository, useValue: repository }],
     }).compile();
 
     service = module.get(ProsesBisnisService);
   });
 
-  it('menolak FACULTY Proses Bisnis yang membawa departemenId', async () => {
-    await expect(
-      service.createProsesBisnis({
-        nama: 'Layanan TI',
-        lingkup: LingkupOrganisasi.FACULTY,
-        departemenId: '11111111-1111-4111-8111-111111111111',
-        penanggungJawabId: '22222222-2222-4222-8222-222222222222',
-        anggotaIds: ['33333333-3333-4333-8333-333333333333'],
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+  it('trims a new department before persistence', async () => {
+    repository.createDepartemen.mockResolvedValue({} as never);
+
+    await service.createDepartemen({ nama: '  Informatika  ' });
+
+    expect(repository.createDepartemen).toHaveBeenCalledWith('Informatika');
   });
 
-  it('menolak DEPARTMENT Proses Bisnis tanpa departemenId', async () => {
-    await expect(
-      service.createProsesBisnis({
-        nama: 'Tugas Akhir',
-        lingkup: LingkupOrganisasi.DEPARTMENT,
-        penanggungJawabId: '22222222-2222-4222-8222-222222222222',
-        anggotaIds: ['33333333-3333-4333-8333-333333333333'],
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+  it('rejects an empty department update', async () => {
+    await expect(service.updateDepartemen('department-1', {})).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(repository.updateDepartemen).not.toHaveBeenCalled();
   });
 
-  it('menolak Penanggung Jawab Proses Bisnis yang juga diduplikasi sebagai anggota', async () => {
-    const penanggungJawabId = '22222222-2222-4222-8222-222222222222';
+  it('renames a department through its existing id', async () => {
+    repository.updateDepartemen.mockResolvedValue({ departemenId: 'department-1' } as never);
 
-    await expect(
-      service.createProsesBisnis({
-        nama: 'Layanan TI',
-        lingkup: LingkupOrganisasi.FACULTY,
-        penanggungJawabId,
-        anggotaIds: [penanggungJawabId],
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    await service.updateDepartemen('department-1', { nama: '  Informatika Baru  ' });
+
+    expect(repository.updateDepartemen).toHaveBeenCalledWith('department-1', 'Informatika Baru');
   });
 
-  it('menolak team jika owner atau anggota bukan pengguna aktif', async () => {
-    repository.findActiveUsersByIds.mockResolvedValue([
-      { penggunaId: '22222222-2222-4222-8222-222222222222' },
-    ]);
+  it('delegates admin read models without exposing workflow mutations', async () => {
+    repository.listAssignableUsers.mockResolvedValue([]);
+    repository.listProsesBisnis.mockResolvedValue([]);
 
-    await expect(
-      service.createProsesBisnis({
-        nama: 'Layanan TI',
-        lingkup: LingkupOrganisasi.FACULTY,
-        penanggungJawabId: '22222222-2222-4222-8222-222222222222',
-        anggotaIds: ['33333333-3333-4333-8333-333333333333'],
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-  });
-
-  it('membuat DEPARTMENT Proses Bisnis dengan tepat satu owner dan anggota contextual', async () => {
-    const departemenId = '11111111-1111-4111-8111-111111111111';
-    const penanggungJawabId = '22222222-2222-4222-8222-222222222222';
-    const anggotaId = '33333333-3333-4333-8333-333333333333';
-    repository.departmentExists.mockResolvedValue(true);
-    repository.findActiveUsersByIds.mockResolvedValue([
-      { penggunaId: penanggungJawabId },
-      { penggunaId: anggotaId },
-    ]);
-    repository.createProsesBisnis.mockResolvedValue({} as never);
-
-    await service.createProsesBisnis({
-      nama: '  Tugas Akhir  ',
-      lingkup: LingkupOrganisasi.DEPARTMENT,
-      departemenId,
-      penanggungJawabId,
-      anggotaIds: [anggotaId],
-    });
-
-    expect(repository.createProsesBisnis).toHaveBeenCalledWith({
-      nama: 'Tugas Akhir',
-      lingkup: LingkupOrganisasi.DEPARTMENT,
-      departemenId,
-      penanggungJawabId,
-      anggotaIds: [anggotaId],
-    });
+    await expect(service.listAssignableUsers('owner')).resolves.toEqual([]);
+    await expect(service.listProsesBisnis()).resolves.toEqual([]);
+    expect(repository.listAssignableUsers).toHaveBeenCalledWith('owner');
+    expect(repository.listProsesBisnis).toHaveBeenCalledTimes(1);
   });
 });

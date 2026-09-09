@@ -14,12 +14,7 @@ import {
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { type ApiSuccessResponse, JwtAuthGuard, PlatformAdminGuard } from '../../../common';
 import { ACCESS_TOKEN_COOKIE_NAME } from '../auth/helpers/auth.shared';
-import {
-  CreateDepartemenDto,
-  CreateProsesBisnisDto,
-  UpdateDepartemenDto,
-  UpdateProsesBisnisDto,
-} from './dto/administrasi-proses-bisnis.dto';
+import { CreateDepartemenDto, UpdateDepartemenDto } from './dto/administrasi-proses-bisnis.dto';
 import { ProsesBisnisService } from './proses-bisnis.service';
 
 @ApiTags('Proses Bisnis Admin')
@@ -80,30 +75,6 @@ export class ProsesBisnisController {
       message: 'Daftar Proses Bisnis berhasil diambil',
       success: true,
       data: await this.prosesBisnisService.listProsesBisnis(),
-    };
-  }
-
-  @Post('proses-bisnis')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Buat Proses Bisnis dan Tim Proses Bisnis' })
-  async createProsesBisnis(@Body() dto: CreateProsesBisnisDto): Promise<ApiSuccessResponse<unknown>> {
-    return {
-      message: 'Proses Bisnis berhasil dibuat',
-      success: true,
-      data: await this.prosesBisnisService.createProsesBisnis(dto),
-    };
-  }
-
-  @Patch('prosesBisnis/:id')
-  @ApiOperation({ summary: 'Perbarui Proses Bisnis dan Tim Proses Bisnis' })
-  async updateProsesBisnis(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateProsesBisnisDto,
-  ): Promise<ApiSuccessResponse<unknown>> {
-    return {
-      message: 'Proses Bisnis berhasil diperbarui',
-      success: true,
-      data: await this.prosesBisnisService.updateProsesBisnis(id, dto),
     };
   }
 }

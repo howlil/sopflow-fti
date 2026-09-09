@@ -62,7 +62,7 @@ export function useSopSuspense(params?: SopListQueryParams) {
 }
 
 /**
- * GET `/sop-proses-bisnis/workbench/:detailSopId` — agregat detail + langkah + log.
+ * GET `/prosesBisnis-sop/workbench/:detailSopId` — agregat detail + langkah + log.
  * SOP aktif memakai ProsesBisnis authorization.
  */
 export function usePenyusunWorkbench(detailSopId: string | undefined) {

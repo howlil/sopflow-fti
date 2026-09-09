@@ -26,11 +26,11 @@ export async function seedProsesBisnisSopAwaitingOwnerReview(
   const sop = await seedReadyProsesBisnisSop(apiFor, prefix, options)
   const memberApi = await apiFor(actor)
 
-  await apiPost(memberApi, `/sop-proses-bisnis/${sop.detailSopId}/submit-review`)
+  await apiPost(memberApi, `/prosesBisnis-sop/${sop.detailSopId}/submit-review`)
 
   const workbench = await apiGet<Workbench>(
     memberApi,
-    `/sop-proses-bisnis/workbench/${sop.detailSopId}`,
+    `/prosesBisnis-sop/workbench/${sop.detailSopId}`,
   )
   if (workbench.detail.status !== 'PROCESS_REVIEW') {
     throw new Error(

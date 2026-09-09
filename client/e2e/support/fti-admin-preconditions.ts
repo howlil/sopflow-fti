@@ -65,7 +65,7 @@ export async function listAdminDepartemens(apiFor: RoleApiFactory): Promise<Depa
 }
 
 export async function listAdminProsesBisnises(apiFor: RoleApiFactory): Promise<ProsesBisnisAdminRow[]> {
-  return apiGet<ProsesBisnisAdminRow[]>(await adminApi(apiFor), '/administrasi-proses-bisnis/prosesBisnis')
+  return apiGet<ProsesBisnisAdminRow[]>(await adminApi(apiFor), '/administrasi-proses-bisnis/proses-bisnis')
 }
 
 export async function listMyProsesBisnises(
@@ -87,6 +87,42 @@ export async function createDepartemenViaAdminApi(
   name: string,
 ): Promise<DepartemenRow> {
   return apiPost<DepartemenRow>(await adminApi(apiFor), '/administrasi-proses-bisnis/departemen', { nama: name })
+}
+
+export async function grantOwnerAuthorityViaAdminApi(
+  apiFor: RoleApiFactory,
+  penggunaId: string,
+  lingkup: 'FACULTY' | 'DEPARTMENT',
+  departemenId: string | null,
+): Promise<void> {
+  await apiPost(await adminApi(apiFor), '/administrasi-proses-bisnis/owner-authorities', {
+    penggunaId,
+    lingkup,
+    departemenId,
+  })
+}
+
+export async function createProsesBisnisViaOwnerApi(
+  apiFor: RoleApiFactory,
+  owner: E2eUser,
+  input: { nama: string; lingkup: 'FACULTY' | 'DEPARTMENT'; departemenId: string | null },
+): Promise<ProsesBisnisAdminRow> {
+  return apiPost<ProsesBisnisAdminRow>(
+    await apiFor(owner),
+    '/penanggung-jawab-proses-bisnis/proses-bisnis',
+    input,
+  )
+}
+
+export async function addProcessMemberViaOwnerApi(
+  apiFor: RoleApiFactory,
+  owner: E2eUser,
+  prosesBisnisId: string,
+  penggunaId: string,
+): Promise<void> {
+  await apiPost(await apiFor(owner), `/penanggung-jawab-proses-bisnis/proses-bisnis/${prosesBisnisId}/members`, {
+    penggunaId,
+  })
 }
 
 export async function assignDeanViaAdminApi(

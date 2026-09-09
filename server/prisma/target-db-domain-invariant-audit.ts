@@ -30,6 +30,20 @@ async function count(sql: string): Promise<number> {
 
 async function run(): Promise<void> {
   const violations = {
+    invalidWorkflowIdentity: await count(`
+      SELECT COUNT(*) AS count
+      FROM (
+        SELECT p.ownerId AS penggunaId FROM Process p
+        UNION ALL
+        SELECT m.penggunaId FROM ProcessMember m
+        UNION ALL
+        SELECT a.holderId FROM OrganizationalAuthorityAssignment a
+        UNION ALL
+        SELECT o.penggunaId FROM ProcessOwnerAuthority o
+      ) workflow_identity
+      JOIN Pengguna u ON u.penggunaId = workflow_identity.penggunaId
+      WHERE u.platformRole <> 'USER'
+    `),
     activeSopWithoutProcess: await count(`
       SELECT COUNT(*) AS count
       FROM DetailSOP d

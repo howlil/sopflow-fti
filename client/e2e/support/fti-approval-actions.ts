@@ -68,7 +68,7 @@ export async function approveProsesBisnisSopViaUi(
   authorityLabel: string,
 ): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Persetujuan Akhir' })).toBeVisible()
-  const titleHeading = page.getByRole('heading', { name: title, exact: true })
+  const titleHeading = page.getByText(title, { exact: true })
   await expect(titleHeading).toBeVisible()
 
   const pendingRow = titleHeading.locator(
@@ -89,7 +89,7 @@ export async function approveProsesBisnisSopViaUi(
   // Approval rerenders the row and removes the Setujui button. Reacquire the
   // post-transition row from its new stable action instead of reusing a locator
   // whose predicate describes the previous state.
-  const approvedHeading = page.getByRole('heading', { name: title, exact: true })
+  const approvedHeading = page.getByText(title, { exact: true })
   const approvedRow = approvedHeading.locator(
     'xpath=ancestor::div[.//button[normalize-space(.)="Tanda tangani"]][1]',
   )

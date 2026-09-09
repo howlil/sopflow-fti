@@ -17,7 +17,9 @@ export async function createPlatformAccountViaAdminUi(
 ): Promise<void> {
   await page.goto('/admin/accounts')
   await waitForAppReady(page)
-  await expect(page.getByRole('heading', { name: 'Akun FTI', exact: true })).toBeVisible()
+  await expect(
+    page.locator('#main-content').getByRole('heading', { name: 'Akun FTI', exact: true }),
+  ).toBeVisible()
 
   await page.getByLabel('Nama', { exact: true }).fill(input.nama)
   await page.getByLabel('NIP', { exact: true }).fill(input.nip)
@@ -32,52 +34,18 @@ export async function createPlatformAccountViaAdminUi(
   await expectNoAppShellError(page)
 }
 
-export interface AdminProsesBisnisUiInput {
-  namaDepartemen: string
-  namaProsesBisnis: string
-  ownerLabel: string
-  memberLabels: string[]
-}
-
-export async function createDepartemenProsesBisnisViaAdminUi(
+export async function createDepartemenViaAdminUi(
   page: Page,
-  input: AdminProsesBisnisUiInput,
+  namaDepartemen: string,
 ): Promise<void> {
   await page.goto('/admin/proses-bisnis')
   await waitForAppReady(page)
-  await expect(page.getByRole('heading', { name: 'Proses Bisnis FTI', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Governance Proses Bisnis', exact: true })).toBeVisible()
 
-  const departmentInput = page.getByPlaceholder('Nama departemen')
-  await departmentInput.fill(input.namaDepartemen)
+  const departmentInput = page.getByPlaceholder('Nama jurusan')
+  await departmentInput.fill(namaDepartemen)
   await page.getByRole('button', { name: 'Tambah', exact: true }).click()
-  await expect(page.getByText(input.namaDepartemen, { exact: true })).toBeVisible({ timeout: 15_000 })
-
-  await page.getByLabel('Nama Proses Bisnis').fill(input.namaProsesBisnis)
-  await page.getByLabel('Lingkup').selectOption('DEPARTMENT')
-  await page.getByLabel('Departemen').selectOption({ label: input.namaDepartemen })
-  const ownerSelect = page
-    .locator('label')
-    .filter({ has: page.locator('select') })
-    .filter({ hasText: 'Penanggung Jawab Proses Bisnis' })
-    .locator('select')
-  await ownerSelect.selectOption({ label: input.ownerLabel })
-
-  await expect(
-    page.getByRole('checkbox', { name: input.ownerLabel, exact: true }),
-    'Penanggung Jawab Proses Bisnis tidak boleh ditawarkan lagi sebagai Member',
-  ).toHaveCount(0)
-
-  for (const memberLabel of input.memberLabels) {
-    await page.getByRole('checkbox', { name: memberLabel, exact: true }).check()
-  }
-
-  await page.getByRole('button', { name: 'Buat Proses Bisnis', exact: true }).click()
-
-  const processHeading = page.getByRole('heading', { name: input.namaProsesBisnis, exact: true })
-  await expect(processHeading).toBeVisible({ timeout: 15_000 })
-  const row = processHeading.locator('xpath=ancestor::div[.//button[normalize-space(.)="Edit"]][1]')
-  await expect(row).toContainText(input.namaDepartemen)
-  await expect(row).toContainText(`${input.memberLabels.length} anggota`)
+  await expect(page.getByText(namaDepartemen, { exact: true })).toBeVisible({ timeout: 15_000 })
   await expectNoAppShellError(page)
 }
 

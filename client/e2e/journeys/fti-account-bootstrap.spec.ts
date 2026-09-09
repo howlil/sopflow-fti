@@ -3,7 +3,7 @@ import { targetUsers } from '../fixtures/users'
 import { apiGet, toApiUrl } from '../support/api'
 import { waitForAppReady } from '../support/app'
 import {
-  createDepartemenProsesBisnisViaAdminUi,
+  createDepartemenViaAdminUi,
   createPlatformAccountViaAdminUi,
   assignDepartemenHeadViaAdminUi,
 } from '../support/fti-admin-actions'
@@ -16,8 +16,13 @@ import {
 } from '../support/fti-account-preconditions'
 import {
   adminApi,
+  addProcessMemberViaOwnerApi,
+  createProsesBisnisViaOwnerApi,
+  grantOwnerAuthorityViaAdminApi,
+  listAdminDepartemens,
   listMyAuthorities,
   listMyProsesBisnises,
+  requireDepartemen,
 } from '../support/fti-admin-preconditions'
 import {
   acceptProsesBisnisSopViaUi,
@@ -109,8 +114,8 @@ test.describe('End-to-End Business Journey — FTI account provisioning bootstra
     const namaDepartemen = `M7 Dept ${suffix}`
     const namaProsesBisnis = `M7 ProsesBisnis ${suffix}`
 
-    await createPlatformAccountViaApi(roleApi, ownerFixture)
-    await createPlatformAccountViaApi(roleApi, memberFixture)
+    const ownerAccount = await createPlatformAccountViaApi(roleApi, ownerFixture)
+    const memberAccount = await createPlatformAccountViaApi(roleApi, memberFixture)
     await createPlatformAccountViaApi(roleApi, unrelatedFixture)
 
     const owner = toDynamicE2eUser(ownerFixture, 'M7 J25 Penanggung Jawab Proses Bisnis')
@@ -124,14 +129,20 @@ test.describe('End-to-End Business Journey — FTI account provisioning bootstra
       expect(assignable.some((row) => row.email === memberFixture.email)).toBe(true)
     })
 
-    await test.step('SUPER_ADMIN membuat Proses Bisnis dengan fresh Owner dan Member melalui UI', async () => {
+    await test.step('SUPER_ADMIN membuat Departemen melalui UI governance', async () => {
       const admin = await roleSession(targetUsers.admin)
-      await createDepartemenProsesBisnisViaAdminUi(admin.page, {
-        namaDepartemen,
-        namaProsesBisnis,
-        ownerLabel: platformAccountLabel(ownerFixture),
-        memberLabels: [platformAccountLabel(memberFixture)],
+      await createDepartemenViaAdminUi(admin.page, namaDepartemen)
+    })
+
+    await test.step('Admin memberi lingkup; fresh Owner membuat Process dan menambah Member', async () => {
+      const department = requireDepartemen(await listAdminDepartemens(roleApi), namaDepartemen)
+      await grantOwnerAuthorityViaAdminApi(roleApi, ownerAccount.penggunaId, 'DEPARTMENT', department.departemenId)
+      const process = await createProsesBisnisViaOwnerApi(roleApi, owner, {
+        nama: namaProsesBisnis,
+        lingkup: 'DEPARTMENT',
+        departemenId: department.departemenId,
       })
+      await addProcessMemberViaOwnerApi(roleApi, owner, process.prosesBisnisId, memberAccount.penggunaId)
     })
 
     await test.step('Proses Bisnis relationship langsung tersedia hanya bagi identity yang ditugaskan', async () => {
@@ -175,9 +186,7 @@ test.describe('End-to-End Business Journey — FTI account provisioning bootstra
       const admin = await roleSession(targetUsers.admin)
       await admin.page.goto('/admin/proses-bisnis')
       await waitForAppReady(admin.page)
-      await admin.page.getByPlaceholder('Nama departemen').fill(namaDepartemen)
-      await admin.page.getByRole('button', { name: 'Tambah', exact: true }).click()
-      await expect(admin.page.getByText(namaDepartemen, { exact: true })).toBeVisible({ timeout: 15_000 })
+      await createDepartemenViaAdminUi(admin.page, namaDepartemen)
 
       await assignDepartemenHeadViaAdminUi(
         admin.page,
@@ -210,27 +219,33 @@ test.describe('End-to-End Business Journey — FTI account provisioning bootstra
     const namaDepartemen = `M7 Zero Dept ${suffix}`
     const namaProsesBisnis = `M7 Zero ProsesBisnis ${suffix}`
 
-    await createPlatformAccountViaApi(roleApi, ownerFixture)
-    await createPlatformAccountViaApi(roleApi, memberFixture)
+    const ownerAccount = await createPlatformAccountViaApi(roleApi, ownerFixture)
+    const memberAccount = await createPlatformAccountViaApi(roleApi, memberFixture)
     await createPlatformAccountViaApi(roleApi, headFixture)
 
     const owner = toDynamicE2eUser(ownerFixture, 'M7 J27 Penanggung Jawab Proses Bisnis')
     const anggota = toDynamicE2eUser(memberFixture, 'M7 J27 Anggota Proses Bisnis')
     const head = toDynamicE2eUser(headFixture, 'M7 J27 Head of Departemen')
 
-    await test.step('Bootstrap admin membuat Departemen, Tim Proses Bisnis, dan Kadep dari fresh accounts', async () => {
+    await test.step('Bootstrap admin membuat Departemen dan Kadep dari fresh accounts', async () => {
       const admin = await roleSession(targetUsers.admin)
-      await createDepartemenProsesBisnisViaAdminUi(admin.page, {
-        namaDepartemen,
-        namaProsesBisnis,
-        ownerLabel: platformAccountLabel(ownerFixture),
-        memberLabels: [platformAccountLabel(memberFixture)],
-      })
+      await createDepartemenViaAdminUi(admin.page, namaDepartemen)
       await assignDepartemenHeadViaAdminUi(
         admin.page,
         namaDepartemen,
         platformAccountLabel(headFixture),
       )
+    })
+
+    await test.step('Admin memberi lingkup; fresh Owner membuat Process dan menambah Member', async () => {
+      const department = requireDepartemen(await listAdminDepartemens(roleApi), namaDepartemen)
+      await grantOwnerAuthorityViaAdminApi(roleApi, ownerAccount.penggunaId, 'DEPARTMENT', department.departemenId)
+      const process = await createProsesBisnisViaOwnerApi(roleApi, owner, {
+        nama: namaProsesBisnis,
+        lingkup: 'DEPARTMENT',
+        departemenId: department.departemenId,
+      })
+      await addProcessMemberViaOwnerApi(roleApi, owner, process.prosesBisnisId, memberAccount.penggunaId)
     })
 
     const sop = await seedReadyProsesBisnisSop(roleApi, 'J27-ZERO', {

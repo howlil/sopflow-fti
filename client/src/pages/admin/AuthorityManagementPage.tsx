@@ -28,6 +28,10 @@ export function AuthorityManagementPage() {
       ),
     [configuration],
   )
+  const eligibleUsers = useMemo(
+    () => users.filter((user) => user.platformRole === 'USER'),
+    [users],
+  )
   const isLoading = isProsesBisnisAdminLoading || isAuthorityLoading
 
   return (
@@ -63,7 +67,7 @@ export function AuthorityManagementPage() {
                   }}
                 >
                   <option value="">Belum dikonfigurasi</option>
-                  {users.map((user) => (
+                  {eligibleUsers.map((user) => (
                     <option key={user.penggunaId} value={user.penggunaId}>
                       {user.nama} · {user.email}
                     </option>
@@ -109,7 +113,7 @@ export function AuthorityManagementPage() {
                       }}
                     >
                       <option value="">Belum dikonfigurasi</option>
-                      {users.map((user) => (
+                      {eligibleUsers.map((user) => (
                         <option key={user.penggunaId} value={user.penggunaId}>
                           {user.nama} · {user.email}
                         </option>

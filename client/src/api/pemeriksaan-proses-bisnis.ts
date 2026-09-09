@@ -14,7 +14,7 @@ export const pemeriksaanProsesBisnisApi = {
   submit: (detailOrSopId: string) =>
     unwrapApiData(
       apiClient.post<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/sop-proses-bisnis/${detailOrSopId}/submit-review`,
+        `/prosesBisnis-sop/${detailOrSopId}/submit-review`,
       ),
     ),
 
@@ -25,7 +25,7 @@ export const pemeriksaanProsesBisnisApi = {
   ) =>
     unwrapApiData(
       apiClient.post<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/sop-proses-bisnis/${detailOrSopId}/review`,
+        `/prosesBisnis-sop/${detailOrSopId}/review`,
         {
           decision,
           ...(catatan !== undefined ? { catatan } : {}),
