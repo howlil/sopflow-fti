@@ -17,7 +17,7 @@ describe('SopCatalogService', () => {
     return new SopCatalogService(repository);
   }
 
-  function workbench(status: StatusSOP, prosesBisnisId: string | null = 'process-a'): SopWorkbenchDbPayload {
+  function workbench(status: StatusSOP): SopWorkbenchDbPayload {
     const now = new Date('2026-09-06T00:00:00.000Z');
     return {
       detailSopId: 'detail-1',
@@ -37,7 +37,7 @@ describe('SopCatalogService', () => {
       updatedAt: now,
       sop: {
         sopId: 'sop-1',
-        prosesBisnisId,
+        prosesBisnisId: 'process-a',
         judul: 'SOP Native',
         createdAt: now,
         updatedAt: now,
@@ -75,17 +75,7 @@ describe('SopCatalogService', () => {
     );
   });
 
-  it('rejects an effective imported-unbound document from first-party public discovery', async () => {
-    repository.findWorkbenchPayloadByDetailOrSopId.mockResolvedValue(
-      workbench(StatusSOP.EFFECTIVE, null),
-    );
-
-    await expect(createService().getPublicDokumenBerlaku('detail-1')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-  });
-
-  it('returns only an effective Proses Bisnis-bound document', async () => {
+  it('returns an effective Proses Bisnis document', async () => {
     repository.findWorkbenchPayloadByDetailOrSopId.mockResolvedValue(workbench(StatusSOP.EFFECTIVE));
 
     const result = await createService().getPublicDokumenBerlaku('detail-1');

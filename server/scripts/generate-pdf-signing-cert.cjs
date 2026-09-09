@@ -1,10 +1,7 @@
 const forge = require('node-forge');
 const crypto = require('crypto');
 
-const passphrase =
-  process.argv[2] ??
-  process.env.PDF_SIGNING_P12_PASSPHRASE ??
-  crypto.randomBytes(16).toString('hex');
+const passphrase = process.argv[2] ?? process.env.P12_PASSPHRASE ?? crypto.randomBytes(16).toString('hex');
 
 const now = new Date();
 const validFrom = new Date(now.getTime() - 5 * 60 * 1000);
@@ -76,6 +73,5 @@ const p12Asn1 = forge.pkcs12.toPkcs12Asn1(signingKeys.privateKey, [signingCert, 
 const p12Der = forge.asn1.toDer(p12Asn1).getBytes();
 const p12Base64 = Buffer.from(p12Der, 'binary').toString('base64');
 
-console.log('PDF_SIGNING_ENABLED=true');
-console.log(`PDF_SIGNING_P12_PASSPHRASE=${passphrase}`);
-console.log(`PDF_SIGNING_P12_BASE64=${p12Base64}`);
+console.log(`P12_PASSPHRASE=${passphrase}`);
+console.log(`P12_BASE64=${p12Base64}`);

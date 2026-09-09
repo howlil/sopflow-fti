@@ -29,11 +29,6 @@ const optionalUrl = z.preprocess((val) => {
   return normalized === '' ? undefined : normalized;
 }, z.string().url().optional());
 
-const optionalTrimmedString = z.preprocess((val) => {
-  const normalized = trimmedEnvironmentString(val);
-  return normalized === '' ? undefined : normalized;
-}, z.string().optional());
-
 const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -72,14 +67,8 @@ const envSchema = z
       trimmedEnvironmentString,
       z.string().min(32, 'TTE_ENCRYPTION_SECRET minimal 32 karakter'),
     ),
-    /**
-     * Menonaktifkan pembuatan signature baru tanpa mematikan endpoint verifikasi.
-     * P12 signing utama berasal dari kredensial personal pengguna, bukan P12 global server.
-     */
+    /** Menonaktifkan pembuatan signature baru tanpa mematikan endpoint verifikasi. */
     PDF_SIGNING_ENABLED: envBoolean(true),
-    /** Legacy global P12 input; tidak diwajibkan untuk signing personal. */
-    PDF_SIGNING_P12_BASE64: optionalTrimmedString,
-    PDF_SIGNING_P12_PASSPHRASE: z.string().default(''),
     PDF_SIGNING_REASON: z.string().default('Pengesahan dokumen SOP'),
     PDF_SIGNING_LOCATION: z.string().default('Indonesia'),
     PDF_SIGNING_CONTACT: z.string().default(''),

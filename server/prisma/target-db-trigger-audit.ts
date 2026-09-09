@@ -38,9 +38,6 @@ const expectedTriggerNames = new Set([
   'trg_process_scope_department_update',
   'trg_sop_terkait_insert',
   'trg_sop_terkait_update',
-  'trg_detailsop_active_process_insert',
-  'trg_detailsop_active_process_update',
-  'trg_sop_active_process_update',
   'trg_process_review_contract_insert',
   'trg_process_review_contract_update',
   'trg_authority_assignment_contract_insert',
@@ -80,7 +77,6 @@ const semanticRequirements: Record<string, string[]> = {
   trg_process_member_identity_insert: ['`penggunaId`', '`platformRole`', "'USER'"],
   trg_authority_holder_identity_insert: ['`holderId`', '`platformRole`', "'USER'"],
   trg_process_owner_authority_identity_insert: ['`penggunaId`', '`platformRole`', "'USER'"],
-  trg_detailsop_active_process_insert: ["'DRAFT'", "'TTE_PENDING'", '`processId`'],
 };
 
 async function run(): Promise<void> {

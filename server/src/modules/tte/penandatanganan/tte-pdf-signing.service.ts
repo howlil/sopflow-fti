@@ -93,11 +93,14 @@ export type PdfSignatureVerificationEntryWithTteMatch = PdfSignatureVerification
 };
 
 type PdfSigningConfig = {
-  readonly p12Base64?: string;
-  readonly passphrase: string;
   readonly reason: string;
   readonly location: string;
   readonly contactInfo: string;
+};
+
+type PersonalPdfSigningConfig = PdfSigningConfig & {
+  readonly p12Base64: string;
+  readonly passphrase: string;
 };
 
 const PDF_VERIFICATION_DISCLAIMER =
@@ -275,7 +278,7 @@ export class TtePdfSigningService {
 
   private async applyPkcs7Signature(
     pdfBuffer: Buffer,
-    config: PdfSigningConfig & { p12Base64: string },
+    config: PersonalPdfSigningConfig,
     placeholder: { name: string; reason: string },
   ): Promise<{ response: SignPdfResponse; riwayatMetadata: PdfSignatureMetadataInput }> {
     const p12Buffer = Buffer.from(config.p12Base64, 'base64');
@@ -342,10 +345,7 @@ export class TtePdfSigningService {
   }
 
   private getConfig(): PdfSigningConfig {
-    const p12Raw = this.configService.get<string>('PDF_SIGNING_P12_BASE64');
     return {
-      p12Base64: typeof p12Raw === 'string' && p12Raw.trim() !== '' ? p12Raw.trim() : undefined,
-      passphrase: this.configService.get<string>('PDF_SIGNING_P12_PASSPHRASE', ''),
       reason: this.configService.get<string>('PDF_SIGNING_REASON', 'Pengesahan dokumen SOP'),
       location: this.configService.get<string>('PDF_SIGNING_LOCATION', 'Indonesia'),
       contactInfo: this.configService.get<string>('PDF_SIGNING_CONTACT', ''),

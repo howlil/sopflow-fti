@@ -30,8 +30,8 @@ import {
 } from './sop-proses-bisnis-siklus.projection';
 
 type ProsesBisnisAwareSopRow = SopDaftarRowDto & {
-  prosesBisnisId: string | null;
-  namaProsesBisnis: string | null;
+  prosesBisnisId: string;
+  namaProsesBisnis: string;
   siklus: ProsesBisnisSopLifecycleProjection;
 };
 
@@ -63,15 +63,15 @@ export class ProsesBisnisSopAuthoringService {
       this.sopCatalogRepository.findDaftarAll(filters),
     ]);
 
-    const prosesBisnisById = new Map(prosesBisnisSaya.map((prosesBisnis) => [prosesBisnis.prosesBisnisId, prosesBisnis]));
+    const prosesBisnisById = new Map(
+      prosesBisnisSaya.map((prosesBisnis) => [prosesBisnis.prosesBisnisId, prosesBisnis]),
+    );
     const prosesBisnisBySop = new Map(
-      allNativeSops
-        .filter((sop): sop is typeof sop & { prosesBisnisId: string } => sop.prosesBisnisId !== null)
-        .map((sop) => [sop.sopId, sop.prosesBisnisId]),
+      allNativeSops.map((sop) => [sop.sopId, sop.prosesBisnisId]),
     );
     const accessibleTargetSopIds = new Set(
       allNativeSops
-        .filter((sop) => sop.prosesBisnisId !== null && prosesBisnisById.has(sop.prosesBisnisId))
+        .filter((sop) => prosesBisnisById.has(sop.prosesBisnisId))
         .map((sop) => sop.sopId),
     );
 
@@ -115,7 +115,12 @@ export class ProsesBisnisSopAuthoringService {
           ? []
           : this.prisma.penugasanPejabatBerwenang.findMany({
               where: { kunciPejabatBerwenang: { in: authorityKeys } },
-              select: { kunciPejabatBerwenang: true, authority: true, departemenId: true, holderId: true },
+              select: {
+                kunciPejabatBerwenang: true,
+                authority: true,
+                departemenId: true,
+                holderId: true,
+              },
             }),
       ]);
     const approvalIds = new Set(approvals.map((approval) => approval.detailSopId));
@@ -135,50 +140,55 @@ export class ProsesBisnisSopAuthoringService {
           });
     const holderById = new Map(holders.map((holder) => [holder.penggunaId, holder]));
 
-    const additionalTargetRows: ProsesBisnisAwareSopRow[] = accessibleRows.map(({ row, prosesBisnisId }) => {
-      const prosesBisnis = prosesBisnisById.get(prosesBisnisId);
-      if (prosesBisnis === undefined) {
-        throw new Error('Proses Bisnis disappeared while projecting Proses Bisnis SOP siklus');
-      }
-      const mapped = mapDaftarRow(row);
-      const detailSopId = mapped.detailSopId ?? mapped.id;
-      const kunciPejabatBerwenang =
-        prosesBisnis.lingkup === LingkupOrganisasi.FACULTY
-          ? 'DEAN'
-          : prosesBisnis.departemenId === null
-            ? null
-            : `HEAD_OF_DEPARTMENT:${prosesBisnis.departemenId}`;
-      const assignment = kunciPejabatBerwenang === null ? undefined : assignmentByKey.get(kunciPejabatBerwenang);
-      const expectedAuthority =
-        prosesBisnis.lingkup === LingkupOrganisasi.FACULTY
-          ? PejabatBerwenang.DEAN
-          : PejabatBerwenang.HEAD_OF_DEPARTMENT;
-      const isConsistentAuthority =
-        assignment !== undefined &&
-        assignment.authority === expectedAuthority &&
-        assignment.departemenId === prosesBisnis.departemenId;
-      const holder = assignment === undefined ? undefined : holderById.get(assignment.holderId);
-      return {
-        ...mapped,
-        prosesBisnisId: prosesBisnis.prosesBisnisId,
-        namaProsesBisnis: prosesBisnis.nama,
-        siklus: projectProsesBisnisSopLifecycle({
-          status: mapped.status,
-          approvalExists: approvalIds.has(detailSopId),
-          currentUserId: user.sub,
-          detailSopId,
-          prosesBisnis: {
-            lingkup: prosesBisnis.lingkup,
-            penanggungJawabId: prosesBisnis.penanggungJawabId,
-            namaPenanggungJawab: prosesBisnis.penanggungJawab?.nama ?? null,
-            namaDepartemen: prosesBisnis.departemen?.nama ?? null,
-          },
-          authority: !isConsistentAuthority
-            ? null
-            : { holderId: assignment.holderId, holderName: holder?.nama ?? null },
-        }),
-      };
-    });
+    const additionalTargetRows: ProsesBisnisAwareSopRow[] = accessibleRows.map(
+      ({ row, prosesBisnisId }) => {
+        const prosesBisnis = prosesBisnisById.get(prosesBisnisId);
+        if (prosesBisnis === undefined) {
+          throw new Error('Proses Bisnis disappeared while projecting Proses Bisnis SOP siklus');
+        }
+        const mapped = mapDaftarRow(row);
+        const detailSopId = mapped.detailSopId ?? mapped.id;
+        const kunciPejabatBerwenang =
+          prosesBisnis.lingkup === LingkupOrganisasi.FACULTY
+            ? 'DEAN'
+            : prosesBisnis.departemenId === null
+              ? null
+              : `HEAD_OF_DEPARTMENT:${prosesBisnis.departemenId}`;
+        const assignment =
+          kunciPejabatBerwenang === null
+            ? undefined
+            : assignmentByKey.get(kunciPejabatBerwenang);
+        const expectedAuthority =
+          prosesBisnis.lingkup === LingkupOrganisasi.FACULTY
+            ? PejabatBerwenang.DEAN
+            : PejabatBerwenang.HEAD_OF_DEPARTMENT;
+        const isConsistentAuthority =
+          assignment !== undefined &&
+          assignment.authority === expectedAuthority &&
+          assignment.departemenId === prosesBisnis.departemenId;
+        const holder = assignment === undefined ? undefined : holderById.get(assignment.holderId);
+        return {
+          ...mapped,
+          prosesBisnisId: prosesBisnis.prosesBisnisId,
+          namaProsesBisnis: prosesBisnis.nama,
+          siklus: projectProsesBisnisSopLifecycle({
+            status: mapped.status,
+            approvalExists: approvalIds.has(detailSopId),
+            currentUserId: user.sub,
+            detailSopId,
+            prosesBisnis: {
+              lingkup: prosesBisnis.lingkup,
+              penanggungJawabId: prosesBisnis.penanggungJawabId,
+              namaPenanggungJawab: prosesBisnis.penanggungJawab?.nama ?? null,
+              namaDepartemen: prosesBisnis.departemen?.nama ?? null,
+            },
+            authority: !isConsistentAuthority
+              ? null
+              : { holderId: assignment.holderId, holderName: holder?.nama ?? null },
+          }),
+        };
+      },
+    );
 
     return additionalTargetRows.sort((a, b) => {
       const aTime = a.terakhirDiperbarui ?? '';
@@ -187,8 +197,14 @@ export class ProsesBisnisSopAuthoringService {
     });
   }
 
-  async create(user: JwtAccessPayload, dto: CreateProsesBisnisSopDto): Promise<ProsesBisnisAwareSopRow> {
-    const prosesBisnis = await this.konteksProsesBisnisService.assertCanAuthor(user.sub, dto.prosesBisnisId);
+  async create(
+    user: JwtAccessPayload,
+    dto: CreateProsesBisnisSopDto,
+  ): Promise<ProsesBisnisAwareSopRow> {
+    const prosesBisnis = await this.konteksProsesBisnisService.assertCanAuthor(
+      user.sub,
+      dto.prosesBisnisId,
+    );
 
     const namaLembaga = dto.namaLembaga?.trim() ?? '';
     let sopId: string;
@@ -252,12 +268,10 @@ export class ProsesBisnisSopAuthoringService {
     logsLimit?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
     const context = await this.resolveProsesBisnisContext(detailOrSopId);
-    if (context.prosesBisnisId === null) {
-      throw new ConflictException(
-        'SOP belum memiliki Penanggung Jawab kepemilikan Proses Bisnis dan tidak tersedia pada endpoint native',
-      );
-    }
-    const prosesBisnis = await this.konteksProsesBisnisService.assertCanAuthor(user.sub, context.prosesBisnisId);
+    const prosesBisnis = await this.konteksProsesBisnisService.assertCanAuthor(
+      user.sub,
+      context.prosesBisnisId,
+    );
     const workbench = await this.sopWorkbenchReader.getForDetail(
       context.resolved.detailSopId,
       logsLimit,
@@ -276,12 +290,10 @@ export class ProsesBisnisSopAuthoringService {
     logsLimit?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
     const context = await this.resolveProsesBisnisContext(detailOrSopId);
-    if (context.prosesBisnisId === null) {
-      throw new ConflictException(
-        'SOP belum memiliki Penanggung Jawab kepemilikan Proses Bisnis dan tidak tersedia pada endpoint native',
-      );
-    }
-    const prosesBisnis = await this.konteksProsesBisnisService.assertCanAuthor(user.sub, context.prosesBisnisId);
+    const prosesBisnis = await this.konteksProsesBisnisService.assertCanAuthor(
+      user.sub,
+      context.prosesBisnisId,
+    );
     const statusContext = await this.sopCatalogRepository.findLatestDetailStatusContext(
       context.resolved.detailSopId,
     );
@@ -327,11 +339,6 @@ export class ProsesBisnisSopAuthoringService {
 
   async deleteVersionDraft(user: JwtAccessPayload, detailSopId: string): Promise<void> {
     const context = await this.resolveProsesBisnisContext(detailSopId);
-    if (context.prosesBisnisId === null) {
-      throw new ConflictException(
-        'SOP belum memiliki Penanggung Jawab kepemilikan Proses Bisnis dan tidak tersedia pada endpoint native',
-      );
-    }
     await this.konteksProsesBisnisService.assertCanAuthor(user.sub, context.prosesBisnisId);
     assertSopCatalogRepoOk(
       await this.sopCatalogRepository.deleteVersiDraft(context.resolved.detailSopId),
@@ -340,11 +347,6 @@ export class ProsesBisnisSopAuthoringService {
 
   async deleteInitialDraft(user: JwtAccessPayload, detailSopId: string): Promise<void> {
     const context = await this.resolveProsesBisnisContext(detailSopId);
-    if (context.prosesBisnisId === null) {
-      throw new ConflictException(
-        'SOP belum memiliki Penanggung Jawab kepemilikan Proses Bisnis dan tidak tersedia pada endpoint native',
-      );
-    }
     await this.konteksProsesBisnisService.assertCanAuthor(user.sub, context.prosesBisnisId);
     assertSopCatalogRepoOk(
       await this.sopCatalogRepository.deleteSopDraftAwal(context.resolved.detailSopId),
@@ -356,11 +358,7 @@ export class ProsesBisnisSopAuthoringService {
     if (resolved === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
-    const sop = await this.prisma.sOP.findUnique({
-      where: { sopId: resolved.sopId },
-      select: { prosesBisnisId: true },
-    });
-    return { resolved, prosesBisnisId: sop?.prosesBisnisId ?? null };
+    return { resolved, prosesBisnisId: resolved.prosesBisnisId };
   }
 
   private withProsesBisnisContext(
@@ -373,7 +371,11 @@ export class ProsesBisnisSopAuthoringService {
       detail: {
         ...workbench.detail,
         sop: workbench.detail.sop
-          ? ({ ...workbench.detail.sop, prosesBisnisId, namaProsesBisnis } as typeof workbench.detail.sop)
+          ? ({
+              ...workbench.detail.sop,
+              prosesBisnisId,
+              namaProsesBisnis,
+            } as typeof workbench.detail.sop)
           : workbench.detail.sop,
       },
     };

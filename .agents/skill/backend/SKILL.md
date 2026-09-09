@@ -1,14 +1,10 @@
 # SOPFlow Backend Skill
 
-Use this skill for backend implementation in `server/`. It codifies the patterns already used by SOPFlow so new backend work follows existing NestJS/Prisma/domain ownership instead of creating a parallel architecture.
+Use this skill for backend work in `server/`. Product semantics and material decisions remain owned by the canonical `.agents` files.
 
-This is a task-specific implementation playbook. Product semantics, architecture boundaries, active milestone state, quality gates, and material decisions remain owned by the canonical `.agents` files.
-
-Before changing behavior, read the affected sections of `PROJECT.md`, `ARCHITECTURE.md`, `CURRENT_ITERATION.md`, `CODE_PATTERNS.md`, `QUALITY.md`, and `DECISIONS.md` as needed.
+Read the affected parts of `PROJECT.md`, `ARCHITECTURE.md`, `CURRENT_ITERATION.md`, `CODE_PATTERNS.md`, `QUALITY.md`, and `DECISIONS.md` before changing behavior.
 
 ## Stack
-
-Current backend stack:
 
 ```text
 NestJS 11
@@ -16,14 +12,13 @@ TypeScript strict
 Prisma 7
 MariaDB
 Jest
-Docker-backed integration tests where persistence/runtime evidence is required
-Swagger decorators on HTTP controllers
+Swagger decorators
 JWT cookie authentication
 ```
 
-Do not introduce another ORM, application framework, validation framework, job system, event bus, or generic workflow engine unless the current requirement explicitly justifies a material architecture change.
+Do not add another ORM, application framework, validation framework, job system, event bus, or generic workflow engine unless the requirement needs a material architecture change.
 
-## Existing Ownership Model
+## Ownership
 
 Default request path:
 
@@ -34,445 +29,240 @@ Controller
             -> Prisma
 ```
 
-Primary locations:
+Primary owners:
 
 ```text
-server/src/modules
-  -> domain/use-case modules
-
-server/src/common
-  -> cross-cutting infrastructure with real shared ownership
-
-server/prisma/schema.prisma
-  -> persistence model
-
-server/prisma/migrations
-  -> migration history
-
-server/prisma/DB-INVARIANTS.md
-  -> database invariants
+server/src/modules                 domain/use-case code
+server/src/common                  real cross-cutting infrastructure
+server/prisma/schema.prisma        canonical persistence model
+server/prisma/migrations           immutable migration history
+server/prisma/DB-INVARIANTS.md     current database invariants
 ```
 
 Put behavior in the narrowest existing owner that can coherently own it.
 
-## Controller Pattern
+## Controllers
 
-Controllers own transport, not business policy.
+Controllers own transport only:
 
-Existing shape:
+- route/method/status;
+- body/query/param extraction and validation;
+- auth guard/decorator wiring;
+- authenticated user handoff;
+- response-envelope and Swagger metadata.
 
-```ts
-@ApiTags('ProsesBisnis Owner Review')
-@ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
-@Controller('process-sop')
-@UseGuards(JwtAuthGuard)
-export class ProsesBisnisOwnerReviewController {
-  constructor(private readonly service: ProsesBisnisOwnerReviewService) {}
+Do not put ProsesBisnis authorization, workflow policy, authority resolution, transaction orchestration, or complex Prisma queries in controllers.
 
-  @Post(':detailOrSopId/review')
-  @HttpCode(HttpStatus.OK)
-  async review(
-    @Req() req: Request & { user: JwtAccessPayload },
-    @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,
-    @Body() dto: KeputusanPemeriksaanProsesBisnisDto,
-  ): Promise<ApiSuccessResponse<unknown>> {
-    const data = await this.service.review(req.user, detailOrSopId, dto.decision)
-    return { success: true, message: '...', data }
-  }
-}
-```
+## Services
 
-Controller responsibilities:
-
-- route/method/status semantics;
-- parameter/body/query extraction;
-- Nest pipes/DTO validation;
-- guard/decorator wiring;
-- authenticated user context handoff;
-- response-envelope mapping;
-- Swagger metadata when the surrounding module uses it.
-
-Do not place these in controllers:
-
-- ProsesBisnis authorization policy;
-- workflow state machine rules;
-- final-authority resolution;
-- transaction orchestration;
-- complex Prisma queries;
-- business branching that belongs to the use case.
-
-## Service Pattern
-
-Services own use cases and policy.
-
-Typical flow:
+Services own use cases and policy:
 
 ```text
-resolve target entity/context
+resolve target/context
 -> assert contextual permission
--> load current state
--> validate preconditions/invariants
--> resolve collaborators/authority if needed
+-> read current state
+-> validate preconditions
+-> resolve authority/collaborators
 -> perform atomic transition
--> return current domain/workbench representation
+-> return current representation
 ```
 
-Use explicit Nest exceptions for observable domain failures:
+Use explicit Nest exceptions for observable failures:
 
 ```text
 NotFoundException
 ForbiddenException
 ConflictException
-BadRequestException / validation boundary where applicable
+BadRequestException
 ```
 
-Do not use a broad generic error when the API contract distinguishes missing, forbidden, invalid state, or concurrency conflict.
+## FTI Authorization
 
-## Contextual Authorization Pattern
+SOP workflow authorization is contextual:
 
-Authorization must answer the capability being exercised.
+```text
+author
+  -> ProsesBisnis Owner OR Member for that ProsesBisnis
 
-For ProsesBisnis-bound SOP work, use ProsesBisnis relationship rather than legacy global role identity.
+process review
+  -> Owner for that ProsesBisnis
 
-Existing pattern:
+final approval / TTE
+  -> contextual DEAN or HEAD_OF_DEPARTMENT for that ProsesBisnis scope
+
+platform administration
+  -> platformRole capability
+```
+
+Use the existing context/authority services:
 
 ```ts
 await konteksProsesBisnisService.assertCanAuthor(user.sub, prosesBisnisId)
 await konteksProsesBisnisService.assertCanReview(user.sub, prosesBisnisId)
 ```
 
-Semantics:
+`SUPER_ADMIN` is not a workflow bypass. Do not infer SOP workflow access from a global role.
 
-```text
-author
-  -> ProsesBisnis Owner OR ProsesBisnis Member for this ProsesBisnis
+## SOP Ownership
 
-review
-  -> ProsesBisnis Owner for this ProsesBisnis
+Every SOP belongs to exactly one ProsesBisnis. `SOP.processId` is required in the canonical schema.
 
-final approval / TTE
-  -> resolved pejabat berwenang for this ProsesBisnis lingkup
+Repository/service contracts that resolve an existing SOP must therefore expose a non-null ProsesBisnis ID. Missing records are represented by the resolver returning `null`; existing SOP ownership is not nullable.
 
-platform administration
-  -> platformRole capability
-```
-
-`SUPER_ADMIN` is not a general workflow bypass.
-
-Always include negative authorization behavior when changing these boundaries.
-
-## ProsesBisnis Context Pattern
-
-Prefer authorization queries that encode the relevant relationship directly and return the context needed by the use case.
-
-Existing style:
-
-```ts
-const process = await prisma.prosesBisnis.findFirst({
-  where: {
-    prosesBisnisId,
-    OR: [
-      { penanggungJawabId: penggunaId },
-      { anggota: { some: { penggunaId } } },
-    ],
-  },
-  include: prosesBisnisInclude,
-})
-
-if (process === null) {
-  throw new ForbiddenException(...)
-}
-```
-
-Do not load an unrelated global role and infer ProsesBisnis access from it.
-
-Keep frequently reused selects/includes explicit and typed with `as const` where that is already the local pattern.
+Do not reintroduce unbound/imported-archive compatibility branches.
 
 ## Repository Pattern
 
-Use a repository when persistence behavior has a real cohesive owner, especially when queries/projections are reused or Prisma details would otherwise leak across services.
+Repositories own:
 
-Repository responsibilities:
-
-- Prisma queries/writes;
+- Prisma reads/writes;
 - persistence projections/selects/includes;
-- persistence-oriented filtering/order;
-- reusable atomic persistence helpers;
-- mapping persistence identifiers when that mapping is persistence-specific.
+- persistence filtering/order;
+- reusable atomic persistence helpers.
 
-Service responsibilities remain:
+Services still own authorization, state policy, and the choice of transition/side effect.
 
-- why the query is needed;
-- whether the user may do it;
-- whether current state permits it;
-- which transition/side effect is correct.
+Direct `PrismaService` use in a small service is acceptable when a repository would only add indirection. Follow the nearest module pattern.
 
-Do not move policy into a repository merely because Prisma can express the condition.
+## DTOs
 
-Direct `PrismaService` use in a service is acceptable where the existing owner is small/explicit and creating a repository would only add indirection. Follow the nearest module pattern.
+Use DTOs for real transport contracts. Do not create one DTO per internal layer when there is no distinct contract.
 
-## DTO / Validation Pattern
+Generated Prisma types belong at persistence/domain implementation boundaries; do not expose raw Prisma models as accidental public API contracts when a stable DTO is needed.
 
-Use DTOs for real transport boundaries.
+## Workflow Changes
 
-Prefer:
+For state-changing SOP operations:
 
-```text
-request body DTO
-query/param Nest pipes
-explicit enum/value validation
-response DTO when the shape is a meaningful public/stable contract
-```
+1. resolve the SOP/detail and required ProsesBisnis ownership;
+2. assert contextual authorization;
+3. read current state;
+4. validate state-specific preconditions;
+5. resolve target state/recipient/authority;
+6. use compare-and-set style updates when races matter;
+7. write audit/history and durable side effects in the same transaction when they must not diverge;
+8. emit non-durable realtime signals only after commit.
 
-Do not create one DTO per internal layer when the same shape is not a distinct contract.
-
-Keep generated Prisma types at persistence/domain implementation boundaries; do not expose raw Prisma models as accidental public API contracts when a stable DTO is required.
-
-## Workflow State Pattern
-
-For state-changing workflow operations:
-
-1. resolve the target SOP/detail and ProsesBisnis binding;
-2. reject legacy/unbound targets when the target-native endpoint does not own them;
-3. assert contextual authorization;
-4. read current state;
-5. validate state-specific preconditions;
-6. calculate the target state/recipient/authority before the write when appropriate;
-7. perform compare-and-set style state transition in one transaction when races matter;
-8. write audit/history and durable side effects in the same atomic boundary when they must not diverge;
-9. emit non-durable realtime signals only after commit.
-
-Existing concurrency pattern:
+Typical concurrency guard:
 
 ```ts
-await prisma.$transaction(async (tx) => {
-  const updated = await tx.detailSOP.updateMany({
-    where: {
-      detailSopId,
-      status: expectedStatus,
-    },
-    data: {
-      status: targetStatus,
-      terakhirDieditOlehId: userId,
-    },
-  })
-
-  if (updated.count !== 1) {
-    throw new ConflictException(
-      'Status SOP berubah saat aksi diproses. Muat ulang dokumen lalu ulangi keputusan.',
-    )
-  }
-
-  await appendOrCreateLogSession(...)
-  await durableSideEffectInTransaction(...)
+const updated = await tx.detailSOP.updateMany({
+  where: { detailSopId, status: expectedStatus },
+  data: { status: targetStatus, terakhirDieditOlehId: userId },
 })
 
-emitRealtimeSignalAfterCommit()
+if (updated.count !== 1) {
+  throw new ConflictException('Status SOP berubah. Muat ulang lalu ulangi aksi.')
+}
 ```
 
-Use this shape when stale concurrent decisions could otherwise produce orphan audit/notification/signing effects.
-
-## Transaction Pattern
+## Transactions
 
 One transaction should represent one business atomicity boundary.
 
 Good candidates:
 
-- workflow status + audit + durable notification;
-- final approval state + evidence that must not diverge;
-- TTE/signing state transitions where database evidence must match the operation;
-- version replacement/effective-version invariants;
-- ProsesBisnis ownership/team mutations that must stay internally consistent.
+- workflow state + audit + durable notification;
+- final approval + approval evidence;
+- TTE state + signing evidence;
+- version replacement/effective-version transition;
+- ProsesBisnis team/ownership mutations that must remain consistent.
 
-Do not wrap unrelated network calls, long computations, or unrelated reads in broad database transactions unless the invariant requires it.
+Do not wrap unrelated network calls, expensive work, or unrelated reads in broad transactions.
 
-For external/expensive work that cannot safely occur inside the transaction, design the state/evidence boundary explicitly rather than silently assuming atomicity.
+## Notifications
 
-## Notification Pattern
-
-ProsesBisnis notifications use target-native persistence, separate from legacy evaluation notification history.
-
-For a workflow event:
+ProsesBisnis notifications use the current `NotifikasiProsesBisnis` persistence.
 
 ```text
-resolve intended recipient from ProsesBisnis/authority context
--> include durable notification insert in the same transaction as the transition when orphan delivery would be invalid
+resolve recipient from ProsesBisnis/authority context
+-> write durable notification in the transition transaction when required
 -> emit in-app change signal after commit
 ```
 
-Do not force new ProsesBisnis events into archived legacy `retired evaluation persistence` / `JenisPengingatWhatsApp` persistence. The UI bell reads only the ProsesBisnis-native notification source.
+Do not add new SOP workflow events to retired evaluation/reminder persistence.
 
-## Pejabat Berwenang Pattern
-
-Final approval resolves from ProsesBisnis organizational lingkup:
+## Final Authority
 
 ```text
 FACULTY
-  -> active DEAN
+  -> DEAN
 
 DEPARTMENT
-  -> active HEAD_OF_DEPARTMENT for that department
+  -> HEAD_OF_DEPARTMENT for that department
 ```
 
-Use the existing authority resolver/service rather than duplicating the rule in each module.
+Use the existing authority resolver/service. Do not add arbitrary per-SOP approvers or make `SUPER_ADMIN` an approver without an explicit product-contract change.
 
-Do not add arbitrary per-SOP approver configuration or treat unit heads/SUPER_ADMIN as additional approval branches unless the product contract changes explicitly.
+## TTE
 
-## TTE / Signing Pattern
+Credential readiness and signing authority are different concerns.
 
-TTE is security/legal-evidence-sensitive.
-
-Keep these boundaries distinct:
-
-```text
-credential readiness
-!= signing authority
-```
-
-When changing TTE behavior, inspect the existing TTE services/repositories and preserve:
+Preserve:
 
 - PIN/hash handling;
-- encrypted personal P12 handling;
+- encrypted personal P12 storage;
 - contextual authority resolution;
-- signed artifact evidence;
+- signed artifact/certificate evidence;
 - effective/version transition semantics;
 - public verification behavior.
 
-Never log or expose secrets, PINs, P12 passphrases, ciphertext, private key material, or raw credentials.
+Signing uses the user's personal certificate. Do not add a server-global P12 fallback.
 
-Do not claim end-to-end signing correctness from unit tests alone.
+Never log or expose PINs, passphrases, ciphertext, private key material, or raw credentials.
 
-## Prisma Pattern
-
-Rules:
+## Prisma / Migrations
 
 - edit `server/prisma/schema.prisma` for canonical schema changes;
-- regenerate Prisma client after schema changes;
+- regenerate Prisma client;
 - inspect generated/raw migration SQL;
 - update `server/prisma/DB-INVARIANTS.md` when an invariant changes;
-- treat successfully applied shared migrations as immutable by default;
-- fix later defects with a new migration;
-- prefer additive/reversible migration steps during legacy-to-FTI transition;
-- do not fabricate or silently reinterpret historical data.
+- treat successfully applied shared migrations as immutable;
+- fix later defects with a new forward migration;
+- never fabricate, silently delete, or silently reinterpret persisted data.
 
 `pnpm db:fresh` is destructive and requires explicit user authorization.
 
 If migration recovery is required, follow `server/prisma/MIGRATION-RECOVERY.md`; do not substitute `migrate reset` for explicit failed-migration recovery.
 
-## Legacy Compatibility Pattern
+## Testing
 
-Target-domain code should use FTI concepts:
-
-```text
-ProsesBisnis
-ProsesBisnisTeam
-ProsesBisnisOwner
-AnggotaProsesBisnis
-PejabatBerwenang
-Dean
-HeadOfDepartemen
-PemeriksaanProsesBisnis
-FinalApproval
-```
-
-Legacy persistence/status/role names may remain where compatibility requires them.
-
-When a persisted legacy state has target semantics, document/translate that at the explicit compatibility boundary rather than spreading old product meaning into new services.
-
-For target-native endpoints, fail clearly when a legacy/unbound entity is outside the endpoint's ownership instead of silently applying the wrong workflow.
-
-## Error Message Pattern
-
-Use user/operator-meaningful Indonesian domain messages consistent with surrounding code.
-
-Examples of good message intent:
+Prefer the smallest deterministic evidence for the changed risk:
 
 ```text
-resource not found
-access denied because contextual relationship is missing
-state has changed; reload/retry
-legacy entity is not bound to ProsesBisnis and remains on compatibility workflow
+service/domain policy       -> focused Jest unit tests
+persistence/transaction     -> relevant integration evidence
+schema/migration/invariant  -> Migration Smoke / DB audit
 ```
 
-Avoid leaking internal stack/database details.
+For workflow changes, cover material happy and negative paths: wrong actor, wrong state, stale concurrent transition, authority/recipient, and absence of invalid side effects.
 
-## Testing Pattern
-
-Service tests should assert behavior and boundary interactions, not private implementation trivia.
-
-Existing useful style:
-
-```text
-construct service with focused mocked collaborators
--> invoke public use case
--> assert contextual authorization call
--> assert state transition
--> assert authority resolution when relevant
--> assert durable side effect in transaction
--> assert forbidden/conflict negative case
-```
-
-For workflow changes, cover:
-
-- happy path;
-- wrong actor/ProsesBisnis denial;
-- wrong state;
-- stale concurrent transition where relevant;
-- correct recipient/authority;
-- absence of side effect for revision/failure path;
-- persistence/integration behavior when database invariants changed.
-
-Use unit tests for policy/orchestration, Docker integration tests for real persistence/transaction constraints, and Migration Smoke for migration-chain SQL/database invariants.
-
-## Module / Dependency Pattern
-
-Before adding a new service/module:
-
-1. inspect the nearest existing module;
-2. reuse existing authority/context/repository services;
-3. add the collaborator to the existing cohesive Nest module when ownership matches;
-4. create a new module only for a real domain/infrastructure ownership boundary.
-
-Avoid circular dependencies, generic shared service dumping grounds, and duplicate policy services.
-
-## Logging / Audit
-
-Business audit evidence and operational logs are different concerns.
-
-- use domain audit/history tables/helpers for durable workflow evidence;
-- use application logging for operational diagnosis;
-- do not assume a log line is sufficient business/legal evidence;
-- do not duplicate audit writes outside the atomic transition when they must correspond exactly to the state change.
+Do not preserve impossible historical states in unit fixtures after the canonical schema makes them structurally invalid.
 
 ## Implementation Workflow
 
-For a backend task:
-
 ```text
-1. Read affected product/architecture/decision constraints.
+1. Read affected product/architecture constraints.
 2. Inspect the nearest controller/service/repository/test pattern.
-3. Identify the behavior owner and authorization dimension.
-4. Define current-state preconditions and target transition.
+3. Identify behavior owner and authorization dimension.
+4. Implement the smallest coherent change.
 5. Reuse existing context/authority/persistence collaborators.
-6. Keep the change vertical and smallest coherent.
-7. Add/update focused service/domain tests, including negative paths for authorization/state.
-8. Use transaction/CAS semantics when concurrent decisions can matter.
-9. Run focused tests + typecheck; add Prisma/integration/migration/TTE gates according to QUALITY.md.
-10. Report only evidence collected for the exact revision.
+6. Add focused tests for changed risk.
+7. Run typecheck + relevant tests; add migration/integration qualification only when the changed boundary requires it.
+8. Report evidence for the exact revision.
 ```
 
 ## Do Not
 
-- put core business policy in controllers;
-- infer ProsesBisnis authorization from legacy global roles;
+- put core policy in controllers;
+- infer workflow authorization from global roles;
 - use `SUPER_ADMIN` as a workflow bypass;
-- duplicate final-authority resolution in multiple services;
-- move service policy into repositories for convenience;
-- emit durable side effects outside the state transaction when atomicity is required;
-- perform broad transactions without a business invariant;
-- introduce generic workflow/persetujuan engines for the current two-level model;
+- reintroduce nullable/unbound SOP ownership;
+- duplicate final-authority rules;
+- create repositories or abstractions that only add indirection;
+- emit durable side effects outside a required atomic transition;
+- introduce a generic workflow engine for the current fixed lifecycle;
 - rewrite applied migration history casually;
-- use destructive reset for migration recovery;
-- expose TTE/secrets/stack details;
-- propagate retired organization/workflow-role semantics into new target-domain abstractions;
-- refactor unrelated modules while delivering a bounded backend change.
+- expose TTE secrets or internal stack details;
+- add compatibility branches for retired OPD/global-workflow-role semantics;
+- refactor unrelated modules while delivering a bounded change.

@@ -66,18 +66,6 @@ describe('TteVerifikasiService', () => {
     );
   });
 
-  it('menolak artefak tanpa binding DetailSOP dan Proses Bisnis native', async () => {
-    (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue({
-      ...defaultRiwayatRow,
-      dokumenTte: { ...defaultRiwayatRow.dokumenTte, prosesBisnisId: null },
-    });
-
-    await expect(service.getPengesahanPublic('dok-123', 'user-123')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-    expect(mockProsesBisnisVerificationRepository.findApprovalForSignedDetail).not.toHaveBeenCalled();
-  });
-
   it('menolak ketika approval evidence tidak ditemukan', async () => {
     (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue(
       defaultRiwayatRow,

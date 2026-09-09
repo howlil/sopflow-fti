@@ -24,9 +24,7 @@ export function loadTrustedCertificatesFromP12(
   passphrase: string,
 ): TrustedPdfCertificates {
   if (p12Buffer.byteLength < 64) {
-    throw new Error(
-      'PDF_SIGNING_P12_BASE64 tidak valid. Jalankan: npm run pdf-signing:generate-cert di folder server.',
-    );
+    throw new Error('Berkas sertifikat P12/PFX tidak valid.');
   }
   let p12: ReturnType<typeof forge.pkcs12.pkcs12FromAsn1>;
   try {
@@ -36,12 +34,10 @@ export function loadTrustedCertificatesFromP12(
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'format tidak dikenali';
     if (detail.includes('ASN.1') || detail.includes('Too few bytes')) {
-      throw new Error(
-        'PDF_SIGNING_P12_BASE64 bukan berkas P12/PFX yang sah. Ganti dengan output npm run pdf-signing:generate-cert.',
-      );
+      throw new Error('Berkas sertifikat bukan P12/PFX yang sah.');
     }
     if (detail.toLowerCase().includes('password') || detail.includes('MAC')) {
-      throw new Error('PDF_SIGNING_P12_PASSPHRASE salah untuk berkas P12 yang dikonfigurasi.');
+      throw new Error('Passphrase sertifikat P12/PFX salah.');
     }
     throw new Error(`Gagal membaca sertifikat P12: ${detail}`);
   }

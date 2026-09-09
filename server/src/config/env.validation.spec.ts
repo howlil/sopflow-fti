@@ -65,14 +65,10 @@ describe('Environment validation', () => {
     });
   });
 
-  it('menerima PDF signing nonaktif tanpa P12 global server', () => {
-    expect(
-      validateEnv({
-        ...baseEnv,
-        PDF_SIGNING_ENABLED: 'false',
-        PDF_SIGNING_P12_BASE64: '',
-      }),
-    ).toMatchObject({ PDF_SIGNING_ENABLED: false });
+  it('menerima PDF signing nonaktif tanpa konfigurasi sertifikat global', () => {
+    expect(validateEnv({ ...baseEnv, PDF_SIGNING_ENABLED: 'false' })).toMatchObject({
+      PDF_SIGNING_ENABLED: false,
+    });
   });
 
   it('menolak TTE encryption secret yang sama dengan JWT secret', () => {

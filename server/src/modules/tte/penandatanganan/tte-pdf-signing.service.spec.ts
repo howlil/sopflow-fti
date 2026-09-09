@@ -32,7 +32,7 @@ describe('TtePdfSigningService', () => {
     const output = execSync(`node scripts/generate-pdf-signing-cert.cjs ${passphrase}`, {
       encoding: 'utf8',
     });
-    const line = output.split('\n').find((entry) => entry.startsWith('PDF_SIGNING_P12_BASE64='));
+    const line = output.split('\n').find((entry) => entry.startsWith('P12_BASE64='));
     if (!line) throw new Error('Gagal menghasilkan sertifikat uji PDF.');
     p12Base64 = line.split('=')[1];
   });
@@ -54,8 +54,6 @@ describe('TtePdfSigningService', () => {
             get: jest.fn((key: string, defaultValue?: unknown) => {
               const values: Record<string, unknown> = {
                 PDF_SIGNING_ENABLED: true,
-                PDF_SIGNING_P12_BASE64: p12Base64,
-                PDF_SIGNING_P12_PASSPHRASE: passphrase,
                 PDF_SIGNING_REASON: 'Uji',
                 PDF_SIGNING_LOCATION: 'Indonesia',
                 PDF_SIGNING_CONTACT: '',

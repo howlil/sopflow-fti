@@ -64,10 +64,8 @@ async function resolveProsesBisnis(
 
 /**
  * Membentuk satu SOP ProsesBisnis yang lengkap tetapi tetap DRAFT.
- *
- * Semua mutation di sini adalah PRECONDITION. Aksi workflow yang menjadi objek journey
- * tetap dilakukan melalui browser. Related SOP sengaja memakai compatibility authoring
- * endpoint agar hanya subject ProsesBisnis-bound row yang masuk target work queue.
+ * Semua mutation di sini adalah precondition; aksi workflow yang diuji tetap dilakukan melalui browser.
+ * Related SOP dibuat lewat endpoint authoring ProsesBisnis yang sama dengan subject SOP.
  */
 export async function seedReadyProsesBisnisSop(
   apiFor: RoleApiFactory,

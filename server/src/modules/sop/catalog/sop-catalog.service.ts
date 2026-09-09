@@ -11,7 +11,7 @@ export class SopCatalogService {
 
   async getPublicDokumenBerlaku(detailSopId: string): Promise<PublicSopDokumenDto> {
     const row = await this.sopCatalogRepository.findWorkbenchPayloadByDetailOrSopId(detailSopId, 0);
-    if (row === null || row.status !== StatusSOP.EFFECTIVE || row.sop.prosesBisnisId === null) {
+    if (row === null || row.status !== StatusSOP.EFFECTIVE) {
       throw new NotFoundException('Dokumen SOP FTI berlaku tidak ditemukan');
     }
 

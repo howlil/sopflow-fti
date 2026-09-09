@@ -188,9 +188,6 @@ export class ProsesBisnisTteService {
     if (result.error === 'NOT_LATEST') {
       throw new ConflictException('TTE hanya dapat dilakukan pada versi SOP terbaru');
     }
-    if (result.error === 'UNASSIGNED_ARCHIVE') {
-      throw new ConflictException('SOP arsip tanpa Proses Bisnis tidak dapat masuk TTE FTI');
-    }
     if (result.error === 'NOT_APPROVED') {
       throw new ConflictException('SOP belum mendapat persetujuan akhir');
     }

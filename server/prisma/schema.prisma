@@ -54,7 +54,7 @@ model Departemen {
   @@map("Department")
 }
 
-/// Canonical FTI ProsesBisnis ownership. Active SOPs are owned directly by a ProsesBisnis.
+/// Canonical FTI ProsesBisnis ownership. Every SOP belongs directly to one ProsesBisnis.
 model ProsesBisnis {
   prosesBisnisId    String              @id @default(uuid()) @db.Char(36) @map("processId")
   nama         String              @db.VarChar(120)
@@ -111,13 +111,12 @@ model Peraturan {
 /// =========================
 model SOP {
   sopId      String      @id @default(uuid()) @db.Char(36)
-  prosesBisnisId  String?     @db.Char(36) @map("processId")
+  prosesBisnisId  String      @db.Char(36) @map("processId")
   judul      String      @db.VarChar(500)
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
   detailSops DetailSOP[]
-  /// Null is reserved only for imported archive rows that are not part of the active FTI workflow.
-  prosesBisnis    ProsesBisnis?    @relation(fields: [prosesBisnisId], references: [prosesBisnisId], onDelete: Restrict)
+  prosesBisnis    ProsesBisnis     @relation(fields: [prosesBisnisId], references: [prosesBisnisId], onDelete: Restrict)
 
   @@index([prosesBisnisId])
 }
@@ -590,7 +589,7 @@ model PemeriksaanProsesBisnis {
 /// NOTIFIKASI PROSES BISNIS
 /// =========================
 /// Target-native in-app notification history for ProsesBisnis-bound SOP workflow events.
-/// Kept separate from archived legacy evaluation/reminder persistence.
+/// Kept separate from reminder delivery state so notification history remains append-only.
 enum JenisNotifikasiProsesBisnis {
   PROCESS_OWNER_REVIEW_REQUESTED
   FINAL_APPROVAL_REQUESTED

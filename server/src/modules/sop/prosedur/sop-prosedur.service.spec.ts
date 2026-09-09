@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
@@ -87,19 +86,6 @@ describe('SopProsedurService Proses Bisnis-native actor policy', () => {
     await expect(service.updateProsedur(anggotaProsesBisnis, 'detail-1', {})).rejects.toBeInstanceOf(
       ForbiddenException,
     );
-  });
-
-  it('rejects an unbound SOP instead of using retired compatibility authorization', async () => {
-    repo.findDetailIdByDetailOrSopId.mockResolvedValue({
-      detailSopId: 'detail-1',
-      sopId: 'sop-1',
-      prosesBisnisId: null,
-    });
-    await expect(service.updateProsedur(anggotaProsesBisnis, 'detail-1', {})).rejects.toBeInstanceOf(
-      ConflictException,
-    );
-    expect(processContext.assertCanAuthor).not.toHaveBeenCalled();
-    expect(repo.updateProsedurTransaction).not.toHaveBeenCalled();
   });
 
   it('rejects an actor id that does not exist in the global catalog', async () => {
