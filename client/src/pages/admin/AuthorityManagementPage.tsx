@@ -1,9 +1,15 @@
-import { useMemo } from 'react'
-import { ShieldCheck } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { usePejabatBerwenangConfiguration } from '@/api/pejabat-berwenang'
 import { useProsesBisnisAdministration } from '@/api/administrasi-proses-bisnis'
-import { DataSurface } from '@/components/data/data-surface'
 import { ListPageLayout } from '@/components/layout/ListPageLayout'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { FormDialog } from '@/components/ui/form-dialog'
+import { Table } from '@/components/ui/data-table'
+
+type AuthorityTarget =
+  | { kind: 'DEAN'; label: string }
+  | { kind: 'HEAD_OF_DEPARTMENT'; departemenId: string; label: string }
 
 export function AuthorityManagementPage() {
   const { departemen, users, isLoading: isProsesBisnisAdminLoading } = useProsesBisnisAdministration()
@@ -14,118 +20,147 @@ export function AuthorityManagementPage() {
     assignDepartemenHead,
     isSaving,
   } = usePejabatBerwenangConfiguration()
+  const [target, setTarget] = useState<AuthorityTarget | null>(null)
+  const [selectedUserId, setSelectedUserId] = useState('')
 
   const dean = configuration.find((item) => item.authority === 'DEAN') ?? null
   const headByDepartemenId = useMemo(
-    () =>
-      new Map(
-        configuration
-          .filter(
-            (item) =>
-              item.authority === 'HEAD_OF_DEPARTMENT' && item.departemenId !== null,
-          )
-          .map((item) => [item.departemenId as string, item]),
-      ),
+    () => new Map(
+      configuration
+        .filter((item) => item.authority === 'HEAD_OF_DEPARTMENT' && item.departemenId !== null)
+        .map((item) => [item.departemenId as string, item]),
+    ),
     [configuration],
   )
   const eligibleUsers = useMemo(
-    () => users.filter((user) => user.platformRole === 'USER'),
+    () => users.filter((user) => user.platformRole === 'USER' && !user.deletedAt),
     [users],
   )
   const isLoading = isProsesBisnisAdminLoading || isAuthorityLoading
 
+  const openTarget = (next: AuthorityTarget, currentHolderId?: string | null) => {
+    setTarget(next)
+    setSelectedUserId(currentHolderId ?? '')
+  }
+
+  const submit = async () => {
+    if (!target || !selectedUserId) return
+    if (target.kind === 'DEAN') {
+      await assignDean(selectedUserId)
+    } else {
+      await assignDepartemenHead({ departemenId: target.departemenId, penggunaId: selectedUserId })
+    }
+    setTarget(null)
+    setSelectedUserId('')
+  }
+
   return (
     <ListPageLayout
-      breadcrumb={[{ label: 'Administrasi' }, { label: 'Authority FTI' }]}
-      title="Authority FTI"
+      breadcrumb={[{ label: 'Administrasi Sistem' }, { label: 'Pejabat Berwenang' }]}
+      title="Pejabat Berwenang"
+      description="Tetapkan pejabat yang berwenang melakukan pengesahan akhir dan TTE sesuai lingkup organisasi."
     >
-      <div className="grid gap-5 xl:grid-cols-2">
-        <DataSurface.Root>
-          <DataSurface.Header>
-            <div className="space-y-0.5">
-              <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <ShieldCheck className="h-4 w-4" aria-hidden />
-                Dean
-              </h2>
-              <p className="text-sm text-secondary-foreground">
-                Satu pejabat persetujuan akhir untuk semua Proses Bisnis lingkup Fakultas.
-              </p>
-            </div>
-          </DataSurface.Header>
-          <div className="p-4">
-            {isLoading ? (
-              <p className="text-sm text-secondary-foreground">Memuat authority...</p>
-            ) : (
-              <label className="block space-y-1.5 text-sm font-medium text-foreground">
-                Dean aktif
-                <select
-                  className="h-9 w-full rounded-control border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={dean?.holderId ?? ''}
-                  disabled={isSaving}
-                  onChange={(event) => {
-                    if (event.target.value) void assignDean(event.target.value)
-                  }}
-                >
-                  <option value="">Belum dikonfigurasi</option>
-                  {eligibleUsers.map((user) => (
-                    <option key={user.penggunaId} value={user.penggunaId}>
-                      {user.nama} · {user.email}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-          </div>
-        </DataSurface.Root>
+      <Table.Card>
+        <Table.Root aria-label="Daftar Pejabat Berwenang FTI">
+          <Table.Table>
+            <thead>
+              <Table.HeadRow>
+                <Table.Th>Jabatan</Table.Th>
+                <Table.Th>Lingkup</Table.Th>
+                <Table.Th>Pejabat Aktif</Table.Th>
+                <Table.Th>Email</Table.Th>
+                <Table.Th>Status</Table.Th>
+                <Table.ActionTh>Aksi</Table.ActionTh>
+              </Table.HeadRow>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <Table.BodyRow><Table.Td colSpan={6}>Memuat Pejabat Berwenang...</Table.Td></Table.BodyRow>
+              ) : (
+                <>
+                  <Table.BodyRow>
+                    <Table.Td className="font-medium">Dekan</Table.Td>
+                    <Table.Td>Fakultas Teknologi Informasi</Table.Td>
+                    <Table.Td>{dean?.holder?.nama ?? 'Belum ditetapkan'}</Table.Td>
+                    <Table.Td>{dean?.holder?.email ?? '—'}</Table.Td>
+                    <Table.Td>
+                      <Badge variant={dean?.holder ? 'success' : 'warning'}>
+                        {dean?.holder ? 'Aktif' : 'Belum ditetapkan'}
+                      </Badge>
+                    </Table.Td>
+                    <Table.ActionTd>
+                      <Button size="sm" variant="outline" onClick={() => openTarget({ kind: 'DEAN', label: 'Dekan' }, dean?.holderId)}>
+                        {dean?.holder ? 'Ubah' : 'Tetapkan'}
+                      </Button>
+                    </Table.ActionTd>
+                  </Table.BodyRow>
 
-        <DataSurface.Root>
-          <DataSurface.Header>
-            <div className="space-y-0.5">
-              <h2 className="text-sm font-semibold text-foreground">Kepala Departemen</h2>
-              <p className="text-sm text-secondary-foreground">
-                Setiap Departemen memiliki pejabat persetujuan akhir untuk Proses Bisnis di lingkupnya.
-              </p>
-            </div>
-          </DataSurface.Header>
-          <div className="divide-y divide-border">
-            {isLoading ? (
-              <p className="p-4 text-sm text-secondary-foreground">Memuat departemen...</p>
-            ) : departemen.length === 0 ? (
-              <p className="p-4 text-sm text-secondary-foreground">Belum ada Departemen.</p>
-            ) : (
-              departemen.map((department) => {
-                const assignment = headByDepartemenId.get(department.departemenId) ?? null
-                return (
-                  <div key={department.departemenId} className="space-y-2 p-4">
-                    <p className="text-sm font-medium text-foreground">{department.nama}</p>
-                    <select
-                      aria-label={`Kepala Departemen ${department.nama}`}
-                      className="h-9 w-full rounded-control border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                      value={assignment?.holderId ?? ''}
-                      disabled={isSaving}
-                      onChange={(event) => {
-                        if (event.target.value) {
-                          void assignDepartemenHead({
-                            departemenId: department.departemenId,
-                            penggunaId: event.target.value,
-                          })
-                        }
-                      }}
-                    >
-                      <option value="">Belum dikonfigurasi</option>
-                      {eligibleUsers.map((user) => (
-                        <option key={user.penggunaId} value={user.penggunaId}>
-                          {user.nama} · {user.email}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )
-              })
-            )}
-          </div>
-        </DataSurface.Root>
-      </div>
+                  {departemen.map((department) => {
+                    const assignment = headByDepartemenId.get(department.departemenId) ?? null
+                    return (
+                      <Table.BodyRow key={department.departemenId}>
+                        <Table.Td className="font-medium">Kepala Departemen</Table.Td>
+                        <Table.Td>{department.nama}</Table.Td>
+                        <Table.Td>{assignment?.holder?.nama ?? 'Belum ditetapkan'}</Table.Td>
+                        <Table.Td>{assignment?.holder?.email ?? '—'}</Table.Td>
+                        <Table.Td>
+                          <Badge variant={assignment?.holder ? 'success' : 'warning'}>
+                            {assignment?.holder ? 'Aktif' : 'Belum ditetapkan'}
+                          </Badge>
+                        </Table.Td>
+                        <Table.ActionTd>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openTarget(
+                              { kind: 'HEAD_OF_DEPARTMENT', departemenId: department.departemenId, label: `Kepala Departemen ${department.nama}` },
+                              assignment?.holderId,
+                            )}
+                          >
+                            {assignment?.holder ? 'Ubah' : 'Tetapkan'}
+                          </Button>
+                        </Table.ActionTd>
+                      </Table.BodyRow>
+                    )
+                  })}
+                </>
+              )}
+            </tbody>
+          </Table.Table>
+        </Table.Root>
+      </Table.Card>
+
+      <FormDialog
+        open={target !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setTarget(null)
+            setSelectedUserId('')
+          }
+        }}
+        title={target ? `Tetapkan ${target.label}` : 'Tetapkan Pejabat Berwenang'}
+        description="Pejabat ini menjadi pemegang kewenangan pengesahan akhir dan TTE untuk lingkup terkait."
+        confirmLabel="Simpan Penetapan"
+        confirmDisabled={!selectedUserId || isSaving}
+        onConfirm={() => void submit()}
+      >
+        <label className="space-y-1.5 text-sm font-medium text-foreground">
+          <span>Pengguna</span>
+          <select
+            className="h-9 w-full rounded-control border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            value={selectedUserId}
+            disabled={isSaving}
+            onChange={(event) => setSelectedUserId(event.target.value)}
+          >
+            <option value="">Pilih pengguna</option>
+            {eligibleUsers.map((user) => (
+              <option key={user.penggunaId} value={user.penggunaId}>
+                {user.nama} · {user.email}
+              </option>
+            ))}
+          </select>
+        </label>
+      </FormDialog>
     </ListPageLayout>
   )
 }
