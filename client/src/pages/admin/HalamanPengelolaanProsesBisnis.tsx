@@ -1,10 +1,17 @@
 import { useMemo, useState } from 'react'
+import { Plus } from 'lucide-react'
 import { useProsesBisnisAdministration } from '@/api/administrasi-proses-bisnis'
-import { DataSurface } from '@/components/data/data-surface'
 import { ListPageLayout } from '@/components/layout/ListPageLayout'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { FormDialog } from '@/components/ui/form-dialog'
 import { Input } from '@/components/ui/input'
-import type { GrantKewenanganPenanggungJawabProsesBisnisPayload, LingkupOrganisasi } from '@/types/dto/proses-bisnis.dto'
+import { Table } from '@/components/ui/data-table'
+import type {
+  GrantKewenanganPenanggungJawabProsesBisnisPayload,
+  LingkupOrganisasi,
+} from '@/types/dto/proses-bisnis.dto'
 
 const EMPTY_AUTHORITY: GrantKewenanganPenanggungJawabProsesBisnisPayload = {
   penggunaId: '',
@@ -16,7 +23,6 @@ export function HalamanPengelolaanProsesBisnis() {
   const {
     departemen,
     users,
-    prosesBisnis,
     ownerAuthorities,
     isLoading,
     createDepartemen,
@@ -25,19 +31,34 @@ export function HalamanPengelolaanProsesBisnis() {
     revokeOwnerAuthority,
     isSaving,
   } = useProsesBisnisAdministration()
-  const [namaDepartemen, setDepartemenName] = useState('')
+
+  const [departmentDialogOpen, setDepartmentDialogOpen] = useState(false)
   const [editingDepartemenId, setEditingDepartemenId] = useState<string | null>(null)
-  const [editingDepartemenName, setEditingDepartemenName] = useState('')
+  const [namaDepartemen, setNamaDepartemen] = useState('')
+  const [authorityDialogOpen, setAuthorityDialogOpen] = useState(false)
   const [authority, setAuthority] = useState<GrantKewenanganPenanggungJawabProsesBisnisPayload>(EMPTY_AUTHORITY)
+  const [revokingAuthorityId, setRevokingAuthorityId] = useState<string | null>(null)
 
   const eligibleUsers = useMemo(
-    () => users.filter((user) => user.platformRole === 'USER'),
+    () => users.filter((user) => user.platformRole === 'USER' && !user.deletedAt),
     [users],
   )
 
   const canGrant =
     authority.penggunaId !== '' &&
     (authority.lingkup === 'FACULTY' || authority.departemenId !== null)
+
+  const openCreateDepartemen = () => {
+    setEditingDepartemenId(null)
+    setNamaDepartemen('')
+    setDepartmentDialogOpen(true)
+  }
+
+  const openEditDepartemen = (departemenId: string, nama: string) => {
+    setEditingDepartemenId(departemenId)
+    setNamaDepartemen(nama)
+    setDepartmentDialogOpen(true)
+  }
 
   const changeScope = (lingkup: LingkupOrganisasi) => {
     setAuthority((current) => ({
@@ -49,275 +70,200 @@ export function HalamanPengelolaanProsesBisnis() {
 
   return (
     <ListPageLayout
-      breadcrumb={[{ label: 'Administrasi' }, { label: 'Proses Bisnis & organisasi' }]}
-      title="Proses Bisnis & organisasi"
+      breadcrumb={[{ label: 'Administrasi Sistem' }, { label: 'Struktur & Kewenangan' }]}
+      title="Struktur & Kewenangan"
+      description="Kelola Departemen dan kewenangan pengguna yang dapat menjadi Penanggung Jawab Proses Bisnis. Proses Bisnis sehari-hari dikelola oleh Penanggung Jawabnya sendiri."
     >
-      <section className="rounded-surface border border-border bg-surface p-5 shadow-surface">
-        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">
-          Setup administrasi
-        </p>
-        <h2 className="mt-2 text-lg font-semibold tracking-tight text-foreground">
-          Atur struktur dan kewenangan FTI
-        </h2>
-        <p className="mt-1 max-w-3xl text-sm leading-6 text-secondary-foreground">
-          Atur tiga hal ini sebelum Owner membuat Proses Bisnis dan Penyusun menyusun SOP.
-        </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          {[
-            ['01', 'Struktur organisasi', 'Buat dan rapikan Departemen.'],
-            ['02', 'Kewenangan Owner', 'Pilih lingkup kerja Penanggung Jawab Proses Bisnis.'],
-            ['03', 'Pemantauan', 'Pantau Proses Bisnis yang sudah berjalan.'],
-          ].map(([number, label, description]) => (
-            <div key={number} className="rounded-control border border-border bg-surface-subtle p-3">
-              <p className="text-xs font-semibold text-primary">{number}</p>
-              <p className="mt-2 text-sm font-medium text-foreground">{label}</p>
-              <p className="mt-1 text-xs leading-5 text-secondary-foreground">{description}</p>
-            </div>
-          ))}
+      <section className="space-y-3" aria-labelledby="departemen-title">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 id="departemen-title" className="text-sm font-semibold text-foreground">Departemen</h2>
+            <p className="mt-1 text-sm text-secondary-foreground">Struktur organisasi yang menjadi lingkup Proses Bisnis dan Kepala Departemen.</p>
+          </div>
+          <Button size="sm" onClick={openCreateDepartemen} className="gap-2">
+            <Plus className="h-4 w-4" aria-hidden />
+            Tambah Departemen
+          </Button>
         </div>
+
+        <Table.Card>
+          <Table.Root aria-label="Daftar Departemen FTI">
+            <Table.Table>
+              <thead>
+                <Table.HeadRow>
+                  <Table.Th>Departemen</Table.Th>
+                  <Table.Th>Status</Table.Th>
+                  <Table.ActionTh>Aksi</Table.ActionTh>
+                </Table.HeadRow>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <Table.BodyRow><Table.Td colSpan={3}>Memuat Departemen...</Table.Td></Table.BodyRow>
+                ) : departemen.length === 0 ? (
+                  <Table.BodyRow><Table.Td colSpan={3}>Belum ada Departemen.</Table.Td></Table.BodyRow>
+                ) : departemen.map((department) => (
+                  <Table.BodyRow key={department.departemenId}>
+                    <Table.Td className="font-medium">{department.nama}</Table.Td>
+                    <Table.Td><Badge variant="success">Aktif</Badge></Table.Td>
+                    <Table.ActionTd>
+                      <Button size="sm" variant="outline" onClick={() => openEditDepartemen(department.departemenId, department.nama)}>
+                        Ubah
+                      </Button>
+                    </Table.ActionTd>
+                  </Table.BodyRow>
+                ))}
+              </tbody>
+            </Table.Table>
+          </Table.Root>
+        </Table.Card>
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-2">
-        <div className="contents">
-          <DataSurface.Root className="order-2">
-            <DataSurface.Header>
-              <div className="space-y-0.5">
-                <h2 className="text-sm font-semibold text-foreground">Kewenangan Owner Proses Bisnis</h2>
-                <p className="text-sm text-secondary-foreground">
-                  Admin menetapkan lingkup sekali. Setelah itu Owner membuat Proses Bisnis dan mengelola Penyusun SOP.
-                </p>
-              </div>
-            </DataSurface.Header>
-            <div className="space-y-4 p-4">
-              <label className="block space-y-1.5 text-sm font-medium text-foreground">
-                Pengguna
-                <select
-                  className="h-9 w-full rounded-control border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={authority.penggunaId}
-                  onChange={(event) =>
-                    setAuthority((current) => ({ ...current, penggunaId: event.target.value }))
-                  }
-                >
-                  <option value="">Pilih calon Owner Proses Bisnis</option>
-                  {eligibleUsers.map((user) => (
-                    <option key={user.penggunaId} value={user.penggunaId}>
-                      {user.nama} · {user.email}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="block space-y-1.5 text-sm font-medium text-foreground">
-                Lingkup
-                <select
-                  className="h-9 w-full rounded-control border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={authority.lingkup}
-                  onChange={(event) => changeScope(event.target.value as LingkupOrganisasi)}
-                >
-                  <option value="FACULTY">Fakultas</option>
-                  <option value="DEPARTMENT">Departemen</option>
-                </select>
-              </label>
-
-              {authority.lingkup === 'DEPARTMENT' ? (
-                <label className="block space-y-1.5 text-sm font-medium text-foreground">
-                  Departemen
-                  <select
-                    className="h-9 w-full rounded-control border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    value={authority.departemenId ?? ''}
-                    onChange={(event) =>
-                      setAuthority((current) => ({ ...current, departemenId: event.target.value || null }))
-                    }
-                  >
-                    <option value="">Pilih Departemen</option>
-                    {departemen.map((department) => (
-                      <option key={department.departemenId} value={department.departemenId}>
-                        {department.nama}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
-
-              <div className="flex justify-end">
-                <Button
-                  disabled={!canGrant || isSaving}
-                  onClick={async () => {
-                    try {
-                      await grantOwnerAuthority(authority)
-                      setAuthority(EMPTY_AUTHORITY)
-                    } catch {
-                      // Toast owns the error; keep input for correction.
-                    }
-                  }}
-                >
-                  Berikan kewenangan
-                </Button>
-              </div>
-            </div>
-            <div className="divide-y divide-border border-t border-border">
-              {ownerAuthorities.length === 0 ? (
-                <p className="p-4 text-sm text-secondary-foreground">Belum ada kewenangan Owner Proses Bisnis.</p>
-              ) : (
-                ownerAuthorities.map((row) => (
-                  <div key={row.kewenanganPenanggungJawabProsesBisnisId} className="flex items-center justify-between gap-4 p-4">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {row.user?.nama ?? 'Pengguna tidak tersedia'}
-                      </p>
-                      <p className="text-xs text-secondary-foreground">
-                        {row.lingkup === 'FACULTY' ? 'Fakultas' : row.departemen?.nama ?? 'Departemen'}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isSaving}
-                      onClick={() => revokeOwnerAuthority(row.kewenanganPenanggungJawabProsesBisnisId)}
-                    >
-                      Cabut
-                    </Button>
-                  </div>
-                ))
-              )}
-            </div>
-          </DataSurface.Root>
-
-          <DataSurface.Root className="order-3 xl:col-span-2">
-            <DataSurface.Header>
-              <div className="space-y-0.5">
-              <h2 className="text-sm font-semibold text-foreground">Pemantauan Proses Bisnis</h2>
-                <p className="text-sm text-secondary-foreground">
-                  Admin memakai daftar ini untuk memantau dan memulihkan data. Pengelolaan sehari-hari dilakukan Owner.
-                </p>
-              </div>
-            </DataSurface.Header>
-            <div className="divide-y divide-border">
-              {isLoading ? (
-                <p className="p-4 text-sm text-secondary-foreground">Memuat Proses Bisnis...</p>
-              ) : prosesBisnis.length === 0 ? (
-                <p className="p-4 text-sm text-secondary-foreground">Belum ada Proses Bisnis.</p>
-              ) : (
-                prosesBisnis.map((process) => (
-                  <div key={process.prosesBisnisId} className="p-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-sm font-medium text-foreground">{process.nama}</h3>
-                      <span className="rounded-full border border-border px-2 py-0.5 text-xs text-secondary-foreground">
-                        {process.lingkup === 'FACULTY' ? 'Fakultas' : process.departemen?.nama ?? 'Departemen'}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm text-secondary-foreground">
-                      Owner: {process.penanggungJawab.nama} · {process.anggota.length} Penyusun SOP
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
-          </DataSurface.Root>
+      <section className="space-y-3" aria-labelledby="pj-authority-title">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 id="pj-authority-title" className="text-sm font-semibold text-foreground">Kewenangan Penanggung Jawab Proses Bisnis</h2>
+            <p className="mt-1 text-sm text-secondary-foreground">Kewenangan ini menentukan siapa yang dapat membentuk dan mengelola Proses Bisnis pada lingkup tertentu.</p>
+          </div>
+          <Button size="sm" onClick={() => setAuthorityDialogOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" aria-hidden />
+            Tambah Kewenangan
+          </Button>
         </div>
 
-        <DataSurface.Root className="order-1">
-          <DataSurface.Header>
-            <div className="space-y-0.5">
-              <h2 className="text-sm font-semibold text-foreground">Struktur Departemen</h2>
-              <p className="text-sm text-secondary-foreground">
-                Data organisasi disiapkan Admin sebelum lingkup diberikan kepada Owner Proses Bisnis.
-              </p>
-            </div>
-          </DataSurface.Header>
-          <div className="space-y-3 p-4">
-            <div className="flex gap-2">
-              <Input
-                value={namaDepartemen}
-                onChange={(event) => setDepartemenName(event.target.value)}
-                placeholder="Nama Departemen"
-              />
-              <Button
-                variant="outline"
-                disabled={namaDepartemen.trim().length < 2 || isSaving}
-                onClick={async () => {
-                  try {
-                    await createDepartemen(namaDepartemen.trim())
-                    setDepartemenName('')
-                  } catch {
-                    // Toast already reports the error.
-                  }
-                }}
-              >
-                Tambah
-              </Button>
-            </div>
-            <div className="divide-y divide-border border-y border-border">
-              {departemen.length === 0 ? (
-                <p className="py-4 text-sm text-secondary-foreground">Belum ada Departemen.</p>
-              ) : departemen.map((department) => (
-                <div key={department.departemenId} className="flex items-center justify-between gap-3 py-3">
-                  {editingDepartemenId === department.departemenId ? (
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
-                      <Input
-                        className="min-w-0"
-                        value={editingDepartemenName}
-                        onChange={(event) => setEditingDepartemenName(event.target.value)}
-                        aria-label={`Nama ${department.nama}`}
-                      />
-                    </div>
-                  ) : (
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">{department.nama}</p>
-                      <p className="mt-0.5 text-xs text-secondary-foreground">Departemen FTI</p>
-                    </div>
-                  )}
-                  {editingDepartemenId === department.departemenId ? (
-                    <div className="flex shrink-0 gap-2">
+        <Table.Card>
+          <Table.Root aria-label="Daftar kewenangan Penanggung Jawab Proses Bisnis">
+            <Table.Table>
+              <thead>
+                <Table.HeadRow>
+                  <Table.Th>Penanggung Jawab</Table.Th>
+                  <Table.Th>Email</Table.Th>
+                  <Table.Th>Lingkup</Table.Th>
+                  <Table.Th>Status</Table.Th>
+                  <Table.ActionTh>Aksi</Table.ActionTh>
+                </Table.HeadRow>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <Table.BodyRow><Table.Td colSpan={5}>Memuat kewenangan...</Table.Td></Table.BodyRow>
+                ) : ownerAuthorities.length === 0 ? (
+                  <Table.BodyRow><Table.Td colSpan={5}>Belum ada kewenangan Penanggung Jawab.</Table.Td></Table.BodyRow>
+                ) : ownerAuthorities.map((row) => (
+                  <Table.BodyRow key={row.kewenanganPenanggungJawabProsesBisnisId}>
+                    <Table.Td className="font-medium">{row.user?.nama ?? 'Pengguna tidak tersedia'}</Table.Td>
+                    <Table.Td>{row.user?.email ?? '—'}</Table.Td>
+                    <Table.Td>{row.lingkup === 'FACULTY' ? 'Fakultas' : row.departemen?.nama ?? 'Departemen'}</Table.Td>
+                    <Table.Td><Badge variant="success">Aktif</Badge></Table.Td>
+                    <Table.ActionTd>
                       <Button
-                        type="button"
                         size="sm"
-                        className="h-7 px-2 text-xs"
-                        disabled={editingDepartemenName.trim().length < 2 || isSaving}
-                        onClick={async () => {
-                          try {
-                            await updateDepartemen({
-                              departemenId: department.departemenId,
-                              nama: editingDepartemenName.trim(),
-                            })
-                            setEditingDepartemenId(null)
-                          } catch {
-                            // Toast already reports the error.
-                          }
-                        }}
+                        variant="outline"
+                        disabled={isSaving}
+                        onClick={() => setRevokingAuthorityId(row.kewenanganPenanggungJawabProsesBisnisId)}
                       >
-                        Simpan
+                        Cabut
                       </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 px-2 text-xs"
-                        onClick={() => setEditingDepartemenId(null)}
-                      >
-                        Batal
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 px-2 text-xs"
-                      onClick={() => {
-                        setEditingDepartemenId(department.departemenId)
-                        setEditingDepartemenName(department.nama)
-                      }}
-                    >
-                      Edit
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </DataSurface.Root>
-      </div>
+                    </Table.ActionTd>
+                  </Table.BodyRow>
+                ))}
+              </tbody>
+            </Table.Table>
+          </Table.Root>
+        </Table.Card>
+      </section>
+
+      <FormDialog
+        open={departmentDialogOpen}
+        onOpenChange={(open) => {
+          setDepartmentDialogOpen(open)
+          if (!open) {
+            setEditingDepartemenId(null)
+            setNamaDepartemen('')
+          }
+        }}
+        title={editingDepartemenId ? 'Ubah Departemen' : 'Tambah Departemen'}
+        confirmLabel={editingDepartemenId ? 'Simpan Perubahan' : 'Tambah Departemen'}
+        confirmDisabled={namaDepartemen.trim().length < 2 || isSaving}
+        onConfirm={() => {
+          const nama = namaDepartemen.trim()
+          if (editingDepartemenId) {
+            void updateDepartemen({ departemenId: editingDepartemenId, nama }).then(() => setDepartmentDialogOpen(false))
+          } else {
+            void createDepartemen(nama).then(() => setDepartmentDialogOpen(false))
+          }
+        }}
+      >
+        <label className="space-y-1.5 text-sm font-medium text-foreground">
+          <span>Nama Departemen</span>
+          <Input value={namaDepartemen} onChange={(event) => setNamaDepartemen(event.target.value)} placeholder="Nama Departemen" />
+        </label>
+      </FormDialog>
+
+      <FormDialog
+        open={authorityDialogOpen}
+        onOpenChange={(open) => {
+          setAuthorityDialogOpen(open)
+          if (!open) setAuthority(EMPTY_AUTHORITY)
+        }}
+        title="Tambah Kewenangan Penanggung Jawab"
+        description="Pengguna yang diberi kewenangan dapat membentuk dan mengelola Proses Bisnis pada lingkup ini, tetapi tidak otomatis memperoleh hak edit SOP."
+        confirmLabel="Berikan Kewenangan"
+        confirmDisabled={!canGrant || isSaving}
+        onConfirm={() => {
+          void grantOwnerAuthority(authority).then(() => {
+            setAuthorityDialogOpen(false)
+            setAuthority(EMPTY_AUTHORITY)
+          })
+        }}
+      >
+        <label className="space-y-1.5 text-sm font-medium text-foreground">
+          <span>Pengguna</span>
+          <select
+            className="h-9 w-full rounded-control border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            value={authority.penggunaId}
+            onChange={(event) => setAuthority((current) => ({ ...current, penggunaId: event.target.value }))}
+          >
+            <option value="">Pilih pengguna</option>
+            {eligibleUsers.map((user) => <option key={user.penggunaId} value={user.penggunaId}>{user.nama} · {user.email}</option>)}
+          </select>
+        </label>
+        <label className="space-y-1.5 text-sm font-medium text-foreground">
+          <span>Lingkup</span>
+          <select
+            className="h-9 w-full rounded-control border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            value={authority.lingkup}
+            onChange={(event) => changeScope(event.target.value as LingkupOrganisasi)}
+          >
+            <option value="FACULTY">Fakultas</option>
+            <option value="DEPARTMENT">Departemen</option>
+          </select>
+        </label>
+        {authority.lingkup === 'DEPARTMENT' ? (
+          <label className="space-y-1.5 text-sm font-medium text-foreground">
+            <span>Departemen</span>
+            <select
+              className="h-9 w-full rounded-control border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              value={authority.departemenId ?? ''}
+              onChange={(event) => setAuthority((current) => ({ ...current, departemenId: event.target.value || null }))}
+            >
+              <option value="">Pilih Departemen</option>
+              {departemen.map((department) => <option key={department.departemenId} value={department.departemenId}>{department.nama}</option>)}
+            </select>
+          </label>
+        ) : null}
+      </FormDialog>
+
+      <ConfirmDialog
+        open={revokingAuthorityId !== null}
+        onOpenChange={(open) => { if (!open) setRevokingAuthorityId(null) }}
+        title="Cabut kewenangan Penanggung Jawab?"
+        description="Kewenangan untuk membentuk Proses Bisnis baru pada lingkup ini akan dicabut. Proses Bisnis yang sudah dimiliki tetap mengikuti aturan server."
+        confirmLabel="Cabut Kewenangan"
+        destructive
+        onConfirm={() => {
+          if (!revokingAuthorityId) return
+          void revokeOwnerAuthority(revokingAuthorityId).then(() => setRevokingAuthorityId(null))
+        }}
+      />
     </ListPageLayout>
   )
 }
