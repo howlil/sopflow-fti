@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   DefaultValuePipe,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
@@ -23,7 +24,7 @@ import { PelaksanaSnapshotService } from '../pelaksana/pelaksana-snapshot.servic
 import { KeputusanPemeriksaanProsesBisnis, KeputusanPemeriksaanProsesBisnisDto } from './dto/pemeriksaan-proses-bisnis-decision.dto';
 import { ProsesBisnisOwnerReviewService } from './pemeriksaan-penanggung-jawab-proses-bisnis.service';
 
-@ApiTags('Penanggung Jawab Proses Bisnis Review')
+@ApiTags('Pemeriksaan Penanggung Jawab Proses Bisnis')
 @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
 @Controller('prosesBisnis-sop')
 @UseGuards(JwtAuthGuard)
@@ -33,6 +34,27 @@ export class ProsesBisnisOwnerReviewController {
     private readonly pelaksanaSnapshotService: PelaksanaSnapshotService,
   ) {}
 
+  @Get(':detailOrSopId/review-document')
+  @ApiQuery({
+    name: 'logsLimit',
+    required: false,
+    schema: { default: 100, minimum: 1, maximum: 500 },
+  })
+  @ApiOperation({ summary: 'Dokumen SOP read-only untuk pemeriksaan Penanggung Jawab Proses Bisnis' })
+  async reviewDocument(
+    @Req() req: Request & { user: JwtAccessPayload },
+    @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,
+    @Query('logsLimit', new DefaultValuePipe(100), ParseIntPipe) logsLimit: number,
+  ): Promise<ApiSuccessResponse<unknown>> {
+    return {
+      message: 'Dokumen pemeriksaan SOP berhasil diambil',
+      success: true,
+      data: await this.pelaksanaSnapshotService.applyToWorkbench(
+        await this.service.getReviewDocument(req.user, detailOrSopId, logsLimit),
+      ),
+    };
+  }
+
   @Post(':detailOrSopId/submit-review')
   @HttpCode(HttpStatus.OK)
   @ApiQuery({
@@ -40,7 +62,7 @@ export class ProsesBisnisOwnerReviewController {
     required: false,
     schema: { default: 100, minimum: 1, maximum: 500 },
   })
-  @ApiOperation({ summary: 'Submit Proses Bisnis-bound SOP untuk review Penanggung Jawab Proses Bisnis' })
+  @ApiOperation({ summary: 'Kirim SOP ke Penanggung Jawab Proses Bisnis untuk pemeriksaan' })
   async submitForReview(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,
@@ -48,7 +70,7 @@ export class ProsesBisnisOwnerReviewController {
   ): Promise<ApiSuccessResponse<unknown>> {
     const workbench = await this.service.submitForReview(req.user, detailOrSopId, logsLimit);
     return {
-      message: 'SOP berhasil dikirim ke Penanggung Jawab Proses Bisnis untuk review',
+      message: 'SOP berhasil dikirim ke Penanggung Jawab Proses Bisnis untuk pemeriksaan',
       success: true,
       data: await this.pelaksanaSnapshotService.applyToWorkbench(workbench),
     };
@@ -61,7 +83,7 @@ export class ProsesBisnisOwnerReviewController {
     required: false,
     schema: { default: 100, minimum: 1, maximum: 500 },
   })
-  @ApiOperation({ summary: 'Penanggung Jawab Proses Bisnis menerima SOP atau mengembalikannya untuk revisi' })
+  @ApiOperation({ summary: 'Penanggung Jawab meminta revisi atau menyatakan SOP siap diajukan' })
   async review(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,
@@ -78,8 +100,8 @@ export class ProsesBisnisOwnerReviewController {
     return {
       message:
         dto.decision === KeputusanPemeriksaanProsesBisnis.ACCEPT
-          ? 'SOP diterima Penanggung Jawab Proses Bisnis dan siap menuju persetujuan akhir'
-          : 'SOP dikembalikan untuk revisi',
+          ? 'SOP dinyatakan siap diajukan ke Pejabat Berwenang'
+          : 'SOP dikembalikan kepada Penyusun untuk revisi',
       success: true,
       data: await this.pelaksanaSnapshotService.applyToWorkbench(workbench),
     };
