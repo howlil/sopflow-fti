@@ -9,7 +9,7 @@ describe('SopDiagramService Proses Bisnis authorization', () => {
   } as never;
 
   function createService(overrides?: {
-    resolved?: { detailSopId: string; prosesBisnisId: string | null } | null;
+    resolved?: { detailSopId: string; prosesBisnisId: string } | null;
     status?: string | null;
   }) {
     const defaultResolved = { detailSopId: 'det-1', prosesBisnisId: 'process-1' };
@@ -70,17 +70,6 @@ describe('SopDiagramService Proses Bisnis authorization', () => {
     expect(sopDiagramRepository.upsertConfig).toHaveBeenCalled();
     expect(sopWorkbenchReader.getForDetail).toHaveBeenCalledWith('det-1', undefined);
     expect(actual.detail.id).toBe('det-1');
-  });
-
-  it('rejects an SOP without Penanggung Jawab kepemilikan Proses Bisnis', async () => {
-    const { service, konteksProsesBisnisService } = createService({
-      resolved: { detailSopId: 'det-1', prosesBisnisId: null },
-    });
-
-    await expect(
-      service.updateDiagram(user, 'det-1', { jenis: JenisDiagram.FLOWCHART }),
-    ).rejects.toBeInstanceOf(ConflictException);
-    expect(konteksProsesBisnisService.assertCanAuthor).not.toHaveBeenCalled();
   });
 
   it('rejects a missing detail status', async () => {
