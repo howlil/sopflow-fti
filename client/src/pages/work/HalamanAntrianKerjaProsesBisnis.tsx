@@ -49,6 +49,10 @@ export function HalamanAntrianKerjaProsesBisnis() {
   const [reviewSaving, setReviewSaving] = useState(false)
   const [catatan, setCatatan] = useState('')
 
+  const authoringProcessIds = useMemo(
+    () => new Set(authoringProcesses.map((process) => process.prosesBisnisId)),
+    [authoringProcesses],
+  )
   const rows = useMemo(
     () => (list as ProsesBisnisAwareSopRow[]).filter(
       (row) => row.prosesBisnisId != null && row.siklus != null,
@@ -132,6 +136,7 @@ export function HalamanAntrianKerjaProsesBisnis() {
               ) : rows.map((row) => {
                 const action = row.siklus.action
                 const targetId = row.detailSopId ?? row.id
+                const canOpenAuthoring = row.prosesBisnisId != null && authoringProcessIds.has(row.prosesBisnisId)
                 return (
                   <Table.BodyRow key={row.id}>
                     <Table.Td>
@@ -153,7 +158,7 @@ export function HalamanAntrianKerjaProsesBisnis() {
                         <Button asChild size="sm" variant="outline">
                           <Link to={ROUTES.APPROVAL.INBOX}>{action.label}</Link>
                         </Button>
-                      ) : action?.destination === 'SOP_DETAIL' ? (
+                      ) : action?.destination === 'SOP_DETAIL' && canOpenAuthoring ? (
                         <Button asChild size="sm" variant={action.type === 'OPEN' ? 'outline' : 'default'}>
                           <Link to={ROUTES.PENYUSUN.DETAIL_SOP} params={{ id: targetId }}>{action.label}</Link>
                         </Button>
