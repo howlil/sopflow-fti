@@ -16,6 +16,7 @@ export interface ProsesBisnisAssignableUserDto {
   email: string
   nip?: string
   platformRole: PlatformRole
+  deletedAt?: string | null
 }
 
 export interface AnggotaProsesBisnisDto {
