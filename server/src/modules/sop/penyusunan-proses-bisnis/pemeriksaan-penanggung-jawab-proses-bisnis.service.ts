@@ -16,6 +16,7 @@ import {
   type NotifikasiProsesBisnisCreateInput,
 } from '../../notifications/proses-bisnis/notifikasi-proses-bisnis.service';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
+import { mapWorkbenchPayload } from '../catalog/sop-catalog.mapper';
 import { pastikanWorkbenchSopLengkapUntukPemeriksaanProsesBisnis } from '../catalog/sop-completeness.validator';
 import { SopCatalogRepository } from '../catalog/sop-catalog.repository';
 import { appendOrCreateLogSession } from '../collaboration/log-edit-session.helper';
@@ -73,7 +74,18 @@ export class ProsesBisnisOwnerReviewService {
       },
     });
 
+    // Penyusun tetap berada pada authoring context setelah mengirim dokumen.
     return this.processSopAuthoringService.getWorkbench(user, context.detailSopId, logsLimit);
+  }
+
+  async getReviewDocument(
+    user: JwtAccessPayload,
+    detailOrSopId: string,
+    logsLimit?: number,
+  ): Promise<PenyusunWorkbenchDataDto> {
+    const context = await this.resolveTargetContext(detailOrSopId);
+    await this.konteksProsesBisnisService.assertCanReview(user.sub, context.prosesBisnisId);
+    return this.readOnlyWorkbench(context.detailSopId, logsLimit);
   }
 
   async review(
@@ -85,7 +97,7 @@ export class ProsesBisnisOwnerReviewService {
   ): Promise<PenyusunWorkbenchDataDto> {
     const catatan = catatanRaw?.trim() || null;
     if (decision === KeputusanPemeriksaanProsesBisnis.REVISION && catatan === null) {
-      throw new BadRequestException('Catatan revisi wajib diisi agar Tim Proses Bisnis mengetahui perbaikannya');
+      throw new BadRequestException('Catatan revisi wajib diisi agar Penyusun mengetahui perbaikannya');
     }
     const context = await this.resolveTargetContext(detailOrSopId);
     const prosesBisnis = await this.konteksProsesBisnisService.assertCanReview(user.sub, context.prosesBisnisId);
@@ -98,7 +110,7 @@ export class ProsesBisnisOwnerReviewService {
     }
     if (statusContext.status !== StatusSOP.PROCESS_REVIEW) {
       throw new ConflictException(
-        `SOP belum berada pada ProsesBisnis Owner review (status saat ini: ${String(statusContext.status)})`,
+        `SOP belum berada pada tahap pemeriksaan Penanggung Jawab Proses Bisnis (status saat ini: ${String(statusContext.status)})`,
       );
     }
 
@@ -117,7 +129,7 @@ export class ProsesBisnisOwnerReviewService {
         throw new NotFoundException('DetailSOP tidak ditemukan');
       }
       if (detail.dibuatOlehId === null) {
-        throw new ConflictException('Author SOP Proses Bisnis tidak tersedia untuk feedback revisi');
+        throw new ConflictException('Penyusun SOP tidak tersedia untuk menerima catatan revisi');
       }
       notification = {
         detailSopId: context.detailSopId,
@@ -163,7 +175,20 @@ export class ProsesBisnisOwnerReviewService {
       },
     });
 
-    return this.processSopAuthoringService.getWorkbench(user, context.detailSopId, logsLimit);
+    // PJ hanya membaca hasil pemeriksaan; jangan melewati authoring authorization.
+    return this.readOnlyWorkbench(context.detailSopId, logsLimit);
+  }
+
+  private async readOnlyWorkbench(
+    detailSopId: string,
+    logsLimit?: number,
+  ): Promise<PenyusunWorkbenchDataDto> {
+    const row = await this.sopCatalogRepository.findWorkbenchPayloadByDetailOrSopId(
+      detailSopId,
+      logsLimit ?? 100,
+    );
+    if (row === null) throw new NotFoundException('DetailSOP tidak ditemukan');
+    return mapWorkbenchPayload(row);
   }
 
   private async transitionStatus(params: {
@@ -212,8 +237,8 @@ export class ProsesBisnisOwnerReviewService {
             : reviewEvidence.decision === KeputusanPemeriksaanProsesBisnisDb.REVISION
               ? `Revisi diminta: ${reviewEvidence.catatan}`
               : reviewEvidence.catatan
-                ? `SOP diterima. Catatan: ${reviewEvidence.catatan}`
-                : 'SOP diterima tanpa catatan tambahan.',
+                ? `SOP siap diajukan. Catatan: ${reviewEvidence.catatan}`
+                : 'SOP dinyatakan siap diajukan tanpa catatan tambahan.',
         discrete: true,
       });
       if (params.notification !== undefined) {
