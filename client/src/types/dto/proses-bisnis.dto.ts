@@ -93,6 +93,36 @@ export type AnggotaProsesBisnisOnboardingResult =
       activationPath: string
     }
 
+export interface PenugasanPenyusunSopRowDto {
+  sopId: string
+  detailSopId: string | null
+  judul: string
+  nomorSOP: string | null
+  versi: number | null
+  status: string | null
+  updatedAt: string | null
+  prosesBisnisId: string
+  namaProsesBisnis: string
+  penyusun: {
+    penggunaId: string
+    nama: string
+    email: string
+    aktif: boolean
+    ditugaskanPada: string
+  } | null
+}
+
+export interface AssignPenyusunSopResultDto {
+  sopId: string
+  prosesBisnisId: string
+  penyusun: {
+    penggunaId: string
+    nama: string
+    email: string
+  }
+  ditugaskanPada: string
+}
+
 export interface UndanganAnggotaProsesBisnisPreviewDto {
   email: string
   nama: string
