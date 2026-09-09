@@ -56,4 +56,7 @@ jobs:
           cache-dependency-path: server/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm prisma generate
-      - run: pnpm exec jest --runInBand --runTestsByPath "${{ matrix.file#server/ }}"
+      - shell: bash
+        run: |
+          path='${{ matrix.file }}'
+          pnpm exec jest --runInBand --runTestsByPath "${path#server/}"
