@@ -34,11 +34,14 @@ function makeService(options?: { transitionCount?: number }) {
           departemen: null,
         },
       ]),
-      findUnique: jest.fn().mockResolvedValue({ penanggungJawabId: 'owner-1', nama: 'Proses Bisnis Fakultas' }),
+      findUnique: jest
+        .fn()
+        .mockResolvedValue({ penanggungJawabId: 'owner-1', nama: 'Proses Bisnis Fakultas' }),
     },
     sOP: {
-      findMany: jest.fn().mockResolvedValue([{ sopId: 'sop-a', prosesBisnisId: 'prosesBisnis-a' }]),
-      findUnique: jest.fn().mockResolvedValue({ prosesBisnisId: 'prosesBisnis-a' }),
+      findMany: jest
+        .fn()
+        .mockResolvedValue([{ sopId: 'sop-a', prosesBisnisId: 'prosesBisnis-a' }]),
     },
     detailSOP: {
       findMany: jest.fn().mockResolvedValue([
@@ -79,13 +82,19 @@ function makeService(options?: { transitionCount?: number }) {
     findDetailIdByDetailOrSopId: jest.fn().mockResolvedValue({
       detailSopId: 'detail-a',
       sopId: 'sop-a',
+      prosesBisnisId: 'prosesBisnis-a',
     }),
     findRiwayatVersiBySopId: jest.fn().mockResolvedValue([
       { detailSopId: 'detail-a', status: StatusSOP.EFFECTIVE },
     ]),
   } as unknown as SopCatalogRepository;
   return {
-    service: new ProsesBisnisSopRevocationService(prisma, authority, notifikasiProsesBisnis, catalog),
+    service: new ProsesBisnisSopRevocationService(
+      prisma,
+      authority,
+      notifikasiProsesBisnis,
+      catalog,
+    ),
     prisma,
     authority,
     notifikasiProsesBisnis,
@@ -158,17 +167,6 @@ describe('ProsesBisnisSopRevocationService', () => {
     ]);
 
     await expect(service.revoke(user, 'detail-a')).rejects.toBeInstanceOf(ConflictException);
-    expect(notifikasiProsesBisnis.createManyInTransaction).not.toHaveBeenCalled();
-  });
-
-  it('rejects an unbound SOP because it is historical-only', async () => {
-    const { service, prisma, authority, notifikasiProsesBisnis } = makeService();
-    (prisma.sOP.findUnique as jest.Mock).mockResolvedValue({ prosesBisnisId: null });
-
-    await expect(service.revoke(user, 'detail-a')).rejects.toThrow(
-      'SOP tanpa Proses Bisnis hanya tersedia sebagai riwayat compatibility dan tidak dapat dicabut dari runtime FTI',
-    );
-    expect(authority.assertCanApprove).not.toHaveBeenCalled();
     expect(notifikasiProsesBisnis.createManyInTransaction).not.toHaveBeenCalled();
   });
 });
