@@ -45,7 +45,7 @@ export async function submitProsesBisnisSopForReviewViaUi(
   await page.goto(`/penyusun/sop/${detailSopId}`)
   await waitForAppReady(page)
 
-  const submit = page.getByRole('button', { name: 'Kirim untuk review', exact: true })
+  const submit = page.getByRole('button', { name: 'Kirim untuk ditinjau', exact: true })
   await expect(submit).toBeEnabled()
   await submit.click()
 
@@ -58,7 +58,7 @@ export async function submitProsesBisnisSopForReviewViaUi(
     timeout: 15_000,
   })
   await expect(
-    page.getByText('Dokumen sedang direview oleh Penanggung Jawab Proses Bisnis dan untuk sementara bersifat read-only.'),
+    page.getByText('Dokumen sedang ditinjau oleh Penanggung Jawab Proses Bisnis dan untuk sementara tidak dapat diedit.'),
   ).toBeVisible()
   await expectNoAppShellError(page)
 }

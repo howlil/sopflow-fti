@@ -77,7 +77,7 @@ export function ArsipSopPanel({
             placeholder="Cari judul atau nomor SOP…"
           />
           <p className="mt-1.5 text-xs text-muted-foreground">
-            Kosongkan untuk melihat semua SOP pada ProsesBisnis ini.
+            Kosongkan untuk melihat semua SOP pada Proses Bisnis ini.
           </p>
         </div>
       ) : null}

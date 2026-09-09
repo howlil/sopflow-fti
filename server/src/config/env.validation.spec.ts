@@ -14,7 +14,7 @@ describe('Environment validation', () => {
       DATABASE_HOST: 'localhost',
       DATABASE_PORT: 3306,
       DATABASE_USER: 'sop_app',
-      DATABASE_NAME: 'sop_biro_organisasi',
+      DATABASE_NAME: 'sop_fti',
       DATABASE_PASSWORD: 'test',
     });
   });
@@ -26,13 +26,13 @@ describe('Environment validation', () => {
         DATABASE_HOST: '127.0.0.1',
         DATABASE_PORT: '3308',
         DATABASE_USER: 'sop_test',
-        DATABASE_NAME: 'sop_biro_organisasi_test',
+        DATABASE_NAME: 'sop_fti_test',
       }),
     ).toMatchObject({
       DATABASE_HOST: '127.0.0.1',
       DATABASE_PORT: 3308,
       DATABASE_USER: 'sop_test',
-      DATABASE_NAME: 'sop_biro_organisasi_test',
+      DATABASE_NAME: 'sop_fti_test',
     });
   });
 

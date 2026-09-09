@@ -63,14 +63,7 @@ function DetailWorkspace({
 export interface DetailPageLayoutProps {
   breadcrumb?: BreadcrumbItem[] | null
   title: string
-  /** @deprecated Deskripsi tidak lagi dirender di global shell. */
   description?: string
-  /** @deprecated Navigasi balik detail sekarang hanya melalui breadcrumb. */
-  backTo?: string
-  /** @deprecated Navigasi balik detail sekarang hanya melalui breadcrumb. */
-  backSize?: 'default' | 'icon'
-  /** @deprecated Aksi detail harus hidup di workspace header/page-local command region. */
-  actions?: React.ReactNode
   header?: React.ReactNode
   main?: React.ReactNode
   children?: React.ReactNode
@@ -83,6 +76,7 @@ export interface DetailPageLayoutProps {
 export function DetailPageLayout({
   breadcrumb,
   title,
+  description,
   header,
   main,
   children,
@@ -98,7 +92,7 @@ export function DetailPageLayout({
       suppressHydrationWarning
       className={className ?? 'flex h-[calc(100vh-5rem)] min-h-0 flex-col gap-3 sm:gap-4'}
     >
-      <SetPageHeader breadcrumb={breadcrumb ?? []} title={title} />
+      <SetPageHeader breadcrumb={breadcrumb ?? []} title={title} description={description} />
       <DetailWorkspace
         className={workspaceClassName}
         header={header}

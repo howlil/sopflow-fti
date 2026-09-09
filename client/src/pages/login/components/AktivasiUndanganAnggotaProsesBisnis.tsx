@@ -65,7 +65,7 @@ export function AktivasiUndanganAnggotaProsesBisnis({ token }: { token: string }
           <p className="text-sm font-medium text-primary">Akun berhasil diaktifkan</p>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Anda sudah menjadi Penyusun SOP</h1>
           <p className="text-sm leading-6 text-secondary-foreground">
-            Akses hanya diberikan ke ProsesBisnis yang mengundang Anda. Masuk dengan email dan kata sandi yang baru dibuat.
+            Akses hanya diberikan ke Proses Bisnis yang mengundang Anda. Masuk dengan email dan kata sandi yang baru dibuat.
           </p>
         </div>
         <Button className="w-full" onClick={() => window.location.assign('/login')}>
@@ -93,7 +93,7 @@ export function AktivasiUndanganAnggotaProsesBisnis({ token }: { token: string }
         <p className="text-sm font-medium text-primary">Undangan Penyusun SOP</p>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Aktifkan akun Anda</h1>
         <p className="text-sm leading-6 text-secondary-foreground">
-          {preview.nama}, Anda diundang ke ProsesBisnis <span className="font-medium text-foreground">{preview.prosesBisnis.nama}</span>.
+          {preview.nama}, Anda diundang ke Proses Bisnis <span className="font-medium text-foreground">{preview.prosesBisnis.nama}</span>.
           Buat kata sandi Anda sendiri untuk mengaktifkan akses.
         </p>
       </div>
@@ -101,7 +101,7 @@ export function AktivasiUndanganAnggotaProsesBisnis({ token }: { token: string }
       <div className="rounded-surface border border-border bg-surface-muted p-4 text-sm">
         <p className="font-medium text-foreground">{preview.email}</p>
         <p className="mt-1 text-secondary-foreground">
-          Lingkup: {preview.prosesBisnis.lingkup === 'FACULTY' ? 'Fakultas' : 'Jurusan'}
+          Lingkup: {preview.prosesBisnis.lingkup === 'FACULTY' ? 'Fakultas' : 'Departemen'}
         </p>
       </div>
 

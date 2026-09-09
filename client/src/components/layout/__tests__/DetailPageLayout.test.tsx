@@ -17,7 +17,7 @@ describe('DetailPageLayout', () => {
         <HeaderBar />
         <DetailPageLayout
           breadcrumb={[
-            { label: 'Manajemen SOP', to: '/penyusun/sop' },
+            { label: 'Daftar SOP', to: '/penyusun/sop' },
             { label: 'Edit SOP' },
           ]}
           title="Edit Dokumen SOP"
@@ -26,7 +26,7 @@ describe('DetailPageLayout', () => {
       </PageHeaderProvider>,
     )
 
-    expect(await screen.findByRole('link', { name: 'Manajemen SOP' })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: 'Daftar SOP' })).toHaveAttribute(
       'href',
       '/penyusun/sop',
     )

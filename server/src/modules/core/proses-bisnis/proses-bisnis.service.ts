@@ -40,6 +40,10 @@ export class ProsesBisnisService {
     return this.repositoriProsesBisnis.listProsesBisnis();
   }
 
+  getAdminOverview() {
+    return this.repositoriProsesBisnis.getAdminOverview();
+  }
+
   private rethrowKnownConflict(error: unknown, message: string): never {
     if (
       typeof error === 'object' &&

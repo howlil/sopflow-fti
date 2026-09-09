@@ -1,7 +1,7 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { JwtAccessPayload } from '../../../common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { assertDetailSopEditable } from '../../../common/status/sop-editable.util';
+import { assertDetailSopEditable } from '../lifecycle/sop-editable.util';
 import {
   BagianSOP,
   PejabatBerwenang,
@@ -84,6 +84,9 @@ export class ProsesBisnisOwnerReviewService {
     logsLimit?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
     const catatan = catatanRaw?.trim() || null;
+    if (decision === KeputusanPemeriksaanProsesBisnis.REVISION && catatan === null) {
+      throw new BadRequestException('Catatan revisi wajib diisi agar Tim Proses Bisnis mengetahui perbaikannya');
+    }
     const context = await this.resolveTargetContext(detailOrSopId);
     const prosesBisnis = await this.konteksProsesBisnisService.assertCanReview(user.sub, context.prosesBisnisId);
 
@@ -196,12 +199,21 @@ export class ProsesBisnisOwnerReviewService {
           'Status SOP berubah saat aksi diproses. Muat ulang dokumen lalu ulangi keputusan.',
         );
       }
+      const reviewEvidence = params.reviewEvidence;
       await appendOrCreateLogSession({
         tx,
         detailSopId: params.detailSopId,
         penggunaId: params.userId,
-        bagian: BagianSOP.STATUS,
-        fields: ['status'],
+        bagian: reviewEvidence === undefined ? BagianSOP.STATUS : BagianSOP.REVIEW,
+        fields: reviewEvidence === undefined ? ['status'] : ['status', 'decision', ...(reviewEvidence.catatan ? ['catatan'] : [])],
+        summary:
+          reviewEvidence === undefined
+            ? undefined
+            : reviewEvidence.decision === KeputusanPemeriksaanProsesBisnisDb.REVISION
+              ? `Revisi diminta: ${reviewEvidence.catatan}`
+              : reviewEvidence.catatan
+                ? `SOP diterima. Catatan: ${reviewEvidence.catatan}`
+                : 'SOP diterima tanpa catatan tambahan.',
         discrete: true,
       });
       if (params.notification !== undefined) {

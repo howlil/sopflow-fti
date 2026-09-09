@@ -10,7 +10,7 @@ vi.mock("@tanstack/react-router", () => ({
     <a href={to} {...props}>{children}</a>
   ),
   Outlet: () => <div>Konten halaman</div>,
-  useLocation: () => ({ pathname: "/work" }),
+  useLocation: () => ({ pathname: "/work/queue" }),
 }));
 
 vi.mock("@/api/konteks-proses-bisnis", () => ({ useMyProsesBisnises: () => ({ data: mockProsesBisnises }) }));
@@ -54,7 +54,6 @@ describe("DashboardLayout desktop sidebar", () => {
     expect(sidebar).toHaveClass("w-[var(--sidebar-width)]");
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe("true");
     expect(useUIStore.getState().sidebarOpen).toBe(false);
-    expect(screen.getAllByRole("link", { name: "Beranda Kerja" })).not.toHaveLength(0);
     fireEvent.click(screen.getByRole("button", { name: "Perluas navigasi" }));
     expect(sidebar).toHaveAttribute("data-state", "expanded");
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe("false");
@@ -63,7 +62,8 @@ describe("DashboardLayout desktop sidebar", () => {
   it("menampilkan pekerjaan SOP hanya dari hubungan Proses Bisnis", () => {
     mockProsesBisnises = [{ prosesBisnisId: "process-1" }];
     render(<DashboardLayout />);
-    expect(screen.getAllByRole("link", { name: "Pekerjaan SOP" })).not.toHaveLength(0);
+    expect(screen.getAllByRole("link", { name: "Tugas Saya" })).not.toHaveLength(0);
+    expect(screen.getAllByRole("link", { name: "Semua SOP" })).not.toHaveLength(0);
   });
 
   it("menampilkan persetujuan hanya dari kewenangan organisasi", () => {
@@ -72,10 +72,11 @@ describe("DashboardLayout desktop sidebar", () => {
     expect(screen.getAllByRole("link", { name: "Persetujuan & TTE" })).not.toHaveLength(0);
   });
 
-  it("tanpa konteks tetap hanya menyediakan Beranda Kerja", () => {
+  it("tanpa konteks tetap menyediakan beranda netral tanpa menu workflow palsu", () => {
     render(<DashboardLayout />);
     expect(screen.getAllByRole("link", { name: "Beranda Kerja" })).not.toHaveLength(0);
-    expect(screen.queryByRole("link", { name: "Pekerjaan SOP" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Tugas Saya" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Semua SOP" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Persetujuan & TTE" })).not.toBeInTheDocument();
   });
 
@@ -89,6 +90,7 @@ describe("DashboardLayout desktop sidebar", () => {
   });
 
   it("menampilkan label lengkap dengan separator panel yang netral", () => {
+    mockProsesBisnises = [{ prosesBisnisId: "process-1" }];
     render(<DashboardLayout />);
     const sidebar = document.querySelector("#desktop-sidebar");
     const activeLink = sidebar?.querySelector('a[aria-current="page"]');

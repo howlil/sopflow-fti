@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
-import { Users, FileText, Menu, X, Workflow, ShieldCheck, House } from "lucide-react";
+import { Users, FileText, LayoutDashboard, List, Menu, X, Workflow, ShieldCheck, BookOpen, UserRoundCog } from "lucide-react";
 import { useMyProsesBisnises } from "@/api/konteks-proses-bisnis";
 import { useMyOrganizationalAuthorities } from "@/api/pejabat-berwenang";
 import logoSvg from "@/assets/logo.svg";
@@ -17,6 +17,7 @@ import { ROUTES } from "@/utils/constants";
 const DESKTOP_SIDEBAR_STORAGE_KEY = "ui:desktop-sidebar-collapsed";
 
 function isActivePath(pathname: string, itemTo: string): boolean {
+  if (itemTo === ROUTES.WORK) return pathname === ROUTES.WORK || pathname === `${ROUTES.WORK}/`;
   return pathname.startsWith(itemTo.replace("/$id", ""));
 }
 
@@ -29,9 +30,19 @@ export function DashboardLayout() {
   const isDesktopNavOpen = useUIStore((state) => state.sidebarOpen);
   const setDesktopNavOpen = useUIStore((state) => state.setSidebarOpen);
   const contextualItems: AppSidebarItem[] = [
-    { to: ROUTES.WORK, label: "Beranda Kerja", icon: House },
+    { to: ROUTES.WORK, label: "Beranda Kerja", icon: LayoutDashboard },
+    ...(user?.platformRole === "SUPER_ADMIN"
+      ? [{ to: ROUTES.ADMIN.HOME, label: "Ringkasan Admin", icon: LayoutDashboard }]
+      : []),
     ...(prosesBisnisSaya.length > 0
-      ? [{ to: ROUTES.WORK_QUEUE, label: "Pekerjaan SOP", icon: FileText }]
+      ? [{ to: ROUTES.WORK_QUEUE, label: "Tugas Saya", icon: FileText }]
+      : []),
+    ...(prosesBisnisSaya.length > 0
+      ? [
+          { to: ROUTES.PENYUSUN.SOP, label: "Semua SOP", icon: List },
+          { to: ROUTES.PENYUSUN.PERATURAN, label: "Peraturan", icon: BookOpen },
+          { to: ROUTES.PENYUSUN.PELAKSANA, label: "Pelaksana", icon: UserRoundCog },
+        ]
       : []),
     ...(myAuthorities.length > 0
       ? [{ to: ROUTES.APPROVAL.INBOX, label: "Persetujuan & TTE", icon: ShieldCheck }]
@@ -170,7 +181,7 @@ export function DashboardLayout() {
           <HeaderBar />
           <main
             id="main-content"
-            className="relative flex-1 overflow-auto bg-background scrollbar-hide"
+            className="relative flex-1 overflow-auto bg-background"
           >
             <div data-scroll-content className="min-h-full p-4 md:p-5 lg:p-6">
               <div data-app-content className="w-full">

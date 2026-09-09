@@ -223,7 +223,7 @@ function SelectedProsesBisnisStrip({
         className="h-8 shrink-0 px-2 text-xs text-blue-700 hover:bg-blue-50"
         onClick={onChangeProsesBisnis}
       >
-        Ganti ProsesBisnis
+        Ganti Proses Bisnis
       </Button>
     </div>
   )
@@ -245,5 +245,5 @@ function PreviewEmptyState({ showSopList, hasManySops }: { showSopList: boolean;
 }
 
 function SopListPickProsesBisnisHint() {
-  return <p className="p-4 text-center text-sm text-muted-foreground">Pilih ProsesBisnis untuk menampilkan daftar SOP.</p>
+  return <p className="p-4 text-center text-sm text-muted-foreground">Pilih Proses Bisnis untuk menampilkan daftar SOP.</p>
 }

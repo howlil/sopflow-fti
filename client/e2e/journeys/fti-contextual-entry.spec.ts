@@ -12,12 +12,9 @@ test.describe('End-to-End Business Journey — FTI contextual entry', () => {
       await page.goto('/work')
       await waitForAppReady(page)
 
-      await expect(page.getByRole('heading', { name: 'Beranda Kerja' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Pekerjaan SOP' })).toBeVisible()
       await expect(page.getByRole('link', { name: 'Pekerjaan SOP', exact: true })).toBeVisible()
-      await expect(
-        page.getByText(/[1-9]\d* ProsesBisnis sebagai Owner · \d+ sebagai Member\./),
-      ).toBeVisible()
-      await expect(page.getByRole('link', { name: 'SOP', exact: true })).toHaveCount(0)
+      await expect(page.getByRole('link', { name: 'Daftar SOP', exact: true })).toBeVisible()
       await expect(page.getByRole('link', { name: 'Pelaksana SOP', exact: true })).toBeVisible()
       await expect(page.getByRole('link', { name: 'Peraturan', exact: true })).toBeVisible()
       await expect(page.getByRole('link', { name: 'Persetujuan & TTE', exact: true })).toHaveCount(0)
@@ -30,11 +27,9 @@ test.describe('End-to-End Business Journey — FTI contextual entry', () => {
       await page.goto('/work')
       await waitForAppReady(page)
 
-      await expect(page.getByRole('heading', { name: 'Beranda Kerja' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Pekerjaan SOP' })).toBeVisible()
       await expect(page.getByRole('link', { name: 'Pekerjaan SOP', exact: true })).toBeVisible()
-      await expect(
-        page.getByText(/\d+ ProsesBisnis sebagai Owner · [1-9]\d* sebagai Member\./),
-      ).toBeVisible()
+      await expect(page.getByRole('link', { name: 'Daftar SOP', exact: true })).toBeVisible()
       await expect(page.getByRole('link', { name: 'Persetujuan & TTE', exact: true })).toHaveCount(0)
       await expect(page.getByRole('link', { name: 'SOP', exact: true })).toHaveCount(0)
       await expectNoAppShellError(page)
@@ -46,11 +41,10 @@ test.describe('End-to-End Business Journey — FTI contextual entry', () => {
       await page.goto('/work')
       await waitForAppReady(page)
 
-      await expect(page.getByRole('heading', { name: 'Beranda Kerja' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Pekerjaan SOP' })).toBeVisible()
       await expect(page.getByRole('link', { name: 'Persetujuan & TTE', exact: true })).toBeVisible()
-      await expect(page.getByText(/[1-9]\d* kewenangan organisasi aktif\./)).toBeVisible()
       await expect(page.getByRole('link', { name: 'Pekerjaan SOP', exact: true })).toHaveCount(0)
-      await expect(page.getByRole('link', { name: 'SOP', exact: true })).toHaveCount(0)
+      await expect(page.getByRole('link', { name: 'Daftar SOP', exact: true })).toHaveCount(0)
       await expectNoAppShellError(page)
     })
 
@@ -60,11 +54,10 @@ test.describe('End-to-End Business Journey — FTI contextual entry', () => {
       await page.goto('/work')
       await waitForAppReady(page)
 
-      await expect(page.getByRole('heading', { name: 'Beranda Kerja' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Pekerjaan SOP' })).toBeVisible()
       await expect(page.getByRole('link', { name: 'Persetujuan & TTE', exact: true })).toBeVisible()
-      await expect(page.getByText(/[1-9]\d* kewenangan organisasi aktif\./)).toBeVisible()
       await expect(page.getByRole('link', { name: 'Pekerjaan SOP', exact: true })).toHaveCount(0)
-      await expect(page.getByRole('link', { name: 'SOP', exact: true })).toHaveCount(0)
+      await expect(page.getByRole('link', { name: 'Daftar SOP', exact: true })).toHaveCount(0)
       await expectNoAppShellError(page)
     })
   })

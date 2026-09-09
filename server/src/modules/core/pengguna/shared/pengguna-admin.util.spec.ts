@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { Prisma } from '../../generated/prisma';
+import { Prisma } from '../../../../generated/prisma';
 import {
   assertAtLeastOneUpdateField,
   assertEmailNipUniqueOnUpdate,

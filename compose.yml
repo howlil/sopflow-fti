@@ -9,7 +9,7 @@ services:
       - --lower_case_table_names=1
     environment:
       MARIADB_RANDOM_ROOT_PASSWORD: "1"
-      MARIADB_DATABASE: sop_biro_organisasi
+      MARIADB_DATABASE: sop_fti
       MARIADB_USER: sop_app
       MARIADB_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
       TZ: Asia/Jakarta

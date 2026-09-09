@@ -1,8 +1,8 @@
-import { displayStatusSop } from '../../../common/status/status-display';
+import { displayStatusSop } from '../lifecycle/status-display';
 import {
   hasRevisiInFlight,
   TERMINAL_DETAIL_STATUSES,
-} from '../../../common/status/sop-editable.util';
+} from '../lifecycle/sop-editable.util';
 import { StatusSOP } from '../../../generated/prisma';
 import { encodeLogEditSopClientId } from '../collaboration/log-edit-session.helper';
 import { mapDiagramConfigsToWorkbenchDto } from '../diagram/diagram-workbench.mapper';

@@ -22,6 +22,18 @@ Port `8080`, `3001`, dan `3306` adalah port internal service/container. Pada dep
 
 Dokumentasi arsitektur lebih lengkap: `docs/arsitektur-sistem.md`.
 
+## Local development
+
+Development startup tidak menjalankan migration atau generate Prisma otomatis, sehingga restart Nest tetap cepat. Jalankan persiapan database hanya saat pertama kali setup atau setelah schema/migration berubah:
+
+```sh
+cd server
+pnpm db:prepare
+pnpm start:dev
+```
+
+Untuk restart development biasa, cukup jalankan `pnpm start:dev`. CI tetap menjalankan Prisma generate dan migration smoke secara eksplisit. Production tetap menjalankan `prisma migrate deploy` pada entrypoint dan membawa Prisma Client yang sudah digenerate saat image build.
+
 ## Local Docker Compose
 
 1. Salin template environment:

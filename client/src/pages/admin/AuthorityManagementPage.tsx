@@ -48,7 +48,7 @@ export function AuthorityManagementPage() {
                 Dean
               </h2>
               <p className="text-sm text-secondary-foreground">
-                Final approver tunggal untuk semua ProsesBisnis lingkup Faculty.
+                Satu pejabat persetujuan akhir untuk semua Proses Bisnis lingkup Fakultas.
               </p>
             </div>
           </DataSurface.Header>
@@ -83,7 +83,7 @@ export function AuthorityManagementPage() {
             <div className="space-y-0.5">
               <h2 className="text-sm font-semibold text-foreground">Kepala Departemen</h2>
               <p className="text-sm text-secondary-foreground">
-                Setiap Departemen memiliki final approver sendiri untuk ProsesBisnis lingkup Departemen.
+                Setiap Departemen memiliki pejabat persetujuan akhir untuk Proses Bisnis di lingkupnya.
               </p>
             </div>
           </DataSurface.Header>

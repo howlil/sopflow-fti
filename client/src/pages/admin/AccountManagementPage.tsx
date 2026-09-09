@@ -118,7 +118,7 @@ export function AccountManagementPage() {
             <div className="space-y-0.5">
                 <h2 className="text-sm font-semibold text-foreground">Akun FTI</h2>
               <p className="text-sm text-secondary-foreground">
-                Akun tidak memperoleh ProsesBisnis atau kewenangan organisasi sampai ditugaskan secara eksplisit.
+                Akun tidak memperoleh akses Proses Bisnis atau kewenangan organisasi sampai ditugaskan secara eksplisit.
               </p>
             </div>
           </DataSurface.Header>

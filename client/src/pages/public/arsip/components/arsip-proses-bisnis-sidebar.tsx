@@ -66,7 +66,7 @@ export function ArsipProsesBisnisSidebar({
       <div className="flex-1 overflow-y-auto p-2">
         {isLoading ? (
           <div className="space-y-2 p-2" aria-busy="true" role="status">
-            <span className="sr-only">Memuat daftar ProsesBisnis</span>
+            <span className="sr-only">Memuat daftar Proses Bisnis</span>
             {Array.from({ length: 7 }).map((_, i) => (
               <Skeleton key={i} className="h-14 rounded-lg" />
             ))}
@@ -74,7 +74,7 @@ export function ArsipProsesBisnisSidebar({
         ) : null}
         {isError ? (
           <Card role="alert" className="m-2 border-red-200 bg-red-50 p-4 text-center text-sm text-red-800">
-            Gagal memuat daftar ProsesBisnis.
+            Gagal memuat daftar Proses Bisnis.
           </Card>
         ) : null}
         {!isLoading && !isError && items.length === 0 ? (
@@ -149,7 +149,7 @@ function ProsesBisnisGroup({
         {icon}
         {label}
       </p>
-      <ul className="space-y-1" role="listbox" aria-label={`ProsesBisnis ${label}`}>
+      <ul className="space-y-1" role="listbox" aria-label={`Proses Bisnis ${label}`}>
         {items.map((process) => {
           const isSelected = process.prosesBisnisId === selectedProsesBisnisId
           return (

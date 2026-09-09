@@ -49,17 +49,42 @@ export function HalamanPengelolaanProsesBisnis() {
 
   return (
     <ListPageLayout
-      breadcrumb={[{ label: 'Administrasi' }, { label: 'Governance Proses Bisnis' }]}
-      title="Governance Proses Bisnis"
+      breadcrumb={[{ label: 'Administrasi' }, { label: 'Proses Bisnis & organisasi' }]}
+      title="Proses Bisnis & organisasi"
     >
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(340px,0.7fr)]">
-        <div className="space-y-5">
-          <DataSurface.Root>
+      <section className="rounded-surface border border-border bg-surface p-5 shadow-surface">
+        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-primary">
+          Setup administrasi
+        </p>
+        <h2 className="mt-2 text-lg font-semibold tracking-tight text-foreground">
+          Atur struktur dan kewenangan FTI
+        </h2>
+        <p className="mt-1 max-w-3xl text-sm leading-6 text-secondary-foreground">
+          Atur tiga hal ini sebelum Owner membuat Proses Bisnis dan Penyusun menyusun SOP.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          {[
+            ['01', 'Struktur organisasi', 'Buat dan rapikan Departemen.'],
+            ['02', 'Kewenangan Owner', 'Pilih lingkup kerja Penanggung Jawab Proses Bisnis.'],
+            ['03', 'Pemantauan', 'Pantau Proses Bisnis yang sudah berjalan.'],
+          ].map(([number, label, description]) => (
+            <div key={number} className="rounded-control border border-border bg-surface-subtle p-3">
+              <p className="text-xs font-semibold text-primary">{number}</p>
+              <p className="mt-2 text-sm font-medium text-foreground">{label}</p>
+              <p className="mt-1 text-xs leading-5 text-secondary-foreground">{description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="grid gap-5 xl:grid-cols-2">
+        <div className="contents">
+          <DataSurface.Root className="order-2">
             <DataSurface.Header>
               <div className="space-y-0.5">
-                <h2 className="text-sm font-semibold text-foreground">Kewenangan ProsesBisnis Owner</h2>
+                <h2 className="text-sm font-semibold text-foreground">Kewenangan Owner Proses Bisnis</h2>
                 <p className="text-sm text-secondary-foreground">
-                  Admin menetapkan lingkup sekali. Setelah itu ProsesBisnis Owner membuat ProsesBisnis dan mengelola Penyusun SOP sendiri.
+                  Admin menetapkan lingkup sekali. Setelah itu Owner membuat Proses Bisnis dan mengelola Penyusun SOP.
                 </p>
               </div>
             </DataSurface.Header>
@@ -73,7 +98,7 @@ export function HalamanPengelolaanProsesBisnis() {
                     setAuthority((current) => ({ ...current, penggunaId: event.target.value }))
                   }
                 >
-                  <option value="">Pilih calon ProsesBisnis Owner</option>
+                  <option value="">Pilih calon Owner Proses Bisnis</option>
                   {eligibleUsers.map((user) => (
                     <option key={user.penggunaId} value={user.penggunaId}>
                       {user.nama} · {user.email}
@@ -90,13 +115,13 @@ export function HalamanPengelolaanProsesBisnis() {
                   onChange={(event) => changeScope(event.target.value as LingkupOrganisasi)}
                 >
                   <option value="FACULTY">Fakultas</option>
-                  <option value="DEPARTMENT">Jurusan</option>
+                  <option value="DEPARTMENT">Departemen</option>
                 </select>
               </label>
 
               {authority.lingkup === 'DEPARTMENT' ? (
                 <label className="block space-y-1.5 text-sm font-medium text-foreground">
-                  Jurusan
+                  Departemen
                   <select
                     className="h-9 w-full rounded-control border border-border bg-surface px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     value={authority.departemenId ?? ''}
@@ -104,7 +129,7 @@ export function HalamanPengelolaanProsesBisnis() {
                       setAuthority((current) => ({ ...current, departemenId: event.target.value || null }))
                     }
                   >
-                    <option value="">Pilih jurusan</option>
+                    <option value="">Pilih Departemen</option>
                     {departemen.map((department) => (
                       <option key={department.departemenId} value={department.departemenId}>
                         {department.nama}
@@ -132,7 +157,7 @@ export function HalamanPengelolaanProsesBisnis() {
             </div>
             <div className="divide-y divide-border border-t border-border">
               {ownerAuthorities.length === 0 ? (
-                <p className="p-4 text-sm text-secondary-foreground">Belum ada kewenangan ProsesBisnis Owner.</p>
+                <p className="p-4 text-sm text-secondary-foreground">Belum ada kewenangan Owner Proses Bisnis.</p>
               ) : (
                 ownerAuthorities.map((row) => (
                   <div key={row.kewenanganPenanggungJawabProsesBisnisId} className="flex items-center justify-between gap-4 p-4">
@@ -141,7 +166,7 @@ export function HalamanPengelolaanProsesBisnis() {
                         {row.user?.nama ?? 'Pengguna tidak tersedia'}
                       </p>
                       <p className="text-xs text-secondary-foreground">
-                        {row.lingkup === 'FACULTY' ? 'Fakultas' : row.departemen?.nama ?? 'Jurusan'}
+                        {row.lingkup === 'FACULTY' ? 'Fakultas' : row.departemen?.nama ?? 'Departemen'}
                       </p>
                     </div>
                     <Button
@@ -158,27 +183,27 @@ export function HalamanPengelolaanProsesBisnis() {
             </div>
           </DataSurface.Root>
 
-          <DataSurface.Root>
+          <DataSurface.Root className="order-3 xl:col-span-2">
             <DataSurface.Header>
               <div className="space-y-0.5">
-                <h2 className="text-sm font-semibold text-foreground">Oversight ProsesBisnis</h2>
+              <h2 className="text-sm font-semibold text-foreground">Pemantauan Proses Bisnis</h2>
                 <p className="text-sm text-secondary-foreground">
-                  Daftar ini untuk governance dan recovery. Operasi normal dilakukan oleh ProsesBisnis Owner.
+                  Admin memakai daftar ini untuk memantau dan memulihkan data. Pengelolaan sehari-hari dilakukan Owner.
                 </p>
               </div>
             </DataSurface.Header>
             <div className="divide-y divide-border">
               {isLoading ? (
-                <p className="p-4 text-sm text-secondary-foreground">Memuat ProsesBisnis...</p>
+                <p className="p-4 text-sm text-secondary-foreground">Memuat Proses Bisnis...</p>
               ) : prosesBisnis.length === 0 ? (
-                <p className="p-4 text-sm text-secondary-foreground">Belum ada ProsesBisnis.</p>
+                <p className="p-4 text-sm text-secondary-foreground">Belum ada Proses Bisnis.</p>
               ) : (
                 prosesBisnis.map((process) => (
                   <div key={process.prosesBisnisId} className="p-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-sm font-medium text-foreground">{process.nama}</h3>
                       <span className="rounded-full border border-border px-2 py-0.5 text-xs text-secondary-foreground">
-                        {process.lingkup === 'FACULTY' ? 'Fakultas' : process.departemen?.nama ?? 'Jurusan'}
+                        {process.lingkup === 'FACULTY' ? 'Fakultas' : process.departemen?.nama ?? 'Departemen'}
                       </span>
                     </div>
                     <p className="mt-1 text-sm text-secondary-foreground">
@@ -191,12 +216,12 @@ export function HalamanPengelolaanProsesBisnis() {
           </DataSurface.Root>
         </div>
 
-        <DataSurface.Root>
+        <DataSurface.Root className="order-1">
           <DataSurface.Header>
             <div className="space-y-0.5">
-              <h2 className="text-sm font-semibold text-foreground">Struktur Jurusan</h2>
+              <h2 className="text-sm font-semibold text-foreground">Struktur Departemen</h2>
               <p className="text-sm text-secondary-foreground">
-                Master data organisasi disiapkan Admin sebelum lingkup diberikan kepada ProsesBisnis Owner.
+                Data organisasi disiapkan Admin sebelum lingkup diberikan kepada Owner Proses Bisnis.
               </p>
             </div>
           </DataSurface.Header>
@@ -205,7 +230,7 @@ export function HalamanPengelolaanProsesBisnis() {
               <Input
                 value={namaDepartemen}
                 onChange={(event) => setDepartemenName(event.target.value)}
-                placeholder="Nama jurusan"
+                placeholder="Nama Departemen"
               />
               <Button
                 variant="outline"
@@ -222,24 +247,28 @@ export function HalamanPengelolaanProsesBisnis() {
                 Tambah
               </Button>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {departemen.map((department) => (
-                <div
-                  key={department.departemenId}
-                  className="flex items-center gap-1 rounded-full border border-border px-2 py-1"
-                >
+            <div className="divide-y divide-border border-y border-border">
+              {departemen.length === 0 ? (
+                <p className="py-4 text-sm text-secondary-foreground">Belum ada Departemen.</p>
+              ) : departemen.map((department) => (
+                <div key={department.departemenId} className="flex items-center justify-between gap-3 py-3">
                   {editingDepartemenId === department.departemenId ? (
-                    <Input
-                      className="h-7 min-w-0 w-40 border-0 px-1 text-xs focus-visible:ring-0"
-                      value={editingDepartemenName}
-                      onChange={(event) => setEditingDepartemenName(event.target.value)}
-                      aria-label={`Nama ${department.nama}`}
-                    />
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                      <Input
+                        className="min-w-0"
+                        value={editingDepartemenName}
+                        onChange={(event) => setEditingDepartemenName(event.target.value)}
+                        aria-label={`Nama ${department.nama}`}
+                      />
+                    </div>
                   ) : (
-                    <span className="px-0.5 text-xs text-secondary-foreground">{department.nama}</span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">{department.nama}</p>
+                      <p className="mt-0.5 text-xs text-secondary-foreground">Departemen FTI</p>
+                    </div>
                   )}
                   {editingDepartemenId === department.departemenId ? (
-                    <>
+                    <div className="flex shrink-0 gap-2">
                       <Button
                         type="button"
                         size="sm"
@@ -268,7 +297,7 @@ export function HalamanPengelolaanProsesBisnis() {
                       >
                         Batal
                       </Button>
-                    </>
+                    </div>
                   ) : (
                     <Button
                       type="button"

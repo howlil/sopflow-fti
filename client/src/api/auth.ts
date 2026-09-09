@@ -51,7 +51,8 @@ export function useAuth() {
       queryClient.clear();
       setUser(mapPublicDataToAuthUser(u));
       showToast(`Selamat datang, ${u.nama}!`, "success");
-      const resolveLanding = () => (redirect ? resolvePostLoginPath(redirect) : ROUTES.WORK);
+      const defaultPath = u.platformRole === "SUPER_ADMIN" ? ROUTES.ADMIN.HOME : ROUTES.WORK_QUEUE;
+      const resolveLanding = () => (redirect ? resolvePostLoginPath(redirect, defaultPath) : defaultPath);
       try {
         await ensureAuthHydrated(1000);
         navigateToAppPath(navigate, resolveLanding());

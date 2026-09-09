@@ -72,8 +72,9 @@ test.describe('End-to-End Business Journey — FTI account provisioning bootstra
       const session = await roleSession(accountUser)
       await session.page.goto('/work')
       await waitForAppReady(session.page)
-      await expect(session.page.getByRole('heading', { name: 'Beranda Kerja' })).toBeVisible()
+      await expect(session.page.getByRole('heading', { name: 'Pekerjaan SOP' })).toBeVisible()
       await expect(session.page.getByRole('link', { name: 'Pekerjaan SOP', exact: true })).toHaveCount(0)
+      await expect(session.page.getByRole('link', { name: 'Daftar SOP', exact: true })).toHaveCount(0)
       await expect(session.page.getByRole('link', { name: 'Persetujuan & TTE', exact: true })).toHaveCount(0)
       await expect(session.page.getByRole('link', { name: 'Akun FTI', exact: true })).toHaveCount(0)
 
@@ -158,6 +159,7 @@ test.describe('End-to-End Business Journey — FTI account provisioning bootstra
         await session.page.goto('/work')
         await waitForAppReady(session.page)
         await expect(session.page.getByRole('link', { name: 'Pekerjaan SOP', exact: true })).toBeVisible()
+        await expect(session.page.getByRole('link', { name: 'Daftar SOP', exact: true })).toBeVisible()
       }
     })
   })

@@ -34,6 +34,16 @@ export class ProsesBisnisController {
     };
   }
 
+  @Get('overview')
+  @ApiOperation({ summary: 'Ringkasan administrasi FTI untuk dashboard Admin' })
+  async overview(): Promise<ApiSuccessResponse<unknown>> {
+    return {
+      message: 'Ringkasan administrasi FTI berhasil diambil',
+      success: true,
+      data: await this.prosesBisnisService.getAdminOverview(),
+    };
+  }
+
   @Post('departemen')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Tambah departemen' })

@@ -56,7 +56,7 @@ export function ArsipPageIntro() {
         Arsip SOP yang telah disahkan
       </h1>
       <p className="max-w-3xl text-sm leading-relaxed text-secondary-foreground sm:text-base">
-        Telusuri konteks Fakultas atau Departemen, pilih ProsesBisnis, lalu baca SOP resmi yang sedang berlaku.
+        Telusuri konteks Fakultas atau Departemen, pilih Proses Bisnis, lalu baca SOP resmi yang sedang berlaku.
       </p>
     </section>
   )
@@ -71,7 +71,7 @@ export function ArsipHeroSearch({ value, onChange }: ArsipHeroSearchProps) {
   return (
     <div className="mb-5 space-y-2">
       <label htmlFor="arsip-global-search" className="sr-only">
-        Cari judul, nomor SOP, ProsesBisnis, atau Departemen
+        Cari judul, nomor SOP, Proses Bisnis, atau Departemen
       </label>
       <div className="relative">
         <Search
@@ -89,7 +89,7 @@ export function ArsipHeroSearch({ value, onChange }: ArsipHeroSearchProps) {
         />
       </div>
       <p className="text-sm text-muted-foreground">
-        Pencarian langsung mencakup SOP ProsesBisnis FTI dan dokumen legacy yang belum memiliki binding ProsesBisnis.
+        Pencarian langsung mencakup SOP Proses Bisnis FTI dan dokumen lama yang belum memiliki keterkaitan Proses Bisnis.
       </p>
     </div>
   )

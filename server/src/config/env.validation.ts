@@ -54,7 +54,7 @@ const envSchema = z
     DATABASE_PASSWORD: z.string().min(1),
     DATABASE_NAME: z.preprocess(
       trimmedEnvironmentString,
-      z.string().min(1).default('sop_biro_organisasi'),
+      z.string().min(1).default('sop_fti'),
     ),
     DATABASE_URL: z.string().url().optional(),
     /** Origin kanonis frontend production. */

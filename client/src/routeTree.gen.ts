@@ -19,7 +19,9 @@ import { Route as PersetujuanIndexRouteImport } from './routes/persetujuan/index
 import { Route as PenyusunIndexRouteImport } from './routes/penyusun/index'
 import { Route as LoginIndexRouteImport } from './routes/login/index'
 import { Route as ArsipIndexRouteImport } from './routes/arsip/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as WorkQueueRouteImport } from './routes/work/queue'
+import { Route as WorkProcessesRouteImport } from './routes/work/processes'
 import { Route as ValidasiPdfIndexRouteImport } from './routes/validasi/pdf/index'
 import { Route as PenyusunSopIndexRouteImport } from './routes/penyusun/sop/index'
 import { Route as PenyusunPeraturanIndexRouteImport } from './routes/penyusun/peraturan/index'
@@ -81,9 +83,19 @@ const ArsipIndexRoute = ArsipIndexRouteImport.update({
   path: '/arsip/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const WorkQueueRoute = WorkQueueRouteImport.update({
   id: '/queue',
   path: '/queue',
+  getParentRoute: () => WorkRouteRoute,
+} as any)
+const WorkProcessesRoute = WorkProcessesRouteImport.update({
+  id: '/processes',
+  path: '/processes',
   getParentRoute: () => WorkRouteRoute,
 } as any)
 const ValidasiPdfIndexRoute = ValidasiPdfIndexRouteImport.update({
@@ -144,7 +156,9 @@ export interface FileRoutesByFullPath {
   '/penyusun': typeof PenyusunRouteRouteWithChildren
   '/persetujuan': typeof PersetujuanRouteRouteWithChildren
   '/work': typeof WorkRouteRouteWithChildren
+  '/work/processes': typeof WorkProcessesRoute
   '/work/queue': typeof WorkQueueRoute
+  '/admin/': typeof AdminIndexRoute
   '/arsip/': typeof ArsipIndexRoute
   '/login/': typeof LoginIndexRoute
   '/penyusun/': typeof PenyusunIndexRoute
@@ -163,8 +177,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRouteRouteWithChildren
+  '/work/processes': typeof WorkProcessesRoute
   '/work/queue': typeof WorkQueueRoute
+  '/admin': typeof AdminIndexRoute
   '/arsip': typeof ArsipIndexRoute
   '/login': typeof LoginIndexRoute
   '/penyusun': typeof PenyusunIndexRoute
@@ -188,7 +203,9 @@ export interface FileRoutesById {
   '/penyusun': typeof PenyusunRouteRouteWithChildren
   '/persetujuan': typeof PersetujuanRouteRouteWithChildren
   '/work': typeof WorkRouteRouteWithChildren
+  '/work/processes': typeof WorkProcessesRoute
   '/work/queue': typeof WorkQueueRoute
+  '/admin/': typeof AdminIndexRoute
   '/arsip/': typeof ArsipIndexRoute
   '/login/': typeof LoginIndexRoute
   '/penyusun/': typeof PenyusunIndexRoute
@@ -213,7 +230,9 @@ export interface FileRouteTypes {
     | '/penyusun'
     | '/persetujuan'
     | '/work'
+    | '/work/processes'
     | '/work/queue'
+    | '/admin/'
     | '/arsip/'
     | '/login/'
     | '/penyusun/'
@@ -232,8 +251,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
+    | '/work/processes'
     | '/work/queue'
+    | '/admin'
     | '/arsip'
     | '/login'
     | '/penyusun'
@@ -256,7 +276,9 @@ export interface FileRouteTypes {
     | '/penyusun'
     | '/persetujuan'
     | '/work'
+    | '/work/processes'
     | '/work/queue'
+    | '/admin/'
     | '/arsip/'
     | '/login/'
     | '/penyusun/'
@@ -358,11 +380,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArsipIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/work/queue': {
       id: '/work/queue'
       path: '/queue'
       fullPath: '/work/queue'
       preLoaderRoute: typeof WorkQueueRouteImport
+      parentRoute: typeof WorkRouteRoute
+    }
+    '/work/processes': {
+      id: '/work/processes'
+      path: '/processes'
+      fullPath: '/work/processes'
+      preLoaderRoute: typeof WorkProcessesRouteImport
       parentRoute: typeof WorkRouteRoute
     }
     '/validasi/pdf/': {
@@ -439,12 +475,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteRouteChildren {
+  AdminIndexRoute: typeof AdminIndexRoute
   AdminAccountsIndexRoute: typeof AdminAccountsIndexRoute
   AdminAuthoritiesIndexRoute: typeof AdminAuthoritiesIndexRoute
   AdminProsesBisnisIndexRoute: typeof AdminProsesBisnisIndexRoute
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminIndexRoute: AdminIndexRoute,
   AdminAccountsIndexRoute: AdminAccountsIndexRoute,
   AdminAuthoritiesIndexRoute: AdminAuthoritiesIndexRoute,
   AdminProsesBisnisIndexRoute: AdminProsesBisnisIndexRoute,
@@ -488,11 +526,13 @@ const PersetujuanRouteRouteWithChildren =
   PersetujuanRouteRoute._addFileChildren(PersetujuanRouteRouteChildren)
 
 interface WorkRouteRouteChildren {
+  WorkProcessesRoute: typeof WorkProcessesRoute
   WorkQueueRoute: typeof WorkQueueRoute
   WorkIndexRoute: typeof WorkIndexRoute
 }
 
 const WorkRouteRouteChildren: WorkRouteRouteChildren = {
+  WorkProcessesRoute: WorkProcessesRoute,
   WorkQueueRoute: WorkQueueRoute,
   WorkIndexRoute: WorkIndexRoute,
 }

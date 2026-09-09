@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api/api-client'
 import { unwrapApiData } from '@/lib/api/response'
 import { useMutationWithToast } from '@/hooks/useMutationWithToast'
+import { queryKeys } from '@/config/query-keys'
 import type { ApiSuccessResponse } from '@/types/dto/auth.dto'
 import type {
   PenugasanPejabatBerwenangDto,
@@ -32,14 +33,14 @@ export function usePejabatBerwenangConfiguration() {
   const query = useQuery({ queryKey: authorityKeys.configuration, queryFn: organizationalAuthorityApi.configuration })
   const assignDean = useMutationWithToast({
     mutationFn: organizationalAuthorityApi.assignDean,
-    invalidateKeys: [authorityKeys.configuration],
+    invalidateKeys: [authorityKeys.configuration, queryKeys.administrasiFtiOverview],
     successMessage: 'Dean aktif berhasil diperbarui',
     errorMessagePrefix: 'Gagal memperbarui Dean',
   })
   const assignDepartemenHead = useMutationWithToast({
     mutationFn: ({ departemenId, penggunaId }: { departemenId: string; penggunaId: string }) =>
       organizationalAuthorityApi.assignDepartemenHead(departemenId, penggunaId),
-    invalidateKeys: [authorityKeys.configuration],
+    invalidateKeys: [authorityKeys.configuration, queryKeys.administrasiFtiOverview],
     successMessage: 'Kepala Departemen aktif berhasil diperbarui',
     errorMessagePrefix: 'Gagal memperbarui Kepala Departemen',
   })

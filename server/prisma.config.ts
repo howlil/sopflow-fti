@@ -31,7 +31,7 @@ function resolveDatabaseUrl(): string {
   url.port = String(port);
   url.username = environmentOrDefault('DATABASE_USER', 'sop_app');
   url.password = requiredEnvironment('DATABASE_PASSWORD');
-  url.pathname = `/${environmentOrDefault('DATABASE_NAME', 'sop_biro_organisasi')}`;
+  url.pathname = `/${environmentOrDefault('DATABASE_NAME', 'sop_fti')}`;
   return url.toString();
 }
 

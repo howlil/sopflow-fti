@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import {
   JenisLangkahProsedur,
@@ -279,20 +279,17 @@ describe('ProsesBisnisOwnerReviewService', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('persists an omitted revision note as null', async () => {
+  it('rejects a revision decision without an actionable note', async () => {
     const { service, tx } = makeService({
       penanggungJawab: true,
       status: StatusSOP.PROCESS_REVIEW,
     });
 
-    await service.review(user, 'detail-a', KeputusanPemeriksaanProsesBisnis.REVISION);
+    await expect(
+      service.review(user, 'detail-a', KeputusanPemeriksaanProsesBisnis.REVISION),
+    ).rejects.toBeInstanceOf(BadRequestException);
 
-    expect(tx.pemeriksaanProsesBisnis.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        decision: 'REVISION',
-        catatan: null,
-      }),
-    });
+    expect(tx.pemeriksaanProsesBisnis.create).not.toHaveBeenCalled();
   });
 
   it('rejects a stale concurrent review decision instead of overwriting the winner', async () => {

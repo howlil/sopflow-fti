@@ -24,9 +24,9 @@ export interface UseDetailSopPenyusunDataResult {
   setIsEditingSteps: React.Dispatch<React.SetStateAction<boolean>>;
   isEditPanelCollapsed: boolean;
   setIsEditPanelCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
-  rightPanelTab: "edit" | "versi" | "aktivitas";
+  rightPanelTab: "edit" | "review" | "versi" | "aktivitas";
   setRightPanelTab: React.Dispatch<
-    React.SetStateAction<"edit" | "versi" | "aktivitas">
+    React.SetStateAction<"edit" | "review" | "versi" | "aktivitas">
   >;
   isLoading: boolean;
   masterPelaksanaOptions: { id: string; name: string }[];
@@ -70,7 +70,7 @@ export function useDetailSopPenyusunData(
   const [isEditingSteps, setIsEditingSteps] = useState(false);
   const [isEditPanelCollapsed, setIsEditPanelCollapsed] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<
-    "edit" | "versi" | "aktivitas"
+    "edit" | "review" | "versi" | "aktivitas"
   >("edit");
 
   const sopDetail = workbench?.detail;
@@ -232,9 +232,9 @@ export interface UseDetailSopPenyusunReturn {
   setIsEditingSteps: React.Dispatch<React.SetStateAction<boolean>>;
   isEditPanelCollapsed: boolean;
   setIsEditPanelCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
-  rightPanelTab: "edit" | "versi" | "aktivitas";
+  rightPanelTab: "edit" | "review" | "versi" | "aktivitas";
   setRightPanelTab: React.Dispatch<
-    React.SetStateAction<"edit" | "versi" | "aktivitas">
+    React.SetStateAction<"edit" | "review" | "versi" | "aktivitas">
   >;
   isLoading: boolean;
   masterPelaksanaOptions: { id: string; name: string }[];

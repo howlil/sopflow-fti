@@ -69,7 +69,7 @@ export function useProsesBisnisAdministration() {
 
   const createDepartemen = useMutationWithToast({
     mutationFn: (nama: string) => processAdminApi.createDepartemen(nama),
-    invalidateKeys: [queryKeys.processAdminDepartemens],
+    invalidateKeys: [queryKeys.processAdminDepartemens, queryKeys.administrasiFtiOverview],
     successMessage: 'Departemen berhasil ditambahkan',
     errorMessagePrefix: 'Gagal menambahkan departemen',
   })
@@ -77,21 +77,21 @@ export function useProsesBisnisAdministration() {
   const updateDepartemen = useMutationWithToast({
     mutationFn: ({ departemenId, nama }: { departemenId: string; nama: string }) =>
       processAdminApi.updateDepartemen(departemenId, nama),
-    invalidateKeys: [queryKeys.processAdminDepartemens],
+    invalidateKeys: [queryKeys.processAdminDepartemens, queryKeys.administrasiFtiOverview],
     successMessage: 'Departemen berhasil diperbarui',
     errorMessagePrefix: 'Gagal memperbarui departemen',
   })
 
   const grantOwnerAuthority = useMutationWithToast({
     mutationFn: processAdminApi.grantOwnerAuthority,
-    invalidateKeys: [queryKeys.processOwnerAuthorities],
+    invalidateKeys: [queryKeys.processOwnerAuthorities, queryKeys.administrasiFtiOverview],
     successMessage: 'Kewenangan Penanggung Jawab Proses Bisnis berhasil diberikan',
     errorMessagePrefix: 'Gagal memberikan kewenangan Penanggung Jawab Proses Bisnis',
   })
 
   const revokeOwnerAuthority = useMutationWithToast({
     mutationFn: processAdminApi.revokeOwnerAuthority,
-    invalidateKeys: [queryKeys.processOwnerAuthorities],
+    invalidateKeys: [queryKeys.processOwnerAuthorities, queryKeys.administrasiFtiOverview],
     successMessage: 'Kewenangan Penanggung Jawab Proses Bisnis berhasil dicabut',
     errorMessagePrefix: 'Gagal mencabut kewenangan Penanggung Jawab Proses Bisnis',
   })

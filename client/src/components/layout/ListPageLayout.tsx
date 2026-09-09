@@ -6,7 +6,6 @@ export interface ListPageLayoutProps {
   breadcrumb?: BreadcrumbItem[] | null
   /** Judul semantik halaman. */
   title: string
-  /** @deprecated Deskripsi tidak lagi dirender di global shell. */
   description?: string
   /** Konten collection/page lokal. */
   children: React.ReactNode
@@ -20,12 +19,13 @@ export interface ListPageLayoutProps {
 export function ListPageLayout({
   breadcrumb,
   title,
+  description,
   children,
   className,
 }: ListPageLayoutProps) {
   return (
     <div className={className ?? 'space-y-4 sm:space-y-section'}>
-      <SetPageHeader breadcrumb={breadcrumb ?? []} title={title} />
+      <SetPageHeader breadcrumb={breadcrumb ?? []} title={title} description={description} />
       {children}
     </div>
   )

@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { assertDetailSopEditable } from '../../../common/status/sop-editable.util';
+import { assertDetailSopEditable } from '../lifecycle/sop-editable.util';
 import type { JwtAccessPayload } from '../../../common';
 import { JenisLangkahProsedur, Prisma } from '../../../generated/prisma';
 import { ProsesBisnisContextService } from '../../core/proses-bisnis/konteks-proses-bisnis.service';

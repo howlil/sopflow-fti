@@ -1,4 +1,4 @@
-import { StatusSOP } from '../../generated/prisma';
+import { StatusSOP } from '../../../generated/prisma';
 import { displayStatusSop } from './status-display';
 
 describe('status display', () => {

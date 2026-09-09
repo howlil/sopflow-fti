@@ -8,7 +8,7 @@ import type { JwtAccessPayload } from '../../../common';
 import { extractDbInvariantMessage } from '../../../common/prisma/prisma-db-invariant.util';
 import { isPrismaUniqueConstraintError } from '../../../common/prisma/prisma-error.util';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { assertDetailSopEditable } from '../../../common/status/sop-editable.util';
+import { assertDetailSopEditable } from '../lifecycle/sop-editable.util';
 import { PejabatBerwenang, LingkupOrganisasi, StatusSOP } from '../../../generated/prisma';
 import { ProsesBisnisContextService } from '../../core/proses-bisnis/konteks-proses-bisnis.service';
 import type { ListSopQueryDto } from '../catalog/dto/list-sop-query.dto';

@@ -15,6 +15,16 @@ import {
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { DialogFooterActions } from '@/components/ui/dialog-footer-actions'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -92,6 +102,7 @@ export function DetailSOPPenyusunHeader({
   const [isPrinting, setIsPrinting] = useState(false)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [reviewDecision, setReviewDecision] = useState<KeputusanPemeriksaanProsesBisnis | null>(null)
+  const [reviewNote, setReviewNote] = useState('')
   const [isProsesBisnisActionPending, setIsProsesBisnisActionPending] = useState(false)
 
   const processSop = workbench?.detail.sop as ProsesBisnisAwareWorkbenchSop | undefined
@@ -145,23 +156,26 @@ export function DetailSOPPenyusunHeader({
       await Promise.all([flushHeaderAutosave(), flushProsedurAutosave()])
       const nextWorkbench = await pemeriksaanProsesBisnisApi.submit(sopDetailId)
       updateWorkbenchCache(nextWorkbench)
-      showToast('SOP berhasil dikirim ke Penanggung Jawab Proses Bisnis untuk review.')
+      showToast('SOP berhasil dikirim ke Penanggung Jawab Proses Bisnis untuk ditinjau.')
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Gagal mengirim SOP untuk review'
+      const message = error instanceof Error ? error.message : 'Gagal mengirim SOP untuk ditinjau'
       showToast(message, 'error')
     } finally {
       setIsProsesBisnisActionPending(false)
     }
   }
 
-  const decidePemeriksaanProsesBisnis = async (decision: KeputusanPemeriksaanProsesBisnis) => {
+  const decidePemeriksaanProsesBisnis = async (
+    decision: KeputusanPemeriksaanProsesBisnis,
+    catatan?: string,
+  ) => {
     if (!sopDetailId) {
       showToast('Detail SOP belum tersedia.', 'error')
       return
     }
     setIsProsesBisnisActionPending(true)
     try {
-      const nextWorkbench = await pemeriksaanProsesBisnisApi.decide(sopDetailId, decision)
+      const nextWorkbench = await pemeriksaanProsesBisnisApi.decide(sopDetailId, decision, catatan)
       updateWorkbenchCache(nextWorkbench)
       showToast(
         decision === 'ACCEPT'
@@ -169,11 +183,12 @@ export function DetailSOPPenyusunHeader({
           : 'SOP dikembalikan ke Tim Proses Bisnis untuk revisi.',
       )
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Gagal menyimpan keputusan review'
+      const message = error instanceof Error ? error.message : 'Gagal menyimpan keputusan tinjauan'
       showToast(message, 'error')
     } finally {
       setIsProsesBisnisActionPending(false)
       setReviewDecision(null)
+      setReviewNote('')
     }
   }
 
@@ -183,15 +198,15 @@ export function DetailSOPPenyusunHeader({
   const hasSecondaryActions = hasPrintAction || hasVersionAction
   const documentTitle = metadata.nama ?? metadata.judul ?? 'SOP'
 
-  const confirmTitle = isProsesBisnisRevision ? 'Kirim revisi untuk review?' : 'Kirim SOP untuk review?'
+  const confirmTitle = isProsesBisnisRevision ? 'Kirim revisi untuk ditinjau?' : 'Kirim SOP untuk ditinjau?'
   const confirmDescription = isProsesBisnisWorkflow
     ? isProsesBisnisRevision
       ? 'Dokumen akan dikirim kembali ke Penanggung Jawab Proses Bisnis. Pastikan semua perubahan sudah tersimpan.'
-      : 'Dokumen akan dikunci sementara dan masuk ke review Penanggung Jawab Proses Bisnis. Pastikan semua perubahan sudah tersimpan.'
+      : 'Dokumen akan dikunci sementara dan masuk ke tinjauan Penanggung Jawab Proses Bisnis. Pastikan semua perubahan sudah tersimpan.'
     : ''
   const confirmLabel = isProsesBisnisWorkflow
-    ? 'Ya, kirim untuk review'
-    : 'Ya, kirim untuk review'
+    ? 'Ya, kirim untuk ditinjau'
+    : 'Ya, kirim untuk ditinjau'
 
   const handleConfirmComplete = () => {
     setIsConfirmOpen(false)
@@ -260,7 +275,7 @@ export function DetailSOPPenyusunHeader({
               <Check className="h-3.5 w-3.5" aria-hidden />
               {isProsesBisnisActionPending
                 ? 'Mengirim…'
-                : 'Kirim untuk review'}
+                : 'Kirim untuk ditinjau'}
             </Button>
           ) : null}
 
@@ -322,13 +337,13 @@ export function DetailSOPPenyusunHeader({
         <div className="mt-2 border-t border-border pt-2 text-xs text-secondary-foreground">
           {isProsesBisnisOwner
             ? 'Dokumen menunggu keputusan Anda sebagai Penanggung Jawab Proses Bisnis.'
-            : 'Dokumen sedang direview oleh Penanggung Jawab Proses Bisnis dan untuk sementara bersifat read-only.'}
+            : 'Dokumen sedang ditinjau oleh Penanggung Jawab Proses Bisnis dan untuk sementara tidak dapat diedit.'}
         </div>
       ) : isProsesBisnisRevision && !isReadOnly ? (
         <div className="mt-2 flex gap-2 border-t border-border pt-2 text-xs text-secondary-foreground">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700" aria-hidden />
           <p>
-            <>SOP dikembalikan oleh ProsesBisnis Owner. Selesaikan revisi lalu klik <span className="font-semibold">Kirim untuk review</span>.</>
+            <>SOP dikembalikan oleh Owner Proses Bisnis. Selesaikan revisi lalu klik <span className="font-semibold">Kirim untuk ditinjau</span>.</>
           </p>
         </div>
       ) : null}
@@ -343,23 +358,61 @@ export function DetailSOPPenyusunHeader({
         onConfirm={handleConfirmComplete}
       />
 
-      <ConfirmDialog
+      <Dialog
         open={reviewDecision !== null}
         onOpenChange={(open) => {
-          if (!open) setReviewDecision(null)
+          if (!open) {
+            setReviewDecision(null)
+            setReviewNote('')
+          }
         }}
-        title={reviewDecision === 'ACCEPT' ? 'Terima SOP?' : 'Kembalikan untuk revisi?'}
-        description={
-          reviewDecision === 'ACCEPT'
-            ? 'SOP akan ditandai siap menuju persetujuan akhir. Tahap persetujuan Dean/Kadep belum dijalankan pada aksi ini.'
-            : 'SOP akan kembali dapat diedit oleh Tim Proses Bisnis untuk memperbaiki dokumen.'
-        }
-        confirmLabel={reviewDecision === 'ACCEPT' ? 'Ya, terima' : 'Ya, minta revisi'}
-        cancelLabel="Batal"
-        onConfirm={() => {
-          if (reviewDecision !== null) void decidePemeriksaanProsesBisnis(reviewDecision)
-        }}
-      />
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{reviewDecision === 'ACCEPT' ? 'Terima SOP?' : 'Kembalikan untuk revisi?'}</DialogTitle>
+            <DialogDescription>
+              {reviewDecision === 'ACCEPT'
+                ? 'SOP akan dilanjutkan ke persetujuan akhir. Catatan penerimaan bersifat opsional.'
+                : 'Tuliskan perbaikan yang perlu dilakukan. Catatan ini akan tersimpan pada riwayat evaluasi SOP.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div>
+            <Label htmlFor="catatan-review" required={reviewDecision === 'REVISION'}>
+              Catatan evaluasi
+            </Label>
+            <Textarea
+              id="catatan-review"
+              value={reviewNote}
+              onChange={(event) => setReviewNote(event.target.value)}
+              placeholder={
+                reviewDecision === 'REVISION'
+                  ? 'Contoh: lengkapi keluaran langkah 2 dan perbaiki alur keputusan.'
+                  : 'Tambahkan catatan penerimaan bila diperlukan.'
+              }
+              maxLength={2000}
+              aria-required={reviewDecision === 'REVISION'}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">{reviewNote.length}/2000 karakter</p>
+          </div>
+          <DialogFooterActions
+            cancelLabel="Batal"
+            confirmLabel={reviewDecision === 'ACCEPT' ? 'Ya, terima' : 'Kirim permintaan revisi'}
+            confirmDisabled={
+              isProsesBisnisActionPending ||
+              (reviewDecision === 'REVISION' && reviewNote.trim().length === 0)
+            }
+            onCancel={() => {
+              setReviewDecision(null)
+              setReviewNote('')
+            }}
+            onConfirm={() => {
+              if (reviewDecision !== null) {
+                void decidePemeriksaanProsesBisnis(reviewDecision, reviewNote.trim() || undefined)
+              }
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

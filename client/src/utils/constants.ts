@@ -18,6 +18,7 @@ export const ROUTES = {
   HOME: "/",
   WORK: "/work",
   WORK_QUEUE: "/work/queue",
+  WORK_PROCESSES: "/work/processes",
   VALIDASI: {
     PENGESAHAN_PREFIX: "/validasi/pengesahan",
     PDF: "/validasi/pdf",
@@ -29,6 +30,7 @@ export const ROUTES = {
     LOGIN: "/login",
   },
   ADMIN: {
+    HOME: "/admin",
     ACCOUNTS: "/admin/accounts",
     PROCESSES: "/admin/proses-bisnis",
     AUTHORITIES: "/admin/authorities",
@@ -39,10 +41,10 @@ export const ROUTES = {
   /** Existing authoring route names are retained; access is ProsesBisnis-native. */
   PENYUSUN: {
     ME: "/penyusun/me",
+    PERATURAN: "/penyusun/peraturan",
+    PELAKSANA: "/penyusun/pelaksana",
     SOP: "/penyusun/sop",
     DETAIL_SOP: "/penyusun/sop/$id",
-    PELAKSANA: "/penyusun/pelaksana",
-    PERATURAN: "/penyusun/peraturan",
   },
 } as const;
 

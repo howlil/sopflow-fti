@@ -24,6 +24,8 @@ export interface AppendLogParams {
   bagian: BagianSOP;
   /** Daftar field domain yang baru saja berubah pada satu request. */
   fields: string[];
+  /** Ringkasan khusus untuk event diskrit yang perlu membawa bukti keputusan/catatan. */
+  summary?: string;
   /** Force selalu buat entry baru (untuk event diskrit, mis. UMPAN_BALIK/STATUS). */
   discrete?: boolean;
   /** Override idle window. Default {@link DEFAULT_LOG_SESSION_IDLE_MS}. */
@@ -140,7 +142,7 @@ export async function appendOrCreateLogSession(p: AppendLogParams): Promise<void
         penggunaId: p.penggunaId,
         createdAt: now,
         bagian: p.bagian,
-        keterangan: buildLogSummary(p.bagian, meta),
+        keterangan: p.summary?.trim() || buildLogSummary(p.bagian, meta),
         sesiChangeCount: 1,
         closedAt: now,
         domainFields: {

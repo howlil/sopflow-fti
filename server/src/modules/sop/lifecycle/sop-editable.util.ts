@@ -1,5 +1,5 @@
 import { ConflictException } from '@nestjs/common';
-import { StatusSOP } from '../../generated/prisma';
+import { StatusSOP } from '../../../generated/prisma';
 
 const EDITABLE_STATUSES: ReadonlySet<StatusSOP> = new Set([
   StatusSOP.DRAFT,

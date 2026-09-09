@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { TERMINAL_DETAIL_STATUSES } from '../../../common/status/sop-editable.util';
+import { TERMINAL_DETAIL_STATUSES } from '../lifecycle/sop-editable.util';
 import { BagianSOP, Prisma, StatusSOP } from '../../../generated/prisma';
 import { appendOrCreateLogSession } from '../collaboration/log-edit-session.helper';
 import {

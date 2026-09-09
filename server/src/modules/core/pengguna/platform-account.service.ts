@@ -3,10 +3,10 @@ import {
   assertAtLeastOneUpdateField,
   assertEmailNipUniqueOnUpdate,
   hashDefaultPassword,
-  requireIndonesianMobileNumber,
   rethrowPrismaUniqueViolation,
   resolveDeletedAtFromStatus,
-} from '../../../common/pengguna/pengguna-admin.util';
+} from './shared/pengguna-admin.util';
+import { requireIndonesianMobileNumber } from '../../../common/pengguna/indonesian-mobile-number.util';
 import type { CreatePlatformAccountDto } from './dto/create-platform-account.dto';
 import type { UpdatePenggunaProfilDto } from './dto/update-pengguna-profil.dto';
 import { PenggunaRepository, type PlatformAccountRow } from './pengguna.repository';

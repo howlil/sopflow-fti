@@ -18,7 +18,8 @@ export const Route = createFileRoute('/login/')({
     await syncAuthFromCookie()
     const user = useAuthStore.getState().user
     if (!user) return
-    const path = search.redirect ? resolvePostLoginPath(search.redirect) : ROUTES.WORK
+    const defaultPath = ROUTES.WORK
+    const path = search.redirect ? resolvePostLoginPath(search.redirect, defaultPath) : defaultPath
     throw redirect(redirectArgsFromAppPath(path))
   },
   component: LoginPage,

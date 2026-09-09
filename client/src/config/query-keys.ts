@@ -5,6 +5,7 @@ export const queryKeys = {
   users: ['users'] as const,
 
   platformAccounts: ['platformAccounts'] as const,
+  administrasiFtiOverview: ['administrasiFti', 'overview'] as const,
 
   processAdmin: ['processAdmin'] as const,
   processAdminDepartemens: ['processAdmin', 'departemen'] as const,

@@ -1,14 +1,17 @@
 import { useState } from 'react'
-import { Ban, Check, FileSignature, Loader2, ShieldCheck } from 'lucide-react'
+import { Ban, Check, Eye, FileSignature, Loader2, ShieldCheck } from 'lucide-react'
 import { processApprovalApi, useProsesBisnisApprovalQueue } from '@/api/persetujuan-akhir-sop'
 import { useProsesBisnisRevocationQueue } from '@/api/pencabutan-sop'
 import { useTandaTanganiProsesBisnisSop } from '@/api/tte-proses-bisnis'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { DataSurface } from '@/components/data/data-surface'
 import { ListPageLayout } from '@/components/layout/ListPageLayout'
 import { PinVerificationDialog } from '@/components/tte/pin-verification-dialog'
 import { TteSetupRequiredDialog } from '@/components/tte/tte-setup-required-dialog'
+import { SopDocumentPreviewPane } from '@/components/pengajuan/sop-document-preview-pane'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useRequireTteSetup } from '@/hooks/use-require-tte-setup'
 import { useToast } from '@/hooks/useToast'
 import { buildSopArsipPdfBase64FromPreviewProps } from '@/lib/print/pengajuan-print'
@@ -33,12 +36,30 @@ export function HalamanPersetujuanAkhirSOP() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [signingId, setSigningId] = useState<string | null>(null)
   const [revokingId, setRevokingId] = useState<string | null>(null)
+  const [inspectId, setInspectId] = useState<string | null>(null)
+  const [inspectDocument, setInspectDocument] = useState<Awaited<ReturnType<typeof processApprovalApi.document>> | null>(null)
+  const [inspectError, setInspectError] = useState<string | null>(null)
+  const [isInspecting, setIsInspecting] = useState(false)
   const selected = rows.find((row) => row.detailSopId === selectedId) ?? null
   const signing = rows.find((row) => row.detailSopId === signingId) ?? null
   const revoking = revocationRows.find((row) => row.detailSopId === revokingId) ?? null
 
   const handleOpenSigning = (detailSopId: string) => {
     void requireTteReady(() => setSigningId(detailSopId))
+  }
+
+  const openInspection = async (detailSopId: string) => {
+    setInspectId(detailSopId)
+    setInspectDocument(null)
+    setInspectError(null)
+    setIsInspecting(true)
+    try {
+      setInspectDocument(await processApprovalApi.document(detailSopId))
+    } catch (error) {
+      setInspectError(error instanceof Error ? error.message : 'Dokumen SOP tidak dapat dimuat.')
+    } finally {
+      setIsInspecting(false)
+    }
   }
 
   const handlePinConfirm = async (pin: string): Promise<boolean> => {
@@ -94,7 +115,7 @@ export function HalamanPersetujuanAkhirSOP() {
             <div className="space-y-0.5">
               <h2 className="text-sm font-semibold text-foreground">SOP dalam kewenangan Anda</h2>
               <p className="text-sm text-secondary-foreground">
-                Persetujuan akhir mengikuti lingkup ProsesBisnis: Dekan untuk ProsesBisnis fakultas dan Kepala Departemen untuk ProsesBisnis departemen. Setelah disetujui, pemegang kewenangan yang sama menyelesaikan TTE agar SOP berlaku.
+                Persetujuan akhir mengikuti lingkup Proses Bisnis: Dekan untuk Proses Bisnis fakultas dan Kepala Departemen untuk Proses Bisnis departemen. Setelah disetujui, pejabat yang sama menyelesaikan TTE agar SOP berlaku.
               </p>
             </div>
           </DataSurface.Header>
@@ -109,12 +130,12 @@ export function HalamanPersetujuanAkhirSOP() {
                   <div className="min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-medium text-foreground">{row.judul}</h3>
-                      <span className="rounded-full border border-border px-2 py-0.5 text-xs text-secondary-foreground">
+                      <Badge variant="outline">
                         {row.lingkup === 'FACULTY' ? 'Fakultas · Dekan' : `${row.departmentNama ?? 'Departemen'} · Kepala Departemen`}
-                      </span>
+                      </Badge>
                     </div>
                     <p className="text-sm text-secondary-foreground">
-                      {row.nomorSOP} · v{row.versi} · ProsesBisnis {row.namaProsesBisnis}
+                      {row.nomorSOP} · v{row.versi} · Proses Bisnis {row.namaProsesBisnis}
                     </p>
                     {row.approval ? (
                       <p className="inline-flex items-center gap-1 text-xs font-medium text-secondary-foreground">
@@ -125,6 +146,11 @@ export function HalamanPersetujuanAkhirSOP() {
                       <p className="text-xs text-secondary-foreground">Menunggu persetujuan akhir</p>
                     )}
                   </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button size="sm" variant="outline" className="gap-1.5" onClick={() => void openInspection(row.detailSopId)}>
+                      <Eye className="h-4 w-4" aria-hidden />
+                      Periksa SOP
+                    </Button>
                   {row.approval === null ? (
                     <Button size="sm" className="gap-1.5" disabled={isApproving} onClick={() => setSelectedId(row.detailSopId)}>
                       <Check className="h-4 w-4" aria-hidden />
@@ -145,6 +171,7 @@ export function HalamanPersetujuanAkhirSOP() {
                       Tanda tangani
                     </Button>
                   )}
+                  </div>
                 </div>
               ))
             )}
@@ -171,29 +198,35 @@ export function HalamanPersetujuanAkhirSOP() {
                   <div className="min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-medium text-foreground">{row.judul}</h3>
-                      <span className="rounded-full border border-border px-2 py-0.5 text-xs text-secondary-foreground">
+                      <Badge variant="outline">
                         {row.lingkup === 'FACULTY' ? 'Fakultas · Dekan' : `${row.departmentNama ?? 'Departemen'} · Kepala Departemen`}
-                      </span>
+                      </Badge>
                     </div>
                     <p className="text-sm text-secondary-foreground">
-                      {row.nomorSOP} · v{row.versi} · ProsesBisnis {row.namaProsesBisnis}
+                      {row.nomorSOP} · v{row.versi} · Proses Bisnis {row.namaProsesBisnis}
                     </p>
                     <p className="text-xs font-medium text-secondary-foreground">Berlaku</p>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1.5"
-                    disabled={isRevoking}
-                    onClick={() => setRevokingId(row.detailSopId)}
-                  >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button size="sm" variant="outline" className="gap-1.5" onClick={() => void openInspection(row.detailSopId)}>
+                      <Eye className="h-4 w-4" aria-hidden />
+                      Periksa SOP
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5"
+                      disabled={isRevoking}
+                      onClick={() => setRevokingId(row.detailSopId)}
+                    >
                     {isRevoking && revokingId === row.detailSopId ? (
                       <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                     ) : (
                       <Ban className="h-4 w-4" aria-hidden />
                     )}
                     Cabut SOP
-                  </Button>
+                    </Button>
+                  </div>
                 </div>
               ))
             )}
@@ -247,6 +280,34 @@ export function HalamanPersetujuanAkhirSOP() {
         open={tteSetupDialogOpen}
         onOpenChange={setTteSetupDialogOpen}
       />
+      <Dialog
+        open={inspectId !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setInspectId(null)
+            setInspectDocument(null)
+            setInspectError(null)
+          }
+        }}
+      >
+        <DialogContent className="flex h-[calc(100dvh-2rem)] max-w-6xl flex-col overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>Periksa dokumen SOP</DialogTitle>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-hidden p-0">
+            <SopDocumentPreviewPane
+              selectedSop={inspectId ? { nama: 'Dokumen SOP', nomor: inspectId } : null}
+              isLoading={isInspecting}
+              sopPreviewProps={
+                inspectDocument ? mapPenyusunWorkbenchToPreviewProps(inspectDocument.workbench) : null
+              }
+              tteSignaturePayload={inspectDocument?.workbench.tteSignaturePayload}
+              errorMessage={inspectError ?? undefined}
+              onRetry={inspectId ? () => void openInspection(inspectId) : undefined}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

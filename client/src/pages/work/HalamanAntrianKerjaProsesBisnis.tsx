@@ -43,7 +43,7 @@ function WorkRow({
           <Badge variant={isActionable ? 'warning' : 'secondary'}>{siklus.stateLabel}</Badge>
         </div>
         <p className="text-xs text-secondary-foreground">
-          ProsesBisnis: <span className="font-medium text-foreground">{row.namaProsesBisnis ?? '—'}</span>
+            Proses Bisnis: <span className="font-medium text-foreground">{row.namaProsesBisnis ?? '—'}</span>
         </p>
       </CardHeader>
       <CardContent className="flex items-center justify-between gap-3 border-t border-border pt-3">
@@ -108,18 +108,13 @@ export function HalamanAntrianKerjaProsesBisnis() {
       ),
     [processRows],
   )
-  const currentRows = useMemo(
-    () => processRows.filter((row) => row.siklus.stage === 'EFFECTIVE' || row.siklus.stage === 'REVOKED'),
-    [processRows],
-  )
-
   return (
     <ListPageLayout title="Pekerjaan SOP" breadcrumb={null}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-foreground">Daftar kerja ProsesBisnis Anda</p>
+          <p className="text-sm font-medium text-foreground">SOP pada Proses Bisnis Anda</p>
           <p className="mt-1 text-xs text-secondary-foreground">
-            Tindakan ditentukan oleh tanggung jawab Anda sebagai ProsesBisnis Owner atau Member.
+            Lihat SOP yang perlu Anda kerjakan atau yang sedang menunggu pengguna lain.
           </p>
         </div>
         <Button className="gap-2" onClick={() => setIsCreateOpen(true)} disabled={prosesBisnis.length === 0}>
@@ -144,7 +139,7 @@ export function HalamanAntrianKerjaProsesBisnis() {
           <EmptyState
             icon={<ClipboardCheck />}
             title="Tidak ada tindakan saat ini"
-            description="Draft, revisi, atau review Penanggung Jawab Proses Bisnis yang memerlukan tindakan Anda akan muncul di sini."
+            description="SOP yang perlu Anda kerjakan akan muncul di sini."
           />
         )}
       </section>
@@ -164,20 +159,11 @@ export function HalamanAntrianKerjaProsesBisnis() {
         </section>
       ) : null}
 
-      {currentRows.length > 0 ? (
-        <section className="space-y-3">
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-secondary-foreground" aria-hidden />
-            <h2 className="text-sm font-semibold text-foreground">Selesai / current</h2>
-            <Badge variant="secondary">{currentRows.length}</Badge>
-          </div>
-          <div className="grid gap-3 xl:grid-cols-2">
-            {currentRows.map((row) => (
-              <WorkRow key={row.id} row={row} />
-            ))}
-          </div>
-        </section>
-      ) : null}
+      <div className="flex justify-end border-t border-border pt-3">
+        <Button asChild variant="ghost" size="sm">
+          <Link to={ROUTES.PENYUSUN.SOP}>Lihat semua SOP</Link>
+        </Button>
+      </div>
 
       <BuatSOPDialog
         open={isCreateOpen}

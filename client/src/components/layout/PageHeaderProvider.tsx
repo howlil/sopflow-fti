@@ -8,6 +8,7 @@ import type { BreadcrumbItem } from '@/components/ui/breadcrumb'
 export interface PageHeaderContent {
   breadcrumb: BreadcrumbItem[]
   title: string
+  description?: string
 }
 
 interface PageHeaderContextValue {
@@ -43,15 +44,16 @@ export interface SetPageHeaderProps {
   breadcrumb: BreadcrumbItem[]
   /** Judul semantik halaman; HeaderBar merendernya sebagai satu h1 sr-only. */
   title: string
+  description?: string
 }
 
 /**
  * Mengirim metadata navigation context ke global shell tanpa merender UI lokal.
  */
-export function SetPageHeader({ breadcrumb, title }: SetPageHeaderProps) {
+export function SetPageHeader({ breadcrumb, title, description }: SetPageHeaderProps) {
   const ctx = usePageHeaderContext()
-  const propsRef = useRef({ breadcrumb, title })
-  propsRef.current = { breadcrumb, title }
+  const propsRef = useRef({ breadcrumb, title, description })
+  propsRef.current = { breadcrumb, title, description }
 
   const breadcrumbKey = JSON.stringify(breadcrumb)
   const setHeader = ctx?.setHeaderContent
@@ -64,7 +66,7 @@ export function SetPageHeader({ breadcrumb, title }: SetPageHeaderProps) {
     return () => {
       setHeaderRef.current?.(null)
     }
-  }, [breadcrumbKey, title])
+  }, [breadcrumbKey, title, description])
 
   return null
 }

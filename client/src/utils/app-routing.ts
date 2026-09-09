@@ -17,8 +17,11 @@ export function parseSafeInternalRedirect(redirect: string | undefined): string 
   }
 }
 
-export function resolvePostLoginPath(redirect: string | undefined): string {
-  return parseSafeInternalRedirect(redirect) ?? ROUTES.WORK
+export function resolvePostLoginPath(
+  redirect: string | undefined,
+  fallbackPath: string = ROUTES.WORK,
+): string {
+  return parseSafeInternalRedirect(redirect) ?? fallbackPath
 }
 
 type NavigateLike = (opts: {

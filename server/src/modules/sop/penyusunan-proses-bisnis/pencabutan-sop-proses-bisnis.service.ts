@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { JwtAccessPayload } from '../../../common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { hasRevisiInFlight } from '../../../common/status/sop-editable.util';
+import { hasRevisiInFlight } from '../lifecycle/sop-editable.util';
 import {
   BagianSOP,
   JenisDokumenTte,

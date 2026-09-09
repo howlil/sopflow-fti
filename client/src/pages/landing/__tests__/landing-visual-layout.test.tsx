@@ -2,15 +2,14 @@ import { render, screen } from '@testing-library/react'
 import { vi } from 'vitest'
 import { LandingPage } from '../../LandingPage'
 import { IdentityHero } from '../identity-hero'
-import { InstitutionalClosing } from '../institutional-closing'
-import { LandingProductPreview } from '../landing-product-preview'
 import { PublicFooter } from '../public-footer'
 import { PublicHeader } from '../public-header'
-import { RoleWorkspaceShowcase, type LandingRoleProfile } from '../role-workspace-showcase'
+import { PublicServiceGateway } from '../public-service-gateway'
+import { WorkflowStory } from '../workflow-story'
 
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
-    <a {...props}>{children}</a>
+  Link: ({ children, to, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
+    <a href={to} {...props}>{children}</a>
   ),
 }))
 
@@ -22,38 +21,29 @@ const stages = [
   { step: '05', title: 'Berlaku' },
 ]
 
-const roles: LandingRoleProfile[] = [
-  {
-    id: 'process-member',
-    label: 'Penyusun SOP',
-    responsibility: 'Menyusun dan memperbaiki SOP.',
-    output: 'Draft dan revisi SOP.',
-  },
-  {
-    id: 'penanggung-jawab-proses-bisnis',
-    label: 'Pemilik Proses',
-    responsibility: 'Mereview SOP dalam Proses Bisnis.',
-    output: 'Keputusan review Proses Bisnis.',
-  },
-  {
-    id: 'pejabat-berwenang',
-    label: 'Pejabat TTE',
-    responsibility: 'Melakukan persetujuan akhir dan TTE.',
-    output: 'SOP yang berlaku.',
-  },
-]
-
 describe('landing visual layout', () => {
-  it('centers the hero copy instead of using a left-right split layout', () => {
-    render(<IdentityHero stages={stages} />)
-    expect(screen.getByTestId('landing-hero-copy')).toHaveClass('text-center')
+  it('keeps the hero institutional, compact, and login-secondary', () => {
+    render(<IdentityHero />)
+
+    expect(screen.getByRole('heading', { name: 'Siklus SOP FTI dari penyusunan hingga berlaku.' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Masuk ke Sistem' })).toBeInTheDocument()
+    expect(screen.queryByText('Pratinjau sistem')).not.toBeInTheDocument()
   })
 
-  it('keeps the hero product preview focused without legacy operational metrics', () => {
-    render(<LandingProductPreview />)
-    expect(screen.getByText('Review Proses Bisnis')).toBeInTheDocument()
-    expect(screen.getByText('Contoh SOP FTI')).toBeInTheDocument()
-    expect(screen.queryByText('Pengajuan Evaluasi')).not.toBeInTheDocument()
+  it('exposes real public archive and PDF validation moves', () => {
+    render(<PublicServiceGateway />)
+
+    expect(screen.getByRole('link', { name: /Arsip SOP.*Buka arsip/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Validasi PDF.*Mulai validasi/i })).toBeInTheDocument()
+  })
+
+  it('keeps the workflow short and readable on small screens', () => {
+    render(<WorkflowStory stages={stages} />)
+
+    expect(screen.getByRole('list', { name: 'Tahapan pengelolaan SOP' })).toBeInTheDocument()
+    for (const stage of stages) {
+      expect(screen.getByText(stage.title)).toBeInTheDocument()
+    }
   })
 
   it('keeps global navigation focused on public destinations and login', () => {
@@ -70,30 +60,15 @@ describe('landing visual layout', () => {
     expect(screen.getByText('Masuk')).toBeInTheDocument()
   })
 
-  it('does not repeat archive and validation as a second dedicated section', () => {
+  it('does not render the removed preview, role tabs, or duplicate closing CTA', () => {
     render(<LandingPage />)
-    expect(screen.queryByText('Arsip dan validasi dokumen dalam satu tempat.')).not.toBeInTheDocument()
+
+    expect(screen.queryByText('Pratinjau sistem')).not.toBeInTheDocument()
+    expect(screen.queryByText('Tiga peran dalam pengelolaan SOP FTI.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Lanjutkan pekerjaan pada Proses Bisnis Anda.')).not.toBeInTheDocument()
   })
 
-  it('keeps responsibility information concise without a legacy role matrix', () => {
-    render(<RoleWorkspaceShowcase roles={roles} />)
-    expect(screen.getByText('Tiga tanggung jawab dalam siklus SOP FTI.')).toBeInTheDocument()
-  })
-
-  it('uses a direct FTI closing with one action', () => {
-    render(
-      <InstitutionalClosing
-        institutionName="Fakultas Teknologi Informasi"
-        productName="SOPFlow FTI"
-      />,
-    )
-
-    expect(screen.getByText('Lanjutkan pekerjaan pada Proses Bisnis Anda.')).toBeInTheDocument()
-    expect(screen.getByText('Masuk ke Sistem')).toBeInTheDocument()
-    expect(screen.queryByAltText('Kantor Gubernur Sumatera Barat')).not.toBeInTheDocument()
-  })
-
-  it('keeps the footer institutional without repeating public navigation', () => {
+  it('keeps the footer institutional without adding a second navigation', () => {
     render(
       <PublicFooter
         institutionName="Fakultas Teknologi Informasi"

@@ -1,4 +1,4 @@
-import { StatusSOP } from '../../generated/prisma';
+import { StatusSOP } from '../../../generated/prisma';
 
 export interface StatusDisplay {
   readonly value: string;

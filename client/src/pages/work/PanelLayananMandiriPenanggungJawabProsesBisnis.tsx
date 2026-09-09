@@ -58,10 +58,10 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
     <section className="space-y-4" aria-labelledby="penanggung-jawab-proses-bisnis-self-service-title">
       <div>
         <h2 id="penanggung-jawab-proses-bisnis-self-service-title" className="text-base font-semibold text-foreground">
-          Kelola ProsesBisnis
+          Kelola Proses Bisnis
         </h2>
         <p className="mt-1 text-sm text-secondary-foreground">
-          Buat ProsesBisnis pada lingkup yang diberikan Admin, lalu kelola Penyusun SOP tanpa tiket administrasi.
+          Buat Proses Bisnis sesuai kewenangan Anda, lalu kelola anggota yang menyusun SOP.
         </p>
       </div>
 
@@ -70,7 +70,7 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
           {scopes.length > 0 ? (
             <DataSurface.Root>
               <DataSurface.Header>
-                <h3 className="text-sm font-semibold text-foreground">ProsesBisnis baru</h3>
+                <h3 className="text-sm font-semibold text-foreground">Proses Bisnis baru</h3>
               </DataSurface.Header>
               <div className="space-y-3 p-4">
                 <Input
@@ -86,7 +86,7 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                   <option value="">Pilih lingkup</option>
                   {scopes.map((lingkup) => (
                     <option key={lingkup.kewenanganPenanggungJawabProsesBisnisId} value={lingkup.kunciLingkup}>
-                      {lingkup.lingkup === 'FACULTY' ? 'Fakultas' : lingkup.departemen?.nama ?? 'Jurusan'}
+                      {lingkup.lingkup === 'FACULTY' ? 'Fakultas' : lingkup.departemen?.nama ?? 'Departemen'}
                     </option>
                   ))}
                 </select>
@@ -108,7 +108,7 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                       }
                     }}
                   >
-                    Buat ProsesBisnis
+                    Buat Proses Bisnis
                   </Button>
                 </div>
               </div>
@@ -117,13 +117,13 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
 
           <DataSurface.Root>
             <DataSurface.Header>
-              <h3 className="text-sm font-semibold text-foreground">ProsesBisnis milik Anda</h3>
+            <h3 className="text-sm font-semibold text-foreground">Proses Bisnis milik Anda</h3>
             </DataSurface.Header>
             <div className="divide-y divide-border">
               {isLoading ? (
-                <p className="p-4 text-sm text-secondary-foreground">Memuat ProsesBisnis...</p>
+                <p className="p-4 text-sm text-secondary-foreground">Memuat Proses Bisnis...</p>
               ) : prosesBisnis.length === 0 ? (
-                <p className="p-4 text-sm text-secondary-foreground">Belum ada ProsesBisnis.</p>
+                <p className="p-4 text-sm text-secondary-foreground">Belum ada Proses Bisnis.</p>
               ) : (
                 prosesBisnis.map((process) => (
                   <button
@@ -139,7 +139,7 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium text-foreground">{process.nama}</span>
                       <span className="mt-0.5 block text-xs text-secondary-foreground">
-                        {process.lingkup === 'FACULTY' ? 'Fakultas' : process.departemen?.nama ?? 'Jurusan'} · {process.anggota.length} Penyusun
+                        {process.lingkup === 'FACULTY' ? 'Fakultas' : process.departemen?.nama ?? 'Departemen'} · {process.anggota.length} Penyusun
                       </span>
                     </span>
                     <span className="text-xs text-secondary-foreground">
@@ -159,8 +159,8 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                 <h3 className="text-sm font-semibold text-foreground">{selected.nama}</h3>
                 <p className="text-sm text-secondary-foreground">
                   {selected.siklusStatus === 'ARCHIVED'
-                    ? 'Proses Bisnis read-only. Riwayat dan bukti workflow tetap dipertahankan.'
-                    : 'Kelola identitas Proses Bisnis dan Penyusun SOP yang memiliki akses eksplisit.'}
+                    ? 'Proses Bisnis diarsipkan. Riwayat dan bukti tetap dipertahankan.'
+                    : 'Kelola nama Proses Bisnis dan anggota yang dapat menyusun SOP.'}
                 </p>
               </div>
             </DataSurface.Header>
@@ -246,7 +246,7 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-secondary-foreground">Undang akun baru</p>
                     <p className="mt-1 text-xs text-secondary-foreground">
-                      Owner tidak menetapkan password. Calon Penyusun membuat password sendiri dari link onboarding.
+                      Owner tidak membuat kata sandi. Calon Penyusun membuatnya sendiri melalui tautan undangan.
                     </p>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
@@ -271,12 +271,12 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
                         }
                       }}
                     >
-                      Buat onboarding
+                      Undang Penyusun
                     </Button>
                   </div>
                   {activationUrl ? (
                     <div className="space-y-2 rounded-control border border-border bg-surface-muted p-3">
-                      <p className="text-xs font-medium text-foreground">Link onboarding satu kali</p>
+                      <p className="text-xs font-medium text-foreground">Tautan undangan satu kali</p>
                       <Input readOnly value={activationUrl} />
                       <Button
                         size="sm"
@@ -292,9 +292,9 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
 
               {selected.siklusStatus !== 'ARCHIVED' ? (
                 <div className="space-y-3 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-secondary-foreground">Arsipkan ProsesBisnis</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-secondary-foreground">Arsipkan Proses Bisnis</p>
                   <p className="text-xs text-secondary-foreground">
-                    Hanya dapat diarsipkan jika tidak ada draft atau workflow SOP yang masih berjalan.
+                    Arsipkan hanya jika tidak ada draft atau proses SOP yang masih berjalan.
                   </p>
                   <div className="flex gap-2">
                     <Input
@@ -323,7 +323,7 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
           </DataSurface.Root>
         ) : (
           <div className="rounded-surface border border-dashed border-border bg-surface p-5 text-sm text-secondary-foreground">
-            Pilih ProsesBisnis untuk mengelola Penyusun SOP.
+            Pilih Proses Bisnis untuk mengelola Penyusun SOP.
           </div>
         )}
       </div>

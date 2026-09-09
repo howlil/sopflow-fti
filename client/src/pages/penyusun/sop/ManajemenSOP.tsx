@@ -45,7 +45,7 @@ const formatFilterDate = (value: string) =>
   }).format(new Date(`${value}T00:00:00`));
 
 export function ManajemenSOP() {
-  useDocumentTitle("Manajemen SOP — Penyusun");
+  useDocumentTitle("Daftar SOP");
   const filterStatusId = "filter-status-sop";
   const filterTanggalDariId = "filter-tanggal-dari-sop";
   const filterTanggalSampaiId = "filter-tanggal-sampai-sop";
@@ -110,8 +110,8 @@ export function ManajemenSOP() {
 
   return (
     <ListPageLayout
-      breadcrumb={[{ label: "Manajemen SOP" }]}
-      title="Manajemen SOP"
+      breadcrumb={[{ label: "Daftar SOP" }]}
+      title="Daftar SOP"
     >
       <DataSurface.Root>
         <DataSurface.Header>
@@ -229,7 +229,7 @@ export function ManajemenSOP() {
                               <SopPrimaryCell title={sop.judul} />
                               {namaProsesBisnis ? (
                                 <p className="text-xs text-secondary-foreground">
-                                  ProsesBisnis: {namaProsesBisnis}
+                                  Proses Bisnis: {namaProsesBisnis}
                                 </p>
                               ) : null}
                             </div>

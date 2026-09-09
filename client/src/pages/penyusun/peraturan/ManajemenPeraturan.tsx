@@ -1,191 +1,114 @@
 import { useMemo, useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Edit, FileText, Plus, Trash2 } from 'lucide-react'
+import { usePeraturan } from '@/api/peraturan'
 import { DataSurface } from '@/components/data/data-surface'
-import { Button } from '@/components/ui/button'
-import { SearchInput } from '@/components/ui/search-input'
+import { RowActions } from '@/components/data/row-actions'
 import { ListPageLayout } from '@/components/layout/ListPageLayout'
+import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { Skeleton } from '@/components/ui/skeleton'
-import type { Peraturan } from "@/types/dto/peraturan.dto";
-import { usePeraturan } from "@/api/peraturan";
-import { useToast } from "@/hooks/useToast"
-import { PeraturanTableTab } from './components/PeraturanTableTab'
-import { hasRequiredStringFields } from '@/lib/forms/validation'
+import { Table } from '@/components/ui/data-table'
+import { EmptyState } from '@/components/ui/empty-state'
+import { FormDialog } from '@/components/ui/form-dialog'
+import { FormField } from '@/components/ui/form-field'
+import { Input } from '@/components/ui/input'
+import { SearchInput } from '@/components/ui/search-input'
+import type { Peraturan } from '@/types/dto/peraturan.dto'
 
-const REQUIRED_PERATURAN_FIELDS = ['peraturan', 'nomor', 'tahun', 'tentang'] as const
+const EMPTY_FORM = { namaPeraturan: '', nomor: '', tahun: '', tentang: '' }
 
 export function ManajemenPeraturan() {
-  const { showToast } = useToast()
-  const {
-    list: peraturanList,
-    isLoading: isLoadingPeraturan,
-    create,
-    update,
-    delete: deletePeraturan,
-  } = usePeraturan()
-
-  const [searchQuery, setSearchQuery] = useState('')
-  const [isPeraturanDialogOpen, setIsPeraturanDialogOpen] = useState(false)
-  const [editingPeraturan, setEditingPeraturan] = useState<Peraturan | null>(null)
-  const [peraturanFormData, setPeraturanFormData] = useState({
-    peraturan: '',
-    nomor: '',
-    tahun: '',
-    tentang: '',
-  })
-  const isPeraturanFormValid = hasRequiredStringFields(
-    peraturanFormData,
-    REQUIRED_PERATURAN_FIELDS,
-  )
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: string; id: string } | null>(null)
-
-  const filteredPeraturan = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase()
-    if (!q) return peraturanList
-    return peraturanList.filter((item) =>
-      ['namaPeraturan', 'nomor', 'tentang']
-        .map((k) => String(item[k as keyof Peraturan] ?? ''))
-        .join(' ')
-        .toLowerCase()
-        .includes(q)
+  const catalog = usePeraturan()
+  const [query, setQuery] = useState('')
+  const [editing, setEditing] = useState<Peraturan | null | undefined>(undefined)
+  const [deleting, setDeleting] = useState<Peraturan | null>(null)
+  const [form, setForm] = useState(EMPTY_FORM)
+  const filtered = useMemo(() => {
+    const normalized = query.trim().toLowerCase()
+    if (!normalized) return catalog.list
+    return catalog.list.filter((item) =>
+      `${item.namaPeraturan} ${item.nomor} ${item.tahun} ${item.tentang}`.toLowerCase().includes(normalized),
     )
-  }, [peraturanList, searchQuery])
+  }, [catalog.list, query])
+  const year = Number(form.tahun)
+  const canSave =
+    form.namaPeraturan.trim().length > 0 &&
+    form.nomor.trim().length > 0 &&
+    form.tentang.trim().length > 0 &&
+    Number.isInteger(year) && year >= 1900 && year <= new Date().getFullYear() + 1
 
-  const canEditPeraturan = () => true
-
-  const openPeraturanDialog = (peraturan?: Peraturan) => {
-    if (peraturan) {
-      setEditingPeraturan(peraturan)
-      setPeraturanFormData({
-        peraturan: peraturan.namaPeraturan,
-        nomor: peraturan.nomor,
-        tahun: String(peraturan.tahun),
-        tentang: peraturan.tentang,
-      })
-    } else {
-      setEditingPeraturan(null)
-      setPeraturanFormData({ peraturan: '', nomor: '', tahun: '', tentang: '' })
-    }
-    setIsPeraturanDialogOpen(true)
-  }
-
-  const handleSavePeraturan = async () => {
-    if (!isPeraturanFormValid) {
-      showToast('Semua field wajib diisi', 'error')
-      return
-    }
-
-    const year = Number(peraturanFormData.tahun)
-    const currentYear = new Date().getFullYear()
-    if (year < 1900 || year > currentYear + 1) {
-      showToast(`Tahun harus antara 1900 hingga ${currentYear + 1}`, 'error')
-      return
-    }
-
-    try {
-      if (editingPeraturan) {
-        await update({
-          id: editingPeraturan.id,
-          payload: {
-            namaPeraturan: peraturanFormData.peraturan,
-            nomor: peraturanFormData.nomor,
-            tahun: Number(peraturanFormData.tahun),
-            tentang: peraturanFormData.tentang,
-          },
-        })
-      } else {
-        await create({
-          namaPeraturan: peraturanFormData.peraturan,
-          nomor: peraturanFormData.nomor,
-          tahun: Number(peraturanFormData.tahun),
-          tentang: peraturanFormData.tentang,
-        })
-      }
-      setIsPeraturanDialogOpen(false)
-    } catch {
-      // Toast sukses/error dari usePeraturan → useMutationWithToast
-    }
-  }
-
-  const handleDeletePeraturan = (id: string) => {
-    const peraturan = peraturanList.find((p) => p.id === id)
-    if (peraturan && peraturan.digunakan && peraturan.digunakan > 0) {
-      showToast(`Tidak dapat menghapus. Masih ada ${peraturan.digunakan} SOP yang mengaitkan peraturan ini.`, 'error')
-      return
-    }
-    setDeleteConfirm({ type: 'peraturan', id })
-  }
-
-  const doDeletePeraturan = async (id: string) => {
-    try {
-      await deletePeraturan(id)
-    } catch {
-      // Toast error dari useMutationWithToast
-    }
+  const openForm = (item: Peraturan | null) => {
+    setEditing(item)
+    setForm(
+      item
+        ? { namaPeraturan: item.namaPeraturan, nomor: item.nomor, tahun: String(item.tahun), tentang: item.tentang }
+        : EMPTY_FORM,
+    )
   }
 
   return (
     <ListPageLayout
-      breadcrumb={[{ label: 'Manajemen Peraturan' }]}
-      title="Database Peraturan"
+      title="Katalog Peraturan"
+      description="Sumber dasar hukum global yang dapat dipakai lintas Proses Bisnis."
+      breadcrumb={[{ label: 'Katalog Peraturan' }]}
     >
       <DataSurface.Root>
         <DataSurface.Header>
           <DataSurface.Toolbar>
-            <SearchInput
-              placeholder="Cari peraturan..."
-              aria-label="Cari peraturan..."
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-            />
+            <SearchInput aria-label="Cari peraturan" placeholder="Cari peraturan…" value={query} onChange={(event) => setQuery(event.target.value)} />
             <DataSurface.Actions>
-              <Button
-                size="sm"
-                className="h-8 gap-1.5 text-xs"
-                onClick={() => openPeraturanDialog()}
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Tambah Peraturan
+              <Button size="sm" className="gap-1.5" onClick={() => openForm(null)}>
+                <Plus className="h-4 w-4" aria-hidden /> Tambah
               </Button>
             </DataSurface.Actions>
           </DataSurface.Toolbar>
         </DataSurface.Header>
-
-        {isLoadingPeraturan ? (
-          <div className="space-y-4 p-card">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        ) : (
-          <PeraturanTableTab
-            filteredPeraturan={filteredPeraturan}
-            canEditPeraturan={canEditPeraturan}
-            isPeraturanDialogOpen={isPeraturanDialogOpen}
-            setIsPeraturanDialogOpen={setIsPeraturanDialogOpen}
-            editingPeraturan={editingPeraturan}
-            peraturanFormData={peraturanFormData}
-            setPeraturanFormData={setPeraturanFormData}
-            onOpenPeraturanDialog={openPeraturanDialog}
-            onSavePeraturan={handleSavePeraturan}
-            onDeletePeraturan={handleDeletePeraturan}
-            confirmDisabled={!isPeraturanFormValid}
-          />
-        )}
+        <Table.Paginated data={filtered} label="peraturan" surfaceMode="embedded">
+          {(pageData) => (
+            <Table.Root>
+              <Table.Table>
+                <thead><Table.HeadRow><Table.Th>Peraturan</Table.Th><Table.Th>Nomor</Table.Th><Table.Th>Tentang</Table.Th><Table.ActionTh>Aksi</Table.ActionTh></Table.HeadRow></thead>
+                <tbody>
+                  {pageData.length === 0 ? (
+                    <EmptyState asTableRow colSpan={4} icon={<FileText />} title={query.trim() ? 'Peraturan tidak ditemukan' : 'Belum ada peraturan'} description={query.trim() ? 'Ubah kata kunci pencarian.' : 'Tambahkan dasar hukum global untuk digunakan dalam SOP.'} />
+                  ) : pageData.map((item) => (
+                    <Table.BodyRow key={item.id}>
+                      <Table.Td className="font-medium text-foreground">{item.namaPeraturan}</Table.Td>
+                      <Table.Td>{item.nomor}/{item.tahun}</Table.Td>
+                      <Table.Td>{item.tentang}</Table.Td>
+                      <Table.ActionTd><RowActions actions={[
+                        { icon: Edit, title: 'Edit', onClick: () => openForm(item) },
+                        { icon: Trash2, title: item.digunakan ? 'Masih digunakan oleh SOP' : 'Hapus', destructive: true, disabled: Boolean(item.digunakan), onClick: () => setDeleting(item) },
+                      ]} /></Table.ActionTd>
+                    </Table.BodyRow>
+                  ))}
+                </tbody>
+              </Table.Table>
+            </Table.Root>
+          )}
+        </Table.Paginated>
       </DataSurface.Root>
-
-      <ConfirmDialog
-        open={deleteConfirm != null}
-        onOpenChange={(open) => !open && setDeleteConfirm(null)}
-        title="Hapus peraturan?"
-        description="Peraturan yang dihapus tidak dapat dikembalikan."
-        onConfirm={() => {
-          if (deleteConfirm?.type === 'peraturan') {
-            doDeletePeraturan(deleteConfirm.id)
-            setDeleteConfirm(null)
-          }
+      <FormDialog
+        open={editing !== undefined}
+        onOpenChange={(open) => { if (!open) setEditing(undefined) }}
+        title={editing ? 'Edit peraturan' : 'Tambah peraturan'}
+        description="Data ini tersedia sebagai dasar hukum untuk seluruh SOP FTI."
+        confirmLabel="Simpan"
+        confirmDisabled={!canSave || catalog.isCreating || catalog.isUpdating}
+        onConfirm={async () => {
+          const payload = { namaPeraturan: form.namaPeraturan.trim(), nomor: form.nomor.trim(), tahun: year, tentang: form.tentang.trim() }
+          if (editing) await catalog.update({ id: editing.id, payload })
+          else await catalog.create(payload)
+          setEditing(undefined)
         }}
-      />
+      >
+        <FormField label="Jenis peraturan" required><Input value={form.namaPeraturan} onChange={(event) => setForm((value) => ({ ...value, namaPeraturan: event.target.value }))} /></FormField>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FormField label="Nomor" required><Input value={form.nomor} onChange={(event) => setForm((value) => ({ ...value, nomor: event.target.value }))} /></FormField>
+          <FormField label="Tahun" required><Input inputMode="numeric" maxLength={4} value={form.tahun} onChange={(event) => setForm((value) => ({ ...value, tahun: event.target.value }))} /></FormField>
+        </div>
+        <FormField label="Tentang" required><Input value={form.tentang} onChange={(event) => setForm((value) => ({ ...value, tentang: event.target.value }))} /></FormField>
+      </FormDialog>
+      <ConfirmDialog open={deleting !== null} onOpenChange={(open) => { if (!open) setDeleting(null) }} title="Hapus peraturan?" description="Peraturan yang belum dipakai akan dihapus dari katalog global." confirmLabel="Hapus" destructive onConfirm={async () => { if (deleting) await catalog.delete(deleting.id); setDeleting(null) }} />
     </ListPageLayout>
   )
 }

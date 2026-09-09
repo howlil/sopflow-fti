@@ -73,7 +73,7 @@ export function BuatSOPDialog({
         <DialogHeader>
           <DialogTitle className="text-sm">Buat SOP Baru</DialogTitle>
           <DialogDescription className="text-xs">
-            SOP harus dibuat di ProsesBisnis tempat Anda menjadi ProsesBisnis Owner atau Member.
+            SOP harus dibuat pada Proses Bisnis tempat Anda menjadi Owner atau anggota.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 pt-1">
@@ -97,7 +97,7 @@ export function BuatSOPDialog({
             </select>
             {!isLoadingProsesBisnises && prosesBisnis.length === 0 ? (
               <p className="mt-1 text-xs text-secondary-foreground">
-                Anda belum ditugaskan sebagai ProsesBisnis Owner atau Member.
+                Anda belum ditugaskan sebagai Owner atau anggota Proses Bisnis.
               </p>
             ) : null}
           </FormField>

@@ -2,7 +2,7 @@ import type { PenggunaRepository } from './pengguna.repository';
 import { PlatformAccountService } from './platform-account.service';
 import { ConflictException } from '@nestjs/common';
 
-jest.mock('../../../common/pengguna/pengguna-admin.util', () => ({
+jest.mock('./shared/pengguna-admin.util', () => ({
   hashDefaultPassword: jest.fn().mockResolvedValue('hash'),
   requireIndonesianMobileNumber: jest.fn((value: string) => value),
   rethrowPrismaUniqueViolation: jest.fn(),

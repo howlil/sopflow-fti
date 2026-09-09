@@ -2,8 +2,8 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import type { JwtAccessPayload } from '../../../common';
 import { isPrismaUniqueConstraintError } from '../../../common/prisma/prisma-error.util';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { TERMINAL_DETAIL_STATUSES, hasRevisiInFlight } from '../../../common/status/sop-editable.util';
-import { displayStatusSop } from '../../../common/status/status-display';
+import { TERMINAL_DETAIL_STATUSES, hasRevisiInFlight } from '../lifecycle/sop-editable.util';
+import { displayStatusSop } from '../lifecycle/status-display';
 import { ProsesBisnisContextService } from '../../core/proses-bisnis/konteks-proses-bisnis.service';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
 import type { SopRiwayatVersiRowDto } from '../catalog/dto/sop-riwayat-versi-row.dto';

@@ -1,4 +1,4 @@
-import { PenLine, Activity, History } from 'lucide-react'
+import { PenLine, Activity, History, MessageSquareText } from 'lucide-react'
 import {
   CollapsedStripButton,
   CollapsibleSidePanel,
@@ -14,8 +14,8 @@ import type { PenyusunWorkbenchLogEdit, SopRiwayatVersiRow } from '@/types/dto/s
 export interface DetailSOPPenyusunSidePanelProps {
   collapsed: boolean
   onCollapsedChange: (collapsed: boolean) => void
-  rightPanelTab: 'edit' | 'versi' | 'aktivitas'
-  onTabChange: (tab: 'edit' | 'versi' | 'aktivitas') => void
+  rightPanelTab: 'edit' | 'review' | 'versi' | 'aktivitas'
+  onTabChange: (tab: 'edit' | 'review' | 'versi' | 'aktivitas') => void
   auditEntries: PenyusunWorkbenchLogEdit[]
   /** @deprecated Label metadata sekarang diturunkan dari mode read-only. */
   editTabLabel?: string
@@ -43,6 +43,7 @@ export function DetailSOPPenyusunSidePanel({
   const propertyLabel = isReadOnly ? 'Informasi' : 'Properti'
   const tabs = [
     { id: 'edit', label: propertyLabel, icon: <PenLine className="h-3.5 w-3.5" /> },
+    { id: 'review', label: 'Evaluasi', icon: <MessageSquareText className="h-3.5 w-3.5" /> },
     { id: 'versi', label: 'Versi', icon: <History className="h-3.5 w-3.5" /> },
     { id: 'aktivitas', label: 'Aktivitas', icon: <Activity className="h-3.5 w-3.5" /> },
   ]
@@ -73,6 +74,17 @@ export function DetailSOPPenyusunSidePanel({
           </CollapsibleSidePanelHeader>
           <CollapsibleSidePanelContent className="px-0 pb-2 pt-1">
             {rightPanelTab === 'edit' && <DetailSOPMetadataPanel />}
+            {rightPanelTab === 'review' ? (
+              <div className="p-3">
+                <RiwayatStatusPanel
+                  entries={auditEntries.filter(
+                    (entry) => entry.bagian === 'REVIEW' || entry.bagian === 'UMPAN_BALIK',
+                  )}
+                  emptyTitle="Belum ada hasil evaluasi"
+                  emptyDescription="Keputusan dan catatan Penanggung Jawab Proses Bisnis akan tampil di sini."
+                />
+              </div>
+            ) : null}
             {rightPanelTab === 'versi' && sopId ? (
               <div className="px-2">
                 <RiwayatVersiPanel

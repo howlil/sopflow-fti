@@ -151,9 +151,13 @@ export class PersetujuanAkhirSOPService {
     if (row === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
-    if (row.status !== StatusSOP.FINAL_APPROVAL && row.status !== StatusSOP.TTE_PENDING) {
+    if (
+      row.status !== StatusSOP.FINAL_APPROVAL &&
+      row.status !== StatusSOP.TTE_PENDING &&
+      row.status !== StatusSOP.EFFECTIVE
+    ) {
       throw new ConflictException(
-        `SOP tidak berada pada tahap final approval/TTE (status saat ini: ${String(row.status)})`,
+        `SOP tidak berada pada tahap persetujuan, TTE, atau berlaku (status saat ini: ${String(row.status)})`,
       );
     }
     return {

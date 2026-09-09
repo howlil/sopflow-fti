@@ -57,7 +57,7 @@ export function usePlatformAccounts() {
 
   const createAccount = useMutationWithToast({
     mutationFn: platformAccountsApi.create,
-    invalidateKeys: [queryKeys.platformAccounts, queryKeys.processAdminUsers],
+    invalidateKeys: [queryKeys.platformAccounts, queryKeys.processAdminUsers, queryKeys.administrasiFtiOverview],
     successMessage: 'Akun FTI berhasil dibuat',
     errorMessagePrefix: 'Gagal membuat akun FTI',
   })
@@ -65,7 +65,7 @@ export function usePlatformAccounts() {
   const updateAccount = useMutationWithToast({
     mutationFn: ({ penggunaId, payload }: { penggunaId: string; payload: UpdatePlatformAccountPayload }) =>
       platformAccountsApi.update(penggunaId, payload),
-    invalidateKeys: [queryKeys.platformAccounts, queryKeys.processAdminUsers],
+    invalidateKeys: [queryKeys.platformAccounts, queryKeys.processAdminUsers, queryKeys.administrasiFtiOverview],
     successMessage: 'Akun FTI berhasil diperbarui',
     errorMessagePrefix: 'Gagal memperbarui akun FTI',
   })

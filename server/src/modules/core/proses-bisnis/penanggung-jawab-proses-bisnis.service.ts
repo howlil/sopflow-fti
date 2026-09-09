@@ -7,7 +7,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import { BCRYPT_SALT_ROUNDS } from '../../../common/auth/password.constants';
-import { requireIndonesianMobileNumber } from '../../../common/pengguna/pengguna-admin.util';
+import { requireIndonesianMobileNumber } from '../../../common/pengguna/indonesian-mobile-number.util';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import {
   PlatformRole,

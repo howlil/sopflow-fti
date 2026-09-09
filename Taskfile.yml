@@ -106,6 +106,12 @@ tasks:
     cmds:
       - pnpm prisma generate
 
+  db:prepare:
+    desc: Apply pending migrations and generate Prisma client
+    dir: server
+    cmds:
+      - pnpm db:prepare
+
   db:migrate:
     desc: Deploy Prisma migrations
     dir: server

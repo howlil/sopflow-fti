@@ -35,15 +35,15 @@ describe('ListPageLayout', () => {
     render(
       <PageHeaderProvider>
         <HeaderProbe />
-        <ListPageLayout breadcrumb={[{ label: 'SOP' }]} title="Manajemen SOP">
+        <ListPageLayout breadcrumb={[{ label: 'SOP' }]} title="Daftar SOP" description="Kelola dokumen SOP.">
           <div data-testid="page-content">Daftar</div>
         </ListPageLayout>
       </PageHeaderProvider>,
     )
 
-    expect(await screen.findByTestId('header-title')).toHaveTextContent('Manajemen SOP')
+    expect(await screen.findByTestId('header-title')).toHaveTextContent('Daftar SOP')
     expect(screen.getByTestId('header-breadcrumb')).toHaveTextContent('SOP')
-    expect(screen.getByTestId('has-description')).toHaveTextContent('false')
+    expect(screen.getByTestId('has-description')).toHaveTextContent('true')
     expect(screen.getByTestId('has-actions')).toHaveTextContent('false')
     expect(screen.getByTestId('page-content')).toBeInTheDocument()
   })

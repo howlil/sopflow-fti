@@ -7,10 +7,6 @@ vi.mock('@/pages/penyusun/sop/detail/components/DetailSopMetadataPanel', () => (
 vi.mock('@/pages/penyusun/sop/components/RiwayatVersiPanel', () => ({
   RiwayatVersiPanel: () => <div>Versi probe</div>,
 }))
-vi.mock('@/pages/penyusun/sop/components/RiwayatStatusPanel', () => ({
-  RiwayatStatusPanel: () => <div>Aktivitas probe</div>,
-}))
-
 import { DetailSOPPenyusunSidePanel } from '@/pages/penyusun/sop/detail/components/DetailSopPenyusunSidePanel'
 
 function renderPanel(isReadOnly = false) {
@@ -42,5 +38,34 @@ describe('DetailSOPPenyusunSidePanel', () => {
 
     expect(screen.getByRole('tab', { name: 'Informasi' })).toBeInTheDocument()
     expect(screen.queryByRole('tab', { name: 'Properti' })).not.toBeInTheDocument()
+  })
+
+  it('menampilkan catatan keputusan pada tab Evaluasi', () => {
+    render(
+      <DetailSOPPenyusunSidePanel
+        collapsed={false}
+        onCollapsedChange={vi.fn()}
+        rightPanelTab="review"
+        onTabChange={vi.fn()}
+        detailSopId="detail-1"
+        auditEntries={[
+          {
+            id: 'review-1',
+            sopDetailId: 'detail-1',
+            userId: 'owner-1',
+            bagian: 'REVIEW',
+            keterangan: 'Revisi diminta: lengkapi keluaran langkah 2.',
+            aktorRole: '',
+            createdAt: '2026-09-10T08:00:00.000Z',
+            closedAt: '2026-09-10T08:00:00.000Z',
+            user: { id: 'owner-1', nama: 'Owner Proses', email: 'owner@example.test' },
+          },
+        ]}
+      />,
+    )
+
+    expect(screen.getByText('Evaluasi')).toBeInTheDocument()
+    expect(screen.getByText('Revisi diminta: lengkapi keluaran langkah 2.')).toBeInTheDocument()
+    expect(screen.getByText('Owner Proses')).toBeInTheDocument()
   })
 })

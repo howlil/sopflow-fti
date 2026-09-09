@@ -76,15 +76,21 @@ function dayKey(iso: string): string {
 
 interface RiwayatStatusPanelProps {
   entries: PenyusunWorkbenchLogEdit[]
+  emptyTitle?: string
+  emptyDescription?: string
 }
 
-export function RiwayatStatusPanel({ entries }: RiwayatStatusPanelProps) {
+export function RiwayatStatusPanel({
+  entries,
+  emptyTitle = 'Belum ada aktivitas',
+  emptyDescription = 'Perubahan SOP akan dicatat di sini, gabung otomatis selama 10 menit terakhir.',
+}: RiwayatStatusPanelProps) {
   if (entries.length === 0) {
     return (
       <EmptyState
         icon={<Activity className="w-8 h-8" />}
-        title="Belum ada aktivitas"
-        description="Perubahan SOP akan dicatat di sini, gabung otomatis selama 10 menit terakhir."
+        title={emptyTitle}
+        description={emptyDescription}
       />
     )
   }

@@ -208,13 +208,11 @@ export function DetailSOPPenyusun() {
     <SopEditorProvider value={editorContextValue}>
       <DetailPageLayout
         breadcrumb={[
-          { label: 'Manajemen SOP', to: ROUTES.PENYUSUN.SOP },
+          { label: 'Daftar SOP', to: ROUTES.PENYUSUN.SOP },
           { label: isReadOnly ? 'Lihat SOP' : 'Edit SOP' },
         ]}
         title={isReadOnly ? 'Lihat Dokumen SOP' : 'Edit Dokumen SOP'}
         description={metadata.nama ?? metadata.judul ?? ''}
-        backTo={ROUTES.PENYUSUN.SOP}
-        backSize="icon"
         header={
           <DetailSOPPenyusunHeader
             metadata={metadata}

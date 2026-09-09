@@ -13,6 +13,7 @@ describe('ProsesBisnisService', () => {
       | 'updateDepartemen'
       | 'listAssignableUsers'
       | 'listProsesBisnis'
+      | 'getAdminOverview'
     >
   >;
 
@@ -23,6 +24,7 @@ describe('ProsesBisnisService', () => {
       updateDepartemen: jest.fn(),
       listAssignableUsers: jest.fn(),
       listProsesBisnis: jest.fn(),
+      getAdminOverview: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -63,5 +65,13 @@ describe('ProsesBisnisService', () => {
     await expect(service.listProsesBisnis()).resolves.toEqual([]);
     expect(repository.listAssignableUsers).toHaveBeenCalledWith('owner');
     expect(repository.listProsesBisnis).toHaveBeenCalledTimes(1);
+  });
+
+  it('delegates the Admin overview read model to the repository', async () => {
+    const overview = { accounts: { total: 1 } };
+    repository.getAdminOverview.mockResolvedValue(overview as never);
+
+    await expect(service.getAdminOverview()).resolves.toEqual(overview);
+    expect(repository.getAdminOverview).toHaveBeenCalledTimes(1);
   });
 });

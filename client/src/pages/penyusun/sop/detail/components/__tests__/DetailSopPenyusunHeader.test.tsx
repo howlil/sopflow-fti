@@ -1,17 +1,30 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SOPDetailMetadata } from '@/types/ui/sop'
 
 const retryAutosave = vi.fn()
 const onBuatVersiBaru = vi.fn()
+const decideReview = vi.fn()
+let workbenchData: Record<string, unknown> | null = null
 
 vi.mock('@/api/sop', () => ({
-  usePenyusunWorkbench: () => ({ data: null, isLoading: false }),
+  usePenyusunWorkbench: () => ({ data: workbenchData, isLoading: false }),
+}))
+
+vi.mock('@/api/pemeriksaan-proses-bisnis', () => ({
+  pemeriksaanProsesBisnisApi: {
+    submit: vi.fn(),
+    decide: (...args: unknown[]) => decideReview(...args),
+  },
 }))
 
 vi.mock('@/pages/penyusun/sop/detail/SopEditorContext', () => ({
-  useSopEditor: () => ({ sopDetailId: 'detail-1' }),
+  useSopEditor: () => ({
+    sopDetailId: 'detail-1',
+    flushHeaderAutosave: vi.fn(),
+    flushProsedurAutosave: vi.fn(),
+  }),
 }))
 
 vi.mock('@/hooks/useToast', () => ({
@@ -62,6 +75,7 @@ function renderHeader(
 describe('DetailSOPPenyusunHeader', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    workbenchData = null
   })
 
   it('menjadikan identitas SOP sebagai fokus command bar', () => {
@@ -97,5 +111,35 @@ describe('DetailSOPPenyusunHeader', () => {
 
     expect(await screen.findByText('Cetak PDF')).toBeInTheDocument()
     expect(screen.getByText('Buat versi baru')).toBeInTheDocument()
+  })
+
+  it('mewajibkan catatan revisi dan mengirimkannya sebagai bukti evaluasi', async () => {
+    workbenchData = {
+      detail: { sop: { prosesBisnisId: 'process-1' } },
+      siklus: {
+        stage: 'PROCESS_REVIEW',
+        stateLabel: 'Menunggu review',
+        responsibility: { type: 'CURRENT_USER', name: 'Owner' },
+      },
+    }
+    decideReview.mockResolvedValue(workbenchData)
+    renderHeader({ isReadOnly: true, currentSopStatus: 'PROCESS_REVIEW' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Minta revisi' }))
+    const confirm = screen.getByRole('button', { name: 'Kirim permintaan revisi' })
+    expect(confirm).toBeDisabled()
+
+    fireEvent.change(screen.getByLabelText(/Catatan evaluasi/), {
+      target: { value: 'Lengkapi keluaran langkah 2.' },
+    })
+    fireEvent.click(confirm)
+
+    await waitFor(() => {
+      expect(decideReview).toHaveBeenCalledWith(
+        'detail-1',
+        'REVISION',
+        'Lengkapi keluaran langkah 2.',
+      )
+    })
   })
 })

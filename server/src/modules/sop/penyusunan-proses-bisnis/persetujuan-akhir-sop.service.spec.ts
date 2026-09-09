@@ -151,6 +151,14 @@ describe('PersetujuanAkhirSOPService', () => {
     expect(catalog.findWorkbenchPayloadByDetailOrSopId).toHaveBeenCalledWith('detail-a', 0);
   });
 
+  it('allows the same contextual authority to inspect an effective SOP before revocation', async () => {
+    const { service } = makeService(StatusSOP.EFFECTIVE);
+
+    await expect(service.getDocumentForCurrentApprover(user, 'detail-a')).resolves.toEqual(
+      expect.objectContaining({ workbench: { detail: { id: 'detail-a' }, langkah: [] } }),
+    );
+  });
+
   it('rejects document reads outside the persetujuan akhir/TTE state', async () => {
     const { service } = makeService(StatusSOP.PROCESS_REVIEW);
 

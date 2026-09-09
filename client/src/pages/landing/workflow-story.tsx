@@ -4,29 +4,27 @@ interface WorkflowStoryProps {
 
 export function WorkflowStory({ stages }: WorkflowStoryProps) {
   return (
-    <section id="alur" className="scroll-mt-20 bg-[#f8fbff] py-20 sm:py-28">
+    <section id="alur" aria-labelledby="workflow-title" className="bg-surface py-12 sm:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Alur kerja SOP</p>
-          <h2 className="mt-4 text-[clamp(2.5rem,4.8vw,3.9rem)] font-semibold leading-[1] tracking-[-0.045em] text-slate-950">
+        <div className="max-w-2xl">
+          <h2 id="workflow-title" className="text-2xl font-semibold tracking-[-0.03em] text-foreground sm:text-3xl">
             Tahapan pengelolaan SOP.
           </h2>
-          <p className="mx-auto mt-5 max-w-2xl text-sm leading-6 text-secondary-foreground sm:text-base sm:leading-7">
-            Proses dimulai dari penyusunan dan berakhir ketika SOP telah disahkan serta masuk ke arsip.
+          <p className="mt-3 text-sm leading-6 text-secondary-foreground sm:text-base">
+            SOP disusun, ditinjau, disetujui, ditandatangani secara elektronik, lalu tersedia pada arsip publik.
           </p>
         </div>
 
-        <div className="mt-12 overflow-x-auto pb-2">
-          <ol className="mx-auto flex min-w-[860px] max-w-6xl items-center" aria-label="Tahapan pengelolaan SOP">
+        <div className="mt-8">
+          <ol className="grid border-y border-border sm:grid-cols-5" aria-label="Tahapan pengelolaan SOP">
             {stages.map((stage, index) => (
-              <li key={stage.step} className="flex flex-1 items-center last:flex-none">
-                <div className="flex min-w-[94px] flex-col items-center text-center">
-                  <span className="grid h-9 w-9 place-items-center rounded-full border border-blue-200 bg-white font-mono text-[10px] font-semibold text-primary shadow-[0_10px_24px_-20px_rgba(37,99,235,0.6)]">
+              <li key={stage.step} className={`flex items-start gap-3 py-4 sm:block sm:min-h-[112px] sm:p-4 ${index < stages.length - 1 ? 'border-b border-border sm:border-b-0 sm:border-r' : ''}`}>
+                <div className="flex items-start gap-3 sm:block">
+                  <span className="font-mono text-xs font-semibold text-primary">
                     {stage.step}
                   </span>
-                  <span className="mt-2 text-xs font-medium text-secondary-foreground">{stage.title}</span>
+                  <span className="text-sm font-medium text-foreground sm:mt-3 sm:block">{stage.title}</span>
                 </div>
-                {index < stages.length - 1 ? <span className="mx-2 h-px flex-1 bg-blue-200" aria-hidden /> : null}
               </li>
             ))}
           </ol>

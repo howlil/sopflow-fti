@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ListTree, PenLine, RotateCcw } from 'lucide-react'
 import { SOPPreviewTemplate } from '@/components/sop/sop-preview-template'
 import { DetailSOPProsedurEditor } from './DetailSopProsedurEditor'
-import { StatusProsesBisnisContext } from '@/components/sop/StatusProsesBisnisContext'
 import type { SOPDetailMetadata } from '@/types/ui/sop'
 import { namaLembagaToInstitutionLines } from '@/lib/sop/detailSop.mappers'
 import { Button } from '@/components/ui/button'
@@ -193,12 +192,6 @@ export function DetailSOPPenyusunMain({
 
   return (
     <div className="h-full min-h-0 flex-1 overflow-auto p-4">
-      {workbench?.siklus ? (
-        <StatusProsesBisnisContext
-          siklus={workbench.siklus}
-          namaProsesBisnis={workbench.detail.sop?.namaProsesBisnis}
-        />
-      ) : null}
       <SOPPreviewTemplate
         metadata={previewMetadata}
         prosedurRows={prosedurRows}
