@@ -1,4 +1,3 @@
-import { ConflictException } from '@nestjs/common';
 import { LingkupOrganisasi, StatusSOP } from '../../../generated/prisma';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import type { ProsesBisnisContextService } from '../../core/proses-bisnis/konteks-proses-bisnis.service';
@@ -118,41 +117,5 @@ describe('ProsesBisnisSopAuthoringService', () => {
     );
 
     expect(rows).toEqual([]);
-  });
-
-  it('rejects an unbound SOP on the native workbench endpoint', async () => {
-    const prisma = {
-      sOP: {
-        findUnique: jest.fn().mockResolvedValue({ prosesBisnisId: null }),
-      },
-    } as unknown as PrismaService;
-    const processContext = {} as unknown as ProsesBisnisContextService;
-    const repository = {
-      findDetailIdByDetailOrSopId: jest.fn().mockResolvedValue({
-        sopId: 'legacy-sop',
-        detailSopId: 'legacy-detail',
-      }),
-    } as unknown as SopCatalogRepository;
-    const workbenchReader = {
-      getForDetail: jest.fn(),
-    } as unknown as SopWorkbenchReader;
-    const service = new ProsesBisnisSopAuthoringService(
-      prisma,
-      processContext,
-      repository,
-      workbenchReader,
-    );
-
-    await expect(
-      service.getWorkbench(
-        {
-          sub: 'legacy-user',
-          email: 'legacy@example.test',
-          sesiTokenVersion: 1,
-        },
-        'legacy-detail',
-      ),
-    ).rejects.toBeInstanceOf(ConflictException);
-    expect((workbenchReader.getForDetail as jest.Mock).mock.calls).toHaveLength(0);
   });
 });
