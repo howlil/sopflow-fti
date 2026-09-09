@@ -10,6 +10,7 @@ export type ProsesBisnisSopLifecycleStage =
 
 export type ProsesBisnisSopLifecycleResponsibilityType =
   | 'CURRENT_USER'
+  | 'DRAFTER'
   | 'PROCESS_OWNER'
   | 'DEAN'
   | 'HEAD_OF_DEPARTMENT'
@@ -83,12 +84,24 @@ export function projectProsesBisnisSopLifecycle(
   input: ProsesBisnisSopLifecycleProjectionInput,
 ): ProsesBisnisSopLifecycleProjection {
   const { prosesBisnis, authority } = input;
+  const currentUserIsProcessOwner = input.currentUserId === prosesBisnis.penanggungJawabId;
   const authorityType: ProsesBisnisSopLifecycleResponsibilityType =
     prosesBisnis.lingkup === LingkupOrganisasi.FACULTY ? 'DEAN' : 'HEAD_OF_DEPARTMENT';
   const resolvedAuthorityLabel = authorityLabel(prosesBisnis.lingkup, prosesBisnis.namaDepartemen);
 
   if (input.status === StatusSOP.DRAFT || input.status === StatusSOP.REVISION_REQUIRED) {
     const isRevision = input.status === StatusSOP.REVISION_REQUIRED;
+    if (currentUserIsProcessOwner) {
+      return {
+        stage: 'AUTHORING',
+        stateLabel: isRevision ? 'Perlu revisi oleh Penyusun' : 'Dalam penyusunan',
+        responsibility: { type: 'DRAFTER', name: 'Penyusun SOP' },
+        action: null,
+        blockingReason: isRevision
+          ? 'Menunggu Penyusun SOP menyelesaikan revisi.'
+          : 'Menunggu Penyusun SOP menyelesaikan dokumen.',
+      };
+    }
     return {
       stage: 'AUTHORING',
       stateLabel: isRevision ? 'Perlu revisi' : 'Draft',
@@ -112,12 +125,12 @@ export function projectProsesBisnisSopLifecycle(
     const isCurrentUser = responsibility.type === 'CURRENT_USER';
     return {
       stage: 'PROCESS_REVIEW',
-      stateLabel: 'Menunggu review Penanggung Jawab Proses Bisnis',
+      stateLabel: 'Menunggu pemeriksaan Penanggung Jawab Proses Bisnis',
       responsibility,
-      action: isCurrentUser ? siklusAction('REVIEW_PROCESS', 'Review SOP', 'SOP_DETAIL') : null,
+      action: isCurrentUser ? siklusAction('REVIEW_PROCESS', 'Periksa SOP', 'SOP_DETAIL') : null,
       blockingReason: isCurrentUser
         ? null
-        : `Menunggu review ${prosesBisnis.namaPenanggungJawab ?? 'Penanggung Jawab Proses Bisnis'}.`,
+        : `Menunggu pemeriksaan ${prosesBisnis.namaPenanggungJawab ?? 'Penanggung Jawab Proses Bisnis'}.`,
     };
   }
 
@@ -134,16 +147,16 @@ export function projectProsesBisnisSopLifecycle(
     if (input.status === StatusSOP.FINAL_APPROVAL) {
       return {
         stage: 'FINAL_APPROVAL',
-        stateLabel: 'Menunggu persetujuan akhir',
+        stateLabel: 'Menunggu pengesahan',
         responsibility,
         action: isCurrentUser
-          ? siklusAction('APPROVE_FINAL', 'Setujui SOP', 'APPROVAL_INBOX')
+          ? siklusAction('APPROVE_FINAL', 'Sahkan SOP', 'APPROVAL_INBOX')
           : null,
         blockingReason: isCurrentUser
           ? null
           : hasAuthorityHolder
-            ? `Menunggu persetujuan akhir ${authority?.holderName ?? resolvedAuthorityLabel}.`
-            : `Menunggu konfigurasi ${resolvedAuthorityLabel}.`,
+            ? `Menunggu pengesahan ${authority?.holderName ?? resolvedAuthorityLabel}.`
+            : `Menunggu penetapan ${resolvedAuthorityLabel}.`,
       };
     }
 
@@ -151,12 +164,12 @@ export function projectProsesBisnisSopLifecycle(
       stage: 'TTE',
       stateLabel: 'Menunggu TTE',
       responsibility,
-      action: isCurrentUser ? siklusAction('SIGN_TTE', 'Tanda tangani', 'APPROVAL_INBOX') : null,
+      action: isCurrentUser ? siklusAction('SIGN_TTE', 'Tanda Tangani', 'APPROVAL_INBOX') : null,
       blockingReason: isCurrentUser
         ? null
         : hasAuthorityHolder
           ? `Menunggu TTE ${authority?.holderName ?? resolvedAuthorityLabel}.`
-          : `Menunggu konfigurasi ${resolvedAuthorityLabel}.`,
+          : `Menunggu penetapan ${resolvedAuthorityLabel}.`,
     };
   }
 
