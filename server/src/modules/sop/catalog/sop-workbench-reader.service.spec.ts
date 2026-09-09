@@ -21,7 +21,7 @@ describe('SopWorkbenchReader', () => {
       findWorkbenchPayloadByDetailOrSopId: jest.fn(),
     };
     prisma = {
-      prosesBisnis: { findUnique: jest.fn() },
+      prosesBisnis: { findUnique: jest.fn().mockResolvedValue(null) },
       penugasanPejabatBerwenang: { findUnique: jest.fn() },
       pengguna: { findFirst: jest.fn() },
     } as unknown as PrismaService;
@@ -32,7 +32,7 @@ describe('SopWorkbenchReader', () => {
   function currentPayload(): SopWorkbenchDbPayload {
     return {
       detailSopId: 'detail-1',
-      sop: { prosesBisnisId: null },
+      sop: { prosesBisnisId: 'process-1' },
     } as unknown as SopWorkbenchDbPayload;
   }
 
