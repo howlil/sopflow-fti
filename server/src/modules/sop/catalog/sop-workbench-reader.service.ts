@@ -9,7 +9,7 @@ import { mapWorkbenchPayload } from './sop-catalog.mapper';
 import { SopCatalogRepository } from './sop-catalog.repository';
 
 /**
- * Compatibility-neutral workbench projection shared by native ProsesBisnis paths.
+ * Workbench projection shared by native ProsesBisnis paths.
  * Authorization remains owned by the caller; this reader enriches document
  * metadata with the current contextual signing authority only.
  */
@@ -34,8 +34,6 @@ export class SopWorkbenchReader {
     }
 
     const mapped = mapWorkbenchPayload(row);
-    if (row.sop.prosesBisnisId === null) return mapped;
-
     const process = await this.prisma.prosesBisnis.findUnique({
       where: { prosesBisnisId: row.sop.prosesBisnisId },
       select: { lingkup: true, departemenId: true },
