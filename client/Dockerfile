@@ -1,20 +1,17 @@
 # syntax=docker/dockerfile:1
-# TanStack Start SSR + nginx reverse proxy untuk /api.
+# TanStack Start SSR + nginx reverse proxy for /api.
 
 FROM node:22-alpine AS base
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
+RUN corepack enable && corepack prepare pnpm@11.21.0 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-FROM base AS dev-deps
-RUN pnpm install --frozen-lockfile
-
-FROM base AS prod-deps
-RUN pnpm install --frozen-lockfile --prod
-
-FROM dev-deps AS builder
+FROM base AS builder
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build && test -f dist/server/server.js
+# Build once, then keep only production dependencies for the runtime image.
+RUN pnpm prune --prod
 
 FROM node:22-alpine AS runtime
 WORKDIR /app
@@ -26,7 +23,7 @@ RUN apk add --no-cache nginx wget \
   && mkdir -p /run/nginx /var/lib/nginx /var/log/nginx \
   && chown -R node:node /run/nginx /var/lib/nginx /var/log/nginx /app
 
-COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/dist ./dist
 COPY --from=builder --chown=node:node /app/package.json ./package.json
 COPY --chown=node:node production-server.mjs ./production-server.mjs
