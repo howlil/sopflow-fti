@@ -19,6 +19,12 @@ function createWebRequest(req) {
 }
 
 const httpServer = createServer(async (req, res) => {
+  if (req.url === '/healthz') {
+    res.statusCode = 204
+    res.end()
+    return
+  }
+
   try {
     const response = await serverEntry.fetch(createWebRequest(req))
     res.statusCode = response.status
@@ -35,6 +41,11 @@ const httpServer = createServer(async (req, res) => {
     res.statusCode = 500
     res.end('Internal Server Error')
   }
+})
+
+httpServer.on('error', (error) => {
+  console.error('SSR server failed:', error)
+  process.exit(1)
 })
 
 httpServer.listen(port, host, () => {
