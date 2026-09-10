@@ -6,12 +6,13 @@ import {
   JenisLangkahProsedur,
   PejabatBerwenang,
   JenisNotifikasiProsesBisnis,
+  SatuanWaktu,
   StatusSOP,
 } from '../../../generated/prisma';
 import type { PejabatBerwenangService } from '../../core/proses-bisnis/pejabat-berwenang.service';
 import type { ProsesBisnisContextService } from '../../core/proses-bisnis/konteks-proses-bisnis.service';
 import type { NotifikasiProsesBisnisService } from '../../notifications/proses-bisnis/notifikasi-proses-bisnis.service';
-import type { SopCatalogRepository } from '../catalog/sop-catalog.repository';
+import type { SopCatalogRepository, SopWorkbenchDbPayload } from '../catalog/sop-catalog.repository';
 import { KeputusanPemeriksaanProsesBisnis } from './dto/pemeriksaan-proses-bisnis-decision.dto';
 import { ProsesBisnisOwnerReviewService } from './pemeriksaan-penanggung-jawab-proses-bisnis.service';
 import type { ProsesBisnisSopAuthoringService } from './sop-proses-bisnis-authoring.service';
@@ -21,6 +22,148 @@ const user = {
   email: 'user@example.test',
   sesiTokenVersion: 1,
 };
+
+function makeWorkbenchPayload(status: StatusSOP): SopWorkbenchDbPayload {
+  const t = new Date('2026-09-01T08:00:00.000Z');
+  return {
+    detailSopId: 'detail-a',
+    sopId: 'sop-a',
+    status,
+    versi: 1,
+    nomorSOP: '001',
+    tanggalPembuatan: t,
+    tanggalRevisi: null,
+    tanggalEfektif: null,
+    namaLembaga: 'Fakultas Teknologi Informasi',
+    dibuatOlehId: 'author-1',
+    terakhirDieditOlehId: null,
+    revisiDariDetailSopId: null,
+    revisiDari: null,
+    createdAt: t,
+    updatedAt: t,
+    sop: {
+      sopId: 'sop-a',
+      prosesBisnisId: 'prosesBisnis-a',
+      judul: 'SOP',
+      createdAt: t,
+      updatedAt: t,
+    },
+    dibuatOleh: { penggunaId: 'author-1', nama: 'Penyusun FTI' },
+    terakhirDieditOleh: null,
+    dasarHukum: [
+      {
+        detailSopId: 'detail-a',
+        peraturanId: 'p-1',
+        createdAt: t,
+        updatedAt: t,
+        peraturan: {
+          peraturanId: 'p-1',
+          nama: 'Peraturan FTI',
+          nomor: '1',
+          tahun: 2026,
+          tentang: 'Dasar hukum SOP',
+          lastEditedById: null,
+          createdAt: t,
+          updatedAt: t,
+        },
+      },
+    ],
+    relasiSopKeluar: [
+      {
+        detailSopId: 'detail-a',
+        detailSopTerkaitId: 'detail-related',
+        createdAt: t,
+        updatedAt: t,
+        sopTerkait: {
+          detailSopId: 'detail-related',
+          sopId: 'sop-related',
+          nomorSOP: '002',
+          sop: { judul: 'SOP terkait', sopId: 'sop-related' },
+        },
+      },
+    ],
+    relasiSopMasuk: [],
+    dokumenTte: [],
+    swimlanes: [
+      {
+        detailSopId: 'detail-a',
+        pelaksanaId: 'actor-1',
+        urutan: 1,
+        createdAt: t,
+        updatedAt: t,
+        pelaksana: {
+          pelaksanaId: 'actor-1',
+          nama: 'Penyusun',
+          createdAt: t,
+          updatedAt: t,
+        },
+      },
+    ],
+    langkahSOP: [
+      {
+        langkahSopId: 'step-1',
+        detailSopId: 'detail-a',
+        urutan: 1,
+        kegiatan: 'Kerjakan proses',
+        jenis: JenisLangkahProsedur.KEGIATAN,
+        kelengkapan: 'Dokumen',
+        keluaran: 'Hasil',
+        waktu: 1,
+        satuanWaktu: SatuanWaktu.m,
+        keterangan: 'Selesai',
+        pelaksanaId: 'actor-1',
+        langkahSelanjutnyaYaId: null,
+        langkahSelanjutnyaTidakId: null,
+        createdAt: t,
+        updatedAt: t,
+        pelaksana: {
+          pelaksanaId: 'actor-1',
+          nama: 'Penyusun',
+          createdAt: t,
+          updatedAt: t,
+        },
+      },
+    ],
+    lampiranPeringatan: [
+      {
+        lampiranPeringatanId: 'warning-1',
+        detailSopId: 'detail-a',
+        teks: 'Peringatan',
+        createdAt: t,
+        updatedAt: t,
+      },
+    ],
+    lampiranKualifikasiPelaksanaan: [
+      {
+        lampiranKualifikasiPelaksanaanId: 'qualification-1',
+        detailSopId: 'detail-a',
+        teks: 'Kualifikasi',
+        createdAt: t,
+        updatedAt: t,
+      },
+    ],
+    lampiranPeralatanPerlengkapan: [
+      {
+        lampiranPeralatanPerlengkapanId: 'equipment-1',
+        detailSopId: 'detail-a',
+        teks: 'Peralatan',
+        createdAt: t,
+        updatedAt: t,
+      },
+    ],
+    lampiranPencatatanPendataan: [
+      {
+        lampiranPencatatanPendataanId: 'record-1',
+        detailSopId: 'detail-a',
+        teks: 'Pencatatan',
+        createdAt: t,
+        updatedAt: t,
+      },
+    ],
+    logEditSop: [],
+    konfigurasiDiagram: [],
+  } as unknown as SopWorkbenchDbPayload;
+}
 
 function makeService(options?: {
   penanggungJawab?: boolean;
@@ -90,47 +233,9 @@ function makeService(options?: {
       sopId: 'sop-a',
       status: options?.status ?? StatusSOP.DRAFT,
     }),
-    findWorkbenchPayloadByDetailOrSopId: jest.fn().mockResolvedValue({
-      detailSopId: 'detail-a',
-      sopId: 'sop-a',
-      status: StatusSOP.DRAFT,
-      versi: 1,
-      nomorSOP: '001',
-      namaLembaga: 'Fakultas Teknologi Informasi',
-      sop: { sopId: 'sop-a', judul: 'SOP' },
-      dasarHukum: [{ peraturanId: 'p-1' }],
-      relasiSopKeluar: [
-        {
-          detailSopId: 'detail-a',
-          detailSopTerkaitId: 'detail-related',
-          sopTerkait: {
-            detailSopId: 'detail-related',
-            sopId: 'sop-related',
-            nomorSOP: '002',
-            sop: { judul: 'SOP terkait' },
-          },
-        },
-      ],
-      swimlanes: [{ pelaksanaId: 'actor-1' }],
-      langkahSOP: [
-        {
-          langkahSopId: 'step-1',
-          urutan: 1,
-          kegiatan: 'Kerjakan proses',
-          jenis: JenisLangkahProsedur.KEGIATAN,
-          kelengkapan: 'Dokumen',
-          keluaran: 'Hasil',
-          keterangan: 'Selesai',
-          pelaksanaId: 'actor-1',
-          langkahSelanjutnyaYaId: null,
-          langkahSelanjutnyaTidakId: null,
-        },
-      ],
-      lampiranPeringatan: [{ teks: 'Peringatan' }],
-      lampiranKualifikasiPelaksanaan: [{ teks: 'Kualifikasi' }],
-      lampiranPeralatanPerlengkapan: [{ teks: 'Peralatan' }],
-      lampiranPencatatanPendataan: [{ teks: 'Pencatatan' }],
-    }),
+    findWorkbenchPayloadByDetailOrSopId: jest
+      .fn()
+      .mockResolvedValue(makeWorkbenchPayload(options?.status ?? StatusSOP.DRAFT)),
   } as unknown as SopCatalogRepository;
   const authoring = {
     getWorkbench: jest.fn().mockResolvedValue({ detail: { id: 'detail-a' }, langkah: [] }),
