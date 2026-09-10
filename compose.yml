@@ -1,5 +1,4 @@
-# Do not set a fixed top-level Compose project name here. MyPaaS supplies a
-# unique project name with `-p` so each deployment gets an isolated network.
+# MyPaaS supplies the Compose project name so every release gets an isolated network.
 
 services:
   db:
@@ -9,9 +8,7 @@ services:
       - --lower_case_table_names=1
     environment:
       MARIADB_RANDOM_ROOT_PASSWORD: "1"
-      # Physical database name is intentionally preserved. The persistent
-      # sop-arsip_db_data volume was initialized with this schema name; changing
-      # MARIADB_DATABASE later does not rename/create a database in that volume.
+      # Keep the physical schema name used by the persistent production volume.
       MARIADB_DATABASE: sop_biro_organisasi
       MARIADB_USER: sop_app
       MARIADB_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
@@ -20,12 +17,33 @@ services:
       - db_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      # Fast polling removes up to ~13s of avoidable wait after MariaDB is ready.
-      # start_period/retries still leave ample room for a real cold DB boot.
       start_period: 30s
       interval: 2s
       timeout: 2s
       retries: 30
+
+  # One-shot database owner. Migration and seed failures stop deployment here
+  # instead of being hidden behind an unhealthy application container.
+  bootstrap:
+    image: sop-arsip-backend
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PUBLIC_APP_ORIGIN: ${PUBLIC_APP_ORIGIN:?set PUBLIC_APP_ORIGIN}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET}
+      TTE_ENCRYPTION_SECRET: ${TTE_ENCRYPTION_SECRET:?set TTE_ENCRYPTION_SECRET}
+      DATABASE_HOST: db
+      DATABASE_NAME: sop_biro_organisasi
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
+    entrypoint: ["/usr/local/bin/sopflow-db-bootstrap.sh"]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   backend:
     image: sop-arsip-backend
@@ -34,8 +52,8 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
-      db:
-        condition: service_healthy
+      bootstrap:
+        condition: service_completed_successfully
     environment:
       PUBLIC_APP_ORIGIN: ${PUBLIC_APP_ORIGIN:?set PUBLIC_APP_ORIGIN}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
@@ -54,10 +72,10 @@ services:
       - ALL
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3001/api/health/ready"]
-      start_period: 90s
+      start_period: 30s
       interval: 2s
       timeout: 2s
-      retries: 60
+      retries: 30
 
   frontend:
     image: sop-arsip-frontend
@@ -66,26 +84,24 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
-      # Start nginx/SSR in parallel with backend initialization. Readiness below
-      # still proxies the backend, so MyPaaS cannot publish a healthy frontend
-      # before the backend and database are actually ready.
       backend:
-        condition: service_started
+        condition: service_healthy
     expose:
       - "8080"
     cap_drop:
       - ALL
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/api/health/ready"]
-      start_period: 90s
-      interval: 2s
+      # Frontend health owns only nginx + SSR. Backend readiness is enforced by
+      # the dependency above, not duplicated through the frontend probe.
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/healthz"]
+      start_period: 10s
+      interval: 1s
       timeout: 2s
-      retries: 60
+      retries: 15
 
 volumes:
   db_data:
-    # Keep the established database volume name while the Compose network is
-    # isolated by MyPaaS. This preserves the existing production data.
+    # Keep the established database volume name to preserve production data.
     name: sop-arsip_db_data
   sop_pdf_data:
     name: sop-arsip_sop_pdf_data
