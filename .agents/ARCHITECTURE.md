@@ -79,6 +79,33 @@ Peraturan dan Pelaksana adalah katalog global FTI. Tidak ada ownership Departeme
 - Pejabat Berwenang melakukan pemeriksaan read-only, pengesahan, dan TTE.
 - SOP edit workspace hanya untuk Penyusun/Anggota dan tetap protected dari redesign incidental.
 
+### Deployment boundaries
+
+Production Compose mempunyai satu owner untuk setiap tahap startup:
+
+```text
+MariaDB
+  -> bootstrap (one-shot)
+       -> verify/adopt existing baseline when safe
+       -> prisma migrate deploy
+       -> seed only when database is empty
+  -> backend
+       -> node dist/src/main.js
+  -> frontend
+       -> SSR + nginx
+```
+
+Rules:
+
+- migration dan seed tidak boleh dijalankan di application startup backend;
+- `bootstrap` harus selesai dengan exit code `0` sebelum backend dibuat;
+- backend readiness hanya memeriksa dependency yang benar-benar dibutuhkan backend (`database` + writable SOP storage);
+- frontend health `/healthz` hanya memeriksa nginx + SSR; backend readiness tidak diproxy menjadi frontend health;
+- frontend baru menjadi dependency-ready setelah backend healthy;
+- migration/bootstrap failure harus muncul sebagai failure bootstrap, bukan crash-loop backend/frontend;
+- production container build harus menggunakan package-manager version yang sama dengan `package.json` dan satu dependency-install path per image build;
+- Deployment Smoke harus menjalankan production Compose yang sama sampai seluruh chain healthy.
+
 ### Persistence history
 
 Migration SQL yang sudah diterapkan tetap immutable agar database lama dapat dimigrasikan deterministically. Historical identifiers di migration merupakan mechanics persistence, bukan product language.
