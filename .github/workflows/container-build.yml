@@ -1,17 +1,22 @@
-name: Container Build
+name: Deployment Smoke
 
 on:
   push:
+    branches:
+      - master
     paths:
       - 'compose.yml'
+      - '.env.example'
+      - 'server/src/**'
       - 'server/Dockerfile'
-      - 'server/docker-entrypoint.sh'
+      - 'server/docker-bootstrap.sh'
       - 'server/.dockerignore'
       - 'server/package.json'
       - 'server/pnpm-lock.yaml'
       - 'server/pnpm-workspace.yaml'
       - 'server/prisma/**'
       - 'server/prisma.config.ts'
+      - 'client/src/**'
       - 'client/Dockerfile'
       - 'client/.dockerignore'
       - 'client/package.json'
@@ -24,8 +29,9 @@ on:
   pull_request:
     paths:
       - 'compose.yml'
+      - '.env.example'
       - 'server/Dockerfile'
-      - 'server/docker-entrypoint.sh'
+      - 'server/docker-bootstrap.sh'
       - 'server/.dockerignore'
       - 'server/package.json'
       - 'server/pnpm-lock.yaml'
@@ -46,11 +52,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: container-build-${{ github.ref }}
+  group: deployment-smoke-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-images:
+  production-compose:
     runs-on: ubuntu-latest
     timeout-minutes: 12
 
@@ -58,39 +64,74 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Guard backend runtime package-manager independence
+      - name: Validate production contract
         shell: bash
         run: |
           set -euo pipefail
+          docker compose --env-file .env.example -f compose.yml config >/dev/null
 
-          package_manager="$(node -p "require('./server/package.json').packageManager")"
-          grep -F "corepack prepare ${package_manager} --activate" server/Dockerfile >/dev/null
+          compose_vars="$({ grep -oE '\$\{[A-Z0-9_]+' compose.yml || true; } | sed 's/${//' | sort -u)"
+          example_vars="$(grep -E '^[A-Z0-9_]+=' .env.example | cut -d= -f1 | sort -u)"
+          diff -u <(printf '%s\n' "$example_vars") <(printf '%s\n' "$compose_vars")
 
-          runtime_block="$(awk '/^FROM .* AS runtime$/{runtime=1} runtime{print}' server/Dockerfile)"
-          if printf '%s\n' "$runtime_block" | grep -Eq '(^|[[:space:]])(corepack|pnpm)([[:space:]]|$)'; then
-            echo 'Backend runtime image must not require Corepack or pnpm.' >&2
-            exit 1
-          fi
+          test "$(node -p "require('./server/package.json').packageManager")" = 'pnpm@11.21.0'
+          test "$(node -p "require('./client/package.json').packageManager")" = 'pnpm@11.21.0'
+          grep -F 'corepack prepare pnpm@11.21.0 --activate' server/Dockerfile >/dev/null
+          grep -F 'corepack prepare pnpm@11.21.0 --activate' client/Dockerfile >/dev/null
+          grep -F 'entrypoint: ["/usr/local/bin/sopflow-db-bootstrap.sh"]' compose.yml >/dev/null
+          grep -F 'condition: service_completed_successfully' compose.yml >/dev/null
+          grep -F 'http://127.0.0.1:8080/healthz' compose.yml >/dev/null
+          sh -n server/docker-bootstrap.sh
+          sh -n client/docker-entrypoint.sh
 
-          backend_block="$(awk '/^  backend:/{backend=1} /^  frontend:/{backend=0} backend{print}' compose.yml)"
-          if printf '%s\n' "$backend_block" | grep -Eq '(^|[[:space:]])pnpm([[:space:]]|$)'; then
-            echo 'Backend Compose startup must not invoke pnpm.' >&2
-            exit 1
-          fi
-
-          grep -F './node_modules/.bin/prisma migrate deploy' server/docker-entrypoint.sh >/dev/null
-          grep -F 'exec node dist/src/main.js' server/docker-entrypoint.sh >/dev/null
-          grep -F 'condition: service_healthy' compose.yml >/dev/null
-          grep -F 'http://127.0.0.1:8080/api/health/ready' compose.yml >/dev/null
-          sh -n server/docker-entrypoint.sh
-
-      - name: Build application images
+      - name: Build production images
         run: docker compose --env-file .env.example -f compose.yml build backend frontend
 
-      - name: Verify backend runtime payload without network
+      - name: Start production Compose and wait for real readiness
+        shell: bash
         run: |
-          docker run --rm --network none \
-            -e DATABASE_PASSWORD=ci-runtime-smoke-password \
-            --entrypoint /app/node_modules/.bin/prisma \
-            sop-arsip-backend --version
-          docker run --rm --network none --entrypoint sh sop-arsip-backend -c 'test -f dist/src/database/seed/seed-initial.js && test -f dist/src/main.js'
+          set -euo pipefail
+          compose='docker compose --env-file .env.example -f compose.yml'
+
+          dump() {
+            $compose ps -a || true
+            echo '--- bootstrap logs ---'
+            $compose logs --no-color bootstrap || true
+            echo '--- backend logs ---'
+            $compose logs --no-color backend || true
+            echo '--- frontend logs ---'
+            $compose logs --no-color frontend || true
+          }
+          cleanup() {
+            $compose down -v --remove-orphans >/dev/null 2>&1 || true
+          }
+          trap 'status=$?; if [ "$status" -ne 0 ]; then dump; fi; cleanup; exit "$status"' EXIT
+
+          timeout 150s $compose up -d
+
+          frontend_id="$($compose ps -q frontend)"
+          test -n "$frontend_id"
+          for _ in $(seq 1 120); do
+            health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$frontend_id")"
+            case "$health" in
+              healthy)
+                break
+                ;;
+              unhealthy)
+                echo 'Frontend became unhealthy.' >&2
+                exit 1
+                ;;
+            esac
+            sleep 1
+          done
+
+          test "$(docker inspect --format '{{.State.Health.Status}}' "$frontend_id")" = healthy
+          $compose exec -T frontend wget -q -O /dev/null http://127.0.0.1:8080/healthz
+          $compose exec -T frontend wget -q -O /dev/null http://127.0.0.1:8080/api/health/ready
+
+      - name: Verify runtime payloads do not need build tooling
+        run: |
+          docker run --rm --network none --entrypoint sh sop-arsip-backend -c \
+            'test -f dist/src/main.js && test -x /usr/local/bin/sopflow-db-bootstrap.sh'
+          docker run --rm --network none --entrypoint sh sop-arsip-frontend -c \
+            'test -f dist/server/server.js && test -f /docker-entrypoint.sh'
