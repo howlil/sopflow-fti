@@ -20,10 +20,12 @@ services:
       - db_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      start_period: 60s
-      interval: 15s
-      timeout: 10s
-      retries: 10
+      # Fast polling removes up to ~13s of avoidable wait after MariaDB is ready.
+      # start_period/retries still leave ample room for a real cold DB boot.
+      start_period: 30s
+      interval: 2s
+      timeout: 2s
+      retries: 30
 
   backend:
     image: sop-arsip-backend
@@ -52,10 +54,10 @@ services:
       - ALL
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3001/api/health/ready"]
-      start_period: 120s
-      interval: 10s
-      timeout: 5s
-      retries: 15
+      start_period: 90s
+      interval: 2s
+      timeout: 2s
+      retries: 60
 
   frontend:
     image: sop-arsip-frontend
@@ -64,22 +66,21 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
-      # Frontend readiness proxies /api/health/ready, so do not start its
-      # health timer while backend is still running migrations/seed.
+      # Start nginx/SSR in parallel with backend initialization. Readiness below
+      # still proxies the backend, so MyPaaS cannot publish a healthy frontend
+      # before the backend and database are actually ready.
       backend:
-        condition: service_healthy
+        condition: service_started
     expose:
       - "8080"
     cap_drop:
       - ALL
     healthcheck:
-      # End-to-end readiness: nginx must be serving and the proxied backend
-      # must already be ready. The dependency above removes the startup race.
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/api/health/ready"]
-      start_period: 30s
-      interval: 10s
-      timeout: 5s
-      retries: 10
+      start_period: 90s
+      interval: 2s
+      timeout: 2s
+      retries: 60
 
 volumes:
   db_data:
