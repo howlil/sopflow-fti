@@ -9,18 +9,21 @@ Public HTTP/HTTPS
       |
 Reverse proxy / platform ingress
       |
-Frontend Nginx :8080
+Frontend Nginx + SSR :8080
       |
 Backend NestJS :3001
       |
 MariaDB :3306
+
+Deployment startup:
+MariaDB -> bootstrap one-shot -> Backend -> Frontend
 
 Backend -> persistent PDF volume /app/storage/sop-pdf
 ```
 
 Port `8080`, `3001`, dan `3306` adalah port internal service/container. Pada deployment normal hanya frontend yang menjadi target public ingress.
 
-Dokumentasi arsitektur lebih lengkap: `docs/arsitektur-sistem.md`.
+Dokumentasi arsitektur lebih lengkap: `.agents/ARCHITECTURE.md` dan `docs/arsitektur-sistem.md`.
 
 ## Local development
 
@@ -32,7 +35,7 @@ pnpm db:prepare
 pnpm start:dev
 ```
 
-Untuk restart development biasa, cukup jalankan `pnpm start:dev`. CI tetap menjalankan Prisma generate dan migration smoke secara eksplisit. Production tetap menjalankan `prisma migrate deploy` pada entrypoint dan membawa Prisma Client yang sudah digenerate saat image build.
+Untuk restart development biasa, cukup jalankan `pnpm start:dev`. CI menjalankan Prisma generate dan migration smoke secara eksplisit. Production menjalankan migration melalui service `bootstrap` satu kali sebelum backend dibuat; backend application startup sendiri hanya menjalankan `node dist/src/main.js`.
 
 ## Local Docker Compose
 
@@ -55,8 +58,8 @@ Untuk restart development biasa, cukup jalankan `pnpm start:dev`. CI tetap menja
 4. Periksa service/log:
 
    ```sh
-   docker compose --env-file .env ps
-   docker compose --env-file .env logs -f frontend backend
+   docker compose --env-file .env ps -a
+   docker compose --env-file .env logs -f bootstrap backend frontend
    ```
 
 5. Hentikan stack:
@@ -82,7 +85,6 @@ Aturan konfigurasi:
 - gunakan nama kanonis aplikasi `DATABASE_PASSWORD`; jangan membuat alias deployment seperti `DB_PASSWORD`;
 - `TTE_ENCRYPTION_SECRET` harus berbeda dari kedua JWT secret;
 - database host, port, user, dan nama database memakai topology/default Compose yang stabil dan tidak perlu diduplikasi ke project environment;
-- `NODE_ENV`, memory tuning backend, serta listener frontend merupakan image/runtime defaults dan tidak perlu diulang di Compose atau MyPaas;
 - `DATABASE_URL` tidak diperlukan pada Compose karena Prisma membentuk URL dari `DATABASE_*`;
 - jangan menambahkan optional/tuning environment ke deployment hanya karena schema aplikasi mendukungnya. Tambahkan hanya bila ada kebutuhan runtime yang eksplisit.
 
@@ -109,65 +111,82 @@ Detail:
 - `docs/detail_workflow_dan_teknis_tte.md`
 - `docs/tanda_tangan_elektronik_dan_ca.md`
 
-## Deployment pada MyPaas
+## Deployment pada MyPaaS
 
 Gunakan Docker Compose deployment.
 
 - Main service: `frontend`
 - Target/internal frontend port: `8080`
 - Public HTTP/HTTPS tetap ditangani oleh ingress/reverse proxy platform.
-- Tidak perlu menambahkan `cap_add` atau `NET_BIND_SERVICE` pada frontend.
 - Backend `3001` dan MariaDB `3306` tidak perlu menjadi public application port.
+- Set hanya lima environment dari `.env.example` melalui project settings MyPaaS.
 
-Set hanya lima environment dari `.env.example` melalui project settings MyPaas. Jangan menambahkan `PORT`/`APP_PORT`, database defaults, `DATABASE_URL`, atau frontend listener env hanya untuk public routing; image dan Compose sudah menetapkan nilai stabil tersebut.
-
-Backend production runtime sengaja **tidak bergantung pada pnpm/Corepack atau akses npm registry setelah image selesai dibangun**. Urutan startup aktual:
+Urutan startup production:
 
 ```text
-wait MariaDB TCP
-  -> ./node_modules/.bin/prisma migrate deploy
-  -> node dist/src/database/seed/seed-initial.js
-  -> node dist/src/main.js
+MariaDB healthy
+  -> bootstrap (one-shot)
+       -> verify/adopt existing FTI baseline when safe
+       -> prisma migrate deploy
+       -> seed only if database is empty
+  -> backend application
+       -> /api/health/ready
+  -> frontend nginx + SSR
+       -> /healthz
+  -> public ready
 ```
 
-Failure migration non-transient menghentikan startup; hanya kegagalan reachability database seperti Prisma `P1001/P1002` yang di-retry oleh entrypoint.
+`bootstrap` adalah satu-satunya owner migration/seed. Jika migration gagal, deployment berhenti pada bootstrap dengan error sebenarnya; backend tidak crash-loop menjalankan migration berulang kali.
+
+Health ownership juga dipisahkan:
+
+- DB health hanya MariaDB;
+- bootstrap success = process exit `0`;
+- backend readiness = database connectivity + writable SOP storage;
+- frontend `/healthz` = nginx + SSR, tidak mem-proxy backend readiness.
+
+Backend production runtime tidak bergantung pada pnpm/Corepack atau npm registry setelah image selesai dibangun. Frontend dan backend Dockerfile memakai `pnpm@11.21.0`, sama dengan `package.json`, dan masing-masing memakai satu dependency-install path sebelum production pruning.
+
+Database production mempertahankan physical schema name `sop_biro_organisasi` karena persistent volume lama dibuat dengan nama tersebut. Ini hanya nama schema fisik; domain aplikasi tetap FTI.
 
 ## Seed data
 
-Seed default hanya memuat master/demo identity data yang diperlukan untuk development/testing dan tidak lagi mempunyai `SEED_INCLUDE_WORKFLOW_DUMMY` untuk membuat workflow SOP historis secara massal.
+Seed default hanya memuat master/demo identity data yang diperlukan untuk database kosong. Pada database populated, seed entrypoint mengambil fast path dan tidak melakukan boot Nest kedua.
 
-Jangan menjalankan seed terhadap database production tanpa memahami data yang akan direkonsiliasi.
+Jangan menjalankan seed manual terhadap database production tanpa memahami data yang akan direkonsiliasi.
 
-## Testing
+## Testing dan CI
 
-Backend unit test:
+Backend:
 
 ```sh
 cd server
 pnpm test
 ```
 
-Frontend unit/component test:
+Frontend:
 
 ```sh
 cd client
 pnpm test
 ```
 
-Automatic CI bersifat unit-first:
+CI utama:
 
-- `Server CI`: Prisma validate/generate, typecheck, complete Jest unit suite;
-- `Client CI`: production build/route consistency, typecheck, complete Vitest suite;
-- Compose dan container checks hanya berjalan untuk input yang memang mengubah boundary tersebut.
+- `Server CI`: Prisma validate/generate, production Nest build, typecheck, Jest unit suite;
+- `Client CI`: production build/route consistency, typecheck, Vitest suite;
+- `Migration Smoke`: hanya ketika Prisma/migration berubah atau dipanggil manual; menjalankan migration chain pada MariaDB;
+- `Deployment Smoke`: satu-satunya owner boundary Docker/Compose. Ia build image lalu menjalankan production Compose sampai `db -> bootstrap -> backend -> frontend` benar-benar sehat dan menampilkan log tiap service bila gagal;
+- `Full FTI Exit`: manual-only untuk qualification cutover yang luas.
 
-Migration Smoke dan Full FTI Exit adalah manual qualification workflows. Browser E2E juga manual dan dipilih berdasarkan business use case di `client/e2e/use-cases.json`, misalnya:
+Browser E2E manual dan dipilih berdasarkan business use case di `client/e2e/use-cases.json`, misalnya:
 
 ```sh
 cd client
 pnpm test:e2e:usecase -- UC01
 ```
 
-Jangan menjadikan browser E2E, full migration qualification, atau full suite sebagai gate permanen setiap perubahan. Gunakan sesuai changed risk boundary di `.agents/QUALITY.md`.
+Jangan menjadikan browser E2E atau broad qualification sebagai gate permanen setiap perubahan. Gunakan changed-risk boundary di `.agents/QUALITY.md`.
 
 Dokumentasi unit/integration yang masih relevan:
 
