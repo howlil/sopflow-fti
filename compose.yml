@@ -1,5 +1,9 @@
 # MyPaaS supplies the Compose project name so every release gets an isolated network.
 
+x-backend-build: &backend-build
+  context: ./server
+  dockerfile: Dockerfile
+
 services:
   db:
     image: mariadb:11.4
@@ -22,10 +26,12 @@ services:
       timeout: 2s
       retries: 30
 
-  # One-shot database owner. Migration and seed failures stop deployment here
-  # instead of being hidden behind an unhealthy application container.
+  # One-shot database owner. It intentionally reuses the backend build so
+  # MyPaaS `pull --ignore-buildable` treats this as a local build target instead
+  # of trying to pull the local `sop-arsip-backend` tag from a registry.
   bootstrap:
     image: sop-arsip-backend
+    build: *backend-build
     restart: "no"
     depends_on:
       db:
@@ -47,9 +53,7 @@ services:
 
   backend:
     image: sop-arsip-backend
-    build:
-      context: ./server
-      dockerfile: Dockerfile
+    build: *backend-build
     restart: unless-stopped
     depends_on:
       bootstrap:
