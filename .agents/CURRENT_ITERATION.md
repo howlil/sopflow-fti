@@ -2,7 +2,7 @@
 
 ## State
 
-The FTI-native runtime is being realigned to the canonical actor responsibilities on `master`.
+The canonical FTI actor model and deployment runtime are integrated on `master`.
 
 Current actor model:
 
@@ -10,76 +10,69 @@ Current actor model:
 - administration: **Administrator Sistem** manages accounts, Departemen, PJ eligibility/scope, and Pejabat Berwenang assignments only;
 - authoring: **Penyusun SOP / Anggota Proses Bisnis** exclusively creates and edits SOP;
 - coordination: **Penanggung Jawab Proses Bisnis (PJ Penyusun / Process Owner)** creates/manages Proses Bisnis, manages Penyusun, assigns a primary Penyusun to an SOP, performs pemeriksaan, requests revision, or declares the SOP ready to be submitted;
-- legal/organizational authority: **Pejabat Berwenang** performs pengesahan and TTE; `FACULTY -> DEAN`, `DEPARTMENT -> relevant HEAD_OF_DEPARTMENT`;
-- Peraturan and Pelaksana are global FTI catalogs; active PJ or Anggota may mutate them, while the catalog itself has no organizational/user ownership;
-- active SOP ownership remains direct `SOP.prosesBisnisId`;
+- authority: **Pejabat Berwenang** performs pengesahan and TTE; `FACULTY -> DEAN`, `DEPARTMENT -> relevant HEAD_OF_DEPARTMENT`;
+- Peraturan and Pelaksana are global FTI catalogs; active PJ or Anggota may mutate them;
 - `PenugasanPenyusunSOP` is coordination metadata, not an authoring ACL;
 - `SUPER_ADMIN` remains administration-only and cannot bypass workflow authorization.
 
-## Workflow
+## Runtime deployment model
+
+Production startup now has one responsibility per stage:
 
 ```text
-Administrator Sistem
-  -> konfigurasi akun / Departemen / kewenangan
-
-Penanggung Jawab Proses Bisnis
-  -> bentuk Proses Bisnis
-  -> kelola Penyusun
-  -> assign Penyusun utama per SOP
-
-Penyusun SOP
-  -> buat / edit SOP
-  -> kirim untuk pemeriksaan
-
-Penanggung Jawab Proses Bisnis
-  -> Minta Revisi -> Penyusun
-  -> Nyatakan Siap Diajukan -> Pejabat Berwenang
-
-Pejabat Berwenang
-  -> Pengesahan
-  -> TTE
-  -> EFFECTIVE
+MariaDB
+  -> bootstrap one-shot
+       -> safe existing-baseline adoption when required
+       -> prisma migrate deploy
+       -> seed-if-empty
+  -> Backend application
+       -> /api/health/ready
+  -> Frontend nginx + SSR
+       -> /healthz
+  -> Public ready
 ```
 
-## Frontend realignment
+Important invariants:
 
-Current change set replaces generic dashboard/card CRUD with domain-driven surfaces:
+- migrations and seed are not part of backend application startup;
+- bootstrap failure stops deployment before backend starts;
+- frontend health does not proxy backend/database health;
+- frontend starts only after backend readiness is green;
+- backend image uses one dependency install followed by production pruning;
+- frontend image uses one dependency install, production pruning, and the same `pnpm@11.21.0` declared by the package;
+- obsolete backend migration entrypoint and separate Compose Config workflow were removed.
 
-- capability-specific route guards for authoring, PJ management, and Pejabat Berwenang;
-- `/work` is a capability resolver rather than a duplicate launcher page;
-- Administration surfaces use table-first CRUD with create/edit dialogs;
-- Pekerjaan SOP is table-first;
-- PJ pemeriksaan uses a read-only SOP preview and never opens the protected SOP edit workspace;
-- Pejabat Berwenang uses table + read-only inspection + pengesahan/TTE actions;
-- Process management, Penyusun management, and SOP assignment use tables/dialogs;
-- SOP edit workspace remains protected and unchanged.
+## CI model
 
-## Persistence change
+Normal automatic evidence is intentionally small:
 
-New additive model/migrations:
+- **Client CI** — production client build, route-tree consistency, typecheck, Vitest;
+- **Server CI** — Prisma validate/generate, production Nest build, typecheck, Jest;
+- **Migration Smoke** — only Prisma/migration changes, plus manual invocation;
+- **Deployment Smoke** — production Compose contract, image build, full `db -> bootstrap -> backend -> frontend` startup, service health, and failure logs;
+- **Full FTI Exit** — manual-only broad cutover qualification.
 
-- `PenugasanPenyusunSOP` / table `SopDrafterAssignment`;
-- DB invariants require the assigned Penyusun to be a `ProcessMember`, the SOP to belong to the same Process, and the assigner to be the Process owner;
-- removing a ProcessMember clears that user's SOP coordination assignments.
+There is no separate Compose Config gate anymore.
 
-Prisma is configured as a multi-file schema folder (`prisma/`) so the assignment model can live under `prisma/models/` without expanding the legacy canonical schema file.
+## Verification evidence
 
-## Verification state
+Deployment-runtime revision `d91416d7ffe345fcf25ff2f3fd6a63f5950a61f3` completed **Deployment Smoke** successfully:
 
-The previous green revisions predate this actor-boundary/UI change and are not evidence for the current head.
+- production contract validation: green;
+- backend/frontend production image build: green;
+- production Compose startup to real readiness: green;
+- frontend `/healthz`: green;
+- proxied backend `/api/health/ready`: green;
+- runtime payload check: green.
 
-Required before claiming this change green:
+On the GitHub runner, the cold production Compose startup after image build completed in about **29 seconds**. Image build itself took about **87 seconds** on that clean runner.
 
-1. Prisma validate/generate against the multi-file schema.
-2. Server TypeScript typecheck + focused workflow/unit tests.
-3. Client TypeScript/build + focused UI tests.
-4. Migration smoke for the new assignment table/triggers.
-5. FTI DB audit because the physical target schema changed.
+Server revision `274b331be44bbf9be4d8c2163ba090e1b6b7191e` completed **Server CI** successfully including production Nest build, typecheck, and Jest.
 
-Browser E2E remains optional unless lower-layer evidence exposes a cross-boundary issue.
+Subsequent commits only removed obsolete deployment files/workflows and updated repository documentation; they do not change application runtime behavior.
 
 ## Current delivery state
 
-`IMPLEMENTED_ON_MASTER_AWAITING_CURRENT_HEAD_CI`.
+`RELEASE_READY_FOR_TARGET_REDEPLOY`.
 
-Do not treat historical CI from earlier revisions as proof for this change. The next meaningful transition is current-head CI + migration/DB evidence green.
+The next meaningful evidence is a successful MyPaaS deployment of current `master`. If target deployment fails, use the stage owner directly (`bootstrap`, `backend`, or `frontend`) instead of interpreting a transitive frontend-health timeout.
