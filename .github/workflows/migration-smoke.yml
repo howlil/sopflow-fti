@@ -2,6 +2,16 @@ name: Migration Smoke
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'server/prisma/**'
+      - 'server/prisma.config.ts'
+      - '.github/workflows/migration-smoke.yml'
+  pull_request:
+    paths:
+      - 'server/prisma/**'
+      - 'server/prisma.config.ts'
+      - '.github/workflows/migration-smoke.yml'
 
 permissions:
   contents: read
