@@ -78,6 +78,28 @@ wait_for_database() {
   return 1
 }
 
+prepare_existing_baseline() {
+  echo "Checking whether the existing database needs FTI baseline adoption"
+  set +e
+  node dist/src/database/migration/prepare-existing-baseline.js
+  baseline_status=$?
+  set -e
+
+  case "$baseline_status" in
+    0)
+      return 0
+      ;;
+    42)
+      echo "Marking 0_fti_native_baseline as applied for the verified existing database"
+      ./node_modules/.bin/prisma migrate resolve --applied 0_fti_native_baseline
+      ;;
+    *)
+      echo "Existing database is not safe for automatic FTI baseline adoption" >&2
+      return "$baseline_status"
+      ;;
+  esac
+}
+
 print_migration_output() {
   # Prisma diagnostics are useful in deployment logs, but redact URL passwords
   # defensively in case a future Prisma version includes a connection URL.
@@ -119,6 +141,7 @@ run_migrations() {
 }
 
 wait_for_database
+prepare_existing_baseline
 run_migrations
 node dist/src/database/seed/seed-initial.js
 exec node dist/src/main.js
