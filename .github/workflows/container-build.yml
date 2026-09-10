@@ -1,6 +1,7 @@
 name: Deployment Smoke
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
