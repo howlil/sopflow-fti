@@ -60,16 +60,17 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
+      # Frontend readiness proxies /api/health/ready, so do not start its
+      # health timer while backend is still running migrations/seed.
       backend:
-        condition: service_started
+        condition: service_healthy
     expose:
       - "8080"
     cap_drop:
       - ALL
     healthcheck:
-      # The public service is ready only when its proxied backend is ready.
-      # Keeping this check here lets Compose start without blocking on a
-      # service_healthy dependency while MyPaaS still gets an end-to-end gate.
+      # End-to-end readiness: nginx must be serving and the proxied backend
+      # must already be ready. The dependency above removes the startup race.
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/api/health/ready"]
       start_period: 30s
       interval: 10s
