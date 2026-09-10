@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { PrismaClient } from '../src/generated/prisma';
@@ -91,10 +91,13 @@ type LowerCaseTableNamesRow = {
   lowerCaseTableNames: number | string | bigint;
 };
 
-const baseline = readFileSync(
-  join(__dirname, 'migrations/0_fti_native_baseline/migration.sql'),
-  'utf8',
-);
+const migrationsDirectory = join(__dirname, 'migrations');
+const canonicalMigrations = readdirSync(migrationsDirectory, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .sort()
+  .map((name) => readFileSync(join(migrationsDirectory, name, 'migration.sql'), 'utf8'))
+  .join('\n');
 
 function normalizeType(value: string): string {
   const type = value
@@ -142,7 +145,7 @@ function parseExpectedPhysicalContract(): {
   const checks: ExpectedCheck[] = [];
   const createTable = /CREATE TABLE `([^`]+)` \(\n([\s\S]*?)\n\) DEFAULT CHARACTER SET/g;
 
-  for (const match of baseline.matchAll(createTable)) {
+  for (const match of canonicalMigrations.matchAll(createTable)) {
     const table = match[1];
     const body = match[2];
     if (!table || body === undefined) continue;
@@ -158,7 +161,7 @@ function parseExpectedPhysicalContract(): {
         if (!column || !definition) continue;
         const nullMatch = definition.match(/\s+(NOT NULL|NULL)(?:\s|$)/);
         if (!nullMatch || nullMatch.index === undefined) {
-          throw new Error(`Tidak dapat parse nullability baseline ${table}.${column}: ${line}`);
+          throw new Error(`Tidak dapat parse nullability migration ${table}.${column}: ${line}`);
         }
         const type = definition.slice(0, nullMatch.index).trim();
         const nullable = nullMatch[1] === 'NULL';
@@ -175,7 +178,7 @@ function parseExpectedPhysicalContract(): {
         continue;
       }
 
-      const uniqueIndex = line.match(/^UNIQUE INDEX `([^`]+)`\((.+)\)$/);
+      const uniqueIndex = line.match(/^UNIQUE INDEX `([^`]+)`\s*\((.+)\)$/);
       if (uniqueIndex) {
         indexes.push({
           table,
@@ -185,7 +188,7 @@ function parseExpectedPhysicalContract(): {
         });
         continue;
       }
-      const normalIndex = line.match(/^INDEX `([^`]+)`\((.+)\)$/);
+      const normalIndex = line.match(/^INDEX `([^`]+)`\s*\((.+)\)$/);
       if (normalIndex) {
         indexes.push({
           table,
@@ -221,11 +224,18 @@ function parseExpectedPhysicalContract(): {
 
 function parseExpectedForeignKeys(): ExpectedForeignKey[] {
   const result: ExpectedForeignKey[] = [];
-  const pattern = /ALTER TABLE `([^`]+)` ADD CONSTRAINT `([^`]+)` FOREIGN KEY \(([^)]+)\) REFERENCES `([^`]+)`\(([^)]+)\) ON DELETE (CASCADE|RESTRICT|SET NULL|NO ACTION) ON UPDATE (CASCADE|RESTRICT|SET NULL|NO ACTION);/g;
-  for (const match of baseline.matchAll(pattern)) {
+  const seen = new Set<string>();
+  const push = (fk: ExpectedForeignKey): void => {
+    if (seen.has(fk.name)) return;
+    seen.add(fk.name);
+    result.push(fk);
+  };
+
+  const alterPattern = /ALTER TABLE `([^`]+)` ADD CONSTRAINT `([^`]+)` FOREIGN KEY \(([^)]+)\) REFERENCES `([^`]+)`\s*\(([^)]+)\) ON DELETE (CASCADE|RESTRICT|SET NULL|NO ACTION) ON UPDATE (CASCADE|RESTRICT|SET NULL|NO ACTION);/g;
+  for (const match of canonicalMigrations.matchAll(alterPattern)) {
     const [, table, name, columns, referencedTable, referencedColumns, deleteRule, updateRule] = match;
     if (!table || !name || !columns || !referencedTable || !referencedColumns || !deleteRule || !updateRule) continue;
-    result.push({
+    push({
       table,
       name,
       columns: quotedNames(columns),
@@ -235,6 +245,28 @@ function parseExpectedForeignKeys(): ExpectedForeignKey[] {
       updateRule,
     });
   }
+
+  const createTable = /CREATE TABLE `([^`]+)` \(\n([\s\S]*?)\n\) DEFAULT CHARACTER SET/g;
+  const inlinePattern = /CONSTRAINT `([^`]+)`\s+FOREIGN KEY \(([^)]+)\) REFERENCES `([^`]+)`\s*\(([^)]+)\) ON DELETE (CASCADE|RESTRICT|SET NULL|NO ACTION) ON UPDATE (CASCADE|RESTRICT|SET NULL|NO ACTION)/g;
+  for (const tableMatch of canonicalMigrations.matchAll(createTable)) {
+    const table = tableMatch[1];
+    const body = tableMatch[2];
+    if (!table || body === undefined) continue;
+    for (const match of body.matchAll(inlinePattern)) {
+      const [, name, columns, referencedTable, referencedColumns, deleteRule, updateRule] = match;
+      if (!name || !columns || !referencedTable || !referencedColumns || !deleteRule || !updateRule) continue;
+      push({
+        table,
+        name,
+        columns: quotedNames(columns),
+        referencedTable,
+        referencedColumns: quotedNames(referencedColumns),
+        deleteRule,
+        updateRule,
+      });
+    }
+  }
+
   return result.sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -406,7 +438,7 @@ async function run(): Promise<void> {
     indexProblems.length ||
     checkProblems.length
   ) {
-    throw new Error('FTI physical database contract tidak identik dengan canonical baseline');
+    throw new Error('FTI physical database contract tidak identik dengan canonical migration set');
   }
 }
 
