@@ -10,7 +10,7 @@ on:
       - 'server/pnpm-workspace.yaml'
       - 'server/tsconfig*.json'
       - 'server/nest-cli.json'
-      - 'server/prisma/**'
+      - 'server/prisma/**/*.prisma'
       - 'server/prisma.config.ts'
       - '.github/workflows/server-ci.yml'
   pull_request:
@@ -22,7 +22,7 @@ on:
       - 'server/pnpm-workspace.yaml'
       - 'server/tsconfig*.json'
       - 'server/nest-cli.json'
-      - 'server/prisma/**'
+      - 'server/prisma/**/*.prisma'
       - 'server/prisma.config.ts'
       - '.github/workflows/server-ci.yml'
 
