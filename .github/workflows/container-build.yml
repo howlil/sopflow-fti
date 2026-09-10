@@ -72,6 +72,7 @@ jobs:
         run: |
           set -euo pipefail
           docker compose --env-file .env.example -f compose.yml config >/dev/null
+          docker compose --env-file .env.example -f compose.yml config --format json > /tmp/compose.json
 
           compose_vars="$({ grep -oE '\$\{[A-Z0-9_]+' compose.yml || true; } | sed 's/${//' | sort -u)"
           example_vars="$(grep -E '^[A-Z0-9_]+=' .env.example | cut -d= -f1 | sort -u)"
@@ -84,8 +85,12 @@ jobs:
           grep -F 'entrypoint: ["/usr/local/bin/sopflow-db-bootstrap.sh"]' compose.yml >/dev/null
           grep -F 'condition: service_completed_successfully' compose.yml >/dev/null
           grep -F 'http://127.0.0.1:8080/healthz' compose.yml >/dev/null
+          jq -e '.services.bootstrap.build != null and .services.backend.build != null and .services.frontend.build != null' /tmp/compose.json >/dev/null
           sh -n server/docker-bootstrap.sh
           sh -n client/docker-entrypoint.sh
+
+      - name: Reproduce MyPaaS pre-pull
+        run: docker compose --env-file .env.example -f compose.yml pull --ignore-buildable
 
       - name: Build production images
         run: docker compose --env-file .env.example -f compose.yml build backend frontend
