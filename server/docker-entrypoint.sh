@@ -3,8 +3,11 @@ set -eu
 
 database_host="${DATABASE_HOST:-localhost}"
 database_port="${DATABASE_PORT:-3306}"
-startup_timeout_seconds="${DATABASE_STARTUP_TIMEOUT_SECONDS:-300}"
-retry_seconds="${DATABASE_STARTUP_RETRY_SECONDS:-2}"
+# Compose already waits for MariaDB health before starting the backend. Keep a
+# short fallback window for direct container restarts instead of stalling a
+# failed deployment for up to five minutes.
+startup_timeout_seconds="${DATABASE_STARTUP_TIMEOUT_SECONDS:-60}"
+retry_seconds="${DATABASE_STARTUP_RETRY_SECONDS:-1}"
 
 case "$database_port" in
   ''|*[!0-9]*)
