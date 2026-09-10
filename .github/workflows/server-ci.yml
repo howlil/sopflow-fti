@@ -63,11 +63,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Validate Prisma schema
-        run: pnpm prisma validate
+      - name: Validate and generate Prisma
+        run: |
+          pnpm prisma validate
+          pnpm prisma generate
 
-      - name: Generate Prisma client
-        run: pnpm prisma generate
+      - name: Build production server
+        run: pnpm build
 
       - name: Typecheck
         run: pnpm typecheck
