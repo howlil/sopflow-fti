@@ -9,7 +9,10 @@ services:
       - --lower_case_table_names=1
     environment:
       MARIADB_RANDOM_ROOT_PASSWORD: "1"
-      MARIADB_DATABASE: sop_fti
+      # Physical database name is intentionally preserved. The persistent
+      # sop-arsip_db_data volume was initialized with this schema name; changing
+      # MARIADB_DATABASE later does not rename/create a database in that volume.
+      MARIADB_DATABASE: sop_biro_organisasi
       MARIADB_USER: sop_app
       MARIADB_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
       TZ: Asia/Jakarta
@@ -37,6 +40,7 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET}
       TTE_ENCRYPTION_SECRET: ${TTE_ENCRYPTION_SECRET:?set TTE_ENCRYPTION_SECRET}
       DATABASE_HOST: db
+      DATABASE_NAME: sop_biro_organisasi
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
     volumes:
       - sop_pdf_data:/app/storage/sop-pdf
@@ -80,8 +84,7 @@ services:
 volumes:
   db_data:
     # Keep the established database volume name while the Compose network is
-    # isolated by MyPaaS. This prevents a project-name cleanup from hiding the
-    # existing production data behind a newly named volume.
+    # isolated by MyPaaS. This preserves the existing production data.
     name: sop-arsip_db_data
   sop_pdf_data:
     name: sop-arsip_sop_pdf_data
