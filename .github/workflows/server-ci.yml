@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'server/src/**'
+      - 'server/scripts/**'
       - 'server/package.json'
       - 'server/pnpm-lock.yaml'
       - 'server/pnpm-workspace.yaml'
@@ -15,6 +16,7 @@ on:
   pull_request:
     paths:
       - 'server/src/**'
+      - 'server/scripts/**'
       - 'server/package.json'
       - 'server/pnpm-lock.yaml'
       - 'server/pnpm-workspace.yaml'
