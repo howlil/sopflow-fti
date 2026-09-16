@@ -22,7 +22,6 @@ import {
 import type { Request } from 'express';
 import { type ApiSuccessResponse, JwtAuthGuard } from '../../../common';
 import { ACCESS_TOKEN_COOKIE_NAME, type JwtAccessPayload } from '../auth/helpers/auth.shared';
-import { ProsesBisnisContextService } from '../proses-bisnis/konteks-proses-bisnis.service';
 import { CreatePeraturanDto } from './dto/create-peraturan.dto';
 import { PeraturanResponseDto } from './dto/peraturan-response.dto';
 import { UpdatePeraturanDto } from './dto/update-peraturan.dto';
@@ -33,24 +32,21 @@ import { PeraturanService } from './peraturan.service';
 @UseGuards(JwtAuthGuard)
 @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
 export class PeraturanController {
-  constructor(
-    private readonly peraturanService: PeraturanService,
-    private readonly prosesBisnisContextService: ProsesBisnisContextService,
-  ) {}
+  constructor(private readonly peraturanService: PeraturanService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Daftar katalog Peraturan global FTI' })
+  @ApiOperation({ summary: 'Daftar katalog peraturan global FTI' })
   @ApiResponse({ status: 200, type: [PeraturanResponseDto] })
   async list(): Promise<ApiSuccessResponse<PeraturanResponseDto[]>> {
     return {
-      message: 'Daftar Peraturan berhasil diambil',
+      message: 'Daftar peraturan berhasil diambil',
       success: true,
       data: await this.peraturanService.list(),
     };
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Detail Peraturan global FTI' })
+  @ApiOperation({ summary: 'Detail peraturan global FTI' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiResponse({ status: 200, type: PeraturanResponseDto })
   async getById(
@@ -65,13 +61,12 @@ export class PeraturanController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Tambah Peraturan ke katalog global FTI' })
+  @ApiOperation({ summary: 'Tambah peraturan ke katalog global FTI' })
   @ApiResponse({ status: 201, type: PeraturanResponseDto })
   async create(
     @Req() req: Request & { user: JwtAccessPayload },
     @Body() dto: CreatePeraturanDto,
   ): Promise<ApiSuccessResponse<PeraturanResponseDto>> {
-    await this.prosesBisnisContextService.assertCanManageGlobalCatalog(req.user.sub);
     return {
       message: 'Peraturan berhasil ditambahkan',
       success: true,
@@ -80,7 +75,7 @@ export class PeraturanController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Perbarui Peraturan global FTI' })
+  @ApiOperation({ summary: 'Perbarui peraturan global FTI' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiResponse({ status: 200, type: PeraturanResponseDto })
   async update(
@@ -88,7 +83,6 @@ export class PeraturanController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdatePeraturanDto,
   ): Promise<ApiSuccessResponse<PeraturanResponseDto>> {
-    await this.prosesBisnisContextService.assertCanManageGlobalCatalog(req.user.sub);
     return {
       message: 'Peraturan berhasil diperbarui',
       success: true,
@@ -98,13 +92,9 @@ export class PeraturanController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Hapus Peraturan global yang belum digunakan SOP' })
+  @ApiOperation({ summary: 'Hapus peraturan global yang belum digunakan SOP' })
   @ApiParam({ name: 'id', format: 'uuid' })
-  async remove(
-    @Req() req: Request & { user: JwtAccessPayload },
-    @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<ApiSuccessResponse<null>> {
-    await this.prosesBisnisContextService.assertCanManageGlobalCatalog(req.user.sub);
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<ApiSuccessResponse<null>> {
     await this.peraturanService.remove(id);
     return {
       message: 'Peraturan berhasil dihapus',

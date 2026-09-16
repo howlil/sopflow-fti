@@ -19,21 +19,9 @@ export class ProsesBisnisContextController {
     @Req() req: Request & { user: JwtAccessPayload },
   ): Promise<ApiSuccessResponse<unknown>> {
     return {
-      message: 'Konteks Proses Bisnis pengguna berhasil diambil',
+      message: 'Proses Bisnis pengguna berhasil diambil',
       success: true,
       data: await this.konteksProsesBisnisService.listForUser(req.user.sub),
-    };
-  }
-
-  @Get('authoring')
-  @ApiOperation({ summary: 'Daftar Proses Bisnis tempat pengguna menjadi Anggota/Penyusun SOP' })
-  async authoring(
-    @Req() req: Request & { user: JwtAccessPayload },
-  ): Promise<ApiSuccessResponse<unknown>> {
-    return {
-      message: 'Konteks penyusunan SOP berhasil diambil',
-      success: true,
-      data: await this.konteksProsesBisnisService.listAuthoringForUser(req.user.sub),
     };
   }
 }

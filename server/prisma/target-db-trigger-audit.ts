@@ -58,9 +58,6 @@ const expectedTriggerNames = new Set([
   'trg_process_final_approval_contract_update',
   'trg_dokumen_tte_process_contract_insert',
   'trg_dokumen_tte_process_contract_update',
-  'trg_sop_drafter_assignment_insert',
-  'trg_sop_drafter_assignment_update',
-  'trg_process_member_clear_sop_assignment',
 ]);
 
 const semanticRequirements: Record<string, string[]> = {

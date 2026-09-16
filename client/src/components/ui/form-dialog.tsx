@@ -18,7 +18,6 @@ export interface FormDialogProps {
   cancelLabel?: string
   onConfirm: () => void
   confirmDisabled?: boolean
-  confirmVariant?: 'default' | 'destructive'
   /** Dialog width variant. */
   size?: 'sm' | 'md' | 'lg' | 'xl'
   /** Class untuk wrapper konten (area form). */
@@ -37,6 +36,7 @@ const SIZE_MAP: Record<string, string> = {
 
 /**
  * Pre-wired form dialog: title + description + form content + Batal/Simpan footer.
+ * Covers the ~20 create/edit dialog instances across the codebase.
  */
 export function FormDialog({
   open,
@@ -47,7 +47,6 @@ export function FormDialog({
   cancelLabel = 'Batal',
   onConfirm,
   confirmDisabled,
-  confirmVariant = 'default',
   size = 'md',
   contentClassName,
   className,
@@ -58,16 +57,19 @@ export function FormDialog({
       <DialogContent className={cn(SIZE_MAP[size], 'max-h-[90vh] overflow-y-auto scrollbar-hide', className)}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          {description != null && <DialogDescription>{description}</DialogDescription>}
+          {description != null && (
+            <DialogDescription>{description}</DialogDescription>
+          )}
         </DialogHeader>
+
         <div className={cn('space-y-4', contentClassName)}>{children}</div>
+
         <DialogFooterActions
           cancelLabel={cancelLabel}
           confirmLabel={confirmLabel}
           onCancel={() => onOpenChange(false)}
           onConfirm={onConfirm}
           confirmDisabled={confirmDisabled}
-          destructive={confirmVariant === 'destructive'}
         />
       </DialogContent>
     </Dialog>

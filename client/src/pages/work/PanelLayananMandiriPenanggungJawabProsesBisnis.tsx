@@ -194,14 +194,6 @@ export function PanelLayananMandiriPenanggungJawabProsesBisnis() {
     }
   }
 
-  if (!isLoading && scopes.length === 0 && prosesBisnis.length === 0) {
-    return (
-      <p className="text-sm text-secondary-foreground">
-        Anda belum mempunyai kewenangan Penanggung Jawab Proses Bisnis.
-      </p>
-    )
-  }
-
   return (
     <DataSurface.Root>
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'processes' | 'members')}>

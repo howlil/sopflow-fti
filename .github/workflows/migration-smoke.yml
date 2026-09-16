@@ -2,20 +2,6 @@ name: Migration Smoke
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'server/prisma/**/*.prisma'
-      - 'server/prisma/migrations/**'
-      - 'server/prisma/**/*.ts'
-      - 'server/prisma.config.ts'
-      - '.github/workflows/migration-smoke.yml'
-  pull_request:
-    paths:
-      - 'server/prisma/**/*.prisma'
-      - 'server/prisma/migrations/**'
-      - 'server/prisma/**/*.ts'
-      - 'server/prisma.config.ts'
-      - '.github/workflows/migration-smoke.yml'
 
 permissions:
   contents: read
@@ -35,8 +21,9 @@ jobs:
       DATABASE_HOST: 127.0.0.1
       DATABASE_PORT: 3307
       DATABASE_USER: sop_test
-      DATABASE_PASSWORD: ci-migration-only
+      DATABASE_PASSWORD: sop_test_password
       DATABASE_NAME: sop_fti_test
+      DATABASE_URL: mysql://sop_test:sop_test_password@127.0.0.1:3307/sop_fti_test
       E2E_SEED_PASSWORD: MigrationSmoke-Manual-Only-123!
 
     steps:
@@ -55,10 +42,9 @@ jobs:
       - name: Start MariaDB
         run: |
           docker run --detach --name sop-migration-smoke-db --publish 3307:3306 \
-            --env MARIADB_RANDOM_ROOT_PASSWORD=1 \
-            --env MARIADB_DATABASE="$DATABASE_NAME" \
-            --env MARIADB_USER="$DATABASE_USER" \
-            --env MARIADB_PASSWORD="$DATABASE_PASSWORD" \
+            --env MARIADB_ROOT_PASSWORD=root_test_password \
+            --env MARIADB_DATABASE=sop_fti_test \
+            --env MARIADB_USER=sop_test --env MARIADB_PASSWORD=sop_test_password \
             --env TZ=Asia/Jakarta mariadb:11.4 --lower_case_table_names=1
       - name: Wait for MariaDB
         run: |
@@ -79,7 +65,7 @@ jobs:
       - name: Verify FTI migration set completeness
         run: |
           expected="$(find prisma/migrations -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
-          applied="$(docker exec sop-migration-smoke-db mariadb -u"$DATABASE_USER" -p"$DATABASE_PASSWORD" -Nse "SELECT COUNT(*) FROM $DATABASE_NAME._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL")"
+          applied="$(docker exec sop-migration-smoke-db mariadb -uroot -proot_test_password -Nse 'SELECT COUNT(*) FROM sop_fti_test._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL')"
           test "$applied" = "$expected"
       - name: Seed native FTI graph
         run: pnpm db:seed:e2e

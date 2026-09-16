@@ -19,7 +19,7 @@ const baseInput: ProsesBisnisSopLifecycleProjectionInput = {
 };
 
 describe('projectProsesBisnisSopLifecycle', () => {
-  it('projects authoring as an actionable Penyusun stage', () => {
+  it('projects authoring as an actionable current-user stage', () => {
     expect(projectProsesBisnisSopLifecycle(baseInput)).toEqual({
       stage: 'AUTHORING',
       stateLabel: 'Draf',
@@ -111,7 +111,7 @@ describe('projectProsesBisnisSopLifecycle', () => {
     });
   });
 
-  it('projects a department Proses Bisnis to its contextual Kepala Departemen', () => {
+  it('projects a department Proses Bisnis to its contextual Head of Departemen', () => {
     expect(
       projectProsesBisnisSopLifecycle({
         ...baseInput,

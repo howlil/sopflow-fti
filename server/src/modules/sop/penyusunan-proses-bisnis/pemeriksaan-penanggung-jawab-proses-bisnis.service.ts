@@ -22,7 +22,6 @@ import {
   type NotifikasiProsesBisnisCreateInput,
 } from '../../notifications/proses-bisnis/notifikasi-proses-bisnis.service';
 import type { PenyusunWorkbenchDataDto } from '../catalog/dto/penyusun-workbench-data.dto';
-import { mapWorkbenchPayload } from '../catalog/sop-catalog.mapper';
 import { pastikanWorkbenchSopLengkapUntukPemeriksaanProsesBisnis } from '../catalog/sop-completeness.validator';
 import { SopCatalogRepository } from '../catalog/sop-catalog.repository';
 import { KeputusanPemeriksaanProsesBisnis } from './dto/pemeriksaan-proses-bisnis-decision.dto';
@@ -265,16 +264,6 @@ export class ProsesBisnisOwnerReviewService {
     });
   }
 
-  async getReviewDocument(
-    user: JwtAccessPayload,
-    detailOrSopId: string,
-    logsLimit?: number,
-  ): Promise<PenyusunWorkbenchDataDto> {
-    const context = await this.resolveTargetContext(detailOrSopId);
-    await this.konteksProsesBisnisService.assertCanReview(user.sub, context.prosesBisnisId);
-    return this.readOnlyWorkbench(context.detailSopId, logsLimit);
-  }
-
   async review(
     user: JwtAccessPayload,
     detailOrSopId: string,
@@ -312,7 +301,7 @@ export class ProsesBisnisOwnerReviewService {
         throw new NotFoundException('DetailSOP tidak ditemukan');
       }
       if (detail.dibuatOlehId === null) {
-        throw new ConflictException('Penyusun SOP tidak tersedia untuk menerima catatan revisi');
+        throw new ConflictException('Author SOP Proses Bisnis tidak tersedia untuk feedback revisi');
       }
       notification = {
         detailSopId: context.detailSopId,

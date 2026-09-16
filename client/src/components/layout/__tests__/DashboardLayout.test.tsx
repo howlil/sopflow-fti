@@ -3,7 +3,6 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let mockProsesBisnises: Array<{ prosesBisnisId: string }> = [];
-let mockAuthoringProcesses: Array<{ prosesBisnisId: string }> = [];
 let mockAuthorities: Array<{ kunciPejabatBerwenang: string }> = [];
 let mockOwnerContext = { scopes: [] as unknown[], prosesBisnis: [] as unknown[] };
 let mockPath = "/me";
@@ -16,10 +15,7 @@ vi.mock("@tanstack/react-router", () => ({
   useLocation: () => ({ pathname: mockPath }),
 }));
 
-vi.mock("@/api/konteks-proses-bisnis", () => ({
-  useMyProsesBisnises: () => ({ data: mockProsesBisnises }),
-  useMyAuthoringProsesBisnises: () => ({ data: mockAuthoringProcesses }),
-}));
+vi.mock("@/api/konteks-proses-bisnis", () => ({ useMyProsesBisnises: () => ({ data: mockProsesBisnises }) }));
 vi.mock("@/api/pejabat-berwenang", () => ({
   useMyOrganizationalAuthorities: () => ({ data: mockAuthorities }),
 }));
@@ -65,7 +61,6 @@ describe("DashboardLayout desktop sidebar", () => {
     window.localStorage.clear();
     useUIStore.setState({ sidebarOpen: true });
     mockProsesBisnises = [];
-    mockAuthoringProcesses = [];
     mockAuthorities = [];
     mockOwnerContext = { scopes: [], prosesBisnis: [] };
     mockPath = "/me";
@@ -86,28 +81,13 @@ describe("DashboardLayout desktop sidebar", () => {
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe("false");
   });
 
-  it("memisahkan konteks pekerjaan umum dari hak authoring Penyusun", () => {
+  it("menampilkan pekerjaan SOP hanya dari hubungan Proses Bisnis", () => {
     mockProsesBisnises = [{ prosesBisnisId: "process-1" }];
     render(<DashboardLayout />);
     expect(screen.getAllByRole("link", { name: "SOP" })).not.toHaveLength(0);
   });
 
-  it("menampilkan daftar SOP hanya untuk Anggota/Penyusun", () => {
-    mockProsesBisnises = [{ prosesBisnisId: "process-1" }];
-    mockAuthoringProcesses = [{ prosesBisnisId: "process-1" }];
-    render(<DashboardLayout />);
-    expect(screen.getAllByRole("link", { name: "Daftar SOP" })).not.toHaveLength(0);
-    expect(screen.getAllByRole("link", { name: "Peraturan" })).not.toHaveLength(0);
-    expect(screen.getAllByRole("link", { name: "Pelaksana" })).not.toHaveLength(0);
-  });
-
-  it("menampilkan pengelolaan Proses Bisnis hanya untuk Penanggung Jawab", () => {
-    mockOwnerProcesses = [{ prosesBisnisId: "process-1" }];
-    render(<DashboardLayout />);
-    expect(screen.getAllByRole("link", { name: "Kelola Proses Bisnis" })).not.toHaveLength(0);
-  });
-
-  it("menampilkan pengesahan hanya dari kewenangan Pejabat Berwenang", () => {
+  it("menampilkan persetujuan hanya dari kewenangan organisasi", () => {
     mockAuthorities = [{ kunciPejabatBerwenang: "DEAN" }];
     render(<DashboardLayout />);
     expect(screen.getAllByRole("link", { name: "Siklus SOP" })).not.toHaveLength(0);

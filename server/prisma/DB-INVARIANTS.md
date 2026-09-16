@@ -16,7 +16,6 @@
 - The Process owner must have an active owner-eligibility record matching the Process scope and department.
 - ProsesBisnis membership is unique by `(processId, penggunaId)`.
 - Database triggers reject inconsistent `scope` / `departmentId` combinations on insert and update.
-- Authoring authority is derived from `ProcessMember`, not from Process ownership.
 
 ## SOP
 
@@ -30,22 +29,12 @@
 - A branch target in `LangkahSOP` must belong to the same `DetailSOP`.
 - A `LangkahSOP` pelaksana must already be selected as a swimlane for the same `DetailSOP`.
 
-## Penugasan Penyusun SOP
-
-- `SopDrafterAssignment` stores one optional primary Penyusun assignment per SOP.
-- Assignment is coordination metadata, not authoring ACL. Every active `ProcessMember` remains an authorized Penyusun according to application authorization.
-- `SopDrafterAssignment.processId` must equal the Process that owns the assigned SOP.
-- `penyusunId` must be a `ProcessMember` of that same Process.
-- `assignedById` must be the Process owner/Penanggung Jawab.
-- Removing a `ProcessMember` clears that user's SOP assignments before the membership row is deleted; SOP content and history remain intact.
-- Insert/update/member-removal triggers enforce these relationships against direct database writes.
-
 ## Process review
 
 - `REVISION` review evidence must transition `PROCESS_REVIEW -> REVISION_REQUIRED` and include a non-empty note.
 - `ACCEPT` review evidence must transition `PROCESS_REVIEW -> TTE_PENDING`; `FINAL_APPROVAL` is retained only as a legacy status for historical rows.
 - Review evidence must refer to the same `DetailSOP`, SOP, and Process ownership chain.
-- `reviewedById` must be the owner/Penanggung Jawab of that Process.
+- `reviewedById` must be the owner of that Process.
 - These rules are enforced by database triggers on insert and update, not only by service validation.
 
 ## Organizational authority and direct TTE
@@ -71,8 +60,6 @@
 
 - Peraturan identity is unique by `(nomor, tahun)`.
 - Pelaksana name is globally unique.
-- Peraturan and Pelaksana are global catalogs; they do not carry Process/Department/user ownership.
-- Application mutation authorization requires an active Penanggung Jawab or Anggota Proses Bisnis context.
 
 ## Enforcement boundary
 

@@ -26,7 +26,6 @@ export function DashboardLayout() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const user = useAuthStore((state) => state.user);
   const { data: prosesBisnisSaya = [] } = useMyProsesBisnises();
-  const { data: authoringProsesBisnis = [] } = useMyAuthoringProsesBisnises();
   const { data: myAuthorities = [] } = useMyOrganizationalAuthorities();
   const ownerContext = useProsesBisnisOwnerSelfService();
   const isDesktopNavOpen = useUIStore((state) => state.sidebarOpen);
@@ -35,10 +34,7 @@ export function DashboardLayout() {
     ...(user?.platformRole === "SUPER_ADMIN"
       ? [{ to: ROUTES.ADMIN.ACCOUNTS, label: "Akun FTI", icon: Users }]
       : []),
-    ...(canManageProcesses
-      ? [{ to: ROUTES.WORK_PROCESSES, label: "Kelola Proses Bisnis", icon: Workflow }]
-      : []),
-    ...(hasProsesBisnisResponsibility
+    ...(prosesBisnisSaya.length > 0
       ? [
           { to: ROUTES.SOP, label: "SOP", icon: List },
           { to: ROUTES.PERATURAN, label: "Peraturan", icon: BookOpen },
@@ -100,11 +96,21 @@ export function DashboardLayout() {
 
       {isMobileNavOpen ? (
         <div className="fixed inset-0 z-overlay lg:hidden" data-print-hide>
-          <button type="button" className="absolute inset-0 bg-gray-950/40" aria-label="Tutup navigasi" onClick={() => setIsMobileNavOpen(false)} />
-          <div id="mobile-main-navigation" className="relative flex h-full w-[248px] flex-col border-r border-border bg-surface shadow-overlay">
+          <button
+            type="button"
+            className="absolute inset-0 bg-gray-950/40"
+            aria-label="Tutup navigasi"
+            onClick={() => setIsMobileNavOpen(false)}
+          />
+          <div
+            id="mobile-main-navigation"
+            className="relative flex h-full w-[248px] flex-col border-r border-border bg-surface shadow-overlay"
+          >
             <div className="flex h-[var(--header-height)] shrink-0 items-center gap-2.5 border-b border-border px-3">
               <img src={logoSvg} alt="" aria-hidden className="h-8 w-8 shrink-0" />
-              <span className="min-w-0 flex-1 text-ui-body font-semibold text-foreground">{APP_DISPLAY_NAME}</span>
+              <span className="min-w-0 flex-1 text-ui-body font-semibold text-foreground">
+                {APP_DISPLAY_NAME}
+              </span>
               <button
                 type="button"
                 className="inline-flex h-10 w-10 items-center justify-center rounded-control text-secondary-foreground hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -146,7 +152,7 @@ export function DashboardLayout() {
         onOpenChange={handleDesktopSidebarOpenChange}
       />
 
-      <div suppressHydrationWarning className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div suppressHydrationWarning className="flex-1 flex flex-col min-w-0 min-h-0">
         <PageHeaderProvider>
           <HeaderBar
             isMobileNavOpen={isMobileNavOpen}

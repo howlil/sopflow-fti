@@ -43,11 +43,6 @@ const httpServer = createServer(async (req, res) => {
   }
 })
 
-httpServer.on('error', (error) => {
-  console.error('SSR server failed:', error)
-  process.exit(1)
-})
-
 httpServer.listen(port, host, () => {
   console.log(`SSR server listening on http://${host}:${port}`)
 })

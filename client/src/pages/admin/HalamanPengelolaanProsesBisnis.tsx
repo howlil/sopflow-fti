@@ -51,7 +51,7 @@ export function HalamanPengelolaanProsesBisnis() {
   const [targetProsesBisnisId, setTargetProsesBisnisId] = useState('')
 
   const eligibleUsers = useMemo(
-    () => users.filter((user) => user.platformRole === 'USER' && !user.deletedAt),
+    () => users.filter((user) => user.platformRole === 'USER'),
     [users],
   )
   const authoritiesByScope = useMemo(() => {

@@ -37,13 +37,6 @@ export const pemeriksaanProsesBisnisApi = {
       ),
     ),
 
-  document: (detailOrSopId: string) =>
-    unwrapApiData(
-      apiClient.get<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/prosesBisnis-sop/${detailOrSopId}/review-document`,
-      ),
-    ),
-
   decide: (
     detailOrSopId: string,
     decision: KeputusanPemeriksaanProsesBisnis,

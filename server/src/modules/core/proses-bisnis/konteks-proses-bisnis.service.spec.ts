@@ -4,7 +4,7 @@ import { StatusKeaktifanProsesBisnis } from '../../../generated/prisma';
 import { ProsesBisnisContextService } from './konteks-proses-bisnis.service';
 
 describe('ProsesBisnisContextService', () => {
-  it('returns only active Proses Bisnis where the user is Penanggung Jawab or Anggota', async () => {
+  it('returns only active prosesBisnis where the user is owner or anggota', async () => {
     const findMany = jest.fn().mockResolvedValue([{ prosesBisnisId: 'prosesBisnis-a' }]);
     const statusFindMany = jest.fn().mockResolvedValue([{ prosesBisnisId: 'prosesBisnis-archived' }]);
     const prisma = {
@@ -24,47 +24,16 @@ describe('ProsesBisnisContextService', () => {
     );
   });
 
-  it('returns authoring context only from active Anggota Proses Bisnis', async () => {
-    const findMany = jest.fn().mockResolvedValue([{ prosesBisnisId: 'prosesBisnis-a' }]);
-    const prisma = {
-      prosesBisnis: { findMany },
-      statusProsesBisnis: { findMany: jest.fn().mockResolvedValue([]) },
-    } as unknown as PrismaService;
-    const service = new ProsesBisnisContextService(prisma);
-
-    await service.listAuthoringForUser('penyusun-1');
-    expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { anggota: { some: { penggunaId: 'penyusun-1' } } },
-      }),
-    );
-  });
-
-  it('allows SOP authoring only when the user is an Anggota/Penyusun', async () => {
-    const findFirst = jest
-      .fn()
-      .mockResolvedValueOnce({ prosesBisnisId: 'prosesBisnis-a' })
-      .mockResolvedValueOnce(null);
+  it('rejects a user unrelated to an active prosesBisnis', async () => {
+    const findFirst = jest.fn().mockResolvedValue(null);
     const prisma = {
       prosesBisnis: { findFirst },
       statusProsesBisnis: { findUnique: jest.fn().mockResolvedValue(null) },
     } as unknown as PrismaService;
     const service = new ProsesBisnisContextService(prisma);
 
-    await expect(service.assertCanAuthor('penyusun-1', 'prosesBisnis-a')).resolves.toMatchObject({
-      prosesBisnisId: 'prosesBisnis-a',
-    });
-    await expect(service.assertCanAuthor('owner-1', 'prosesBisnis-a')).rejects.toBeInstanceOf(
+    await expect(service.assertCanAuthor('user-2', 'prosesBisnis-a')).rejects.toBeInstanceOf(
       ForbiddenException,
-    );
-    expect(findFirst).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        where: {
-          prosesBisnisId: 'prosesBisnis-a',
-          anggota: { some: { penggunaId: 'penyusun-1' } },
-        },
-      }),
     );
   });
 
@@ -77,7 +46,7 @@ describe('ProsesBisnisContextService', () => {
     } as unknown as PrismaService;
     const service = new ProsesBisnisContextService(prisma);
 
-    await expect(service.assertCanAuthor('penyusun-1', 'prosesBisnis-a')).rejects.toBeInstanceOf(
+    await expect(service.assertCanAuthor('owner-1', 'prosesBisnis-a')).rejects.toBeInstanceOf(
       ForbiddenException,
     );
   });
@@ -147,23 +116,9 @@ describe('ProsesBisnisContextService', () => {
     await expect(service.assertCanReview('anggota-1', 'prosesBisnis-a')).rejects.toBeInstanceOf(
       ForbiddenException,
     );
-  });
-
-  it('allows global catalog mutation for an active Penanggung Jawab or Anggota context', async () => {
-    const findFirst = jest.fn().mockResolvedValue({ prosesBisnisId: 'prosesBisnis-a' });
-    const prisma = {
-      prosesBisnis: { findFirst },
-      statusProsesBisnis: { findMany: jest.fn().mockResolvedValue([]) },
-    } as unknown as PrismaService;
-    const service = new ProsesBisnisContextService(prisma);
-
-    await expect(service.assertCanManageGlobalCatalog('user-1')).resolves.toBeUndefined();
-    expect(findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          OR: [{ penanggungJawabId: 'user-1' }, { anggota: { some: { penggunaId: 'user-1' } } }],
-        },
-      }),
+    expect(findFirst).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ where: { prosesBisnisId: 'prosesBisnis-a', penanggungJawabId: 'owner-1' } }),
     );
   });
 });

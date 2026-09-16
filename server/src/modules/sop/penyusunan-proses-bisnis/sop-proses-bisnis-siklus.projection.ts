@@ -9,7 +9,6 @@ export type ProsesBisnisSopLifecycleStage =
 
 export type ProsesBisnisSopLifecycleResponsibilityType =
   | 'CURRENT_USER'
-  | 'DRAFTER'
   | 'PROCESS_OWNER'
   | 'DEAN'
   | 'HEAD_OF_DEPARTMENT'
@@ -82,24 +81,12 @@ export function projectProsesBisnisSopLifecycle(
   input: ProsesBisnisSopLifecycleProjectionInput,
 ): ProsesBisnisSopLifecycleProjection {
   const { prosesBisnis, authority } = input;
-  const currentUserIsProcessOwner = input.currentUserId === prosesBisnis.penanggungJawabId;
   const authorityType: ProsesBisnisSopLifecycleResponsibilityType =
     prosesBisnis.lingkup === LingkupOrganisasi.FACULTY ? 'DEAN' : 'HEAD_OF_DEPARTMENT';
   const resolvedAuthorityLabel = authorityLabel(prosesBisnis.lingkup, prosesBisnis.namaDepartemen);
 
   if (input.status === StatusSOP.DRAFT || input.status === StatusSOP.REVISION_REQUIRED) {
     const isRevision = input.status === StatusSOP.REVISION_REQUIRED;
-    if (currentUserIsProcessOwner) {
-      return {
-        stage: 'AUTHORING',
-        stateLabel: isRevision ? 'Perlu revisi oleh Penyusun' : 'Dalam penyusunan',
-        responsibility: { type: 'DRAFTER', name: 'Penyusun SOP' },
-        action: null,
-        blockingReason: isRevision
-          ? 'Menunggu Penyusun SOP menyelesaikan revisi.'
-          : 'Menunggu Penyusun SOP menyelesaikan dokumen.',
-      };
-    }
     return {
       stage: 'AUTHORING',
       stateLabel: isRevision ? 'Memerlukan Perbaikan' : 'Draf',

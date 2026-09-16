@@ -9,10 +9,8 @@ import { DataSurface } from '@/components/data/data-surface'
 import { FormDialog } from '@/components/ui/form-dialog'
 import { FormField } from '@/components/ui/form-field'
 import { ListPageLayout } from '@/components/layout/ListPageLayout'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { FormDialog } from '@/components/ui/form-dialog'
 import { Input } from '@/components/ui/input'
 import { LoadingState } from '@/components/ui/loading-state'
 import { QueryState } from '@/components/ui/query-state'
@@ -124,9 +122,8 @@ export function AccountManagementPage() {
 
   return (
     <ListPageLayout
-      breadcrumb={[{ label: 'Administrasi Sistem' }, { label: 'Pengguna' }]}
-      title="Pengguna"
-      description="Kelola identitas pengguna FTI. Hak workflow diberikan terpisah melalui penugasan Proses Bisnis atau Pejabat Berwenang."
+      breadcrumb={[{ label: 'Administrasi' }, { label: 'Akun FTI' }]}
+      title="Akun FTI"
     >
       <DataSurface.Root>
         <DataSurface.Header>
@@ -275,7 +272,7 @@ export function AccountManagementPage() {
         confirmLabel="Nonaktifkan"
         destructive
         onConfirm={() => {
-          if (!deactivatingAccount) return
+          if (deactivatingAccount === null) return
           void updateAccount({
             penggunaId: deactivatingAccount.penggunaId,
             payload: { status: 'NONAKTIF' },

@@ -7,8 +7,6 @@ import { PersetujuanAkhirSOPController } from './persetujuan-akhir-sop.controlle
 import { PersetujuanAkhirSOPService } from './persetujuan-akhir-sop.service';
 import { ProsesBisnisOwnerReviewController } from './pemeriksaan-penanggung-jawab-proses-bisnis.controller';
 import { ProsesBisnisOwnerReviewService } from './pemeriksaan-penanggung-jawab-proses-bisnis.service';
-import { PenugasanPenyusunSopController } from './penugasan-penyusun-sop.controller';
-import { PenugasanPenyusunSopService } from './penugasan-penyusun-sop.service';
 import { ProsesBisnisSopAuthoringController } from './sop-proses-bisnis-authoring.controller';
 import { ProsesBisnisSopAuthoringService } from './sop-proses-bisnis-authoring.service';
 import { ProsesBisnisSopRevocationController } from './pencabutan-sop-proses-bisnis.controller';
@@ -20,7 +18,6 @@ import { ProsesBisnisVersionService } from './versi-sop-proses-bisnis.service';
   controllers: [
     ProsesBisnisSopAuthoringController,
     ProsesBisnisOwnerReviewController,
-    PenugasanPenyusunSopController,
     PersetujuanAkhirSOPController,
     ProsesBisnisSopRevocationController,
   ],
@@ -28,7 +25,6 @@ import { ProsesBisnisVersionService } from './versi-sop-proses-bisnis.service';
     ProsesBisnisSopAuthoringService,
     ProsesBisnisVersionService,
     ProsesBisnisOwnerReviewService,
-    PenugasanPenyusunSopService,
     PersetujuanAkhirSOPService,
     ProsesBisnisSopRevocationService,
   ],
@@ -36,7 +32,6 @@ import { ProsesBisnisVersionService } from './versi-sop-proses-bisnis.service';
     ProsesBisnisSopAuthoringService,
     ProsesBisnisVersionService,
     ProsesBisnisOwnerReviewService,
-    PenugasanPenyusunSopService,
     PersetujuanAkhirSOPService,
     ProsesBisnisSopRevocationService,
   ],

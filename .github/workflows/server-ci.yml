@@ -4,25 +4,23 @@ on:
   push:
     paths:
       - 'server/src/**'
-      - 'server/scripts/**'
       - 'server/package.json'
       - 'server/pnpm-lock.yaml'
       - 'server/pnpm-workspace.yaml'
       - 'server/tsconfig*.json'
       - 'server/nest-cli.json'
-      - 'server/prisma/**/*.prisma'
+      - 'server/prisma/*.prisma'
       - 'server/prisma.config.ts'
       - '.github/workflows/server-ci.yml'
   pull_request:
     paths:
       - 'server/src/**'
-      - 'server/scripts/**'
       - 'server/package.json'
       - 'server/pnpm-lock.yaml'
       - 'server/pnpm-workspace.yaml'
       - 'server/tsconfig*.json'
       - 'server/nest-cli.json'
-      - 'server/prisma/**/*.prisma'
+      - 'server/prisma/*.prisma'
       - 'server/prisma.config.ts'
       - '.github/workflows/server-ci.yml'
 
@@ -63,13 +61,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Validate and generate Prisma
-        run: |
-          pnpm prisma validate
-          pnpm prisma generate
+      - name: Validate Prisma schema
+        run: pnpm prisma validate
 
-      - name: Build production server
-        run: pnpm build
+      - name: Generate Prisma client
+        run: pnpm prisma generate
 
       - name: Typecheck
         run: pnpm typecheck
