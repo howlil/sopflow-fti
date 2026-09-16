@@ -23,7 +23,7 @@ type ProsesBisnisTteContextFailure = {
     | 'NOT_FOUND'
     | 'NOT_LATEST'
     | 'NOT_APPROVED'
-    | 'APPROVAL_CONTEXT_DRIFT'
+    | 'AUTHORITY_CONTEXT_DRIFT'
     | 'BAD_STATUS';
   readonly status?: StatusSOP;
 };
@@ -333,7 +333,7 @@ export class ProsesBisnisTteRepository {
         : detail.sop.prosesBisnis.departemenId === null
           ? null
           : `HEAD_OF_DEPARTMENT:${detail.sop.prosesBisnis.departemenId}`;
-    if (kunciPejabatBerwenang === null) return { error: 'APPROVAL_CONTEXT_DRIFT' as const };
+    if (kunciPejabatBerwenang === null) return { error: 'AUTHORITY_CONTEXT_DRIFT' as const };
     const assignment = await tx.penugasanPejabatBerwenang.findUnique({
       where: { kunciPejabatBerwenang },
       select: { authority: true, departemenId: true, holderId: true },
@@ -342,7 +342,7 @@ export class ProsesBisnisTteRepository {
       assignment === null ||
       assignment.authority !== authority ||
       assignment.departemenId !== detail.sop.prosesBisnis.departemenId
-    ) return { error: 'APPROVAL_CONTEXT_DRIFT' as const };
+    ) return { error: 'AUTHORITY_CONTEXT_DRIFT' as const };
 
     return {
       ok: true as const,
