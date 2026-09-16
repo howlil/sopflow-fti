@@ -28,12 +28,5 @@ import { ProsesBisnisVersionService } from './versi-sop-proses-bisnis.service';
     PersetujuanAkhirSOPService,
     ProsesBisnisSopRevocationService,
   ],
-  exports: [
-    ProsesBisnisSopAuthoringService,
-    ProsesBisnisVersionService,
-    ProsesBisnisOwnerReviewService,
-    PersetujuanAkhirSOPService,
-    ProsesBisnisSopRevocationService,
-  ],
 })
 export class ProsesBisnisSopAuthoringModule {}
