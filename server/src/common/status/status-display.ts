@@ -9,7 +9,6 @@ const SOP_STATUS_LABELS: Record<StatusSOP, string> = {
   [StatusSOP.DRAFT]: 'Draf',
   [StatusSOP.PROCESS_REVIEW]: 'Dalam Pemeriksaan Proses Bisnis',
   [StatusSOP.REVISION_REQUIRED]: 'Memerlukan Perbaikan',
-  [StatusSOP.FINAL_APPROVAL]: 'Menunggu Tanda Tangan Elektronik',
   [StatusSOP.TTE_PENDING]: 'Menunggu Tanda Tangan Elektronik',
   [StatusSOP.EFFECTIVE]: 'Berlaku',
   [StatusSOP.SUPERSEDED]: 'Digantikan',
