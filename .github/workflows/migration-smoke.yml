@@ -2,6 +2,14 @@ name: Migration Smoke
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'server/prisma/**'
+      - 'server/package.json'
+      - 'server/pnpm-lock.yaml'
+      - '.github/workflows/migration-smoke.yml'
 
 permissions:
   contents: read
@@ -24,7 +32,7 @@ jobs:
       DATABASE_PASSWORD: sop_test_password
       DATABASE_NAME: sop_fti_test
       DATABASE_URL: mysql://sop_test:sop_test_password@127.0.0.1:3307/sop_fti_test
-      E2E_SEED_PASSWORD: MigrationSmoke-Manual-Only-123!
+      E2E_SEED_PASSWORD: MigrationSmoke-CI-123!
 
     steps:
       - uses: actions/checkout@v4
