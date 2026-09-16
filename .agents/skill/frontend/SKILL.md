@@ -241,8 +241,8 @@ Do not rebuild target UI around one legacy global `peran` check.
 
 Examples:
 
-- ProsesBisnis Owner/Member work comes from `useMyProsesBisnises()`;
-- approval/TTE entry comes from pejabat berwenang hooks;
+- Penanggung Jawab Proses Bisnis/anggota tim work comes from `useMyProsesBisnises()`;
+- pengesahan dan Tanda Tangan Elektronik entry comes from pejabat penandatangan hooks;
 - platform administration comes from `platformRole`;
 - legacy role routing is compatibility fallback only where still required.
 
@@ -304,14 +304,14 @@ Use responsive utilities following nearby screens rather than inventing a new br
 For target FTI surfaces use product language from `PROJECT.md`:
 
 ```text
-ProsesBisnis
-ProsesBisnis Owner
-Member
+Proses Bisnis
+Penanggung Jawab Proses Bisnis
+Anggota Tim Penyusun SOP
 Dekan
-Kepala Departemen
-Persetujuan
-TTE
-Pekerjaan SOP
+Kepala Departemen (sesuai SOTK/statuta FTI)
+Pemeriksaan SOP
+Tanda Tangan Elektronik
+Penyusunan SOP
 ```
 
 Do not expose migration/internal terminology such as `legacy`, `target`, `authoring`, internal enum names, or retired workflow-role semantics unless the surface is explicitly a compatibility/admin/debug surface where that distinction is necessary.

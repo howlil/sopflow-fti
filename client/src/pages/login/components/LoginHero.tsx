@@ -1,7 +1,7 @@
-import { Asterisk, ClipboardCheck, FileCheck2, FileText, Stamp } from 'lucide-react'
+import { Asterisk, ClipboardCheck, FileText, Stamp } from 'lucide-react'
 
-const workflowSteps = ['Penyusunan', 'Review Proses', 'Persetujuan', 'TTE']
-const workflowIcons = [FileText, ClipboardCheck, FileCheck2, Stamp]
+const workflowSteps = ['Penyusunan', 'Pemeriksaan Proses Bisnis', 'Tanda Tangan Elektronik']
+const workflowIcons = [FileText, ClipboardCheck, Stamp]
 
 export function LoginHero() {
   return (

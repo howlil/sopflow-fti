@@ -1,18 +1,16 @@
 import {
   Body,
   Controller,
-  DefaultValuePipe,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
-  ParseIntPipe,
   ParseUUIDPipe,
   Post,
-  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiCookieAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { type ApiSuccessResponse, JwtAuthGuard } from '../../../common';
 import {
@@ -21,9 +19,10 @@ import {
 } from '../../core/auth/helpers/auth.shared';
 import { PelaksanaSnapshotService } from '../pelaksana/pelaksana-snapshot.service';
 import { KeputusanPemeriksaanProsesBisnis, KeputusanPemeriksaanProsesBisnisDto } from './dto/pemeriksaan-proses-bisnis-decision.dto';
+import { SubmitPaketPemeriksaanProsesBisnisDto } from './dto/submit-paket-pemeriksaan-proses-bisnis.dto';
 import { ProsesBisnisOwnerReviewService } from './pemeriksaan-penanggung-jawab-proses-bisnis.service';
 
-@ApiTags('Penanggung Jawab Proses Bisnis Review')
+@ApiTags('Pemeriksaan SOP Proses Bisnis')
 @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
 @Controller('prosesBisnis-sop')
 @UseGuards(JwtAuthGuard)
@@ -33,22 +32,42 @@ export class ProsesBisnisOwnerReviewController {
     private readonly pelaksanaSnapshotService: PelaksanaSnapshotService,
   ) {}
 
+  @Post('submit-review-batch')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Kirim beberapa SOP dalam satu Paket Pemeriksaan Proses Bisnis' })
+  async submitBatchForReview(
+    @Req() req: Request & { user: JwtAccessPayload },
+    @Body() dto: SubmitPaketPemeriksaanProsesBisnisDto,
+  ): Promise<ApiSuccessResponse<unknown>> {
+    return {
+      message: 'Paket Pemeriksaan Proses Bisnis berhasil diajukan',
+      success: true,
+      data: await this.service.submitBatchForReview(req.user, dto.detailSopIds),
+    };
+  }
+
+  @Get('review-batches')
+  @ApiOperation({ summary: 'Daftar Paket Pemeriksaan Proses Bisnis untuk Penanggung Jawab saat ini' })
+  async reviewBatches(
+    @Req() req: Request & { user: JwtAccessPayload },
+  ): Promise<ApiSuccessResponse<unknown>> {
+    return {
+      message: 'Paket Pemeriksaan Proses Bisnis berhasil dimuat',
+      success: true,
+      data: await this.service.listForCurrentReviewer(req.user),
+    };
+  }
+
   @Post(':detailOrSopId/submit-review')
   @HttpCode(HttpStatus.OK)
-  @ApiQuery({
-    name: 'logsLimit',
-    required: false,
-    schema: { default: 100, minimum: 1, maximum: 500 },
-  })
-  @ApiOperation({ summary: 'Submit Proses Bisnis-bound SOP untuk review Penanggung Jawab Proses Bisnis' })
+  @ApiOperation({ summary: 'Kirim SOP terikat Proses Bisnis untuk pemeriksaan Penanggung Jawab Proses Bisnis' })
   async submitForReview(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,
-    @Query('logsLimit', new DefaultValuePipe(100), ParseIntPipe) logsLimit: number,
   ): Promise<ApiSuccessResponse<unknown>> {
-    const workbench = await this.service.submitForReview(req.user, detailOrSopId, logsLimit);
+    const workbench = await this.service.submitForReview(req.user, detailOrSopId);
     return {
-      message: 'SOP berhasil dikirim ke Penanggung Jawab Proses Bisnis untuk review',
+      message: 'SOP berhasil dikirim kepada Penanggung Jawab Proses Bisnis untuk pemeriksaan',
       success: true,
       data: await this.pelaksanaSnapshotService.applyToWorkbench(workbench),
     };
@@ -56,30 +75,23 @@ export class ProsesBisnisOwnerReviewController {
 
   @Post(':detailOrSopId/review')
   @HttpCode(HttpStatus.OK)
-  @ApiQuery({
-    name: 'logsLimit',
-    required: false,
-    schema: { default: 100, minimum: 1, maximum: 500 },
-  })
-  @ApiOperation({ summary: 'Penanggung Jawab Proses Bisnis menerima SOP atau mengembalikannya untuk revisi' })
+  @ApiOperation({ summary: 'Penanggung Jawab Proses Bisnis menyetujui atau mengembalikan SOP untuk perbaikan' })
   async review(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,
     @Body() dto: KeputusanPemeriksaanProsesBisnisDto,
-    @Query('logsLimit', new DefaultValuePipe(100), ParseIntPipe) logsLimit: number,
   ): Promise<ApiSuccessResponse<unknown>> {
     const workbench = await this.service.review(
       req.user,
       detailOrSopId,
       dto.decision,
       dto.catatan,
-      logsLimit,
     );
     return {
       message:
         dto.decision === KeputusanPemeriksaanProsesBisnis.ACCEPT
-          ? 'SOP diterima Penanggung Jawab Proses Bisnis dan siap menuju persetujuan akhir'
-          : 'SOP dikembalikan untuk revisi',
+          ? 'SOP disetujui hasil pemeriksaannya dan siap ditandatangani Pejabat yang Berwenang'
+          : 'SOP dikembalikan untuk perbaikan',
       success: true,
       data: await this.pelaksanaSnapshotService.applyToWorkbench(workbench),
     };

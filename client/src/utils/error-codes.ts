@@ -30,19 +30,19 @@ export function getUserFriendlyMessage(error: unknown): string {
   if (apiError?.code) {
     switch (apiError.code) {
       case ErrorCodes.SINGLETON_CONSTRAINT_VIOLATION:
-        return 'Penanggung jawab untuk scope ini sudah tersedia. Periksa struktur organisasi dan kewenangan yang aktif.';
+        return 'Penanggung Jawab Proses Bisnis untuk lingkup kewenangan ini sudah tersedia. Periksa struktur organisasi dan kewenangan yang aktif.';
       case ErrorCodes.USER_EMAIL_EXISTS:
-        return 'Email sudah terdaftar. Gunakan email lain atau coba login.';
+        return 'Email sudah terdaftar. Gunakan email lain atau coba masuk kembali.';
       case ErrorCodes.USER_NIP_EXISTS:
         return 'NIP sudah terdaftar. Gunakan NIP lain atau periksa kembali.';
       case ErrorCodes.TIM_ALREADY_EXISTS:
-        return 'User sudah menjadi anggota Proses Bisnis ini.';
+        return 'Pengguna sudah terdaftar sebagai anggota Tim Penyusun SOP pada Proses Bisnis ini.';
       case ErrorCodes.VALIDATION_ERROR:
         return 'Data yang Anda masukkan tidak valid. Periksa kembali form.';
       case ErrorCodes.FORBIDDEN:
         return 'Anda tidak memiliki akses ke fitur ini.';
       case ErrorCodes.UNAUTHORIZED:
-        return 'Sesi Anda telah berakhir. Silakan login kembali.';
+        return 'Sesi Anda telah berakhir. Silakan masuk kembali.';
       default:
         return apiError.message || 'Terjadi kesalahan. Silakan coba lagi.';
     }

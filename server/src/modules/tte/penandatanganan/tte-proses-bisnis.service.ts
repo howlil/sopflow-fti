@@ -14,6 +14,7 @@ import { NotifikasiProsesBisnisService } from '../../notifications/proses-bisnis
 import { SopOfficialPdfService } from '../../sop/pdf/sop-official-pdf.service';
 import { SopPdfStorageService } from '../../sop/pdf/sop-pdf-storage.service';
 import { TandaTanganiProsesBisnisSopDto } from '../shared/dto/tanda-tangani-sop-proses-bisnis.dto';
+import { TandaTanganiProsesBisnisSopBulkDto } from '../shared/dto/tanda-tangani-sop-proses-bisnis-bulk.dto';
 import { TteRepository } from '../shared/repository/tte.repository';
 import { buildTteQrPayload } from '../shared/utils/tte-verifikasi-qr.util';
 import { TtePublicUrlResolver } from '../shared/utils/tte-public-url.resolver';
@@ -38,19 +39,20 @@ export class ProsesBisnisTteService {
     detailOrSopId: string,
     dto: TandaTanganiProsesBisnisSopDto,
     req?: Pick<Request, 'headers'>,
+    options?: { pinAlreadyVerified?: boolean },
   ) {
     const contextResult = await this.processTteRepository.findSigningContext(detailOrSopId);
     if (!contextResult.ok) this.throwContextError(contextResult);
     const context = contextResult.context;
-    if (context.approval.approvedById !== user.sub) {
+    if (context.authority.holderId !== user.sub) {
       throw new ForbiddenException(
-        'TTE hanya dapat dilakukan oleh Dekan/Kepala Departemen yang memberi persetujuan akhir',
+        'Tanda Tangan Elektronik hanya dapat dilakukan oleh Pejabat Penandatangan pada lingkup Proses Bisnis ini',
       );
     }
 
     const pengguna = await this.tteRepository.findPenggunaAktif(user.sub);
     if (pengguna === null) throw new NotFoundException('Pengguna tidak ditemukan');
-    await this.assertPinValid(user.sub, dto.pin);
+    if (!options?.pinAlreadyVerified) await this.assertPinValid(user.sub, dto.pin);
 
     const hashDokumen = hashDokumenKanonik({
       jenis: JenisDokumenTte.SOP_BERLAKU,
@@ -173,6 +175,44 @@ export class ProsesBisnisTteService {
     }
   }
 
+  async signMany(
+    user: JwtAccessPayload,
+    dto: TandaTanganiProsesBisnisSopBulkDto,
+    req?: Pick<Request, 'headers'>,
+  ) {
+    await this.assertPinValid(user.sub, dto.pin);
+    const results: Array<{ detailSopId: string; status: 'SIGNED' | 'FAILED'; message?: string; data?: unknown }> = [];
+    for (const item of dto.items) {
+      try {
+        const data = await this.sign(
+          user,
+          item.detailSopId,
+          {
+            pin: dto.pin,
+            nomorDokumen: item.nomorDokumen,
+            judulDokumen: item.judulDokumen,
+            pdfBase64: item.pdfBase64,
+          },
+          req,
+          { pinAlreadyVerified: true },
+        );
+        results.push({ detailSopId: item.detailSopId, status: 'SIGNED', data });
+      } catch (error) {
+        results.push({
+          detailSopId: item.detailSopId,
+          status: 'FAILED',
+          message: error instanceof Error ? error.message : 'Gagal menandatangani SOP',
+        });
+      }
+    }
+    return {
+      requestedCount: dto.items.length,
+      signedCount: results.filter((item) => item.status === 'SIGNED').length,
+      failedCount: results.filter((item) => item.status === 'FAILED').length,
+      items: results,
+    };
+  }
+
   private async assertPinValid(userId: string, pin: string): Promise<void> {
     const kredensial = await this.tteRepository.findKredensial(userId);
     if (kredensial === null) {
@@ -188,14 +228,11 @@ export class ProsesBisnisTteService {
     if (result.error === 'NOT_LATEST') {
       throw new ConflictException('TTE hanya dapat dilakukan pada versi SOP terbaru');
     }
-    if (result.error === 'UNASSIGNED_ARCHIVE') {
-      throw new ConflictException('SOP arsip tanpa Proses Bisnis tidak dapat masuk TTE FTI');
-    }
     if (result.error === 'NOT_APPROVED') {
-      throw new ConflictException('SOP belum mendapat persetujuan akhir');
+      throw new ConflictException('SOP belum disetujui dalam Pemeriksaan Proses Bisnis');
     }
     if (result.error === 'APPROVAL_CONTEXT_DRIFT') {
-      throw new ConflictException('Context persetujuan akhir tidak cocok dengan Proses Bisnis SOP');
+      throw new ConflictException('Context pejabat berwenang tidak cocok dengan Proses Bisnis SOP');
     }
     if (result.error === 'BAD_STATUS') {
       throw new ConflictException(`SOP tidak siap TTE pada status ${String(result.status)}`);
@@ -205,7 +242,7 @@ export class ProsesBisnisTteService {
 
   private throwPrepareError(result: { error?: string; status?: StatusSOP }): never {
     if (result.error === 'FORBIDDEN_SIGNER') {
-      throw new ForbiddenException('Final approval SOP ini diberikan oleh pengguna lain');
+      throw new ForbiddenException('Anda bukan pejabat berwenang untuk menandatangani SOP ini');
     }
     if (result.error === 'INVALID_DOC_PARENT') {
       throw new ConflictException('Data dokumen TTE SOP tidak konsisten');

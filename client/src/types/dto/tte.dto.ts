@@ -111,6 +111,8 @@ export interface VerifyPdfResponse {
 }
 
 export interface TtePengesahanPublic {
+  signatureValid: boolean;
+  currentPublicStatus: TtePublicStatus;
   userId: string;
   dokumenTteId: string;
   ditandatanganiPada: string;
@@ -128,6 +130,8 @@ export interface TtePengesahanPublic {
   qrVerificationUrl: string | null;
   qrPayload: string;
 }
+
+export type TtePublicStatus = "CURRENT" | "REVOKED" | "SUPERSEDED" | "NOT_PUBLIC";
 
 export interface RegisterTteDto { pin: string; }
 export interface UpdateTtePinDto { pinLama: string; pinBaru: string; }
@@ -152,4 +156,28 @@ export interface TandaTanganiProsesBisnisSopResponse {
   status: 'EFFECTIVE';
   ditandatanganiPada: string;
   tanggalEfektif: string;
+}
+
+export interface TandaTanganiProsesBisnisSopBulkItemDto {
+  detailSopId: string
+  nomorDokumen: string
+  judulDokumen: string
+  pdfBase64: string
+}
+
+export interface TandaTanganiProsesBisnisSopBulkDto {
+  pin: string
+  items: TandaTanganiProsesBisnisSopBulkItemDto[]
+}
+
+export interface TandaTanganiProsesBisnisSopBulkResponse {
+  requestedCount: number
+  signedCount: number
+  failedCount: number
+  items: Array<{
+    detailSopId: string
+    status: 'SIGNED' | 'FAILED'
+    message?: string
+    data?: TandaTanganiProsesBisnisSopResponse
+  }>
 }

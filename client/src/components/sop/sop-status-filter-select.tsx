@@ -1,6 +1,6 @@
 /**
  * Select filter status SOP — satu komponen dengan STATUS_SOP_ALL (sesuai StatusBadge & types/sop).
- * Dipakai di Filter SOP (Manajemen SOP, Daftar SOP, SOP Saya).
+ * Dipakai di Filter SOP (Manajemen SOP, SOP Saya).
  */
 import { Select } from '@/components/ui/select'
 import { SOP_STATUS_FILTER_OPTIONS } from '@/utils/constants'

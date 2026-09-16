@@ -16,7 +16,7 @@ export interface ActiveFilterChipsProps {
 export function ActiveFilterChips({
   items,
   onClearAll,
-  clearAllLabel = 'Hapus semua filter',
+  clearAllLabel = 'Hapus semua penyaringan',
 }: ActiveFilterChipsProps) {
   if (items.length === 0) return null
 
@@ -30,7 +30,7 @@ export function ActiveFilterChips({
           <span>{item.label}</span>
           <button
             type="button"
-            aria-label={`Hapus filter ${item.label}`}
+            aria-label={`Hapus penyaringan ${item.label}`}
             className="inline-flex h-5 w-5 items-center justify-center rounded-control hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             onClick={item.onRemove}
           >

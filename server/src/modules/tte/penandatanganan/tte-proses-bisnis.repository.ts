@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { JenisDokumenTte, Prisma, StatusSOP } from '../../../generated/prisma';
+import { JenisDokumenTte, LingkupOrganisasi, PejabatBerwenang, Prisma, StatusSOP } from '../../../generated/prisma';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import type { PdfSignatureMetadataInput } from '../shared/repository/tte.repository';
 
@@ -10,11 +10,10 @@ export type ProsesBisnisTteSigningContext = {
   readonly nomorSOP: string;
   readonly versi: number;
   readonly prosesBisnisId: string;
-  readonly approval: {
-    readonly approvedById: string;
-    readonly authority: 'DEAN' | 'HEAD_OF_DEPARTMENT';
+  readonly authority: {
+    readonly holderId: string;
+    readonly authority: PejabatBerwenang;
     readonly kunciPejabatBerwenang: string;
-    readonly approvedAt: Date;
   };
 };
 
@@ -23,7 +22,6 @@ type ProsesBisnisTteContextFailure = {
   readonly error:
     | 'NOT_FOUND'
     | 'NOT_LATEST'
-    | 'UNASSIGNED_ARCHIVE'
     | 'NOT_APPROVED'
     | 'APPROVAL_CONTEXT_DRIFT'
     | 'BAD_STATUS';
@@ -87,7 +85,7 @@ export class ProsesBisnisTteRepository {
       const resolved = await this.resolveContext(tx, params.detailOrSopId);
       if (!resolved.ok) return resolved;
       const context = resolved.context;
-      if (context.approval.approvedById !== params.userId) {
+      if (context.authority.holderId !== params.userId) {
         return { error: 'FORBIDDEN_SIGNER' as const };
       }
 
@@ -161,7 +159,7 @@ export class ProsesBisnisTteRepository {
         const resolved = await this.resolveContext(tx, params.detailOrSopId);
         if (!resolved.ok) return resolved;
         const context = resolved.context;
-        if (context.approval.approvedById !== params.userId) {
+        if (context.authority.holderId !== params.userId) {
           return { error: 'FORBIDDEN_SIGNER' as const };
         }
 
@@ -210,7 +208,7 @@ export class ProsesBisnisTteRepository {
         const promoted = await tx.detailSOP.updateMany({
           where: {
             detailSopId: context.detailSopId,
-            status: StatusSOP.TTE_PENDING,
+            status: { in: [StatusSOP.TTE_PENDING, StatusSOP.FINAL_APPROVAL] },
           },
           data: {
             status: StatusSOP.EFFECTIVE,
@@ -226,7 +224,7 @@ export class ProsesBisnisTteRepository {
           data: {
             userId: params.userId,
             dokumenTteId: dokumen.dokumenTteId,
-            authority: context.approval.authority,
+            authority: context.authority.authority,
             ditandatanganiPada: params.signedAt,
             signatureValue: params.signatureMetadata.signatureValue,
             signatureAlgorithm: params.signatureMetadata.signatureAlgorithm,
@@ -259,8 +257,8 @@ export class ProsesBisnisTteRepository {
           ok: true as const,
           detailSopId: context.detailSopId,
           dokumenTteId: dokumen.dokumenTteId,
-          authority: context.approval.authority,
-          kunciPejabatBerwenang: context.approval.kunciPejabatBerwenang,
+          authority: context.authority.authority,
+          kunciPejabatBerwenang: context.authority.kunciPejabatBerwenang,
         };
       });
     } catch (error) {
@@ -283,7 +281,7 @@ export class ProsesBisnisTteRepository {
         nomorSOP: true,
         versi: true,
         status: true,
-        sop: { select: { prosesBisnisId: true, judul: true } },
+        sop: { select: { prosesBisnisId: true, judul: true, prosesBisnis: { select: { lingkup: true, departemenId: true } } } },
       },
     });
     const detail =
@@ -297,7 +295,7 @@ export class ProsesBisnisTteRepository {
           nomorSOP: true,
           versi: true,
           status: true,
-          sop: { select: { prosesBisnisId: true, judul: true } },
+          sop: { select: { prosesBisnisId: true, judul: true, prosesBisnis: { select: { lingkup: true, departemenId: true } } } },
         },
       }));
     if (detail === null) return { error: 'NOT_FOUND' as const };
@@ -312,25 +310,39 @@ export class ProsesBisnisTteRepository {
     }
 
     const prosesBisnisId = detail.sop.prosesBisnisId;
-    if (prosesBisnisId === null) return { error: 'UNASSIGNED_ARCHIVE' as const };
-
-    const approval = await tx.persetujuanAkhirSOP.findUnique({
-      where: { detailSopId: detail.detailSopId },
-      select: {
-        prosesBisnisId: true,
-        approvedById: true,
-        authority: true,
-        kunciPejabatBerwenang: true,
-        approvedAt: true,
+    const acceptedReview = await tx.pemeriksaanProsesBisnis.findFirst({
+      where: {
+        detailSopId: detail.detailSopId,
+        prosesBisnisId,
+        decision: 'ACCEPT',
+        nextStatus: { in: [StatusSOP.TTE_PENDING, StatusSOP.FINAL_APPROVAL] },
       },
+      orderBy: { createdAt: 'desc' },
+      select: { pemeriksaanProsesBisnisId: true },
     });
-    if (approval === null) return { error: 'NOT_APPROVED' as const };
-    if (approval.prosesBisnisId !== prosesBisnisId) {
-      return { error: 'APPROVAL_CONTEXT_DRIFT' as const };
-    }
-    if (detail.status !== StatusSOP.TTE_PENDING) {
+    if (acceptedReview === null) return { error: 'NOT_APPROVED' as const };
+    if (detail.status !== StatusSOP.TTE_PENDING && detail.status !== StatusSOP.FINAL_APPROVAL) {
       return { error: 'BAD_STATUS' as const, status: detail.status };
     }
+
+    const authority = detail.sop.prosesBisnis.lingkup === LingkupOrganisasi.FACULTY
+      ? PejabatBerwenang.DEAN
+      : PejabatBerwenang.HEAD_OF_DEPARTMENT;
+    const kunciPejabatBerwenang = detail.sop.prosesBisnis.lingkup === LingkupOrganisasi.FACULTY
+      ? 'DEAN'
+        : detail.sop.prosesBisnis.departemenId === null
+          ? null
+          : `HEAD_OF_DEPARTMENT:${detail.sop.prosesBisnis.departemenId}`;
+    if (kunciPejabatBerwenang === null) return { error: 'APPROVAL_CONTEXT_DRIFT' as const };
+    const assignment = await tx.penugasanPejabatBerwenang.findUnique({
+      where: { kunciPejabatBerwenang },
+      select: { authority: true, departemenId: true, holderId: true },
+    });
+    if (
+      assignment === null ||
+      assignment.authority !== authority ||
+      assignment.departemenId !== detail.sop.prosesBisnis.departemenId
+    ) return { error: 'APPROVAL_CONTEXT_DRIFT' as const };
 
     return {
       ok: true as const,
@@ -341,11 +353,10 @@ export class ProsesBisnisTteRepository {
         nomorSOP: detail.nomorSOP,
         versi: detail.versi,
         prosesBisnisId,
-        approval: {
-          approvedById: approval.approvedById,
-          authority: approval.authority,
-          kunciPejabatBerwenang: approval.kunciPejabatBerwenang,
-          approvedAt: approval.approvedAt,
+        authority: {
+          holderId: assignment.holderId,
+          authority: assignment.authority,
+          kunciPejabatBerwenang,
         },
       },
     };

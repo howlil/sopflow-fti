@@ -1,12 +1,9 @@
 import {
   Body,
   Controller,
-  DefaultValuePipe,
   Param,
-  ParseIntPipe,
   ParseUUIDPipe,
   Patch,
-  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -17,7 +14,6 @@ import {
   ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOperation,
-  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -44,13 +40,7 @@ export class SopProsedurController {
   @Patch(':detailSopId')
   @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
   @ApiOperation({
-    summary: 'PATCH prosedur SOP Proses Bisnis-bound dengan authorization Penanggung Jawab Proses Bisnis/Member',
-  })
-  @ApiQuery({
-    name: 'logsLimit',
-    required: false,
-    description: 'Jumlah maksimum entri logEdit pada respons penyegaran (1-500, default 100)',
-    schema: { default: 100, minimum: 1, maximum: 500 },
+    summary: 'Perbarui prosedur SOP terikat Proses Bisnis dengan kewenangan Penanggung Jawab/anggota tim',
   })
   @ApiResponse({ status: 200, type: PenyusunWorkbenchDataDto })
   @ApiBadRequestResponse({ description: 'Validasi DTO gagal / actor atau tempId tidak konsisten' })
@@ -61,14 +51,8 @@ export class SopProsedurController {
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailSopId', ParseUUIDPipe) detailSopId: string,
     @Body() dto: UpdateSopProsedurDto,
-    @Query('logsLimit', new DefaultValuePipe(100), ParseIntPipe) logsLimit: number,
   ): Promise<ApiSuccessResponse<PenyusunWorkbenchDataDto>> {
-    const data = await this.sopProsedurService.updateProsedur(
-      req.user,
-      detailSopId,
-      dto,
-      logsLimit,
-    );
+    const data = await this.sopProsedurService.updateProsedur(req.user, detailSopId, dto);
     return {
       message: 'Prosedur SOP berhasil diperbarui',
       success: true,

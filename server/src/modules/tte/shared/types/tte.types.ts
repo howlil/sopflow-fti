@@ -24,6 +24,8 @@ export type TteProfilResponse = {
 };
 
 export type TtePengesahanPublicResponse = {
+  readonly signatureValid: boolean;
+  readonly currentPublicStatus: TtePublicStatus;
   readonly userId: string;
   readonly dokumenTteId: string;
   readonly ditandatanganiPada: string;
@@ -45,3 +47,5 @@ export type TtePengesahanPublicResponse = {
   readonly qrVerificationUrl: string | null;
   readonly qrPayload: string;
 };
+
+export type TtePublicStatus = 'CURRENT' | 'REVOKED' | 'SUPERSEDED' | 'NOT_PUBLIC';

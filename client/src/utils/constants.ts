@@ -16,9 +16,8 @@ export const STALE_TIME = {
 
 export const ROUTES = {
   HOME: "/",
-  WORK: "/work",
-  WORK_QUEUE: "/work/queue",
-  WORK_PROCESSES: "/work/processes",
+  ME: "/me",
+  PROSES_BISNIS: "/proses-bisnis",
   VALIDASI: {
     PENGESAHAN_PREFIX: "/validasi/pengesahan",
     PDF: "/validasi/pdf",
@@ -30,22 +29,21 @@ export const ROUTES = {
     LOGIN: "/login",
   },
   ADMIN: {
-    HOME: "/admin",
-    ACCOUNTS: "/admin/accounts",
-    PROCESSES: "/admin/proses-bisnis",
-    AUTHORITIES: "/admin/authorities",
+    ACCOUNTS: "/admin/akun-fti",
+    PROCESSES: "/admin/proses-bisnis-organisasi",
+    AUTHORITIES: "/admin/kewenangan-organisasi",
   },
   APPROVAL: {
     INBOX: "/persetujuan",
   },
-  /** Existing authoring route names are retained; access is ProsesBisnis-native. */
-  PENYUSUN: {
-    ME: "/penyusun/me",
-    PERATURAN: "/penyusun/peraturan",
-    PELAKSANA: "/penyusun/pelaksana",
-    SOP: "/penyusun/sop",
-    DETAIL_SOP: "/penyusun/sop/$id",
+  PEMERIKSAAN: "/pemeriksaan",
+  TTE: {
+    INBOX: "/tanda-tangan",
   },
+  PERATURAN: "/peraturan",
+  PELAKSANA: "/pelaksana",
+  SOP: "/sop",
+  DETAIL_SOP: "/sop/$id",
 } as const;
 
 export { SOP_STATUS_FILTER_OPTIONS };

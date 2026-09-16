@@ -90,7 +90,7 @@ export function SidebarUserMenu({
             className="cursor-pointer"
             onSelect={() => {
               onNavigate?.()
-              navigate({ to: ROUTES.PENYUSUN.ME })
+              navigate({ to: ROUTES.ME })
             }}
           >
             Profil Saya

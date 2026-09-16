@@ -3,16 +3,10 @@ import { PelaksanaRepository } from './pelaksana.repository';
 
 describe('PelaksanaRepository global catalog', () => {
   const prismaMock = {
-    pengguna: {
-      findMany: jest.fn(),
-    },
     pelaksana: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       delete: jest.fn(),
-    },
-    pelaksanaAuditAttribution: {
-      findMany: jest.fn(),
     },
     langkahSOP: { count: jest.fn() },
     detailSOPPelaksana: { count: jest.fn() },
@@ -53,28 +47,6 @@ describe('PelaksanaRepository global catalog', () => {
       where: { nama: 'Dosen' },
       select: { pelaksanaId: true, nama: true },
     });
-  });
-
-  it('reads creator/editor attribution independently of organization scoping', async () => {
-    prismaMock.pelaksanaAuditAttribution.findMany.mockResolvedValueOnce([]);
-    await repo.findAttributionByPelaksanaIds(['actor-1', 'actor-2']);
-    expect(prismaMock.pelaksanaAuditAttribution.findMany).toHaveBeenCalledWith({
-      where: { pelaksanaId: { in: ['actor-1', 'actor-2'] } },
-      select: { pelaksanaId: true, createdById: true, updatedById: true },
-    });
-  });
-
-  it('resolves attribution user names in one lookup', async () => {
-    prismaMock.pengguna.findMany.mockResolvedValueOnce([
-      { penggunaId: 'u-1', nama: 'A' },
-      { penggunaId: 'u-2', nama: 'B' },
-    ]);
-    await expect(repo.findPenggunaNames(['u-1', 'u-2', 'u-1'])).resolves.toEqual(
-      new Map([
-        ['u-1', 'A'],
-        ['u-2', 'B'],
-      ]),
-    );
   });
 
   it('keeps delete protection queries for both step and swimlane references', async () => {

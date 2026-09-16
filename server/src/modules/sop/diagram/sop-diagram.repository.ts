@@ -20,7 +20,7 @@ export class SopDiagramRepository {
 
   async findDetailIdByDetailOrSopId(
     detailOrSopId: string,
-  ): Promise<{ detailSopId: string; prosesBisnisId: string | null } | null> {
+  ): Promise<{ detailSopId: string; prosesBisnisId: string } | null> {
     const direct = await this.prisma.detailSOP.findUnique({
       where: { detailSopId: detailOrSopId },
       select: { detailSopId: true, sop: { select: { prosesBisnisId: true } } },

@@ -207,6 +207,14 @@ export class TteRepository {
             jenisDokumen: true,
             detailSopId: true,
             prosesBisnisId: true,
+            pdfPath: true,
+            pdfStatus: true,
+            detailSop: {
+              select: {
+                status: true,
+                sop: { select: { prosesBisnisId: true } },
+              },
+            },
           },
         },
         user: { select: { penggunaId: true, nama: true, nip: true, jabatan: true } },

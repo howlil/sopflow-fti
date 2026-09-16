@@ -14,10 +14,10 @@ export class PejabatBerwenangController {
   constructor(private readonly service: PejabatBerwenangService) {}
 
   @Get('mine')
-  @ApiOperation({ summary: 'Daftar pejabat berwenang milik pengguna saat ini' })
+  @ApiOperation({ summary: 'Daftar Pejabat Penandatangan untuk pengguna saat ini' })
   async mine(@Req() req: Request & { user: JwtAccessPayload }): Promise<ApiSuccessResponse<unknown>> {
     return {
-      message: 'Pejabat berwenang berhasil diambil',
+      message: 'Pejabat Penandatangan berhasil diambil',
       success: true,
       data: await this.service.listMine(req.user.sub),
     };
@@ -25,10 +25,10 @@ export class PejabatBerwenangController {
 
   @Get('configuration')
   @UseGuards(PlatformAdminGuard)
-  @ApiOperation({ summary: 'Daftar konfigurasi Dean dan Kepala Departemen' })
+  @ApiOperation({ summary: 'Daftar konfigurasi Dekan dan Kepala Departemen' })
   async configuration(): Promise<ApiSuccessResponse<unknown>> {
     return {
-      message: 'Konfigurasi pejabat berwenang berhasil diambil',
+      message: 'Konfigurasi Pejabat Penandatangan berhasil diambil',
       success: true,
       data: await this.service.listConfiguration(),
     };
@@ -36,10 +36,10 @@ export class PejabatBerwenangController {
 
   @Put('dean')
   @UseGuards(PlatformAdminGuard)
-  @ApiOperation({ summary: 'Tetapkan Dean aktif untuk persetujuan akhir faculty lingkup' })
+  @ApiOperation({ summary: 'Tetapkan Dekan aktif sebagai Pejabat Penandatangan lingkup Fakultas' })
   async assignDean(@Body() dto: AssignPejabatBerwenangDto): Promise<ApiSuccessResponse<unknown>> {
     return {
-      message: 'Dean aktif berhasil diperbarui',
+      message: 'Dekan aktif berhasil diperbarui',
       success: true,
       data: await this.service.assignDean(dto.penggunaId),
     };
@@ -47,7 +47,7 @@ export class PejabatBerwenangController {
 
   @Put('departemen/:departemenId/head')
   @UseGuards(PlatformAdminGuard)
-  @ApiOperation({ summary: 'Tetapkan Kepala Departemen aktif untuk persetujuan akhir department lingkup' })
+  @ApiOperation({ summary: 'Tetapkan Kepala Departemen aktif sebagai Pejabat Penandatangan lingkup Departemen' })
   async assignDepartemenHead(
     @Param('departemenId', ParseUUIDPipe) departemenId: string,
     @Body() dto: AssignPejabatBerwenangDto,

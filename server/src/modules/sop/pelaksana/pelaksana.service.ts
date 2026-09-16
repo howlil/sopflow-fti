@@ -14,12 +14,12 @@ export class PelaksanaService {
     return this.mapRows(await this.pelaksanaRepository.findAll());
   }
 
-  async create(user: JwtAccessPayload, dto: CreatePelaksanaDto): Promise<PelaksanaResponseDto> {
+  async create(_user: JwtAccessPayload, dto: CreatePelaksanaDto): Promise<PelaksanaResponseDto> {
     const nama = dto.namaPelaksana.trim();
     await this.assertNamaAvailable(nama);
 
     try {
-      const row = await this.pelaksanaRepository.createGlobal(nama, user.sub);
+      const row = await this.pelaksanaRepository.createGlobal(nama);
       return (await this.mapRows([row]))[0];
     } catch (error) {
       this.rethrowUniqueNameConflict(error);
@@ -28,7 +28,7 @@ export class PelaksanaService {
   }
 
   async update(
-    user: JwtAccessPayload,
+    _user: JwtAccessPayload,
     id: string,
     dto: UpdatePelaksanaDto,
   ): Promise<PelaksanaResponseDto> {
@@ -44,7 +44,7 @@ export class PelaksanaService {
     }
 
     try {
-      const row = await this.pelaksanaRepository.updateNamaGlobal(id, nama, user.sub);
+      const row = await this.pelaksanaRepository.updateNamaGlobal(id, nama);
       return (await this.mapRows([row]))[0];
     } catch (error) {
       this.rethrowUniqueNameConflict(error);
@@ -74,30 +74,10 @@ export class PelaksanaService {
   }
 
   private async mapRows(rows: PelaksanaRow[]): Promise<PelaksanaResponseDto[]> {
-    const attributions = await this.pelaksanaRepository.findAttributionByPelaksanaIds(
-      rows.map((row) => row.pelaksanaId),
-    );
-    const attributionById = new Map(attributions.map((item) => [item.pelaksanaId, item]));
-    const userIds = attributions.flatMap((item) =>
-      [item.createdById, item.updatedById].filter((id): id is string => id !== null),
-    );
-    const userNames = await this.pelaksanaRepository.findPenggunaNames(userIds);
-
     return rows.map((row) => {
-      const attribution = attributionById.get(row.pelaksanaId);
-      const createdById = attribution?.createdById ?? null;
-      const updatedById = attribution?.updatedById ?? null;
       return {
         id: row.pelaksanaId,
         namaPelaksana: row.nama,
-        createdBy:
-          createdById === null
-            ? null
-            : { id: createdById, nama: userNames.get(createdById) ?? 'Pengguna tidak tersedia' },
-        updatedBy:
-          updatedById === null
-            ? null
-            : { id: updatedById, nama: userNames.get(updatedById) ?? 'Pengguna tidak tersedia' },
         createdAt: row.createdAt.toISOString(),
         updatedAt: row.updatedAt.toISOString(),
       };

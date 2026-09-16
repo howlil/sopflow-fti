@@ -1,12 +1,14 @@
 import { apiClient } from '@/lib/api/api-client'
 import { unwrapApiData } from '@/lib/api/response'
 import { useMutationWithToast } from '@/hooks/useMutationWithToast'
-import { approvalQueueKey } from '@/api/persetujuan-akhir-sop'
+import { approvalQueueKey, tteQueueKey } from '@/api/persetujuan-akhir-sop'
 import type { ApiSuccessResponse } from '@/types/dto/auth.dto'
 import type {
   TandaTanganiProsesBisnisSopDto,
   TandaTanganiProsesBisnisSopMutationDto,
   TandaTanganiProsesBisnisSopResponse,
+  TandaTanganiProsesBisnisSopBulkDto,
+  TandaTanganiProsesBisnisSopBulkResponse,
 } from '@/types/dto/tte.dto'
 
 export const processTteApi = {
@@ -20,6 +22,13 @@ export const processTteApi = {
         payload,
       ),
     ),
+  signMany: (payload: TandaTanganiProsesBisnisSopBulkDto): Promise<TandaTanganiProsesBisnisSopBulkResponse> =>
+    unwrapApiData(
+      apiClient.post<ApiSuccessResponse<TandaTanganiProsesBisnisSopBulkResponse>>(
+        '/process-tte/bulk-sign',
+        payload,
+      ),
+    ),
 }
 
 export function useTandaTanganiProsesBisnisSop(options?: {
@@ -28,7 +37,7 @@ export function useTandaTanganiProsesBisnisSop(options?: {
   return useMutationWithToast({
     mutationFn: ({ detailSopId, payload }: TandaTanganiProsesBisnisSopMutationDto) =>
       processTteApi.sign(detailSopId, payload),
-    invalidateKeys: [approvalQueueKey],
+    invalidateKeys: [approvalQueueKey, tteQueueKey],
     successMessage: 'SOP berhasil ditandatangani dan berlaku.',
     useDetailedErrors: true,
     errorMessagePrefix: 'Gagal menandatangani SOP',
@@ -38,5 +47,15 @@ export function useTandaTanganiProsesBisnisSop(options?: {
           return /Kredensial TTE belum|PIN TTE belum|sertifikat/i.test(message)
         }
       : undefined,
+  })
+}
+
+export function useBulkTandaTanganiProsesBisnisSop() {
+  return useMutationWithToast({
+    mutationFn: processTteApi.signMany,
+    invalidateKeys: [approvalQueueKey, tteQueueKey],
+    successMessage: 'Bulk TTE selesai diproses.',
+    useDetailedErrors: true,
+    errorMessagePrefix: 'Gagal memproses bulk TTE',
   })
 }

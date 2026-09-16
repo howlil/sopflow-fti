@@ -38,6 +38,8 @@ type SetupStep = "choose-method" | "generate" | "upload-bsre";
 interface TteSetupSectionProps {
   profile: TteProfil | null | undefined;
   isLoading: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
   displayName: string;
   displayNip: string;
 }
@@ -321,7 +323,7 @@ function SetupWizard({
         <SetupProgressBar step={step} />
 
         <div className="rounded-lg bg-amber-50 border border-amber-100 px-3.5 py-3 text-xs text-amber-800 leading-relaxed">
-          Passphrase asli file P12 Anda tidak disimpan di server — hanya disimpan dalam bentuk terenkripsi menggunakan PIN TTE yang Anda buat.
+          Kata sandi asli berkas P12 Anda tidak disimpan di sistem — hanya disimpan dalam bentuk terenkripsi menggunakan PIN TTE yang Anda buat.
         </div>
 
         <div className="space-y-3">
@@ -348,12 +350,12 @@ function SetupWizard({
               />
             </label>
           </FormField>
-          <FormField label="Passphrase P12">
+          <FormField label="Kata sandi P12">
             <Input
               type="password"
               value={p12Passphrase}
               onChange={(e) => setP12Passphrase(e.target.value)}
-              placeholder="Passphrase dari BSrE"
+              placeholder="Kata sandi dari BSrE"
               className="h-9 text-sm"
               required
               disabled={isPending}
@@ -521,8 +523,8 @@ function GantiSertifikatDialog({
                 <input type="file" accept=".p12,.pfx" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} disabled={isPending} />
               </label>
             </FormField>
-            <FormField label="Passphrase P12">
-              <Input type="password" value={p12Passphrase} onChange={(e) => setP12Passphrase(e.target.value)} placeholder="Passphrase dari BSrE" className="h-9 text-sm" required disabled={isPending} autoComplete="off" />
+            <FormField label="Kata sandi P12">
+              <Input type="password" value={p12Passphrase} onChange={(e) => setP12Passphrase(e.target.value)} placeholder="Kata sandi dari BSrE" className="h-9 text-sm" required disabled={isPending} autoComplete="off" />
             </FormField>
             <Button type="submit" size="sm" className="w-full h-9 text-sm font-medium" disabled={isPending || !pin || !file || !p12Passphrase}>
               {uploadP12.isPending ? (
@@ -663,7 +665,7 @@ function CredentialRow({
 // ─────────────────────────────────────────────
 // Main Export
 // ─────────────────────────────────────────────
-export function TteSetupSection({ profile, isLoading, displayName, displayNip }: TteSetupSectionProps) {
+export function TteSetupSection({ profile, isLoading, isError = false, onRetry, displayName, displayNip }: TteSetupSectionProps) {
   const [pinDialogOpen, setPinDialogOpen] = useState(false);
   const [sertifikatDialogOpen, setSertifikatDialogOpen] = useState(false);
 
@@ -697,6 +699,17 @@ export function TteSetupSection({ profile, isLoading, displayName, displayNip }:
           <div className="flex items-center justify-center gap-2 py-8">
             <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
             <span className="text-xs text-muted-foreground">Memuat...</span>
+          </div>
+        ) : isError ? (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-danger/20 bg-danger-subtle px-3.5 py-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <AlertCircle className="h-4 w-4 shrink-0 text-danger-foreground" aria-hidden />
+              <p className="text-xs leading-5 text-danger-foreground">Status TTE belum dapat dimuat.</p>
+            </div>
+            <Button type="button" size="sm" variant="outline" onClick={onRetry} disabled={!onRetry}>
+              <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+              Coba lagi
+            </Button>
           </div>
         ) : isReady && profile ? (
           <TteActiveState

@@ -16,8 +16,6 @@ describe('PelaksanaController global catalog', () => {
   const responseRow = {
     id: 'pl-1',
     namaPelaksana: 'Dosen',
-    createdBy: { id: 'user-1', nama: 'User FTI' },
-    updatedBy: { id: 'user-1', nama: 'User FTI' },
     createdAt: '2026-09-01T00:00:00.000Z',
     updatedAt: '2026-09-01T00:00:00.000Z',
   };

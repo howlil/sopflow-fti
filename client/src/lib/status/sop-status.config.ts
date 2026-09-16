@@ -24,13 +24,22 @@ const SOP_STATUS_FILTER_VALUES = [
 ] as const satisfies readonly StatusSOP[]
 
 const SOP_STATUS_FILTER_LABELS: Record<(typeof SOP_STATUS_FILTER_VALUES)[number], string> = {
-  DRAFT: 'Draft',
-  PROCESS_REVIEW: 'Dalam review Proses',
-  REVISION_REQUIRED: 'Perlu revisi',
-  FINAL_APPROVAL: 'Menunggu persetujuan akhir',
-  TTE_PENDING: 'Menunggu TTE',
+  DRAFT: 'Draf',
+  PROCESS_REVIEW: 'Dalam Pemeriksaan Proses Bisnis',
+  REVISION_REQUIRED: 'Memerlukan Perbaikan',
+  FINAL_APPROVAL: 'Menunggu Tanda Tangan Elektronik',
+  TTE_PENDING: 'Menunggu Tanda Tangan Elektronik',
   EFFECTIVE: 'Berlaku',
   REVOKED: 'Dicabut',
+}
+
+export const SOP_STATUS_LABELS: Record<string, string> = {
+  ...SOP_STATUS_FILTER_LABELS,
+  SUPERSEDED: 'Digantikan',
+}
+
+export function getSopStatusLabel(status: string): string {
+  return SOP_STATUS_LABELS[status] ?? 'Status tidak dikenal'
 }
 
 export function getSopStatusColors(status: string): StatusBadgeColors {

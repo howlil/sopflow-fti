@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 import { LingkupOrganisasi, StatusSOP } from '../../../generated/prisma';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import type { ProsesBisnisContextService } from '../../core/proses-bisnis/konteks-proses-bisnis.service';
@@ -120,22 +120,15 @@ describe('ProsesBisnisSopAuthoringService', () => {
     expect(rows).toEqual([]);
   });
 
-  it('rejects an unbound SOP on the native workbench endpoint', async () => {
-    const prisma = {
-      sOP: {
-        findUnique: jest.fn().mockResolvedValue({ prosesBisnisId: null }),
-      },
-    } as unknown as PrismaService;
-    const processContext = {} as unknown as ProsesBisnisContextService;
-    const repository = {
-      findDetailIdByDetailOrSopId: jest.fn().mockResolvedValue({
-        sopId: 'legacy-sop',
-        detailSopId: 'legacy-detail',
-      }),
-    } as unknown as SopCatalogRepository;
-    const workbenchReader = {
-      getForDetail: jest.fn(),
-    } as unknown as SopWorkbenchReader;
+  it('does not initiate an SOP when the current user is the Proses Bisnis owner', async () => {
+    const prisma = { $transaction: jest.fn() } as unknown as PrismaService;
+    const processContext = {
+      assertCanInitiateSop: jest.fn().mockRejectedValue(
+        new ForbiddenException('Akses ditolak: hanya Anggota Proses Bisnis yang dapat menginisiasi SOP'),
+      ),
+    } as unknown as ProsesBisnisContextService;
+    const repository = {} as unknown as SopCatalogRepository;
+    const workbenchReader = {} as unknown as SopWorkbenchReader;
     const service = new ProsesBisnisSopAuthoringService(
       prisma,
       processContext,
@@ -144,15 +137,12 @@ describe('ProsesBisnisSopAuthoringService', () => {
     );
 
     await expect(
-      service.getWorkbench(
-        {
-          sub: 'legacy-user',
-          email: 'legacy@example.test',
-          sesiTokenVersion: 1,
-        },
-        'legacy-detail',
+      service.create(
+        { sub: 'owner-1', email: 'owner@example.test', sesiTokenVersion: 1 },
+        { prosesBisnisId: 'prosesBisnis-a', judul: 'SOP Baru', nomorSop: 'FTI/001' },
       ),
-    ).rejects.toBeInstanceOf(ConflictException);
-    expect((workbenchReader.getForDetail as jest.Mock).mock.calls).toHaveLength(0);
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(processContext.assertCanInitiateSop).toHaveBeenCalledWith('owner-1', 'prosesBisnis-a');
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });

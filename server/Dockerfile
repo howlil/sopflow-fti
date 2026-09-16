@@ -35,7 +35,8 @@ COPY --from=builder --chown=node:node /app/prisma ./prisma
 COPY --from=builder --chown=node:node /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder --chown=node:node /app/package.json ./package.json
 COPY docker-entrypoint.sh /usr/local/bin/sopflow-backend-entrypoint.sh
-RUN chmod 0755 /usr/local/bin/sopflow-backend-entrypoint.sh
+COPY docker-bootstrap.sh /usr/local/bin/sopflow-backend-bootstrap.sh
+RUN chmod 0755 /usr/local/bin/sopflow-backend-entrypoint.sh /usr/local/bin/sopflow-backend-bootstrap.sh
 
 USER node
 EXPOSE 3001

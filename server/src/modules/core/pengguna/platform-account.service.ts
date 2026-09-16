@@ -3,10 +3,10 @@ import {
   assertAtLeastOneUpdateField,
   assertEmailNipUniqueOnUpdate,
   hashDefaultPassword,
+  requireIndonesianMobileNumber,
   rethrowPrismaUniqueViolation,
   resolveDeletedAtFromStatus,
-} from './shared/pengguna-admin.util';
-import { requireIndonesianMobileNumber } from '../../../common/pengguna/indonesian-mobile-number.util';
+} from '../../../common/pengguna/pengguna-admin.util';
 import type { CreatePlatformAccountDto } from './dto/create-platform-account.dto';
 import type { UpdatePenggunaProfilDto } from './dto/update-pengguna-profil.dto';
 import { PenggunaRepository, type PlatformAccountRow } from './pengguna.repository';
@@ -45,7 +45,7 @@ export class PlatformAccountService {
       ]);
       if (ownedProcesses > 0 || ownerAuthorities > 0 || organizationalAuthorities > 0) {
         throw new ConflictException(
-          'Akun tidak dapat dinonaktifkan sebelum seluruh Owner dan kewenangan aktif dialihkan atau dicabut',
+          'Akun tidak dapat dinonaktifkan sebelum seluruh Penanggung Jawab Proses Bisnis dan kewenangan aktif dialihkan atau dicabut',
         );
       }
     }

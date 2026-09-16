@@ -29,7 +29,7 @@ describe('SopWorkbenchSidePanel', () => {
 
     const panel = screen.getByTestId('sop-workbench-side-panel')
     expect(panel.className).toContain('w-[min(340px,36vw)]')
-    expect(screen.getByText('Daftar SOP')).toBeInTheDocument()
+    expect(screen.getByText('SOP')).toBeInTheDocument()
     expect(screen.getByText('1 dokumen')).toBeInTheDocument()
 
     const selectedCard = screen.getByRole('button', { name: /sop lama/i })

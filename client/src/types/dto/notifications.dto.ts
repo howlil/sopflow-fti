@@ -1,6 +1,7 @@
 export type JenisNotifikasiProsesBisnis =
   | 'PROCESS_OWNER_REVIEW_REQUESTED'
   | 'FINAL_APPROVAL_REQUESTED'
+  | 'TTE_REQUESTED'
   | 'PROCESS_REVISION_REQUESTED'
   | 'PROCESS_SOP_EFFECTIVE'
   | 'PROCESS_SOP_REVOKED'
@@ -11,7 +12,7 @@ export type ProsesBisnisInAppNotificationDto = {
   title: string
   preview: string
   body: string
-  actionHref: '/work/queue' | '/persetujuan'
+  actionHref: '/sop' | '/persetujuan' | '/tanda-tangan'
   readAt: string | null
   createdAt: string
 }

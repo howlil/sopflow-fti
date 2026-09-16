@@ -44,6 +44,37 @@ async function run(): Promise<void> {
       JOIN Pengguna u ON u.penggunaId = workflow_identity.penggunaId
       WHERE u.platformRole <> 'USER'
     `),
+    multipleActiveProcessOwnerScopes: await count(`
+      SELECT COUNT(*) AS count
+      FROM (
+        SELECT penggunaId
+        FROM ProcessOwnerAuthority
+        WHERE revokedAt IS NULL
+        GROUP BY penggunaId
+        HAVING COUNT(*) > 1
+      ) invalid_scope_assignments
+    `),
+    invalidProcessOwnerScope: await count(`
+      SELECT COUNT(*) AS count
+      FROM Process p
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM ProcessOwnerAuthority a
+        WHERE a.penggunaId = p.ownerId
+          AND a.revokedAt IS NULL
+          AND (
+            (p.scope = 'FACULTY'
+              AND p.departmentId IS NULL
+              AND a.scope = 'FACULTY'
+              AND a.departmentId IS NULL)
+            OR
+            (p.scope = 'DEPARTMENT'
+              AND p.departmentId IS NOT NULL
+              AND a.scope = 'DEPARTMENT'
+              AND a.departmentId = p.departmentId)
+          )
+      )
+    `),
     activeSopWithoutProcess: await count(`
       SELECT COUNT(*) AS count
       FROM DetailSOP d

@@ -13,6 +13,7 @@ import { scheduleSopDocumentPrint } from "@/lib/print/pengajuan-print";
 import { ROUTES } from "@/utils/constants";
 import type { TTESignaturePayload } from "@/types/dto/tte.dto";
 import { formatDateIdLong } from "@/utils/format-date";
+import { getPublicVerificationPresentation } from "./public-verification-status";
 
 
 function truncateHash(hex: string, head = 18, tail = 8): string {
@@ -35,7 +36,9 @@ export function ValidasiPengesahanPage() {
   const pdfSigningStatus = usePdfSigningStatus();
   const [unduhLoading, setUnduhLoading] = useState(false);
 
-  const sopDetailId = query.data?.dokumen.sopDetailId;
+  const publicVerificationStatus = query.data?.currentPublicStatus ?? "NOT_PUBLIC";
+  const presentation = getPublicVerificationPresentation(publicVerificationStatus);
+  const sopDetailId = presentation.isCurrent ? query.data?.dokumen.sopDetailId : undefined;
   const sopQuery = usePublicSopDokumen(sopDetailId);
 
   const sopPreviewProps = useMemo(() => {
@@ -45,7 +48,6 @@ export function ValidasiPengesahanPage() {
     const preview = mapPenyusunWorkbenchToPreviewProps({
       detail: sopQuery.data.detail,
       langkah: sopQuery.data.langkah,
-      logEdit: [],
       diagramKonfigurasi: sopQuery.data.diagramKonfigurasi,
     });
     if (!query.data?.authorityLabel) return preview;
@@ -110,7 +112,7 @@ export function ValidasiPengesahanPage() {
             </h1>
             <p className="mt-1 text-sm text-secondary-foreground">
               Halaman publik untuk memastikan jejak tanda tangan elektronik (simulasi) sesuai data di
-              server. Untuk PDF bertanda tangan PKCS#7, gunakan{" "}
+              sistem. Untuk PDF bertanda tangan PKCS#7, gunakan{" "}
               <Link to={ROUTES.VALIDASI.PDF} className="text-emerald-800 underline underline-offset-2">
                 verifikasi PDF
               </Link>
@@ -146,10 +148,13 @@ export function ValidasiPengesahanPage() {
 
         {query.isSuccess ? (
           <>
-            <InfoCard variant="success" title="Pengesahan terverifikasi" icon={<CheckCircle2 />}>
+            <InfoCard
+              variant={presentation.variant}
+              title={presentation.title}
+              icon={presentation.isCurrent ? <CheckCircle2 /> : <AlertCircle />}
+            >
               <p className="text-foreground">
-                Data di bawah ini bersumber dari server aplikasi. Hash dokumen dapat dipakai untuk
-                transparansi verifikasi teknis.
+                {presentation.description} Hash dokumen dapat dipakai untuk transparansi verifikasi teknis.
               </p>
             </InfoCard>
 
@@ -195,6 +200,8 @@ export function ValidasiPengesahanPage() {
                   <span className="text-foreground">{query.data.dokumen.judulDokumen}</span>
                   <span className="text-muted-foreground">Jenis</span>
                   <span className="text-foreground">{query.data.dokumen.jenisDokumen}</span>
+                  <span className="text-muted-foreground">Status publik</span>
+                  <span className="font-medium text-foreground">{presentation.statusLabel}</span>
                   <span className="text-muted-foreground">ID dokumen TTE</span>
                   <span className="font-mono text-xs text-foreground">{query.data.dokumen.dokumenTteId}</span>
                   <span className="text-muted-foreground">Hash dokumen</span>

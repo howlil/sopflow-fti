@@ -17,20 +17,20 @@ describe('DetailPageLayout', () => {
         <HeaderBar />
         <DetailPageLayout
           breadcrumb={[
-            { label: 'Daftar SOP', to: '/penyusun/sop' },
-            { label: 'Edit SOP' },
+            { label: 'SOP', to: '/sop' },
+            { label: 'Ubah SOP' },
           ]}
-          title="Edit Dokumen SOP"
+          title="Ubah Dokumen SOP"
           main={<div>Dokumen</div>}
         />
       </PageHeaderProvider>,
     )
 
-    expect(await screen.findByRole('link', { name: 'Daftar SOP' })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: 'SOP' })).toHaveAttribute(
       'href',
-      '/penyusun/sop',
+      '/sop',
     )
-    expect(screen.getByText('Edit SOP')).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByText('Ubah SOP')).toHaveAttribute('aria-current', 'page')
     expect(screen.queryByTitle('Kembali')).not.toBeInTheDocument()
     expect(screen.queryByText('Kembali')).not.toBeInTheDocument()
     expect(screen.getByText('Dokumen')).toBeInTheDocument()
@@ -41,7 +41,7 @@ describe('DetailPageLayout', () => {
       <PageHeaderProvider>
         <DetailPageLayout
           title="Workspace Pengesahan"
-          leftPanel={<div data-testid="left-panel-content">Daftar SOP</div>}
+          leftPanel={<div data-testid="left-panel-content">SOP</div>}
           main={<div>Preview SOP</div>}
         />
       </PageHeaderProvider>,

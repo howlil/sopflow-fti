@@ -23,19 +23,20 @@ function signingContextTx() {
         nomorSOP: 'SOP-01',
         versi: 2,
         status: StatusSOP.TTE_PENDING,
-        sop: { prosesBisnisId, judul: 'SOP Akademik' },
+        sop: { prosesBisnisId, judul: 'SOP Akademik', prosesBisnis: { lingkup: 'FACULTY', departemenId: null } },
       }),
       findFirst: jest.fn().mockResolvedValue({ detailSopId }),
       findMany: jest.fn().mockResolvedValue([{ detailSopId: 'detail-old' }]),
       updateMany: jest.fn().mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 }),
     },
-    persetujuanAkhirSOP: {
+    pemeriksaanProsesBisnis: {
+      findFirst: jest.fn().mockResolvedValue({ pemeriksaanProsesBisnisId: 'review-1' }),
+    },
+    penugasanPejabatBerwenang: {
       findUnique: jest.fn().mockResolvedValue({
-        prosesBisnisId,
-        approvedById: userId,
         authority: PejabatBerwenang.DEAN,
-        kunciPejabatBerwenang: 'DEAN',
-        approvedAt: new Date('2026-09-01T00:00:00Z'),
+        departemenId: null,
+        holderId: userId,
       }),
     },
     dokumenTte: {
@@ -110,7 +111,7 @@ describe('ProsesBisnisTteRepository effective-state integrity', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           detailSopId,
-          status: StatusSOP.TTE_PENDING,
+          status: { in: [StatusSOP.TTE_PENDING, StatusSOP.FINAL_APPROVAL] },
         }),
         data: expect.objectContaining({ status: StatusSOP.EFFECTIVE }),
       }),
@@ -140,33 +141,7 @@ describe('ProsesBisnisTteRepository effective-state integrity', () => {
     expect(tx.dokumenTte.update).not.toHaveBeenCalled();
   });
 
-  it('rejects a TTE document without explicit Penanggung Jawab kepemilikan Proses Bisnis', async () => {
-    const tx = signingContextTx();
-    tx.dokumenTte.findUnique.mockResolvedValue({
-      dokumenTteId,
-      detailSopId,
-      prosesBisnisId: null,
-      jenisDokumen: JenisDokumenTte.SOP_BERLAKU,
-    });
-    const prisma = {
-      $transaction: jest.fn((callback: (transaction: typeof tx) => unknown) => callback(tx)),
-    } as unknown as PrismaService;
-    const repository = new ProsesBisnisTteRepository(prisma);
-
-    await expect(
-      repository.prepareDocument({
-        detailOrSopId: detailSopId,
-        userId,
-        hashDokumen: 'b'.repeat(64),
-        nomorDokumen: 'SOP-01-v2',
-        judulDokumen: 'Pengesahan SOP Akademik',
-      }),
-    ).resolves.toEqual({ error: 'INVALID_DOC_PARENT' });
-
-    expect(tx.dokumenTte.update).not.toHaveBeenCalled();
-  });
-
-  it('rejects a TTE document whose explicit Penanggung Jawab kepemilikan Proses Bisnis drifts from the SOP', async () => {
+  it('rejects a TTE document whose explicit Proses Bisnis ownership drifts from the SOP', async () => {
     const tx = signingContextTx();
     tx.dokumenTte.findUnique.mockResolvedValue({
       dokumenTteId,

@@ -8,11 +8,12 @@ import type { ApiSuccessResponse } from '@/types/dto/auth.dto'
 import type {
   CreateOwnedProsesBisnisPayload,
   InviteAnggotaProsesBisnisPayload,
-  RiwayatAktivitasProsesBisnisDto,
   ProsesBisnisAssignableUserDto,
   ProsesBisnisDto,
   AnggotaProsesBisnisOnboardingResult,
   KewenanganPenanggungJawabProsesBisnisDto,
+  ProsesBisnisMemberDirectoryDto,
+  TerbitkanUlangUndanganResult,
 } from '@/types/dto/proses-bisnis.dto'
 import { STALE_TIME } from '@/utils/constants'
 
@@ -21,6 +22,8 @@ export const processOwnerApi = {
     unwrapApiData(apiClient.get<ApiSuccessResponse<KewenanganPenanggungJawabProsesBisnisDto[]>>('/penanggung-jawab-proses-bisnis/scopes')),
   prosesBisnis: (): Promise<ProsesBisnisDto[]> =>
     unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisDto[]>>('/penanggung-jawab-proses-bisnis/proses-bisnis')),
+  memberDirectory: (): Promise<ProsesBisnisMemberDirectoryDto[]> =>
+    unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisMemberDirectoryDto[]>>('/penanggung-jawab-proses-bisnis/member-directory')),
   users: (): Promise<ProsesBisnisAssignableUserDto[]> =>
     unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisAssignableUserDto[]>>('/penanggung-jawab-proses-bisnis/users')),
   createProsesBisnis: (payload: CreateOwnedProsesBisnisPayload): Promise<ProsesBisnisDto> =>
@@ -33,6 +36,8 @@ export const processOwnerApi = {
         penggunaId,
       }),
     ),
+  addMembers: async (prosesBisnisId: string, penggunaIds: string[]): Promise<ProsesBisnisAssignableUserDto[]> =>
+    Promise.all(penggunaIds.map((penggunaId) => processOwnerApi.addMember(prosesBisnisId, penggunaId))),
   hapusAnggota: (prosesBisnisId: string, penggunaId: string): Promise<void> =>
     unwrapApiVoid(apiClient.delete(`/penanggung-jawab-proses-bisnis/proses-bisnis/${prosesBisnisId}/members/${penggunaId}`)),
   undangAnggota: (prosesBisnisId: string, payload: InviteAnggotaProsesBisnisPayload): Promise<AnggotaProsesBisnisOnboardingResult> =>
@@ -42,12 +47,10 @@ export const processOwnerApi = {
         payload,
       ),
     ),
-  archiveProsesBisnis: (prosesBisnisId: string, reason: string): Promise<null> =>
+  reissueInvitation: (undanganId: string): Promise<TerbitkanUlangUndanganResult> =>
     unwrapApiData(
-      apiClient.post<ApiSuccessResponse<null>>(`/penanggung-jawab-proses-bisnis/proses-bisnis/${prosesBisnisId}/archive`, { reason }),
+      apiClient.post<ApiSuccessResponse<TerbitkanUlangUndanganResult>>(`/penanggung-jawab-proses-bisnis/invitations/${undanganId}/reissue`),
     ),
-  audit: (prosesBisnisId: string): Promise<RiwayatAktivitasProsesBisnisDto[]> =>
-    unwrapApiData(apiClient.get<ApiSuccessResponse<RiwayatAktivitasProsesBisnisDto[]>>(`/penanggung-jawab-proses-bisnis/proses-bisnis/${prosesBisnisId}/audit`)),
 }
 
 export function useProsesBisnisOwnerSelfService() {
@@ -70,7 +73,11 @@ export function useProsesBisnisOwnerSelfService() {
     enabled: hasOwnerCapability,
   })
 
-  const commonInvalidation = [queryKeys.processOwnerProsesBisnises, processQueryKeys.mine]
+  const commonInvalidation = [
+    queryKeys.processOwnerProsesBisnises,
+    queryKeys.processOwnerMemberDirectory,
+    processQueryKeys.mine,
+  ]
   const createProsesBisnis = useMutationWithToast({
     mutationFn: processOwnerApi.createProsesBisnis,
     invalidateKeys: commonInvalidation,
@@ -84,12 +91,18 @@ export function useProsesBisnisOwnerSelfService() {
     successMessage: 'Nama Proses Bisnis berhasil diperbarui',
     errorMessagePrefix: 'Gagal memperbarui Proses Bisnis',
   })
-  const addMember = useMutationWithToast({
-    mutationFn: ({ prosesBisnisId, penggunaId }: { prosesBisnisId: string; penggunaId: string }) =>
-      processOwnerApi.addMember(prosesBisnisId, penggunaId),
+  const addMembers = useMutationWithToast({
+    mutationFn: ({ prosesBisnisId, penggunaIds }: { prosesBisnisId: string; penggunaIds: string[] }) =>
+      processOwnerApi.addMembers(prosesBisnisId, penggunaIds),
     invalidateKeys: commonInvalidation,
     successMessage: 'Penyusun SOP berhasil ditambahkan',
     errorMessagePrefix: 'Gagal menambahkan Penyusun SOP',
+  })
+  const memberDirectoryQuery = useQuery({
+    queryKey: queryKeys.processOwnerMemberDirectory,
+    queryFn: processOwnerApi.memberDirectory,
+    staleTime: STALE_TIME.SHORT,
+    enabled: hasOwnerCapability,
   })
   const hapusAnggota = useMutationWithToast({
     mutationFn: ({ prosesBisnisId, penggunaId }: { prosesBisnisId: string; penggunaId: string }) =>
@@ -105,34 +118,34 @@ export function useProsesBisnisOwnerSelfService() {
     successMessage: 'Onboarding Penyusun SOP berhasil diproses',
     errorMessagePrefix: 'Gagal membuat onboarding Penyusun SOP',
   })
-  const archiveProsesBisnis = useMutationWithToast({
-    mutationFn: ({ prosesBisnisId, reason }: { prosesBisnisId: string; reason: string }) =>
-      processOwnerApi.archiveProsesBisnis(prosesBisnisId, reason),
-    invalidateKeys: commonInvalidation,
-    successMessage: 'Proses Bisnis berhasil diarsipkan',
-    errorMessagePrefix: 'Gagal mengarsipkan Proses Bisnis',
+  const reissueInvitation = useMutationWithToast({
+    mutationFn: processOwnerApi.reissueInvitation,
+    invalidateKeys: [queryKeys.processOwnerMemberDirectory],
+    successMessage: 'Tautan undangan baru berhasil dibuat',
+    errorMessagePrefix: 'Gagal menerbitkan ulang tautan undangan',
   })
-
   return {
     scopes: scopesQuery.data ?? [],
     prosesBisnis: processesQuery.data ?? [],
     users: usersQuery.data ?? [],
+    memberDirectory: memberDirectoryQuery.data ?? [],
     isLoading:
       scopesQuery.isLoading ||
       processesQuery.isLoading ||
-      (hasOwnerCapability && usersQuery.isLoading),
+      (hasOwnerCapability && usersQuery.isLoading) ||
+      (hasOwnerCapability && memberDirectoryQuery.isLoading),
     createProsesBisnis: createProsesBisnis.mutateAsync,
     renameProsesBisnis: renameProsesBisnis.mutateAsync,
-    addMember: addMember.mutateAsync,
+    addMembers: addMembers.mutateAsync,
     hapusAnggota: hapusAnggota.mutateAsync,
     undangAnggota: undangAnggota.mutateAsync,
-    archiveProsesBisnis: archiveProsesBisnis.mutateAsync,
+    reissueInvitation: reissueInvitation.mutateAsync,
     isSaving:
       createProsesBisnis.isPending ||
       renameProsesBisnis.isPending ||
-      addMember.isPending ||
+      addMembers.isPending ||
       hapusAnggota.isPending ||
       undangAnggota.isPending ||
-      archiveProsesBisnis.isPending,
+      reissueInvitation.isPending,
   }
 }

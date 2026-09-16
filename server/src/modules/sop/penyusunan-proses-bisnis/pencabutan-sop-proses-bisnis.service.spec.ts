@@ -18,9 +18,6 @@ function makeService(options?: { transitionCount?: number }) {
     detailSOP: {
       updateMany: jest.fn().mockResolvedValue({ count: options?.transitionCount ?? 1 }),
     },
-    logEditSOP: {
-      create: jest.fn().mockResolvedValue({}),
-    },
     $executeRaw: jest.fn().mockResolvedValue(1),
   };
   const prisma = {
@@ -34,11 +31,14 @@ function makeService(options?: { transitionCount?: number }) {
           departemen: null,
         },
       ]),
-      findUnique: jest.fn().mockResolvedValue({ penanggungJawabId: 'owner-1', nama: 'Proses Bisnis Fakultas' }),
+      findUnique: jest
+        .fn()
+        .mockResolvedValue({ penanggungJawabId: 'owner-1', nama: 'Proses Bisnis Fakultas' }),
     },
     sOP: {
-      findMany: jest.fn().mockResolvedValue([{ sopId: 'sop-a', prosesBisnisId: 'prosesBisnis-a' }]),
-      findUnique: jest.fn().mockResolvedValue({ prosesBisnisId: 'prosesBisnis-a' }),
+      findMany: jest
+        .fn()
+        .mockResolvedValue([{ sopId: 'sop-a', prosesBisnisId: 'prosesBisnis-a' }]),
     },
     detailSOP: {
       findMany: jest.fn().mockResolvedValue([
@@ -65,7 +65,7 @@ function makeService(options?: { transitionCount?: number }) {
         holderId: 'dean-1',
       },
     ]),
-    assertCanApprove: jest.fn().mockResolvedValue({
+    assertCurrentAuthorityHolder: jest.fn().mockResolvedValue({
       authority: PejabatBerwenang.DEAN,
       kunciPejabatBerwenang: 'DEAN',
       holderId: 'dean-1',
@@ -79,13 +79,19 @@ function makeService(options?: { transitionCount?: number }) {
     findDetailIdByDetailOrSopId: jest.fn().mockResolvedValue({
       detailSopId: 'detail-a',
       sopId: 'sop-a',
+      prosesBisnisId: 'prosesBisnis-a',
     }),
     findRiwayatVersiBySopId: jest.fn().mockResolvedValue([
       { detailSopId: 'detail-a', status: StatusSOP.EFFECTIVE },
     ]),
   } as unknown as SopCatalogRepository;
   return {
-    service: new ProsesBisnisSopRevocationService(prisma, authority, notifikasiProsesBisnis, catalog),
+    service: new ProsesBisnisSopRevocationService(
+      prisma,
+      authority,
+      notifikasiProsesBisnis,
+      catalog,
+    ),
     prisma,
     authority,
     notifikasiProsesBisnis,
@@ -117,12 +123,11 @@ describe('ProsesBisnisSopRevocationService', () => {
       prosesBisnisId: 'prosesBisnis-a',
       status: StatusSOP.REVOKED,
     });
-    expect(authority.assertCanApprove).toHaveBeenCalledWith('dean-1', 'prosesBisnis-a');
+    expect(authority.assertCurrentAuthorityHolder).toHaveBeenCalledWith('dean-1', 'prosesBisnis-a');
     expect(tx.detailSOP.updateMany).toHaveBeenCalledWith({
       where: { detailSopId: 'detail-a', status: StatusSOP.EFFECTIVE },
       data: { status: StatusSOP.REVOKED, terakhirDieditOlehId: 'dean-1' },
     });
-    expect(tx.logEditSOP.create).toHaveBeenCalled();
     expect(tx.$executeRaw).toHaveBeenCalled();
     expect(notifikasiProsesBisnis.createManyInTransaction).toHaveBeenCalledWith(
       tx,
@@ -142,10 +147,9 @@ describe('ProsesBisnisSopRevocationService', () => {
   });
 
   it('rolls back feedback path when the effective status changed concurrently', async () => {
-    const { service, notifikasiProsesBisnis, tx } = makeService({ transitionCount: 0 });
+    const { service, notifikasiProsesBisnis } = makeService({ transitionCount: 0 });
 
     await expect(service.revoke(user, 'detail-a')).rejects.toBeInstanceOf(ConflictException);
-    expect(tx.logEditSOP.create).not.toHaveBeenCalled();
     expect(notifikasiProsesBisnis.createManyInTransaction).not.toHaveBeenCalled();
     expect(notifikasiProsesBisnis.emitChangedMany).not.toHaveBeenCalled();
   });
@@ -158,17 +162,6 @@ describe('ProsesBisnisSopRevocationService', () => {
     ]);
 
     await expect(service.revoke(user, 'detail-a')).rejects.toBeInstanceOf(ConflictException);
-    expect(notifikasiProsesBisnis.createManyInTransaction).not.toHaveBeenCalled();
-  });
-
-  it('rejects an unbound SOP because it is historical-only', async () => {
-    const { service, prisma, authority, notifikasiProsesBisnis } = makeService();
-    (prisma.sOP.findUnique as jest.Mock).mockResolvedValue({ prosesBisnisId: null });
-
-    await expect(service.revoke(user, 'detail-a')).rejects.toThrow(
-      'SOP tanpa Proses Bisnis hanya tersedia sebagai riwayat compatibility dan tidak dapat dicabut dari runtime FTI',
-    );
-    expect(authority.assertCanApprove).not.toHaveBeenCalled();
     expect(notifikasiProsesBisnis.createManyInTransaction).not.toHaveBeenCalled();
   });
 });

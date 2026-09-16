@@ -225,7 +225,7 @@ export function useArsipBrowse() {
   const sopEmptyHint = isGlobalMode
     ? 'Coba judul, nomor SOP, nama Proses Bisnis, atau Departemen lain.'
     : hasSopSearchFilter
-      ? 'Coba kata kunci lain pada filter di atas.'
+      ? 'Coba kata kunci lain pada penyaringan di atas.'
       : 'Belum ada dokumen resmi berlaku pada Proses Bisnis ini.'
 
   const selectedSop = detailSopId

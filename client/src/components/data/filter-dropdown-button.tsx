@@ -22,7 +22,7 @@ export function FilterDropdownButton({
   open,
   onOpenChange,
   activeCount = 0,
-  label = 'Filter',
+  label = 'Penyaringan',
   children,
   contentClassName,
 }: FilterDropdownButtonProps) {

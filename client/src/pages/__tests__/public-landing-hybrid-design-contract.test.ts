@@ -18,7 +18,7 @@ describe('FTI public landing contract', () => {
     expect(landingSource).toContain('Fakultas Teknologi Informasi')
     expect(landingSource).toContain('SOPFlow FTI')
 
-    for (const stage of ['Penyusunan', 'Review Proses', 'Persetujuan Akhir', 'TTE', 'Berlaku']) {
+    for (const stage of ['Penyusunan', 'Pemeriksaan Proses Bisnis', 'Tanda Tangan Elektronik', 'Berlaku']) {
       expect(landingSource).toContain(stage)
     }
 

@@ -56,6 +56,18 @@ export class PenanggungJawabProsesBisnisController {
     };
   }
 
+  @Get('member-directory')
+  @ApiOperation({ summary: 'Daftar penyusun SOP dan undangan pada Proses Bisnis milik sendiri' })
+  async memberDirectory(
+    @Req() req: Request & { user: JwtAccessPayload },
+  ): Promise<ApiSuccessResponse<unknown>> {
+    return {
+      message: 'Katalog Penyusun SOP dan undangan berhasil diambil',
+      success: true,
+      data: await this.service.listMemberDirectory(req.user.sub),
+    };
+  }
+
   @Get('users')
   async users(
     @Req() req: Request & { user: JwtAccessPayload },
@@ -135,6 +147,19 @@ export class PenanggungJawabProsesBisnisController {
     };
   }
 
+  @Post('invitations/:undanganId/reissue')
+  @ApiOperation({ summary: 'Terbitkan ulang tautan undangan Penyusun SOP' })
+  async terbitkanUlangUndangan(
+    @Req() req: Request & { user: JwtAccessPayload },
+    @Param('undanganId', ParseUUIDPipe) undanganId: string,
+  ): Promise<ApiSuccessResponse<unknown>> {
+    return {
+      message: 'Tautan undangan berhasil diterbitkan ulang',
+      success: true,
+      data: await this.service.terbitkanUlangUndangan(req.user.sub, undanganId),
+    };
+  }
+
   @Post('proses-bisnis/:prosesBisnisId/archive')
   async archiveProsesBisnis(
     @Req() req: Request & { user: JwtAccessPayload },
@@ -145,15 +170,4 @@ export class PenanggungJawabProsesBisnisController {
     return { message: 'Proses Bisnis berhasil diarsipkan', success: true, data: null };
   }
 
-  @Get('proses-bisnis/:prosesBisnisId/audit')
-  async audit(
-    @Req() req: Request & { user: JwtAccessPayload },
-    @Param('prosesBisnisId', ParseUUIDPipe) prosesBisnisId: string,
-  ): Promise<ApiSuccessResponse<unknown>> {
-    return {
-      message: 'Audit Proses Bisnis berhasil diambil',
-      success: true,
-      data: await this.service.listRiwayatAktivitas(req.user.sub, prosesBisnisId),
-    };
-  }
 }

@@ -236,7 +236,7 @@ function PreviewEmptyState({ showSopList, hasManySops }: { showSopList: boolean;
       <p className="mt-2 max-w-md text-sm text-muted-foreground">
         {showSopList
           ? hasManySops
-            ? 'Pilih SOP di daftar kiri, atau gunakan filter di atas daftar.'
+            ? 'Pilih SOP di daftar kiri, atau gunakan penyaringan di atas daftar.'
             : 'Pilih SOP di panel kiri untuk membaca dokumen di sini.'
           : 'Pilih Proses Bisnis di panel kiri, lalu pilih SOP untuk membuka pratinjau.'}
       </p>

@@ -11,7 +11,7 @@ export function WorkflowStory({ stages }: WorkflowStoryProps) {
             Tahapan pengelolaan SOP.
           </h2>
           <p className="mt-3 text-sm leading-6 text-secondary-foreground sm:text-base">
-            SOP disusun, ditinjau, disetujui, ditandatangani secara elektronik, lalu tersedia pada arsip publik.
+            SOP disusun, diperiksa, disetujui, ditandatangani secara elektronik, lalu tersedia pada arsip publik.
           </p>
         </div>
 

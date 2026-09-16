@@ -1,8 +1,7 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import {
   LingkupOrganisasi,
-  JenisAktivitasProsesBisnis,
   StatusKeaktifanProsesBisnis,
 } from '../../../generated/prisma';
 import type { KewenanganPenanggungJawabProsesBisnisService } from './kewenangan-penanggung-jawab-proses-bisnis.service';
@@ -26,9 +25,6 @@ describe('PenanggungJawabProsesBisnisService', () => {
         findUnique: jest.fn(),
         upsert: jest.fn(),
       },
-      riwayatAktivitasProsesBisnis: {
-        create: jest.fn(),
-      },
       anggotaProsesBisnis: {
         findUnique: jest.fn(),
         create: jest.fn(),
@@ -36,6 +32,9 @@ describe('PenanggungJawabProsesBisnisService', () => {
       },
       undanganAnggotaProsesBisnis: {
         findFirst: jest.fn(),
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
       },
       pengguna: {
         findFirst: jest.fn(),
@@ -51,7 +50,7 @@ describe('PenanggungJawabProsesBisnisService', () => {
       return Promise.all(work as Promise<unknown>[]);
     });
     const authority = {
-      assertCanCreate: jest.fn(),
+      assertCanCreateFromAuthority: jest.fn(),
       listMine: jest.fn(),
     };
     return {
@@ -66,7 +65,7 @@ describe('PenanggungJawabProsesBisnisService', () => {
 
   it('creates Proses Bisnis with the current authorized user as owner and no forced initial anggota', async () => {
     const { prisma, authority, service } = makeService();
-    authority.assertCanCreate.mockResolvedValue({
+    authority.assertCanCreateFromAuthority.mockResolvedValue({
       lingkup: LingkupOrganisasi.FACULTY,
       departemenId: null,
       kunciLingkup: 'FACULTY',
@@ -102,9 +101,13 @@ describe('PenanggungJawabProsesBisnisService', () => {
 
     const result = await service.createProsesBisnis(penanggungJawabId, {
       nama: '  Tata Kelola TI  ',
-      lingkup: LingkupOrganisasi.FACULTY,
-      departemenId: null,
+      kewenanganPenanggungJawabProsesBisnisId: '33333333-3333-4333-8333-333333333333',
     });
+
+    expect(authority.assertCanCreateFromAuthority).toHaveBeenCalledWith(
+      penanggungJawabId,
+      '33333333-3333-4333-8333-333333333333',
+    );
 
     expect(prisma.prosesBisnis.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -116,13 +119,6 @@ describe('PenanggungJawabProsesBisnisService', () => {
         },
       }),
     );
-    expect(prisma.riwayatAktivitasProsesBisnis.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        prosesBisnisId,
-        actorId: penanggungJawabId,
-        event: JenisAktivitasProsesBisnis.PROCESS_CREATED,
-      }),
-    });
     expect(result?.siklusStatus).toBe(StatusKeaktifanProsesBisnis.ACTIVE);
   });
 
@@ -205,5 +201,56 @@ describe('PenanggungJawabProsesBisnisService', () => {
       service.archiveProsesBisnis(penanggungJawabId, prosesBisnisId, { reason: 'Tidak digunakan' }),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(prisma.statusProsesBisnis.upsert).not.toHaveBeenCalled();
+  });
+
+  it('reissues a pending invitation only within the owner Proses Bisnis scope', async () => {
+    const { prisma, service } = makeService();
+    prisma.undanganAnggotaProsesBisnis.findUnique.mockResolvedValue({
+      undanganAnggotaProsesBisnisId: '44444444-4444-4444-8444-444444444444',
+      prosesBisnisId,
+      email: 'penyusun@fti.test',
+      status: 'PENDING',
+    });
+    prisma.prosesBisnis.findFirst.mockResolvedValue({
+      prosesBisnisId,
+      penanggungJawabId,
+      lingkup: LingkupOrganisasi.FACULTY,
+      departemenId: null,
+    });
+    prisma.statusProsesBisnis.findUnique.mockResolvedValue(null);
+    prisma.undanganAnggotaProsesBisnis.update.mockResolvedValue({
+      undanganAnggotaProsesBisnisId: '44444444-4444-4444-8444-444444444444',
+      email: 'penyusun@fti.test',
+      expiresAt: new Date(),
+    });
+
+    const result = await service.terbitkanUlangUndangan(
+      penanggungJawabId,
+      '44444444-4444-4444-8444-444444444444',
+    );
+
+    expect(result.activationPath).toMatch(/^\/login\?invite=[a-f0-9]{64}$/);
+    expect(prisma.undanganAnggotaProsesBisnis.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { undanganAnggotaProsesBisnisId: '44444444-4444-4444-8444-444444444444' },
+        data: expect.objectContaining({ status: 'PENDING' }),
+      }),
+    );
+  });
+
+  it('does not reissue an invitation outside the current owner scope', async () => {
+    const { prisma, service } = makeService();
+    prisma.undanganAnggotaProsesBisnis.findUnique.mockResolvedValue({
+      undanganAnggotaProsesBisnisId: '44444444-4444-4444-8444-444444444444',
+      prosesBisnisId,
+      email: 'penyusun@fti.test',
+      status: 'PENDING',
+    });
+    prisma.prosesBisnis.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.terbitkanUlangUndangan(penanggungJawabId, '44444444-4444-4444-8444-444444444444'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.undanganAnggotaProsesBisnis.update).not.toHaveBeenCalled();
   });
 });

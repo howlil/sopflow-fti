@@ -13,7 +13,7 @@ export function IdentityHero() {
             Siklus SOP FTI dari penyusunan hingga berlaku.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-secondary-foreground sm:text-lg">
-            Kelola penyusunan, tinjauan Proses Bisnis, persetujuan akhir, TTE, dan publikasi SOP FTI dalam satu alur yang jelas.
+            Kelola penyusunan, pemeriksaan Proses Bisnis, Tanda Tangan Elektronik oleh Pejabat Penandatangan, dan publikasi SOP FTI dalam satu alur yang jelas.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">

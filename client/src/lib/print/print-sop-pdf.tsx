@@ -126,11 +126,11 @@ export async function buildSopPdfBlob(
   options?: SopPdfPrintOptions,
 ): Promise<Blob> {
   const { props: resolvedProps } = await prepareSopPdfDocumentProps(props, options)
-  const qrDataUrlKepalaOpd = await buildQrDataUrl(resolvedProps.tteSignaturePayload)
+  const qrVerificationDataUrl = await buildQrDataUrl(resolvedProps.tteSignaturePayload)
   return pdf(
     <SopPdfDocument
       {...resolvedProps}
-      qrDataUrlKepalaOpd={qrDataUrlKepalaOpd}
+      qrVerificationDataUrl={qrVerificationDataUrl}
     />,
   ).toBlob()
 }

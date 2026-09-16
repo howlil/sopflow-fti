@@ -11,7 +11,6 @@ import { requireIndonesianMobileNumber } from '../../../common/pengguna/indonesi
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import {
   PlatformRole,
-  JenisAktivitasProsesBisnis,
   StatusUndanganAnggotaProsesBisnis,
   StatusKeaktifanProsesBisnis,
   StatusSOP,
@@ -68,6 +67,11 @@ export class PenanggungJawabProsesBisnisService {
     return this.denganSiklus(rows);
   }
 
+  async listMemberDirectory(penggunaId: string) {
+    const prosesBisnis = await this.listOwnedProsesBisnis(penggunaId);
+    return this.attachInvitations(prosesBisnis);
+  }
+
   async listAssignableUsers(penggunaId: string, search?: string) {
     await this.pastikanPunyaKewenanganPenanggungJawab(penggunaId);
     const term = search?.trim();
@@ -92,10 +96,9 @@ export class PenanggungJawabProsesBisnisService {
   }
 
   async createProsesBisnis(penggunaId: string, dto: CreateOwnedProsesBisnisDto) {
-    const lingkup = await this.authorityService.assertCanCreate(
+    const lingkup = await this.authorityService.assertCanCreateFromAuthority(
       penggunaId,
-      dto.lingkup,
-      dto.departemenId,
+      dto.kewenanganPenanggungJawabProsesBisnisId,
     );
     await this.pastikanIdentitasUnik(dto.nama.trim(), lingkup.lingkup, lingkup.departemenId);
 
@@ -112,14 +115,6 @@ export class PenanggungJawabProsesBisnisService {
       await tx.statusProsesBisnis.create({
         data: { prosesBisnisId: prosesBisnis.prosesBisnisId, status: StatusKeaktifanProsesBisnis.ACTIVE },
       });
-      await tx.riwayatAktivitasProsesBisnis.create({
-        data: {
-          prosesBisnisId: prosesBisnis.prosesBisnisId,
-          actorId: penggunaId,
-          event: JenisAktivitasProsesBisnis.PROCESS_CREATED,
-          metadata: { lingkup: lingkup.lingkup, departemenId: lingkup.departemenId },
-        },
-      });
       return prosesBisnis;
     });
     return (await this.denganSiklus([created]))[0];
@@ -134,14 +129,6 @@ export class PenanggungJawabProsesBisnisService {
         where: { prosesBisnisId },
         data: { nama },
         include: prosesBisnisInclude,
-      });
-      await tx.riwayatAktivitasProsesBisnis.create({
-        data: {
-          prosesBisnisId,
-          actorId: penggunaId,
-          event: JenisAktivitasProsesBisnis.PROCESS_RENAMED,
-          metadata: { previousName: prosesBisnis.nama, nextName: nama },
-        },
       });
       return row;
     });
@@ -166,17 +153,7 @@ export class PenanggungJawabProsesBisnisService {
     if (existing !== null) {
       return anggota;
     }
-    await this.prisma.$transaction([
-      this.prisma.anggotaProsesBisnis.create({ data: { prosesBisnisId, penggunaId: anggotaId } }),
-      this.prisma.riwayatAktivitasProsesBisnis.create({
-        data: {
-          prosesBisnisId,
-          actorId: penggunaId,
-          event: JenisAktivitasProsesBisnis.MEMBER_ADDED,
-          targetUserId: anggotaId,
-        },
-      }),
-    ]);
+    await this.prisma.anggotaProsesBisnis.create({ data: { prosesBisnisId, penggunaId: anggotaId } });
     return anggota;
   }
 
@@ -186,21 +163,11 @@ export class PenanggungJawabProsesBisnisService {
       where: { prosesBisnisId_penggunaId: { prosesBisnisId, penggunaId: anggotaId } },
     });
     if (keanggotaan === null) {
-      throw new NotFoundException('Member Proses Bisnis tidak ditemukan');
+      throw new NotFoundException('Anggota Tim Penyusun SOP tidak ditemukan');
     }
-    await this.prisma.$transaction([
-      this.prisma.anggotaProsesBisnis.delete({
-        where: { prosesBisnisId_penggunaId: { prosesBisnisId, penggunaId: anggotaId } },
-      }),
-      this.prisma.riwayatAktivitasProsesBisnis.create({
-        data: {
-          prosesBisnisId,
-          actorId: penggunaId,
-          event: JenisAktivitasProsesBisnis.MEMBER_REMOVED,
-          targetUserId: anggotaId,
-        },
-      }),
-    ]);
+    await this.prisma.anggotaProsesBisnis.delete({
+      where: { prosesBisnisId_penggunaId: { prosesBisnisId, penggunaId: anggotaId } },
+    });
   }
 
   async undangAnggota(penggunaId: string, prosesBisnisId: string, dto: InviteAnggotaProsesBisnisDto) {
@@ -254,14 +221,6 @@ export class PenanggungJawabProsesBisnisService {
           expiresAt,
         },
       });
-      await tx.riwayatAktivitasProsesBisnis.create({
-        data: {
-          prosesBisnisId,
-          actorId: penggunaId,
-          event: JenisAktivitasProsesBisnis.INVITATION_CREATED,
-          metadata: { email, invitationId: row.undanganAnggotaProsesBisnisId, expiresAt: expiresAt.toISOString() },
-        },
-      });
       return row;
     });
 
@@ -274,6 +233,37 @@ export class PenanggungJawabProsesBisnisService {
       },
       activationPath: `/login?invite=${token}`,
     };
+  }
+
+  async terbitkanUlangUndangan(penggunaId: string, undanganId: string) {
+    const current = await this.prisma.undanganAnggotaProsesBisnis.findUnique({
+      where: { undanganAnggotaProsesBisnisId: undanganId },
+      select: { undanganAnggotaProsesBisnisId: true, prosesBisnisId: true, email: true, status: true },
+    });
+    if (current === null) {
+      throw new NotFoundException('Undangan tidak ditemukan');
+    }
+    await this.wajibProsesBisnisMilikSaya(penggunaId, current.prosesBisnisId, true);
+    if (
+      current.status !== StatusUndanganAnggotaProsesBisnis.PENDING &&
+      current.status !== StatusUndanganAnggotaProsesBisnis.EXPIRED
+    ) {
+      throw new ConflictException('Undangan yang sudah digunakan atau dicabut tidak dapat diterbitkan ulang');
+    }
+
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const undangan = await this.prisma.undanganAnggotaProsesBisnis.update({
+      where: { undanganAnggotaProsesBisnisId: undanganId },
+      data: {
+        tokenHash: this.hashToken(token),
+        status: StatusUndanganAnggotaProsesBisnis.PENDING,
+        expiresAt,
+      },
+      select: { undanganAnggotaProsesBisnisId: true, email: true, expiresAt: true },
+    });
+
+    return { undangan, activationPath: `/login?invite=${token}` };
   }
 
   async pratinjauUndangan(token: string) {
@@ -333,15 +323,6 @@ export class PenanggungJawabProsesBisnisService {
           acceptedAt: now,
         },
       });
-      await tx.riwayatAktivitasProsesBisnis.create({
-        data: {
-          prosesBisnisId: undangan.prosesBisnisId,
-          actorId: user.penggunaId,
-          event: JenisAktivitasProsesBisnis.INVITATION_ACCEPTED,
-          targetUserId: user.penggunaId,
-          metadata: { invitationId: undangan.undanganAnggotaProsesBisnisId },
-        },
-      });
       return user;
     });
     return created;
@@ -359,8 +340,7 @@ export class PenanggungJawabProsesBisnisService {
       throw new ConflictException('Proses Bisnis masih memiliki SOP aktif/draft; selesaikan siklus sebelum arsip');
     }
     const archivedAt = new Date();
-    await this.prisma.$transaction([
-      this.prisma.statusProsesBisnis.upsert({
+    await this.prisma.statusProsesBisnis.upsert({
         where: { prosesBisnisId },
         create: {
           prosesBisnisId,
@@ -373,25 +353,7 @@ export class PenanggungJawabProsesBisnisService {
           archivedAt,
           archivedReason: dto.reason.trim(),
         },
-      }),
-      this.prisma.riwayatAktivitasProsesBisnis.create({
-        data: {
-          prosesBisnisId,
-          actorId: penggunaId,
-          event: JenisAktivitasProsesBisnis.PROCESS_ARCHIVED,
-          metadata: { reason: dto.reason.trim() },
-        },
-      }),
-    ]);
-  }
-
-  async listRiwayatAktivitas(penggunaId: string, prosesBisnisId: string) {
-    await this.wajibProsesBisnisMilikSaya(penggunaId, prosesBisnisId, false);
-    return this.prisma.riwayatAktivitasProsesBisnis.findMany({
-      where: { prosesBisnisId },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-    });
+      });
   }
 
   private async pastikanPunyaKewenanganPenanggungJawab(penggunaId: string): Promise<void> {
@@ -456,6 +418,34 @@ export class PenanggungJawabProsesBisnisService {
         archivedReason: siklus?.archivedReason ?? null,
       };
     });
+  }
+
+  private async attachInvitations<T extends { prosesBisnisId: string }>(rows: T[]) {
+    if (rows.length === 0) return rows.map((row) => ({ ...row, undangan: [] }));
+    const invitations = await this.prisma.undanganAnggotaProsesBisnis.findMany({
+      where: { prosesBisnisId: { in: rows.map((row) => row.prosesBisnisId) } },
+      orderBy: [{ createdAt: 'desc' }],
+      select: {
+        undanganAnggotaProsesBisnisId: true,
+        prosesBisnisId: true,
+        email: true,
+        nama: true,
+        nip: true,
+        jabatan: true,
+        pangkat: true,
+        nohp: true,
+        status: true,
+        expiresAt: true,
+        acceptedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    const byProcess = new Map<string, typeof invitations>();
+    for (const invitation of invitations) {
+      byProcess.set(invitation.prosesBisnisId, [...(byProcess.get(invitation.prosesBisnisId) ?? []), invitation]);
+    }
+    return rows.map((row) => ({ ...row, undangan: byProcess.get(row.prosesBisnisId) ?? [] }));
   }
 
   private async cariUndanganAktif(token: string) {

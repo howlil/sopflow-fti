@@ -19,6 +19,12 @@ function createWebRequest(req) {
 }
 
 const httpServer = createServer(async (req, res) => {
+  if (req.url?.split('?')[0] === '/__startup') {
+    res.statusCode = 204
+    res.end()
+    return
+  }
+
   try {
     const response = await serverEntry.fetch(createWebRequest(req))
     res.statusCode = response.status

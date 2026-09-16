@@ -5,7 +5,6 @@ import type {
   CreateSopRequestDto,
   Pelaksana,
   PenyusunWorkbenchData,
-  PenyusunWorkbenchQueryParams,
   SopDaftarRow,
   SopListQueryParams,
   SopRiwayatVersiRow,
@@ -31,10 +30,10 @@ export const sopApi = {
   create: (payload: CreateProsesBisnisSopRequestDto) =>
     unwrapApiData(apiClient.post<ApiSuccessResponse<SopDaftarRow>>('/prosesBisnis-sop', payload)),
 
-  getPenyusunWorkbench: (detailSopId: string, params?: PenyusunWorkbenchQueryParams) =>
+  getPenyusunWorkbench: (detailSopId: string) =>
     unwrapWorkbench(
       apiClient.get<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/prosesBisnis-sop/workbench/${detailSopId}${buildQueryString(params)}`,
+        `/prosesBisnis-sop/workbench/${detailSopId}`,
       ),
     ),
 
@@ -62,10 +61,10 @@ export const sopApi = {
       ),
     ),
 
-  buatVersiBaru: (detailSopId: string, params?: PenyusunWorkbenchQueryParams) =>
+  buatVersiBaru: (detailSopId: string) =>
     unwrapWorkbench(
       apiClient.post<ApiSuccessResponse<PenyusunWorkbenchData>>(
-        `/prosesBisnis-sop/${detailSopId}/version${buildQueryString(params)}`,
+        `/prosesBisnis-sop/${detailSopId}/version`,
       ),
     ),
 

@@ -10,17 +10,17 @@
 ## ProsesBisnis
 
 - A ProsesBisnis has one owner.
+- A Process Owner account has exactly one active owner-eligibility scope; historical revoked scopes may remain.
 - Faculty ProsesBisnis has no `departmentId`.
 - Department ProsesBisnis has a valid `departmentId`.
+- The Process owner must have an active owner-eligibility record matching the Process scope and department.
 - ProsesBisnis membership is unique by `(processId, penggunaId)`.
 - Database triggers reject inconsistent `scope` / `departmentId` combinations on insert and update.
 
 ## SOP
 
-- Active SOP ownership is `SOP.processId`.
-- Active workflow versions (`DRAFT`, `PROCESS_REVIEW`, `REVISION_REQUIRED`, `FINAL_APPROVAL`, `TTE_PENDING`) must belong to an SOP with a non-null `processId`.
-- An active SOP cannot have its Process ownership removed while an active workflow version exists.
-- Imported archive rows may remain unbound only outside the active workflow states above.
+- Every SOP belongs to exactly one ProsesBisnis through required `SOP.processId` ownership.
+- `SOP.processId` cannot be null for active, effective, superseded, or revoked SOPs.
 - Version identity is unique by `(sopId, versi)`.
 - `DetailSOP.status` uses only the native lifecycle enum.
 - At most one `DetailSOP` per SOP may be `EFFECTIVE`; database triggers enforce this on insert and update.
@@ -32,19 +32,20 @@
 ## Process review
 
 - `REVISION` review evidence must transition `PROCESS_REVIEW -> REVISION_REQUIRED` and include a non-empty note.
-- `ACCEPT` review evidence must transition `PROCESS_REVIEW -> FINAL_APPROVAL`.
+- `ACCEPT` review evidence must transition `PROCESS_REVIEW -> TTE_PENDING`; `FINAL_APPROVAL` is retained only as a legacy status for historical rows.
 - Review evidence must refer to the same `DetailSOP`, SOP, and Process ownership chain.
 - `reviewedById` must be the owner of that Process.
 - These rules are enforced by database triggers on insert and update, not only by service validation.
 
-## Organizational authority and final approval
+## Organizational authority and direct TTE
 
 - `DEAN` assignment uses `authorityKey = DEAN` and has no `departmentId`.
 - `HEAD_OF_DEPARTMENT` assignment requires a Department and uses `authorityKey = HEAD_OF_DEPARTMENT:<departmentId>`.
+- The canonical authority key is unique: exactly one current holder exists for the Faculty entity and for each Department entity.
 - Organizational authority holders must be workflow `USER` identities.
 - Final approval must reference an `ACCEPT` Process review for the same `detailSopId` and `processId`.
 - `approvedById`, `authority`, and `authorityKey` must resolve to the holder of the organizational authority assignment for that Process scope.
-- Faculty approval authority is Dean. Department approval authority is that Department Head.
+- Faculty signing authority is Dean. Department signing authority is that Department Head.
 - Database triggers enforce these cross-table relationships on insert and update.
 
 ## TTE
@@ -53,6 +54,7 @@
 - `DokumenTte.processId` must equal the Process that owns the SOP containing that `DetailSOP`; the database rejects cross-Process TTE documents.
 - Signing history stores contextual `PejabatBerwenang` and signer/certificate evidence.
 - A signed version transitions from `TTE_PENDING` to `EFFECTIVE` atomically with signing evidence in the application transaction.
+- The signer is resolved from the current Process scope and authority assignment; a `ProcessFinalApproval` row is not required for new signing.
 
 ## Catalogs
 
@@ -70,5 +72,7 @@
 - `0_fti_native_baseline` is the canonical schema baseline for a fresh database.
 - `1_fti_native_invariants` installs database invariants that Prisma schema cannot express.
 - `2_fti_workflow_identity_invariants` prevents platform-admin identities from entering workflow relationships through direct writes.
-- Existing target databases mark `0_fti_native_baseline` as applied once, then deploy `1_fti_native_invariants` normally.
+- `3_require_sop_process_ownership` contracts `SOP.processId` to `NOT NULL` and removes transitional null-ownership triggers.
+- `6_single_process_owner_scope` enforces one active owner scope per account and matching Process ownership through database triggers.
+- Existing databases must contain no SOP with null `processId` before migration 3 can apply; the migration fails instead of deleting or inventing ownership.
 - Every migration committed after this baseline must be forward-only and FTI-native.

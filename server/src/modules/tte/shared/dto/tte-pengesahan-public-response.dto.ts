@@ -33,6 +33,16 @@ class TtePengesahanPublicDokumenDto {
 
 /** Respons publik untuk verifikasi QR pengesahan SOP FTI. */
 export class TtePengesahanPublicResponseDto {
+  @ApiProperty({ description: 'Bukti tanda tangan cocok dengan record pengesahan server.' })
+  signatureValid!: boolean;
+
+  @ApiProperty({
+    enum: ['CURRENT', 'REVOKED', 'SUPERSEDED', 'NOT_PUBLIC'],
+    description:
+      'Status keberlakuan publik SOP saat ini; berbeda dari validitas historis tanda tangan.',
+  })
+  currentPublicStatus!: 'CURRENT' | 'REVOKED' | 'SUPERSEDED' | 'NOT_PUBLIC';
+
   @ApiProperty({ format: 'uuid' })
   userId!: string;
 

@@ -94,7 +94,7 @@ export function TteP12Dialog({ open, onOpenChange, hasP12 }: TteP12DialogProps) 
           <TabsContent value="upload" className="mt-4">
             <form onSubmit={handleUpload} className="space-y-4">
               <InfoCard variant="warning">
-                Gunakan file P12 resmi dari BSrE. Kami tidak menyimpan passphrase asli Anda, melainkan mengenkripsinya dengan PIN TTE Anda.
+                Gunakan berkas P12 resmi dari BSrE. Kami tidak menyimpan kata sandi asli Anda, melainkan mengenkripsinya dengan PIN TTE Anda.
               </InfoCard>
               <FormField label="PIN TTE Anda saat ini">
                 <Input
@@ -115,12 +115,12 @@ export function TteP12Dialog({ open, onOpenChange, hasP12 }: TteP12DialogProps) 
                   disabled={isPending}
                 />
               </FormField>
-              <FormField label="Passphrase P12 Asli">
+              <FormField label="Kata Sandi P12 Asli">
                 <Input
                   type="password"
                   value={p12Passphrase}
                   onChange={(e) => setP12Passphrase(e.target.value)}
-                  placeholder="Passphrase dari BSrE"
+                  placeholder="Kata sandi dari BSrE"
                   required
                   disabled={isPending}
                 />

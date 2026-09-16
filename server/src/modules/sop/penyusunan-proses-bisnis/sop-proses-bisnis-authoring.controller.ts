@@ -1,13 +1,11 @@
 import {
   Body,
   Controller,
-  DefaultValuePipe,
   Delete,
   Get,
   HttpCode,
   HttpStatus,
   Param,
-  ParseIntPipe,
   ParseUUIDPipe,
   Patch,
   Post,
@@ -15,7 +13,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiCookieAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { type ApiSuccessResponse, JwtAuthGuard } from '../../../common';
 import { ACCESS_TOKEN_COOKIE_NAME, type JwtAccessPayload } from '../../core/auth/helpers/auth.shared';
@@ -53,7 +51,7 @@ export class ProsesBisnisSopAuthoringController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Buat SOP baru di dalam Proses Bisnis yang dimiliki/diikuti pengguna' })
+  @ApiOperation({ summary: 'Buat SOP baru di dalam Proses Bisnis yang menjadi tanggung jawab pengguna' })
   async create(
     @Req() req: Request & { user: JwtAccessPayload },
     @Body() dto: CreateProsesBisnisSopDto,
@@ -67,18 +65,12 @@ export class ProsesBisnisSopAuthoringController {
 
   @Post(':detailOrSopId/version')
   @HttpCode(HttpStatus.CREATED)
-  @ApiQuery({ name: 'logsLimit', required: false, schema: { default: 100, minimum: 1, maximum: 500 } })
   @ApiOperation({ summary: 'Buat versi baru dengan Proses Bisnis authorization untuk SOP target' })
   async createVersion(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,
-    @Query('logsLimit', new DefaultValuePipe(100), ParseIntPipe) logsLimit: number,
   ): Promise<ApiSuccessResponse<unknown>> {
-    const workbench = await this.processVersionService.createVersion(
-      req.user,
-      detailOrSopId,
-      logsLimit,
-    );
+    const workbench = await this.processVersionService.createVersion(req.user, detailOrSopId);
     return {
       message: 'Versi baru SOP berhasil dibuat',
       success: true,
@@ -101,35 +93,33 @@ export class ProsesBisnisSopAuthoringController {
 
   @Delete(':detailSopId/versi-draft')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Hapus draft revisi melalui Proses Bisnis authorization' })
+    @ApiOperation({ summary: 'Hapus draf perbaikan melalui kewenangan Proses Bisnis' })
   async deleteVersionDraft(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailSopId', ParseUUIDPipe) detailSopId: string,
   ): Promise<ApiSuccessResponse<null>> {
     await this.service.deleteVersionDraft(req.user, detailSopId);
-    return { message: 'Versi draft berhasil dihapus', success: true, data: null };
+    return { message: 'Versi draf berhasil dihapus', success: true, data: null };
   }
 
   @Delete(':detailSopId/draft')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Hapus draft awal melalui Proses Bisnis authorization' })
+    @ApiOperation({ summary: 'Hapus draf awal melalui kewenangan Proses Bisnis' })
   async deleteInitialDraft(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailSopId', ParseUUIDPipe) detailSopId: string,
   ): Promise<ApiSuccessResponse<null>> {
     await this.service.deleteInitialDraft(req.user, detailSopId);
-    return { message: 'Draft SOP berhasil dihapus', success: true, data: null };
+    return { message: 'Draf SOP berhasil dihapus', success: true, data: null };
   }
 
   @Get('workbench/:detailOrSopId')
-  @ApiQuery({ name: 'logsLimit', required: false, schema: { default: 100, minimum: 1, maximum: 500 } })
   @ApiOperation({ summary: 'Workbench SOP dengan Proses Bisnis authorization untuk SOP target' })
   async workbench(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,
-    @Query('logsLimit', new DefaultValuePipe(100), ParseIntPipe) logsLimit: number,
   ): Promise<ApiSuccessResponse<unknown>> {
-    const workbench = await this.service.getWorkbench(req.user, detailOrSopId, logsLimit);
+    const workbench = await this.service.getWorkbench(req.user, detailOrSopId);
     return {
       message: 'Workbench SOP berhasil diambil',
       success: true,
@@ -138,15 +128,13 @@ export class ProsesBisnisSopAuthoringController {
   }
 
   @Patch('header/:detailOrSopId')
-  @ApiQuery({ name: 'logsLimit', required: false, schema: { default: 100, minimum: 1, maximum: 500 } })
   @ApiOperation({ summary: 'Perbarui header draft dengan Proses Bisnis authorization untuk SOP target' })
   async updateHeader(
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailOrSopId', ParseUUIDPipe) detailOrSopId: string,
     @Body() dto: UpdateSopHeaderDto,
-    @Query('logsLimit', new DefaultValuePipe(100), ParseIntPipe) logsLimit: number,
   ): Promise<ApiSuccessResponse<unknown>> {
-    const workbench = await this.service.updateHeader(req.user, detailOrSopId, dto, logsLimit);
+    const workbench = await this.service.updateHeader(req.user, detailOrSopId, dto);
     return {
       message: 'Header SOP berhasil diperbarui',
       success: true,

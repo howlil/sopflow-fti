@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { TERMINAL_DETAIL_STATUSES } from '../lifecycle/sop-editable.util';
-import { BagianSOP, Prisma, StatusSOP } from '../../../generated/prisma';
-import { appendOrCreateLogSession } from '../collaboration/log-edit-session.helper';
+import { TERMINAL_DETAIL_STATUSES } from '../../../common/status/sop-editable.util';
+import { Prisma, StatusSOP } from '../../../generated/prisma';
 import {
   sopCatalogRepoFail,
   sopCatalogRepoOk,
@@ -23,7 +22,7 @@ export interface UpdateSopHeaderRepoInput {
   };
 }
 
-const buildWorkbenchInclude = (logsLimit: number) =>
+const buildWorkbenchInclude = () =>
   ({
     sop: {
       select: {
@@ -72,14 +71,6 @@ const buildWorkbenchInclude = (logsLimit: number) =>
     },
     swimlanes: { include: { pelaksana: true } },
     langkahSOP: { orderBy: { urutan: 'asc' }, include: { pelaksana: true } },
-    logEditSop: {
-      orderBy: { createdAt: 'desc' },
-      take: logsLimit,
-      include: {
-        domainFields: true,
-        pengguna: { select: { penggunaId: true, nama: true, email: true } },
-      },
-    },
     konfigurasiDiagram: {
       include: {
         overridePanah: {
@@ -216,19 +207,17 @@ export class SopCatalogRepository {
 
   async findWorkbenchPayload(
     detailSopId: string,
-    logsLimit: number,
   ): Promise<SopWorkbenchDbPayload | null> {
     return this.prisma.detailSOP.findUnique({
       where: { detailSopId },
-      include: buildWorkbenchInclude(logsLimit),
+      include: buildWorkbenchInclude(),
     });
   }
 
   async findWorkbenchPayloadByDetailOrSopId(
     detailOrSopId: string,
-    logsLimit: number,
   ): Promise<SopWorkbenchDbPayload | null> {
-    const direct = await this.findWorkbenchPayload(detailOrSopId, logsLimit);
+    const direct = await this.findWorkbenchPayload(detailOrSopId);
     if (direct !== null) return direct;
 
     const header = await this.prisma.sOP.findUnique({
@@ -244,12 +233,12 @@ export class SopCatalogRepository {
     const latestDetailId = header?.detailSops[0]?.detailSopId;
     return latestDetailId === undefined
       ? null
-      : this.findWorkbenchPayload(latestDetailId, logsLimit);
+      : this.findWorkbenchPayload(latestDetailId);
   }
 
   async findDetailIdByDetailOrSopId(
     detailOrSopId: string,
-  ): Promise<{ detailSopId: string; sopId: string; prosesBisnisId: string | null } | null> {
+  ): Promise<{ detailSopId: string; sopId: string; prosesBisnisId: string } | null> {
     const direct = await this.prisma.detailSOP.findUnique({
       where: { detailSopId: detailOrSopId },
       select: {
@@ -287,7 +276,7 @@ export class SopCatalogRepository {
     detailSopId: string;
     sopId: string;
     status: StatusSOP;
-    prosesBisnisId: string | null;
+    prosesBisnisId: string;
   } | null> {
     const resolved = await this.findDetailIdByDetailOrSopId(detailOrSopId);
     if (resolved === null) return null;
@@ -315,9 +304,8 @@ export class SopCatalogRepository {
     sopId: string;
     userId: string;
     input: UpdateSopHeaderRepoInput;
-    changedFields: string[];
   }): Promise<SopCatalogRepoResult<void>> {
-    const { detailSopId, sopId, userId, input, changedFields } = params;
+    const { detailSopId, sopId, userId, input } = params;
     await this.prisma.$transaction(async (tx) => {
       if (input.judul !== undefined) {
         await tx.sOP.update({
@@ -403,13 +391,6 @@ export class SopCatalogRepository {
         }
       }
 
-      await appendOrCreateLogSession({
-        tx,
-        detailSopId,
-        penggunaId: userId,
-        bagian: BagianSOP.HEADER,
-        fields: changedFields,
-      });
     });
     return sopCatalogRepoOk(undefined);
   }
@@ -531,7 +512,10 @@ export class SopCatalogRepository {
 
       if (source.lampiranPeringatan.length > 0) {
         await tx.lampiranPeringatan.createMany({
-          data: source.lampiranPeringatan.map((item) => ({ detailSopId: newDetailId, teks: item.teks })),
+          data: source.lampiranPeringatan.map((item) => ({
+            detailSopId: newDetailId,
+            teks: item.teks,
+          })),
         });
       }
       if (source.lampiranKualifikasiPelaksanaan.length > 0) {
@@ -685,20 +669,6 @@ export class SopCatalogRepository {
         }
       }
 
-      await tx.logEditSOP.create({
-        data: {
-          detailSopId: newDetailId,
-          penggunaId: params.penggunaId,
-          createdAt: now,
-          bagian: BagianSOP.STATUS,
-          keterangan: `Versi ${versiBaru} dibuat berdasarkan versi ${source.versi}`,
-          sesiChangeCount: 1,
-          closedAt: now,
-          domainFields: {
-            create: [{ domainField: 'create' }, { domainField: 'revisiDariDetailSopId' }],
-          },
-        },
-      });
       return { detailSopId: newDetailId, versi: versiBaru };
     });
 

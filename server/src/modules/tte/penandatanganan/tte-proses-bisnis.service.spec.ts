@@ -29,11 +29,10 @@ const context: ProsesBisnisTteSigningContext = {
   judulSop: 'SOP Akademik',
   nomorSOP: 'SOP-01',
   versi: 2,
-  approval: {
-    approvedById: user.sub,
+  authority: {
+    holderId: user.sub,
     authority: PejabatBerwenang.DEAN,
     kunciPejabatBerwenang: 'DEAN',
-    approvedAt: new Date('2026-09-01T00:00:00Z'),
   },
 };
 
@@ -50,8 +49,8 @@ function createService(overrides?: {
       ok: true,
       detailSopId: signingContext.detailSopId,
       dokumenTteId: 'doc-1',
-      authority: signingContext.approval.authority,
-      kunciPejabatBerwenang: signingContext.approval.kunciPejabatBerwenang,
+      authority: signingContext.authority.authority,
+      kunciPejabatBerwenang: signingContext.authority.kunciPejabatBerwenang,
     };
   const tx = {
     prosesBisnis: {
@@ -156,7 +155,7 @@ describe('ProsesBisnisTteService', () => {
   it('menolak signer yang bukan pengguna yang memberi persetujuan akhir, tanpa melihat legacy role', async () => {
     const otherContext: ProsesBisnisTteSigningContext = {
       ...context,
-      approval: { ...context.approval, approvedById: '00000000-0000-4000-8000-000000000099' },
+      authority: { ...context.authority, holderId: '00000000-0000-4000-8000-000000000099' },
     };
     const { service, processRepo } = createService({ contextResult: { ok: true, context: otherContext } });
 
@@ -202,6 +201,21 @@ describe('ProsesBisnisTteService', () => {
     }));
   });
 
+  it('memproses bulk TTE dengan satu verifikasi PIN dan hasil per SOP', async () => {
+    const { service, signer } = createService();
+    const result = await service.signMany(user, {
+      pin: '1234',
+      items: [
+        { detailSopId: context.detailSopId, ...dto },
+        { detailSopId: '00000000-0000-4000-8000-000000000015', ...dto },
+      ],
+    });
+
+    expect(result).toMatchObject({ requestedCount: 2, signedCount: 2, failedCount: 0 });
+    expect(result.items.every((item) => item.status === 'SIGNED')).toBe(true);
+    expect(signer.signOfficialSopPdfWithUserCertificate).toHaveBeenCalledTimes(2);
+  });
+
   it('deduplicates effective feedback when original author is also Penanggung Jawab Proses Bisnis', async () => {
     const { service, notifikasiProsesBisnis } = createService({
       authorId: 'owner-author-1',
@@ -216,8 +230,8 @@ describe('ProsesBisnisTteService', () => {
   it('menandatangani Departemen Proses Bisnis SOP dengan Head of Departemen authority snapshot', async () => {
     const departmentContext: ProsesBisnisTteSigningContext = {
       ...context,
-      approval: {
-        ...context.approval,
+      authority: {
+        ...context.authority,
         authority: PejabatBerwenang.HEAD_OF_DEPARTMENT,
         kunciPejabatBerwenang: 'HEAD_OF_DEPARTMENT:00000000-0000-4000-8000-000000000020',
       },
@@ -238,7 +252,7 @@ describe('ProsesBisnisTteService', () => {
     );
     expect(result).toEqual(expect.objectContaining({
       authority: PejabatBerwenang.HEAD_OF_DEPARTMENT,
-      kunciPejabatBerwenang: departmentContext.approval.kunciPejabatBerwenang,
+      kunciPejabatBerwenang: departmentContext.authority.kunciPejabatBerwenang,
       status: StatusSOP.EFFECTIVE,
     }));
   });

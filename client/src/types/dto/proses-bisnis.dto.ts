@@ -2,6 +2,7 @@ import type { PlatformRole } from '@/types/dto/access.dto'
 
 export type LingkupOrganisasi = 'FACULTY' | 'DEPARTMENT'
 export type StatusKeaktifanProsesBisnis = 'ACTIVE' | 'ARCHIVED'
+export type StatusUndanganAnggotaProsesBisnis = 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED'
 
 export interface DepartemenDto {
   departemenId: string
@@ -68,8 +69,36 @@ export interface GrantKewenanganPenanggungJawabProsesBisnisPayload {
 
 export interface CreateOwnedProsesBisnisPayload {
   nama: string
+  kewenanganPenanggungJawabProsesBisnisId: string
+}
+
+export interface UndanganAnggotaProsesBisnisDto {
+  undanganAnggotaProsesBisnisId: string
+  prosesBisnisId: string
+  email: string
+  nama: string
+  nip: string
+  jabatan: string
+  pangkat: string
+  nohp: string
+  status: StatusUndanganAnggotaProsesBisnis
+  expiresAt: string
+  acceptedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ProsesBisnisMemberDirectoryDto {
+  prosesBisnisId: string
+  nama: string
   lingkup: LingkupOrganisasi
   departemenId: string | null
+  penanggungJawabId: string
+  departemen: DepartemenDto | null
+  penanggungJawab: ProsesBisnisAssignableUserDto
+  anggota: AnggotaProsesBisnisDto[]
+  undangan: UndanganAnggotaProsesBisnisDto[]
+  siklusStatus?: StatusKeaktifanProsesBisnis
 }
 
 export interface InviteAnggotaProsesBisnisPayload {
@@ -104,12 +133,7 @@ export interface UndanganAnggotaProsesBisnisPreviewDto {
   }
 }
 
-export interface RiwayatAktivitasProsesBisnisDto {
-  riwayatAktivitasProsesBisnisId: string
-  prosesBisnisId: string | null
-  actorId: string
-  event: string
-  targetUserId: string | null
-  metadata: Record<string, unknown> | null
-  createdAt: string
+export interface TerbitkanUlangUndanganResult {
+  undangan: Pick<UndanganAnggotaProsesBisnisDto, 'undanganAnggotaProsesBisnisId' | 'email' | 'expiresAt'>
+  activationPath: string
 }

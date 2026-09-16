@@ -14,7 +14,7 @@ import {
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { type ApiSuccessResponse, JwtAuthGuard, PlatformAdminGuard } from '../../../common';
 import { ACCESS_TOKEN_COOKIE_NAME } from '../auth/helpers/auth.shared';
-import { CreateDepartemenDto, UpdateDepartemenDto } from './dto/administrasi-proses-bisnis.dto';
+import { CreateDepartemenDto, TransferAnggotaProsesBisnisDto, UpdateDepartemenDto } from './dto/administrasi-proses-bisnis.dto';
 import { ProsesBisnisService } from './proses-bisnis.service';
 
 @ApiTags('Proses Bisnis Admin')
@@ -31,16 +31,6 @@ export class ProsesBisnisController {
       message: 'Daftar departemen berhasil diambil',
       success: true,
       data: await this.prosesBisnisService.listDepartemen(),
-    };
-  }
-
-  @Get('overview')
-  @ApiOperation({ summary: 'Ringkasan administrasi FTI untuk dashboard Admin' })
-  async overview(): Promise<ApiSuccessResponse<unknown>> {
-    return {
-      message: 'Ringkasan administrasi FTI berhasil diambil',
-      success: true,
-      data: await this.prosesBisnisService.getAdminOverview(),
     };
   }
 
@@ -85,6 +75,33 @@ export class ProsesBisnisController {
       message: 'Daftar Proses Bisnis berhasil diambil',
       success: true,
       data: await this.prosesBisnisService.listProsesBisnis(),
+    };
+  }
+
+  @Get('member-directory')
+  @ApiOperation({ summary: 'Daftar seluruh Tim Penyusun SOP dan undangan per Proses Bisnis' })
+  async listMemberDirectory(): Promise<ApiSuccessResponse<unknown>> {
+    return {
+      message: 'Katalog Tim Penyusun SOP dan undangan berhasil diambil',
+      success: true,
+      data: await this.prosesBisnisService.listMemberDirectory(),
+    };
+  }
+
+  @Post('member-directory/:penggunaId/transfer')
+  @ApiOperation({ summary: 'Pindahkan anggota aktif ke Proses Bisnis lain' })
+  async transferAnggota(
+    @Param('penggunaId', ParseUUIDPipe) penggunaId: string,
+    @Body() dto: TransferAnggotaProsesBisnisDto,
+  ): Promise<ApiSuccessResponse<unknown>> {
+    return {
+      message: 'Anggota berhasil dipindahkan ke Proses Bisnis tujuan',
+      success: true,
+      data: await this.prosesBisnisService.transferAnggota(
+        penggunaId,
+        dto.sourceProsesBisnisId,
+        dto.targetProsesBisnisId,
+      ),
     };
   }
 }

@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/api/api-client";
+import { resolveAuthenticatedEntryPath } from "@/lib/auth/resolve-entry-route";
 import type {
   ApiSuccessResponse,
   ChangePasswordDto,
@@ -35,7 +36,6 @@ import { useAuthStore, ensureAuthHydrated, mapPublicDataToAuthUser } from "@/sto
 import { useToast, showErrorMessages } from "@/hooks/useToast";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { navigateToAppPath, resolvePostLoginPath } from "@/utils/app-routing";
-import { ROUTES } from "@/utils/constants";
 
 export function useAuth() {
   const navigate = useNavigate();
@@ -51,13 +51,22 @@ export function useAuth() {
       queryClient.clear();
       setUser(mapPublicDataToAuthUser(u));
       showToast(`Selamat datang, ${u.nama}!`, "success");
-      const defaultPath = u.platformRole === "SUPER_ADMIN" ? ROUTES.ADMIN.HOME : ROUTES.WORK_QUEUE;
-      const resolveLanding = () => (redirect ? resolvePostLoginPath(redirect, defaultPath) : defaultPath);
       try {
         await ensureAuthHydrated(1000);
-        navigateToAppPath(navigate, resolveLanding());
+        const defaultPath = await resolveAuthenticatedEntryPath(mapPublicDataToAuthUser(u));
+        navigateToAppPath(
+          navigate,
+          redirect ? resolvePostLoginPath(redirect, defaultPath) : defaultPath,
+        );
       } catch {
-        setTimeout(() => navigateToAppPath(navigate, resolveLanding()), 100);
+        setTimeout(() => {
+          void resolveAuthenticatedEntryPath(mapPublicDataToAuthUser(u)).then((defaultPath) => {
+            navigateToAppPath(
+              navigate,
+              redirect ? resolvePostLoginPath(redirect, defaultPath) : defaultPath,
+            );
+          });
+        }, 100);
       }
     },
     onError: (error: Error) => showErrorMessages(error, "Login gagal"),

@@ -1,8 +1,7 @@
-import { Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, JenisNotifikasiProsesBisnis } from '../../../generated/prisma';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { NotificationEventsService } from '../shared/notification-events.service';
-import { PengingatProsesBisnisService } from './pengingat-proses-bisnis.service';
 
 function truncatePreview(value: string, maxLength = 255): string {
   return value.length <= maxLength ? value : `${value.slice(0, maxLength - 3)}...`;
@@ -35,7 +34,6 @@ export class NotifikasiProsesBisnisService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationEvents: NotificationEventsService,
-    @Optional() private readonly pengingatProsesBisnisService?: PengingatProsesBisnisService,
   ) {}
 
   async getSummary(penggunaId: string): Promise<{ unreadCount: number }> {
@@ -105,7 +103,6 @@ export class NotifikasiProsesBisnisService {
         ...message,
       },
     });
-    await this.pengingatProsesBisnisService?.syncForNotificationInTransaction(tx, input);
   }
 
   async createManyInTransaction(
@@ -144,18 +141,27 @@ export class NotifikasiProsesBisnisService {
     switch (input.kind) {
       case JenisNotifikasiProsesBisnis.PROCESS_OWNER_REVIEW_REQUESTED:
         return {
-          title: 'Review SOP Proses Bisnis diperlukan',
-          preview: `SOP pada ProsesBisnis ${input.namaProsesBisnis} menunggu review Anda.`,
-          body: `SOP ProsesBisnis ${input.namaProsesBisnis} telah disubmit dan menunggu keputusan ProsesBisnis Owner.`,
-          actionHref: '/work/queue',
+          title: 'Pemeriksaan SOP Proses Bisnis diperlukan',
+          preview: `SOP pada Proses Bisnis ${input.namaProsesBisnis} menunggu pemeriksaan Anda.`,
+          body: `SOP pada Proses Bisnis ${input.namaProsesBisnis} telah dikirimkan dan menunggu keputusan Penanggung Jawab Proses Bisnis.`,
+          actionHref: '/sop',
         };
       case JenisNotifikasiProsesBisnis.FINAL_APPROVAL_REQUESTED: {
         const authority = input.authorityLabel ?? 'kewenangan organisasi';
         return {
-          title: 'Persetujuan akhir SOP diperlukan',
-          preview: `SOP pada ProsesBisnis ${input.namaProsesBisnis} menunggu persetujuan akhir Anda.`,
-          body: `SOP ProsesBisnis ${input.namaProsesBisnis} telah diterima ProsesBisnis Owner dan menunggu persetujuan ${authority}.`,
+          title: 'Pengesahan SOP diperlukan',
+          preview: `SOP pada Proses Bisnis ${input.namaProsesBisnis} menunggu pengesahan Anda.`,
+          body: `SOP pada Proses Bisnis ${input.namaProsesBisnis} telah disetujui hasil pemeriksaannya dan menunggu pengesahan oleh ${authority}.`,
           actionHref: '/persetujuan',
+        };
+      }
+      case JenisNotifikasiProsesBisnis.TTE_REQUESTED: {
+        const authority = input.authorityLabel ?? 'kewenangan organisasi';
+        return {
+          title: 'Tanda Tangan Elektronik diperlukan',
+          preview: `SOP pada Proses Bisnis ${input.namaProsesBisnis} menunggu Tanda Tangan Elektronik Anda.`,
+          body: `SOP pada Proses Bisnis ${input.namaProsesBisnis} telah disetujui hasil pemeriksaannya dan siap ditandatangani oleh ${authority}.`,
+          actionHref: '/tanda-tangan',
         };
       }
       case JenisNotifikasiProsesBisnis.PROCESS_REVISION_REQUESTED: {
@@ -166,27 +172,27 @@ export class NotifikasiProsesBisnisService {
             : ` Catatan: ${catatan.length > 140 ? `${catatan.slice(0, 137)}...` : catatan}`;
         const bodyCatatan = catatan === undefined ? '' : ` Catatan pemilik proses: ${catatan}`;
         return {
-          title: 'Revisi SOP Proses Bisnis diperlukan',
+          title: 'Perbaikan SOP Proses Bisnis diperlukan',
           preview: truncatePreview(
-            `SOP pada ProsesBisnis ${input.namaProsesBisnis} dikembalikan untuk revisi.${previewCatatan}`,
+            `SOP pada Proses Bisnis ${input.namaProsesBisnis} dikembalikan untuk perbaikan.${previewCatatan}`,
           ),
-          body: `ProsesBisnis Owner meminta revisi SOP ProsesBisnis ${input.namaProsesBisnis}.${bodyCatatan} Buka antrean kerja untuk melanjutkan perbaikan.`,
-          actionHref: '/work/queue',
+          body: `Penanggung Jawab Proses Bisnis mengembalikan SOP pada Proses Bisnis ${input.namaProsesBisnis} untuk perbaikan.${bodyCatatan} Buka daftar SOP untuk melanjutkan perbaikan.`,
+          actionHref: '/sop',
         };
       }
       case JenisNotifikasiProsesBisnis.PROCESS_SOP_EFFECTIVE:
         return {
-          title: 'SOP Proses Bisnis sudah berlaku',
-          preview: `SOP pada ProsesBisnis ${input.namaProsesBisnis} sudah efektif dan dipublikasikan.`,
-          body: `SOP ProsesBisnis ${input.namaProsesBisnis} telah selesai ditandatangani dan sekarang berstatus berlaku.`,
-          actionHref: '/work/queue',
+          title: 'SOP Proses Bisnis telah berlaku',
+          preview: `SOP pada Proses Bisnis ${input.namaProsesBisnis} telah ditetapkan berlaku dan dipublikasikan.`,
+          body: `SOP pada Proses Bisnis ${input.namaProsesBisnis} telah selesai ditandatangani dan ditetapkan berlaku.`,
+          actionHref: '/sop',
         };
       case JenisNotifikasiProsesBisnis.PROCESS_SOP_REVOKED:
         return {
-          title: 'SOP Proses Bisnis sudah dicabut',
-          preview: `SOP pada ProsesBisnis ${input.namaProsesBisnis} sudah tidak berlaku.`,
-          body: `SOP ProsesBisnis ${input.namaProsesBisnis} telah dicabut oleh kewenangan organisasi dan dipertahankan sebagai riwayat.`,
-          actionHref: '/work/queue',
+          title: 'SOP Proses Bisnis telah dicabut',
+          preview: `SOP pada Proses Bisnis ${input.namaProsesBisnis} sudah tidak berlaku.`,
+          body: `SOP pada Proses Bisnis ${input.namaProsesBisnis} telah dicabut oleh Pejabat yang Berwenang dan dipertahankan sebagai riwayat.`,
+          actionHref: '/sop',
         };
     }
   }

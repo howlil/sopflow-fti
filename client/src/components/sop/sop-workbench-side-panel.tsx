@@ -27,7 +27,7 @@ export function SopWorkbenchSidePanel({
   items,
   selectedId = null,
   onSelect,
-  title = 'Daftar SOP',
+  title = 'SOP',
   className,
 }: SopWorkbenchSidePanelProps) {
   return (

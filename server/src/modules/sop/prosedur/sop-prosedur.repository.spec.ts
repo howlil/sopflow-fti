@@ -1,6 +1,5 @@
-import { BagianSOP, JenisLangkahProsedur, SatuanWaktu } from '../../../generated/prisma';
+import { JenisLangkahProsedur, SatuanWaktu } from '../../../generated/prisma';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
-import { buildLogSummary } from '../collaboration/log-edit-session.helper';
 import { SopProsedurRepository } from './sop-prosedur.repository';
 
 interface CallLog {
@@ -27,9 +26,6 @@ function makeTx(existingLangkahIds: string[]): {
         const data = (args as { data: { langkahSopId: string } }).data;
         return { langkahSopId: data.langkahSopId };
       }
-      if (table === 'logEditSOP' && op === 'findFirst') {
-        return null;
-      }
       return { count: 0 };
     });
 
@@ -51,16 +47,6 @@ function makeTx(existingLangkahIds: string[]): {
       update: record('langkahSOP', 'update'),
     },
     detailSOP: { update: record('detailSOP', 'update') },
-    logEditSOP: {
-      findFirst: record('logEditSOP', 'findFirst'),
-      create: record('logEditSOP', 'create'),
-      update: record('logEditSOP', 'update'),
-      updateMany: record('logEditSOP', 'updateMany'),
-    },
-    logEditSopDomainField: {
-      deleteMany: record('logEditSopDomainField', 'deleteMany'),
-      createMany: record('logEditSopDomainField', 'createMany'),
-    },
   };
   return { tx, calls };
 }
@@ -89,13 +75,11 @@ describe('Pengujian SopProsedurRepository.updateProsedurTransaction', () => {
           { pelaksanaId: 'p-2', namaSnapshot: 'Pelaksana 2' },
         ],
       },
-      changedFields: ['pelaksana'],
     });
     const swimlaneOps = calls.filter((c) => c.table === 'detailSOPPelaksana');
     expect(swimlaneOps.map((c) => c.op)).toEqual(['deleteMany', 'createMany']);
     expect(calls.some((c) => c.table === 'langkahSOP' && c.op === 'deleteMany')).toBe(false);
     expect(calls.some((c) => c.table === 'detailSOP' && c.op === 'update')).toBe(true);
-    expect(calls.some((c) => c.table === 'logEditSOP')).toBe(true);
   });
 
   it('seharusnya memutus self FK, menghapus, menambahkan, lalu menghubungkan ulang', async () => {
@@ -123,11 +107,10 @@ describe('Pengujian SopProsedurRepository.updateProsedurTransaction', () => {
         ],
         defaultPelaksanaId: 'p-1',
       },
-      changedFields: ['langkah'],
     });
 
     const opsOrder = calls
-      .filter((c) => ['langkahSOP', 'detailSOP', 'logEditSOP'].includes(c.table))
+      .filter((c) => ['langkahSOP', 'detailSOP'].includes(c.table))
       .map((c) => `${c.table}.${c.op}`);
 
     const idxCount = opsOrder.indexOf('langkahSOP.count');
@@ -136,7 +119,6 @@ describe('Pengujian SopProsedurRepository.updateProsedurTransaction', () => {
     const idxFirstCreate = opsOrder.indexOf('langkahSOP.create');
     const idxBranchUpdate = opsOrder.indexOf('langkahSOP.update');
     const idxDetailUpdate = opsOrder.indexOf('detailSOP.update');
-    const idxLogCreate = opsOrder.lastIndexOf('logEditSOP.create');
 
     expect(idxCount).toBeGreaterThanOrEqual(0);
     expect(idxUpdateMany).toBeGreaterThan(idxCount);
@@ -144,7 +126,6 @@ describe('Pengujian SopProsedurRepository.updateProsedurTransaction', () => {
     expect(idxFirstCreate).toBeGreaterThan(idxLangkahDelete);
     expect(idxBranchUpdate).toBeGreaterThan(idxFirstCreate);
     expect(idxDetailUpdate).toBeGreaterThan(idxBranchUpdate);
-    expect(idxLogCreate).toBeGreaterThan(idxDetailUpdate);
 
     /* Branch update hanya untuk langkah yang punya cabang. */
     const branchUpdates = calls.filter((c) => c.table === 'langkahSOP' && c.op === 'update');
@@ -167,36 +148,8 @@ describe('Pengujian SopProsedurRepository.updateProsedurTransaction', () => {
         ],
         defaultPelaksanaId: 'p-1',
       },
-      changedFields: ['langkah'],
     });
     expect(calls.some((c) => c.table === 'langkahSOP' && c.op === 'create')).toBe(true);
   });
 
-  it('seharusnya memanggil log helper dengan bagian LANGKAH dan field yang berubah', async () => {
-    const { repo, calls } = makeRepo([]);
-    await repo.updateProsedurTransaction({
-      detailSopId: 'det-1',
-      userId: 'u-1',
-      input: { pelaksana: [] },
-      changedFields: ['pelaksana'],
-    });
-    const logCreate = calls.find((c) => c.table === 'logEditSOP' && c.op === 'create');
-    expect(logCreate).toBeDefined();
-    type LogCreateData = {
-      bagian: BagianSOP;
-      sesiChangeCount: number;
-      keterangan: string;
-      closedAt: Date | null;
-      domainFields: { create: Array<{ domainField: string }> };
-    };
-    const data = (logCreate!.args as { data: LogCreateData }).data;
-    expect(data.bagian).toBe(BagianSOP.LANGKAH);
-    expect(data.sesiChangeCount).toBe(1);
-    expect(data.closedAt).toBeNull();
-    expect(data.keterangan).toBe(
-      buildLogSummary(BagianSOP.LANGKAH, { fields: ['pelaksana'], count: 1 }),
-    );
-    expect(data.domainFields.create).toEqual([{ domainField: 'pelaksana' }]);
-    expect(calls.some((c) => c.table === 'logEditSOP' && c.op === 'findFirst')).toBe(true);
-  });
 });

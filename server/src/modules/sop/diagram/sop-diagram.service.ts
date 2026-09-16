@@ -1,10 +1,5 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { assertDetailSopEditable } from '../lifecycle/sop-editable.util';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { assertDetailSopEditable } from '../../../common/status/sop-editable.util';
 import type { JwtAccessPayload } from '../../../common';
 import { StatusSOP } from '../../../generated/prisma';
 import { ProsesBisnisContextService } from '../../core/proses-bisnis/konteks-proses-bisnis.service';
@@ -26,16 +21,10 @@ export class SopDiagramService {
     user: JwtAccessPayload,
     detailOrSopId: string,
     dto: UpdateSopDiagramDto,
-    logsLimit?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
     const resolved = await this.sopDiagramRepository.findDetailIdByDetailOrSopId(detailOrSopId);
     if (resolved === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
-    }
-    if (resolved.prosesBisnisId === null) {
-      throw new ConflictException(
-        'SOP belum memiliki Penanggung Jawab kepemilikan Proses Bisnis dan tidak tersedia pada endpoint native',
-      );
     }
     await this.konteksProsesBisnisService.assertCanAuthor(user.sub, resolved.prosesBisnisId);
     const detailStatus = await this.sopDiagramRepository.findDetailStatus(resolved.detailSopId);
@@ -51,7 +40,7 @@ export class SopDiagramService {
     }
     const hasChange = dto.layoutSeed !== undefined || dto.pathOverrides !== undefined;
     if (!hasChange) {
-      return this.getAuthorizedWorkbench(resolved.detailSopId, logsLimit);
+      return this.getAuthorizedWorkbench(resolved.detailSopId);
     }
     await this.sopDiagramRepository.upsertConfig({
       detailSopId: resolved.detailSopId,
@@ -59,13 +48,10 @@ export class SopDiagramService {
       layoutSeed: dto.layoutSeed,
       pathOverrides: dto.pathOverrides,
     });
-    return this.getAuthorizedWorkbench(resolved.detailSopId, logsLimit);
+    return this.getAuthorizedWorkbench(resolved.detailSopId);
   }
 
-  private async getAuthorizedWorkbench(
-    detailSopId: string,
-    logsLimit?: number,
-  ): Promise<PenyusunWorkbenchDataDto> {
-    return this.sopWorkbenchReader.getForDetail(detailSopId, logsLimit);
+  private async getAuthorizedWorkbench(detailSopId: string): Promise<PenyusunWorkbenchDataDto> {
+    return this.sopWorkbenchReader.getForDetail(detailSopId);
   }
 }

@@ -51,6 +51,54 @@ describe('ProsesBisnisContextService', () => {
     );
   });
 
+  it('allows the owner to view an SOP but not author it', async () => {
+    const findFirst = jest
+      .fn()
+      .mockResolvedValueOnce({ prosesBisnisId: 'prosesBisnis-a', penanggungJawabId: 'owner-1', anggota: [] })
+      .mockResolvedValueOnce(null);
+    const prisma = {
+      prosesBisnis: { findFirst },
+      statusProsesBisnis: { findUnique: jest.fn().mockResolvedValue(null) },
+    } as unknown as PrismaService;
+    const service = new ProsesBisnisContextService(prisma);
+
+    await expect(service.assertCanView('owner-1', 'prosesBisnis-a')).resolves.toMatchObject({
+      prosesBisnisId: 'prosesBisnis-a',
+    });
+    await expect(service.assertCanAuthor('owner-1', 'prosesBisnis-a')).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(findFirst).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: { prosesBisnisId: 'prosesBisnis-a', anggota: { some: { penggunaId: 'owner-1' } } },
+      }),
+    );
+  });
+
+  it('allows SOP initiation only for an Anggota Proses Bisnis', async () => {
+    const findFirst = jest
+      .fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ prosesBisnisId: 'prosesBisnis-a', penanggungJawabId: 'owner-1', anggota: [] });
+    const prisma = {
+      prosesBisnis: { findFirst },
+      statusProsesBisnis: { findUnique: jest.fn().mockResolvedValue(null) },
+    } as unknown as PrismaService;
+    const service = new ProsesBisnisContextService(prisma);
+
+    await expect(service.assertCanInitiateSop('owner-1', 'prosesBisnis-a')).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    await expect(service.assertCanInitiateSop('anggota-1', 'prosesBisnis-a')).resolves.toMatchObject({
+      prosesBisnisId: 'prosesBisnis-a',
+    });
+    expect(findFirst).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ where: { prosesBisnisId: 'prosesBisnis-a', anggota: { some: { penggunaId: 'owner-1' } } } }),
+    );
+  });
+
   it('allows review only when the user owns an active prosesBisnis', async () => {
     const findFirst = jest
       .fn()

@@ -8,7 +8,7 @@ import type { JwtAccessPayload } from '../../../common';
 import { extractDbInvariantMessage } from '../../../common/prisma/prisma-db-invariant.util';
 import { isPrismaUniqueConstraintError } from '../../../common/prisma/prisma-error.util';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { assertDetailSopEditable } from '../lifecycle/sop-editable.util';
+import { assertDetailSopEditable } from '../../../common/status/sop-editable.util';
 import { PejabatBerwenang, LingkupOrganisasi, StatusSOP } from '../../../generated/prisma';
 import { ProsesBisnisContextService } from '../../core/proses-bisnis/konteks-proses-bisnis.service';
 import type { ListSopQueryDto } from '../catalog/dto/list-sop-query.dto';
@@ -30,8 +30,8 @@ import {
 } from './sop-proses-bisnis-siklus.projection';
 
 type ProsesBisnisAwareSopRow = SopDaftarRowDto & {
-  prosesBisnisId: string | null;
-  namaProsesBisnis: string | null;
+  prosesBisnisId: string;
+  namaProsesBisnis: string;
   siklus: ProsesBisnisSopLifecycleProjection;
 };
 
@@ -65,13 +65,11 @@ export class ProsesBisnisSopAuthoringService {
 
     const prosesBisnisById = new Map(prosesBisnisSaya.map((prosesBisnis) => [prosesBisnis.prosesBisnisId, prosesBisnis]));
     const prosesBisnisBySop = new Map(
-      allNativeSops
-        .filter((sop): sop is typeof sop & { prosesBisnisId: string } => sop.prosesBisnisId !== null)
-        .map((sop) => [sop.sopId, sop.prosesBisnisId]),
+      allNativeSops.map((sop) => [sop.sopId, sop.prosesBisnisId]),
     );
     const accessibleTargetSopIds = new Set(
       allNativeSops
-        .filter((sop) => sop.prosesBisnisId !== null && prosesBisnisById.has(sop.prosesBisnisId))
+        .filter((sop) => prosesBisnisById.has(sop.prosesBisnisId))
         .map((sop) => sop.sopId),
     );
 
@@ -188,7 +186,7 @@ export class ProsesBisnisSopAuthoringService {
   }
 
   async create(user: JwtAccessPayload, dto: CreateProsesBisnisSopDto): Promise<ProsesBisnisAwareSopRow> {
-    const prosesBisnis = await this.konteksProsesBisnisService.assertCanAuthor(user.sub, dto.prosesBisnisId);
+    const prosesBisnis = await this.konteksProsesBisnisService.assertCanInitiateSop(user.sub, dto.prosesBisnisId);
 
     const namaLembaga = dto.namaLembaga?.trim() ?? '';
     let sopId: string;
@@ -249,19 +247,10 @@ export class ProsesBisnisSopAuthoringService {
   async getWorkbench(
     user: JwtAccessPayload,
     detailOrSopId: string,
-    logsLimit?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
     const context = await this.resolveProsesBisnisContext(detailOrSopId);
-    if (context.prosesBisnisId === null) {
-      throw new ConflictException(
-        'SOP belum memiliki Penanggung Jawab kepemilikan Proses Bisnis dan tidak tersedia pada endpoint native',
-      );
-    }
-    const prosesBisnis = await this.konteksProsesBisnisService.assertCanAuthor(user.sub, context.prosesBisnisId);
-    const workbench = await this.sopWorkbenchReader.getForDetail(
-      context.resolved.detailSopId,
-      logsLimit,
-    );
+    const prosesBisnis = await this.konteksProsesBisnisService.assertCanView(user.sub, context.prosesBisnisId);
+    const workbench = await this.sopWorkbenchReader.getForDetail(context.resolved.detailSopId);
     return this.withProsesBisnisContext(
       await this.withStatusProsesBisnis(user, workbench, prosesBisnis),
       prosesBisnis.prosesBisnisId,
@@ -273,14 +262,8 @@ export class ProsesBisnisSopAuthoringService {
     user: JwtAccessPayload,
     detailOrSopId: string,
     dto: UpdateSopHeaderDto,
-    logsLimit?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
     const context = await this.resolveProsesBisnisContext(detailOrSopId);
-    if (context.prosesBisnisId === null) {
-      throw new ConflictException(
-        'SOP belum memiliki Penanggung Jawab kepemilikan Proses Bisnis dan tidak tersedia pada endpoint native',
-      );
-    }
     const prosesBisnis = await this.konteksProsesBisnisService.assertCanAuthor(user.sub, context.prosesBisnisId);
     const statusContext = await this.sopCatalogRepository.findLatestDetailStatusContext(
       context.resolved.detailSopId,
@@ -299,7 +282,6 @@ export class ProsesBisnisSopAuthoringService {
             sopId: context.resolved.sopId,
             userId: user.sub,
             input: this.toRepoInput(dto),
-            changedFields,
           }),
         );
       } catch (error) {
@@ -314,10 +296,7 @@ export class ProsesBisnisSopAuthoringService {
       }
     }
 
-    const refreshed = await this.sopWorkbenchReader.getForDetail(
-      context.resolved.detailSopId,
-      logsLimit,
-    );
+    const refreshed = await this.sopWorkbenchReader.getForDetail(context.resolved.detailSopId);
     return this.withProsesBisnisContext(
       await this.withStatusProsesBisnis(user, refreshed, prosesBisnis),
       prosesBisnis.prosesBisnisId,
@@ -327,11 +306,6 @@ export class ProsesBisnisSopAuthoringService {
 
   async deleteVersionDraft(user: JwtAccessPayload, detailSopId: string): Promise<void> {
     const context = await this.resolveProsesBisnisContext(detailSopId);
-    if (context.prosesBisnisId === null) {
-      throw new ConflictException(
-        'SOP belum memiliki Penanggung Jawab kepemilikan Proses Bisnis dan tidak tersedia pada endpoint native',
-      );
-    }
     await this.konteksProsesBisnisService.assertCanAuthor(user.sub, context.prosesBisnisId);
     assertSopCatalogRepoOk(
       await this.sopCatalogRepository.deleteVersiDraft(context.resolved.detailSopId),
@@ -340,11 +314,6 @@ export class ProsesBisnisSopAuthoringService {
 
   async deleteInitialDraft(user: JwtAccessPayload, detailSopId: string): Promise<void> {
     const context = await this.resolveProsesBisnisContext(detailSopId);
-    if (context.prosesBisnisId === null) {
-      throw new ConflictException(
-        'SOP belum memiliki Penanggung Jawab kepemilikan Proses Bisnis dan tidak tersedia pada endpoint native',
-      );
-    }
     await this.konteksProsesBisnisService.assertCanAuthor(user.sub, context.prosesBisnisId);
     assertSopCatalogRepoOk(
       await this.sopCatalogRepository.deleteSopDraftAwal(context.resolved.detailSopId),
@@ -356,11 +325,7 @@ export class ProsesBisnisSopAuthoringService {
     if (resolved === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
-    const sop = await this.prisma.sOP.findUnique({
-      where: { sopId: resolved.sopId },
-      select: { prosesBisnisId: true },
-    });
-    return { resolved, prosesBisnisId: sop?.prosesBisnisId ?? null };
+    return { resolved, prosesBisnisId: resolved.prosesBisnisId };
   }
 
   private withProsesBisnisContext(
@@ -423,6 +388,9 @@ export class ProsesBisnisSopAuthoringService {
 
     return {
       ...workbench,
+      canEdit:
+        prosesBisnis.penanggungJawabId !== user.sub &&
+        prosesBisnis.anggota.some((anggota) => anggota.penggunaId === user.sub),
       siklus: projectProsesBisnisSopLifecycle({
         status: workbench.detail.status,
         approvalExists: approval !== null,

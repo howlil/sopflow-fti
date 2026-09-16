@@ -1,9 +1,8 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { JwtAccessPayload } from '../../../common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { hasRevisiInFlight } from '../lifecycle/sop-editable.util';
+import { hasRevisiInFlight } from '../../../common/status/sop-editable.util';
 import {
-  BagianSOP,
   JenisDokumenTte,
   PejabatBerwenang,
   LingkupOrganisasi,
@@ -13,7 +12,6 @@ import {
 import { PejabatBerwenangService } from '../../core/proses-bisnis/pejabat-berwenang.service';
 import { NotifikasiProsesBisnisService } from '../../notifications/proses-bisnis/notifikasi-proses-bisnis.service';
 import { SopCatalogRepository } from '../catalog/sop-catalog.repository';
-import { appendOrCreateLogSession } from '../collaboration/log-edit-session.helper';
 
 type ProsesBisnisRevocationQueueRow = {
   detailSopId: string;
@@ -73,9 +71,13 @@ export class ProsesBisnisSopRevocationService {
     });
     if (prosesBisnis.length === 0) return [];
 
-    const prosesBisnisById = new Map(prosesBisnis.map((prosesBisnis) => [prosesBisnis.prosesBisnisId, prosesBisnis]));
+    const prosesBisnisById = new Map(
+      prosesBisnis.map((prosesBisnis) => [prosesBisnis.prosesBisnisId, prosesBisnis]),
+    );
     const nativeSops = await this.prisma.sOP.findMany({
-      where: { prosesBisnisId: { in: prosesBisnis.map((prosesBisnis) => prosesBisnis.prosesBisnisId) } },
+      where: {
+        prosesBisnisId: { in: prosesBisnis.map((prosesBisnis) => prosesBisnis.prosesBisnisId) },
+      },
       select: { sopId: true, prosesBisnisId: true },
     });
     if (nativeSops.length === 0) return [];
@@ -103,7 +105,6 @@ export class ProsesBisnisSopRevocationService {
 
     const rows: ProsesBisnisRevocationQueueRow[] = [];
     for (const sop of nativeSops) {
-      if (sop.prosesBisnisId === null) continue;
       const prosesBisnis = prosesBisnisById.get(sop.prosesBisnisId);
       const sopDetails = detailsBySopId.get(sop.sopId) ?? [];
       if (!prosesBisnis || sopDetails.length === 0) continue;
@@ -132,19 +133,9 @@ export class ProsesBisnisSopRevocationService {
     if (resolved === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
+    const prosesBisnisId = resolved.prosesBisnisId;
 
-    const sop = await this.prisma.sOP.findUnique({
-      where: { sopId: resolved.sopId },
-      select: { prosesBisnisId: true },
-    });
-    if (sop?.prosesBisnisId == null) {
-      throw new ConflictException(
-        'SOP tanpa Proses Bisnis hanya tersedia sebagai riwayat compatibility dan tidak dapat dicabut dari runtime FTI',
-      );
-    }
-    const prosesBisnisId = sop.prosesBisnisId;
-
-    await this.authorityService.assertCanApprove(user.sub, prosesBisnisId);
+    await this.authorityService.assertCurrentAuthorityHolder(user.sub, prosesBisnisId);
 
     const history = await this.sopCatalogRepository.findRiwayatVersiBySopId(resolved.sopId);
     if (hasRevisiInFlight(history.map((row) => row.status))) {
@@ -194,14 +185,6 @@ export class ProsesBisnisSopRevocationService {
         );
       }
 
-      await appendOrCreateLogSession({
-        tx,
-        detailSopId: effective.detailSopId,
-        penggunaId: user.sub,
-        bagian: BagianSOP.STATUS,
-        fields: ['status'],
-        discrete: true,
-      });
       await tx.$executeRaw`
         UPDATE DokumenTte
         SET pdfStatus = ${'REVOKED'},

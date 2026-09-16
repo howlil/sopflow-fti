@@ -86,7 +86,7 @@ export function useHapusSopDraftAwal() {
   return useMutationWithToast({
     mutationFn: (detailSopId: string) => sopApi.hapusSopDraftAwal(detailSopId),
     invalidateKeys: [queryKeys.sop],
-    successMessage: 'Draft SOP berhasil dihapus',
+    successMessage: 'Draf SOP berhasil dihapus',
     useDetailedErrors: true,
     errorMessagePrefix: 'Gagal menghapus draft SOP',
   });

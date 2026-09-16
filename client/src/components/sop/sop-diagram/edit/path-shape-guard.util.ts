@@ -1,9 +1,7 @@
 import type { Side } from '@/components/sop/sop-diagram/core/route/shared/connector-side.types'
 import {
   normalizeOrthogonalPath,
-  routeOnCorridor,
   routeOrthogonal,
-  type CorridorGraph,
   type Point,
   type Rect,
 } from '@/components/sop/sop-diagram/core/route/shared/orthogonalRouter'
@@ -44,7 +42,6 @@ export interface RepairPathAroundShapesInput {
   flowchart?: {
     globalBounds?: Rect
     globalBoundsMargin?: number
-    corridorGraph?: CorridorGraph | null
   }
   bpmn?: BpmnRouteOptions
 }
@@ -103,30 +100,16 @@ function repairFlowchartPath(input: RepairPathAroundShapesInput): Point[] | null
   const distB = distanceOnSide(input.toShape, input.eSide, input.endPoint)
   const pointA = { shape: input.fromShape, side: input.sSide, distance: distA }
   const pointB = { shape: input.toShape, side: input.eSide, distance: distB }
-  const corridorGraph = input.flowchart?.corridorGraph
-  const corridorPath =
-    corridorGraph != null
-      ? routeOnCorridor({
-          graph: corridorGraph,
-          pointA,
-          pointB,
-          shapeMargin: FLOWCHART_SHAPE_MARGIN,
-          occupiedSegments: [],
-        })
-      : []
-  const routed =
-    corridorPath.length >= 2
-      ? corridorPath
-      : routeOrthogonal({
-          pointA,
-          pointB,
-          obstacles: routingObstacles,
-          shapeMargin: FLOWCHART_SHAPE_MARGIN,
-          globalBounds: input.flowchart?.globalBounds,
-          globalBoundsMargin: input.flowchart?.globalBoundsMargin ?? 20,
-          occupiedSegments: [],
-          preferSimple: true,
-        })
+  const routed = routeOrthogonal({
+    pointA,
+    pointB,
+    obstacles: routingObstacles,
+    shapeMargin: FLOWCHART_SHAPE_MARGIN,
+    globalBounds: input.flowchart?.globalBounds,
+    globalBoundsMargin: input.flowchart?.globalBoundsMargin ?? 20,
+    occupiedSegments: [],
+    preferSimple: true,
+  })
   if (routed.length < 2) return null
   const withEndpoints = attachManualEndpoints(routed, input.startPoint, input.endPoint)
   const wouldCross = buildObstacleCheck('flowchart', input.obstacles, input.fromShape, input.toShape)

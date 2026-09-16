@@ -5,6 +5,7 @@ import { JwtAuthGuard, type ApiSuccessResponse } from '../../../common';
 import type { JwtAccessPayload } from '../../../common/types/jwt-access-payload.type';
 import { ACCESS_TOKEN_COOKIE_NAME } from '../../core/auth/helpers/auth.shared';
 import { TandaTanganiProsesBisnisSopDto } from '../shared/dto/tanda-tangani-sop-proses-bisnis.dto';
+import { TandaTanganiProsesBisnisSopBulkDto } from '../shared/dto/tanda-tangani-sop-proses-bisnis-bulk.dto';
 import { ProsesBisnisTteService } from './tte-proses-bisnis.service';
 
 @ApiTags('Proses Bisnis TTE')
@@ -17,7 +18,7 @@ export class ProsesBisnisTteController {
   @Post(':detailOrSopId/sign')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'TTE contextual Proses Bisnis-bound SOP oleh Dean/Kepala Departemen yang memberi persetujuan akhir',
+    summary: 'Tanda Tangan Elektronik SOP berbasis Proses Bisnis oleh Pejabat Penandatangan',
   })
   async sign(
     @Req() req: Request & { user: JwtAccessPayload },
@@ -28,6 +29,20 @@ export class ProsesBisnisTteController {
       message: 'SOP berhasil ditandatangani dan diberlakukan',
       success: true,
       data: await this.service.sign(req.user, detailOrSopId, dto, req),
+    };
+  }
+
+  @Post('bulk-sign')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Bulk TTE SOP dengan satu PIN dan hasil per SOP' })
+  async signMany(
+    @Req() req: Request & { user: JwtAccessPayload },
+    @Body() dto: TandaTanganiProsesBisnisSopBulkDto,
+  ): Promise<ApiSuccessResponse<unknown>> {
+    return {
+      message: 'Bulk TTE SOP selesai diproses',
+      success: true,
+      data: await this.service.signMany(req.user, dto, req),
     };
   }
 }

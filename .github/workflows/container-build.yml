@@ -6,6 +6,7 @@ on:
       - 'compose.yml'
       - 'server/Dockerfile'
       - 'server/docker-entrypoint.sh'
+      - 'server/docker-bootstrap.sh'
       - 'server/.dockerignore'
       - 'server/package.json'
       - 'server/pnpm-lock.yaml'
@@ -24,6 +25,7 @@ on:
       - 'compose.yml'
       - 'server/Dockerfile'
       - 'server/docker-entrypoint.sh'
+      - 'server/docker-bootstrap.sh'
       - 'server/.dockerignore'
       - 'server/package.json'
       - 'server/pnpm-lock.yaml'
@@ -74,11 +76,12 @@ jobs:
             exit 1
           fi
 
-          grep -F './node_modules/.bin/prisma migrate deploy' server/docker-entrypoint.sh >/dev/null
+          grep -F './node_modules/.bin/prisma migrate deploy' server/docker-bootstrap.sh >/dev/null
           grep -F 'exec node dist/src/main.js' server/docker-entrypoint.sh >/dev/null
           grep -F 'condition: service_started' compose.yml >/dev/null
           grep -F 'http://127.0.0.1:8080/api/health/ready' compose.yml >/dev/null
           sh -n server/docker-entrypoint.sh
+          sh -n server/docker-bootstrap.sh
 
       - name: Build application images
         run: docker compose --env-file .env.example -f compose.yml build backend frontend
@@ -90,3 +93,4 @@ jobs:
             --entrypoint /app/node_modules/.bin/prisma \
             sop-arsip-backend --version
           docker run --rm --network none --entrypoint sh sop-arsip-backend -c 'test -f dist/src/database/seed/seed-initial.js && test -f dist/src/main.js'
+          docker run --rm --network none --entrypoint sh sop-arsip-backend -c 'test -x /usr/local/bin/sopflow-backend-bootstrap.sh'

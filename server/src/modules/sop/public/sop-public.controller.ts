@@ -50,7 +50,7 @@ export class SopPublicController {
   @Get('fti/sop')
   @ApiOperation({
     summary: 'Cari SOP resmi pada arsip FTI',
-    description: 'Mencari SOP Proses Bisnis-bound saja; row legacy tanpa Proses Bisnis tidak menjadi first-party discovery result.',
+    description: 'Mencari SOP resmi FTI berdasarkan kepemilikan Proses Bisnis.',
   })
   async listFtiSopGlobal(
     @Query() query: PublicArsipQueryDto,

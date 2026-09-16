@@ -1,6 +1,6 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsString, Length } from 'class-validator';
+import { IsString, IsUUID, Length } from 'class-validator';
 
 const trimString = ({ value }: { value: unknown }): unknown =>
   typeof value === 'string' ? value.trim() : value;
@@ -14,3 +14,13 @@ export class CreateDepartemenDto {
 }
 
 export class UpdateDepartemenDto extends PartialType(CreateDepartemenDto) {}
+
+export class TransferAnggotaProsesBisnisDto {
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
+  sourceProsesBisnisId!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
+  targetProsesBisnisId!: string;
+}

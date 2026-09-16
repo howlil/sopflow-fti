@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
-import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import {
   JenisLangkahProsedur,
@@ -26,16 +26,36 @@ function makeService(options?: {
   penanggungJawab?: boolean;
   status?: StatusSOP;
   transitionCount?: number;
+  batchDetails?: Array<{
+    detailSopId: string;
+    sopId: string;
+    status: StatusSOP;
+    versi: number;
+    sop: { prosesBisnisId: string; judul: string };
+  }>;
+  latestDetails?: Array<{ detailSopId: string; sopId: string }>;
+  reviewBatchItems?: Array<{ paketPemeriksaanProsesBisnisId: string }>;
+  reviewBatch?: { items: Array<{ detailSop: { status: StatusSOP } }> };
 }) {
   const tx = {
     detailSOP: {
       updateMany: jest.fn().mockResolvedValue({ count: options?.transitionCount ?? 1 }),
     },
-    logEditSOP: {
-      create: jest.fn().mockResolvedValue({}),
-    },
     pemeriksaanProsesBisnis: {
       create: jest.fn().mockResolvedValue({}),
+    },
+    paketPemeriksaanProsesBisnis: {
+      create: jest.fn().mockResolvedValue({
+        paketPemeriksaanProsesBisnisId: 'paket-1',
+        status: 'IN_REVIEW',
+        diajukanPada: new Date('2026-09-16T00:00:00.000Z'),
+      }),
+      findUnique: jest.fn().mockResolvedValue(options?.reviewBatch ?? null),
+      update: jest.fn().mockResolvedValue({}),
+    },
+    paketPemeriksaanProsesBisnisItem: {
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      findMany: jest.fn().mockResolvedValue(options?.reviewBatchItems ?? []),
     },
   };
   const prisma = {
@@ -44,6 +64,10 @@ function makeService(options?: {
     },
     detailSOP: {
       findUnique: jest.fn().mockResolvedValue({ dibuatOlehId: 'author-1' }),
+      findMany: jest
+        .fn()
+        .mockResolvedValueOnce(options?.batchDetails ?? [])
+        .mockResolvedValueOnce(options?.latestDetails ?? []),
     },
     $transaction: jest.fn((callback: (client: typeof tx) => unknown) => callback(tx)),
   } as unknown as PrismaService;
@@ -84,10 +108,12 @@ function makeService(options?: {
     findDetailIdByDetailOrSopId: jest.fn().mockResolvedValue({
       detailSopId: 'detail-a',
       sopId: 'sop-a',
+      prosesBisnisId: 'prosesBisnis-a',
     }),
     findLatestDetailStatusContext: jest.fn().mockResolvedValue({
       detailSopId: 'detail-a',
       sopId: 'sop-a',
+      prosesBisnisId: 'prosesBisnis-a',
       status: options?.status ?? StatusSOP.DRAFT,
     }),
     findWorkbenchPayloadByDetailOrSopId: jest.fn().mockResolvedValue({
@@ -157,18 +183,31 @@ function makeService(options?: {
 
 describe('ProsesBisnisOwnerReviewService', () => {
   it('submits a Proses Bisnis SOP directly into Penanggung Jawab Proses Bisnis review and notifies the Penanggung Jawab Proses Bisnis', async () => {
-    const { service, tx, notifikasiProsesBisnis } = makeService();
+    const { service, tx, notifikasiProsesBisnis } = makeService({
+      batchDetails: [
+        {
+          detailSopId: 'detail-a',
+          sopId: 'sop-a',
+          status: StatusSOP.DRAFT,
+          versi: 1,
+          sop: { prosesBisnisId: 'prosesBisnis-a', judul: 'SOP' },
+        },
+      ],
+      latestDetails: [{ detailSopId: 'detail-a', sopId: 'sop-a' }],
+    });
 
     await service.submitForReview(user, 'detail-a');
 
     expect(tx.detailSOP.updateMany).toHaveBeenCalledWith({
-      where: { detailSopId: 'detail-a', status: StatusSOP.DRAFT },
+      where: {
+        detailSopId: { in: ['detail-a'] },
+        status: { in: [StatusSOP.DRAFT, StatusSOP.REVISION_REQUIRED] },
+      },
       data: {
         status: StatusSOP.PROCESS_REVIEW,
         terakhirDieditOlehId: 'user-1',
       },
     });
-    expect(tx.logEditSOP.create).toHaveBeenCalled();
     expect(notifikasiProsesBisnis.createInTransaction).toHaveBeenCalledWith(
       tx,
       expect.objectContaining({
@@ -233,7 +272,7 @@ describe('ProsesBisnisOwnerReviewService', () => {
     expect(notifikasiProsesBisnis.emitChanged).toHaveBeenCalledWith('author-1');
   });
 
-  it('maps Penanggung Jawab Proses Bisnis acceptance to ready-for-approval and notifies the resolved authority', async () => {
+  it('maps Penanggung Jawab Proses Bisnis acceptance directly to TTE and notifies the resolved authority', async () => {
     const { service, tx, pejabatBerwenang, notifikasiProsesBisnis } = makeService({
       status: StatusSOP.PROCESS_REVIEW,
     });
@@ -244,7 +283,7 @@ describe('ProsesBisnisOwnerReviewService', () => {
     expect(tx.detailSOP.updateMany).toHaveBeenCalledWith({
       where: { detailSopId: 'detail-a', status: StatusSOP.PROCESS_REVIEW },
       data: {
-        status: StatusSOP.FINAL_APPROVAL,
+        status: StatusSOP.TTE_PENDING,
         terakhirDieditOlehId: 'user-1',
       },
     });
@@ -252,7 +291,7 @@ describe('ProsesBisnisOwnerReviewService', () => {
       tx,
       expect.objectContaining({
         penggunaId: 'dean-1',
-        kind: JenisNotifikasiProsesBisnis.FINAL_APPROVAL_REQUESTED,
+        kind: JenisNotifikasiProsesBisnis.TTE_REQUESTED,
         authorityLabel: 'Dekan',
       }),
     );
@@ -264,7 +303,7 @@ describe('ProsesBisnisOwnerReviewService', () => {
         reviewedById: 'user-1',
         decision: 'ACCEPT',
         previousStatus: StatusSOP.PROCESS_REVIEW,
-        nextStatus: StatusSOP.FINAL_APPROVAL,
+        nextStatus: StatusSOP.TTE_PENDING,
         catatan: null,
       },
     });
@@ -279,17 +318,26 @@ describe('ProsesBisnisOwnerReviewService', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('rejects a revision decision without an actionable note', async () => {
+  it('persists an omitted revision note as null', async () => {
     const { service, tx } = makeService({
       penanggungJawab: true,
       status: StatusSOP.PROCESS_REVIEW,
     });
 
-    await expect(
-      service.review(user, 'detail-a', KeputusanPemeriksaanProsesBisnis.REVISION),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    await service.review(user, 'detail-a', KeputusanPemeriksaanProsesBisnis.REVISION);
 
-    expect(tx.pemeriksaanProsesBisnis.create).not.toHaveBeenCalled();
+    expect(tx.pemeriksaanProsesBisnis.create).toHaveBeenCalledWith({
+      data: {
+        detailSopId: 'detail-a',
+        sopId: 'sop-a',
+        prosesBisnisId: 'prosesBisnis-a',
+        reviewedById: 'user-1',
+        decision: 'REVISION',
+        previousStatus: StatusSOP.PROCESS_REVIEW,
+        nextStatus: StatusSOP.REVISION_REQUIRED,
+        catatan: null,
+      },
+    });
   });
 
   it('rejects a stale concurrent review decision instead of overwriting the winner', async () => {
@@ -303,5 +351,123 @@ describe('ProsesBisnisOwnerReviewService', () => {
     ).rejects.toBeInstanceOf(ConflictException);
     expect(notifikasiProsesBisnis.createInTransaction).not.toHaveBeenCalled();
     expect(tx.pemeriksaanProsesBisnis.create).not.toHaveBeenCalled();
+  });
+
+  it('submits several complete SOP versions in one Paket Pemeriksaan atomically', async () => {
+    const { service, tx, notifikasiProsesBisnis } = makeService({
+      transitionCount: 2,
+      batchDetails: [
+        {
+          detailSopId: 'detail-a',
+          sopId: 'sop-a',
+          status: StatusSOP.DRAFT,
+          versi: 1,
+          sop: { prosesBisnisId: 'prosesBisnis-a', judul: 'SOP A' },
+        },
+        {
+          detailSopId: 'detail-b',
+          sopId: 'sop-b',
+          status: StatusSOP.REVISION_REQUIRED,
+          versi: 2,
+          sop: { prosesBisnisId: 'prosesBisnis-a', judul: 'SOP B' },
+        },
+      ],
+      latestDetails: [
+        { detailSopId: 'detail-a', sopId: 'sop-a' },
+        { detailSopId: 'detail-b', sopId: 'sop-b' },
+      ],
+    });
+
+    const result = await service.submitBatchForReview(user, ['detail-a', 'detail-b']);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        paketPemeriksaanProsesBisnisId: 'paket-1',
+        totalSop: 2,
+        menungguPemeriksaan: 2,
+        status: 'IN_REVIEW',
+      }),
+    );
+    expect(tx.paketPemeriksaanProsesBisnis.create).toHaveBeenCalled();
+    expect(tx.paketPemeriksaanProsesBisnisItem.createMany).toHaveBeenCalledWith({
+      data: [
+        { paketPemeriksaanProsesBisnisId: 'paket-1', detailSopId: 'detail-a' },
+        { paketPemeriksaanProsesBisnisId: 'paket-1', detailSopId: 'detail-b' },
+      ],
+    });
+    expect(tx.detailSOP.updateMany).toHaveBeenCalledWith({
+      where: {
+        detailSopId: { in: ['detail-a', 'detail-b'] },
+        status: { in: [StatusSOP.DRAFT, StatusSOP.REVISION_REQUIRED] },
+      },
+      data: { status: StatusSOP.PROCESS_REVIEW, terakhirDieditOlehId: 'user-1' },
+    });
+    expect(notifikasiProsesBisnis.createInTransaction).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects a bulk submission that crosses Proses Bisnis boundaries before opening a transaction', async () => {
+    const { service, prisma } = makeService({
+      batchDetails: [
+        {
+          detailSopId: 'detail-a',
+          sopId: 'sop-a',
+          status: StatusSOP.DRAFT,
+          versi: 1,
+          sop: { prosesBisnisId: 'prosesBisnis-a', judul: 'SOP A' },
+        },
+        {
+          detailSopId: 'detail-b',
+          sopId: 'sop-b',
+          status: StatusSOP.DRAFT,
+          versi: 1,
+          sop: { prosesBisnisId: 'prosesBisnis-b', judul: 'SOP B' },
+        },
+      ],
+    });
+
+    await expect(service.submitBatchForReview(user, ['detail-a', 'detail-b'])).rejects.toThrow(
+      'Proses Bisnis yang sama',
+    );
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects a stale version in the preflight and leaves all selected SOPs unchanged', async () => {
+    const { service, prisma } = makeService({
+      batchDetails: [
+        {
+          detailSopId: 'detail-a',
+          sopId: 'sop-a',
+          status: StatusSOP.DRAFT,
+          versi: 1,
+          sop: { prosesBisnisId: 'prosesBisnis-a', judul: 'SOP A' },
+        },
+      ],
+      latestDetails: [{ detailSopId: 'detail-new', sopId: 'sop-a' }],
+    });
+
+    await expect(service.submitBatchForReview(user, ['detail-a'])).rejects.toThrow(
+      'belum memenuhi persyaratan',
+    );
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('marks a Paket Pemeriksaan selesai after its final SOP decision', async () => {
+    const { service, tx } = makeService({
+      status: StatusSOP.PROCESS_REVIEW,
+      reviewBatchItems: [{ paketPemeriksaanProsesBisnisId: 'paket-1' }],
+      reviewBatch: {
+        items: [
+          { detailSop: { status: StatusSOP.TTE_PENDING } },
+          { detailSop: { status: StatusSOP.TTE_PENDING } },
+        ],
+      },
+    });
+
+    await service.review(user, 'detail-a', KeputusanPemeriksaanProsesBisnis.ACCEPT);
+
+    expect(tx.paketPemeriksaanProsesBisnis.update).toHaveBeenCalledWith({
+      where: { paketPemeriksaanProsesBisnisId: 'paket-1' },
+      data: { status: 'COMPLETED', selesaiPada: expect.any(Date) as unknown as Date },
+    });
   });
 });

@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
 import { ProsesBisnisModule } from '../../core/proses-bisnis/proses-bisnis.module';
 import { NotifikasiProsesBisnisModule } from '../../notifications/proses-bisnis/notifikasi-proses-bisnis.module';
 import { SopWorkbenchModule } from '../catalog/sop-workbench.module';
 import { PelaksanaModule } from '../pelaksana/pelaksana.module';
-import { ProsesBisnisBoundSopGuard } from './sop-terikat-proses-bisnis.guard';
 import { PersetujuanAkhirSOPController } from './persetujuan-akhir-sop.controller';
 import { PersetujuanAkhirSOPService } from './persetujuan-akhir-sop.service';
 import { ProsesBisnisOwnerReviewController } from './pemeriksaan-penanggung-jawab-proses-bisnis.controller';
@@ -29,7 +27,6 @@ import { ProsesBisnisVersionService } from './versi-sop-proses-bisnis.service';
     ProsesBisnisOwnerReviewService,
     PersetujuanAkhirSOPService,
     ProsesBisnisSopRevocationService,
-    { provide: APP_GUARD, useClass: ProsesBisnisBoundSopGuard },
   ],
   exports: [
     ProsesBisnisSopAuthoringService,

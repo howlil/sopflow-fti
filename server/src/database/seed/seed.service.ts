@@ -113,7 +113,7 @@ export const SEED_FTI_PERATURAN: ReadonlyArray<SeedPeraturanInput> = [
     nomor: 'Peraturan Dekan 01/2024',
     tahun: 2024,
     nama: 'Tata Kelola SOP FTI',
-    tentang: 'Pedoman penyusunan, review, TTE, dan siklus SOP di lingkungan FTI.',
+    tentang: 'Pedoman penyusunan, pemeriksaan, Tanda Tangan Elektronik, dan siklus SOP di lingkungan FTI.',
   },
   {
     nomor: 'Peraturan Rektor 12/2023',
@@ -152,20 +152,22 @@ export class SeedService {
       const users = await this.seedUsers(tx, hashedPassword);
       const deptIf = await this.ensureDepartemen(tx, 'Informatika');
       const deptSi = await this.ensureDepartemen(tx, 'Sistem Informasi');
-      const penanggungJawabId = users['process.penanggungJawab@gmail.com'].penggunaId;
+      const facultyOwnerId = users['process.penanggungJawab@gmail.com'].penggunaId;
+      const informatikaOwnerId = users['kadep.if@gmail.com'].penggunaId;
+      const sistemInformasiOwnerId = users['kadep.si@gmail.com'].penggunaId;
       const adminId = users['admin.fti@gmail.com'].penggunaId;
 
-      await this.ensureKewenanganPenanggungJawabProsesBisnis(tx, penanggungJawabId, adminId, LingkupOrganisasi.FACULTY, null);
+      await this.ensureKewenanganPenanggungJawabProsesBisnis(tx, facultyOwnerId, adminId, LingkupOrganisasi.FACULTY, null);
       await this.ensureKewenanganPenanggungJawabProsesBisnis(
         tx,
-        penanggungJawabId,
+        informatikaOwnerId,
         adminId,
         LingkupOrganisasi.DEPARTMENT,
         deptIf.departemenId,
       );
       await this.ensureKewenanganPenanggungJawabProsesBisnis(
         tx,
-        penanggungJawabId,
+        sistemInformasiOwnerId,
         adminId,
         LingkupOrganisasi.DEPARTMENT,
         deptSi.departemenId,
@@ -175,21 +177,21 @@ export class SeedService {
         tx,
         'Pengelolaan Akademik FTI',
         LingkupOrganisasi.FACULTY,
-        penanggungJawabId,
+        facultyOwnerId,
         null,
       );
       const processIf = await this.ensureProsesBisnis(
         tx,
         'Layanan Akademik Informatika',
         LingkupOrganisasi.DEPARTMENT,
-        penanggungJawabId,
+        informatikaOwnerId,
         deptIf.departemenId,
       );
       const processSi = await this.ensureProsesBisnis(
         tx,
         'Layanan Akademik Sistem Informasi',
         LingkupOrganisasi.DEPARTMENT,
-        penanggungJawabId,
+        sistemInformasiOwnerId,
         deptSi.departemenId,
       );
 
@@ -289,6 +291,10 @@ export class SeedService {
     departemenId: string | null,
   ): Promise<void> {
     const kunciLingkup = lingkup === LingkupOrganisasi.FACULTY ? 'FACULTY' : `DEPARTMENT:${departemenId}`;
+    await tx.kewenanganPenanggungJawabProsesBisnis.updateMany({
+      where: { penggunaId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
     await tx.kewenanganPenanggungJawabProsesBisnis.upsert({
       where: { penggunaId_kunciLingkup: { penggunaId, kunciLingkup } },
       create: { penggunaId, lingkup, departemenId, kunciLingkup, grantedById },

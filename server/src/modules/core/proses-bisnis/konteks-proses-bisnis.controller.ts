@@ -14,7 +14,7 @@ export class ProsesBisnisContextController {
   constructor(private readonly konteksProsesBisnisService: ProsesBisnisContextService) {}
 
   @Get('mine')
-  @ApiOperation({ summary: 'Daftar Proses Bisnis tempat pengguna menjadi owner atau anggota' })
+  @ApiOperation({ summary: 'Daftar Proses Bisnis tempat pengguna menjadi Penanggung Jawab atau anggota tim' })
   async mine(
     @Req() req: Request & { user: JwtAccessPayload },
   ): Promise<ApiSuccessResponse<unknown>> {

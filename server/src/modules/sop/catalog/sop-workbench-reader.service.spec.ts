@@ -21,7 +21,7 @@ describe('SopWorkbenchReader', () => {
       findWorkbenchPayloadByDetailOrSopId: jest.fn(),
     };
     prisma = {
-      prosesBisnis: { findUnique: jest.fn() },
+      prosesBisnis: { findUnique: jest.fn().mockResolvedValue(null) },
       penugasanPejabatBerwenang: { findUnique: jest.fn() },
       pengguna: { findFirst: jest.fn() },
     } as unknown as PrismaService;
@@ -32,28 +32,19 @@ describe('SopWorkbenchReader', () => {
   function currentPayload(): SopWorkbenchDbPayload {
     return {
       detailSopId: 'detail-1',
-      sop: { prosesBisnisId: null },
+      sop: { prosesBisnisId: 'process-1' },
     } as unknown as SopWorkbenchDbPayload;
   }
 
-  it('uses the default log limit and maps the repository payload', async () => {
+  it('maps the repository payload', async () => {
     const payload = currentPayload();
     const mapped = { detail: { id: 'detail-1' } } as never;
     repository.findWorkbenchPayloadByDetailOrSopId.mockResolvedValue(payload);
     mapWorkbenchPayloadMock.mockReturnValue(mapped);
 
     await expect(reader.getForDetail('detail-1')).resolves.toBe(mapped);
-    expect(repository.findWorkbenchPayloadByDetailOrSopId).toHaveBeenCalledWith('detail-1', 100);
+    expect(repository.findWorkbenchPayloadByDetailOrSopId).toHaveBeenCalledWith('detail-1');
     expect(mapWorkbenchPayloadMock).toHaveBeenCalledWith(payload);
-  });
-
-  it('clamps an explicit log limit to the supported range', async () => {
-    repository.findWorkbenchPayloadByDetailOrSopId.mockResolvedValue(currentPayload());
-    mapWorkbenchPayloadMock.mockReturnValue({ detail: {} } as never);
-
-    await reader.getForDetail('detail-1', 999.9);
-
-    expect(repository.findWorkbenchPayloadByDetailOrSopId).toHaveBeenCalledWith('detail-1', 500);
   });
 
   it('throws when the repository cannot resolve the detail or SOP id', async () => {

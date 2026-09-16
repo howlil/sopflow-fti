@@ -25,7 +25,7 @@ export {
   useDetailSopPenyusun,
   type UseDetailSopPenyusunDataResult,
   type UseDetailSopPenyusunReturn,
-} from "@/pages/penyusun/sop/hooks/use-detail-sop-penyusun";
+} from "@/pages/sop/hooks/use-detail-sop-penyusun";
 export {
   canBuatVersiBaru,
   canEditSop,

@@ -26,7 +26,7 @@ import {
 } from './notifikasi-proses-bisnis.service';
 import { NotificationEventsService } from '../shared/notification-events.service';
 
-@ApiTags('Notifications')
+@ApiTags('Pemberitahuan Proses Bisnis')
 @Controller('notifications/proses-bisnis')
 @UseGuards(JwtAuthGuard)
 export class NotifikasiProsesBisnisController {

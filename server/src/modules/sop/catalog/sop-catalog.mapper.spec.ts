@@ -84,7 +84,6 @@ describe('Pengujian SopCatalogMapper', () => {
           pelaksana: { pelaksanaId: 'pel-1', nama: 'Staf' },
         },
       ],
-      logEditSop: [],
       konfigurasiDiagram: [],
     } as unknown as SopWorkbenchDbPayload;
 

@@ -173,14 +173,14 @@ export class PejabatBerwenangService {
     };
   }
 
-  async assertCanApprove(
+  async assertCurrentAuthorityHolder(
     userId: string,
     prosesBisnisId: string,
   ): Promise<ResolvedPejabatBerwenang> {
     const resolved = await this.resolveForProsesBisnis(prosesBisnisId);
     if (resolved.holderId !== userId) {
       throw new ForbiddenException(
-        'Anda bukan final approver untuk organizational lingkup Proses Bisnis ini',
+        'Anda bukan pemegang pejabat berwenang untuk lingkup organisasi Proses Bisnis ini',
       );
     }
     return resolved;

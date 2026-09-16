@@ -35,7 +35,7 @@ export interface SopPdfDocumentProps {
   prosedurRows?: ProsedurRow[];
   implementers?: { id: string; name: string }[];
   tteSignaturePayload?: TTESignaturePayload | null;
-  qrDataUrlKepalaOpd?: string;
+  qrVerificationDataUrl?: string;
   includeHeader?: boolean;
   printMode?: SopPdfPrintMode;
   diagramSnapshots?: DiagramPageSnapshot[];
@@ -295,11 +295,11 @@ function ListText({ items, ordered = true }: { items: string[]; ordered?: boolea
 function HeaderPage({
   metadata,
   tteSignaturePayload,
-  qrDataUrlKepalaOpd,
+  qrVerificationDataUrl,
 }: {
   metadata: ReturnType<typeof normalizeMetadata>;
   tteSignaturePayload?: TTESignaturePayload | null;
-  qrDataUrlKepalaOpd?: string;
+  qrVerificationDataUrl?: string;
 }) {
   const institutionLines = metadata.institutionLines ?? [];
   const lawBasis = toArrayField(metadata.lawBasis);
@@ -360,8 +360,8 @@ function HeaderPage({
                   <Text style={styles.signatureRole}>
                     {metadata.picRole || "Penanggung Jawab"},
                   </Text>
-                  {qrDataUrlKepalaOpd ? (
-                    <Image src={qrDataUrlKepalaOpd} style={styles.signatureQr} />
+                  {qrVerificationDataUrl ? (
+                    <Image src={qrVerificationDataUrl} style={styles.signatureQr} />
                   ) : (
                     <View style={styles.signatureSpacer} />
                   )}
@@ -647,7 +647,7 @@ export function SopPdfDocument({
   prosedurRows = [],
   implementers = [],
   tteSignaturePayload = null,
-  qrDataUrlKepalaOpd,
+  qrVerificationDataUrl,
   includeHeader,
   printMode,
   diagramSnapshots = [],
@@ -690,7 +690,7 @@ export function SopPdfDocument({
               key="header"
               metadata={metadata}
               tteSignaturePayload={tteSignaturePayload}
-              qrDataUrlKepalaOpd={qrDataUrlKepalaOpd}
+              qrVerificationDataUrl={qrVerificationDataUrl}
             />
           );
         }

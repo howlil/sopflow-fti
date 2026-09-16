@@ -1,7 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PenyusunWorkbenchDetailDto } from './penyusun-workbench-detail.dto';
 import { PenyusunWorkbenchLangkahDto } from './penyusun-workbench-langkah.dto';
-import { PenyusunWorkbenchLogEditDto } from './penyusun-workbench-log-edit.dto';
 import { PenyusunWorkbenchDiagramKonfigurasiDto } from '../../diagram/dto/penyusun-workbench-diagram.dto';
 import type { ProsesBisnisSopLifecycleProjection } from '../../penyusunan-proses-bisnis/sop-proses-bisnis-siklus.projection';
 
@@ -28,8 +27,13 @@ class TteSignaturePayloadDto {
   readonly signedAt!: string;
 }
 
-/** Muatan data GET area kerja penyusun: detail + langkah + activity + signing evidence. */
+/** Muatan data GET area kerja penyusun: detail + langkah + signing evidence. */
 export class PenyusunWorkbenchDataDto {
+  @ApiPropertyOptional({
+    description: 'Akses edit SOP. Penanggung Jawab Proses Bisnis selalu false; hanya Anggota yang dapat mengubah SOP.',
+  })
+  readonly canEdit?: boolean;
+
   @ApiPropertyOptional({
     type: 'object',
     additionalProperties: true,
@@ -42,9 +46,6 @@ export class PenyusunWorkbenchDataDto {
 
   @ApiProperty({ type: () => [PenyusunWorkbenchLangkahDto] })
   readonly langkah!: PenyusunWorkbenchLangkahDto[];
-
-  @ApiProperty({ type: () => [PenyusunWorkbenchLogEditDto] })
-  readonly logEdit!: PenyusunWorkbenchLogEditDto[];
 
   @ApiProperty({ type: () => PenyusunWorkbenchDiagramKonfigurasiDto, required: false })
   readonly diagramKonfigurasi?: PenyusunWorkbenchDiagramKonfigurasiDto;

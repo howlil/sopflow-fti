@@ -1,14 +1,22 @@
 import { useState } from 'react'
+import { Edit, UserCheck, UserX } from 'lucide-react'
 import {
   usePlatformAccounts,
   type CreatePlatformAccountPayload,
   type PlatformAccountDto,
 } from '@/api/platform-accounts'
 import { DataSurface } from '@/components/data/data-surface'
+import { FormDialog } from '@/components/ui/form-dialog'
+import { FormField } from '@/components/ui/form-field'
 import { ListPageLayout } from '@/components/layout/ListPageLayout'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
+import { LoadingState } from '@/components/ui/loading-state'
+import { QueryState } from '@/components/ui/query-state'
+import { Table } from '@/components/ui/data-table'
+import { RowActions } from '@/components/data/row-actions'
+import { AccountStatusBadge } from '@/components/status/account-status-badge'
 
 const EMPTY_FORM: CreatePlatformAccountPayload = {
   nama: '',
@@ -19,23 +27,41 @@ const EMPTY_FORM: CreatePlatformAccountPayload = {
   nohp: '',
 }
 
-export function AccountManagementPage() {
-  const { accounts, isLoading, createAccount, updateAccount, isSaving } = usePlatformAccounts()
-  const [form, setForm] = useState<CreatePlatformAccountPayload>(EMPTY_FORM)
-  const [editingAccount, setEditingAccount] = useState<PlatformAccountDto | null>(null)
-  const [editForm, setEditForm] = useState<CreatePlatformAccountPayload>(EMPTY_FORM)
-  const [deactivatingAccount, setDeactivatingAccount] = useState<PlatformAccountDto | null>(null)
+const ACCOUNT_FIELDS: Array<{
+  key: keyof CreatePlatformAccountPayload
+  title: string
+  placeholder: string
+  type?: 'text' | 'email'
+}> = [
+  { key: 'nama', title: 'Nama', placeholder: 'Contoh: Dwi Pratama' },
+  { key: 'nip', title: 'NIP', placeholder: '198001012010011001' },
+  { key: 'email', title: 'Email', placeholder: 'dwi@fti.example', type: 'email' },
+  { key: 'jabatan', title: 'Jabatan', placeholder: 'Dosen' },
+  { key: 'pangkat', title: 'Pangkat', placeholder: 'III/a' },
+  { key: 'nohp', title: 'Nomor HP', placeholder: '081234567890' },
+]
 
-  const canSubmit =
+function isValidAccountForm(form: CreatePlatformAccountPayload) {
+  return (
     form.nama.trim().length >= 2 &&
     form.nip.trim().length > 0 &&
     form.email.includes('@') &&
     form.jabatan.trim().length > 0 &&
     form.pangkat.trim().length > 0 &&
     form.nohp.trim().length > 0
+  )
+}
+
+export function AccountManagementPage() {
+  const { accounts, isLoading, isError, refetch, createAccount, updateAccount, isSaving } = usePlatformAccounts()
+  const [isCreateOpen, setCreateOpen] = useState(false)
+  const [form, setForm] = useState<CreatePlatformAccountPayload>(EMPTY_FORM)
+  const [editingAccount, setEditingAccount] = useState<PlatformAccountDto | null>(null)
+  const [editForm, setEditForm] = useState<CreatePlatformAccountPayload>(EMPTY_FORM)
+  const [deactivatingAccount, setDeactivatingAccount] = useState<PlatformAccountDto | null>(null)
 
   const submit = async () => {
-    if (!canSubmit) return
+    if (!isValidAccountForm(form)) return
     try {
       await createAccount({
         nama: form.nama.trim(),
@@ -46,9 +72,15 @@ export function AccountManagementPage() {
         nohp: form.nohp.trim(),
       })
       setForm(EMPTY_FORM)
+      setCreateOpen(false)
     } catch {
       // Toast mutation owns error presentation; preserve entered values for correction.
     }
+  }
+
+  const openCreate = () => {
+    setForm(EMPTY_FORM)
+    setCreateOpen(true)
   }
 
   const openEdit = (account: PlatformAccountDto) => {
@@ -64,7 +96,7 @@ export function AccountManagementPage() {
   }
 
   const submitEdit = async () => {
-    if (editingAccount === null) return
+    if (editingAccount === null || !isValidAccountForm(editForm)) return
     try {
       await updateAccount({
         penggunaId: editingAccount.penggunaId,
@@ -88,153 +120,155 @@ export function AccountManagementPage() {
     setEditForm((current) => ({ ...current, [field]: value }))
   }
 
-  const field = (
-    label: keyof CreatePlatformAccountPayload,
-    title: string,
-    placeholder: string,
-    type: 'text' | 'email' = 'text',
-  ) => (
-    <label className="block space-y-1.5 text-sm font-medium text-foreground">
-      {title}
-      <Input
-        type={type}
-        value={form[label]}
-        placeholder={placeholder}
-        onChange={(event) =>
-          setForm((current) => ({ ...current, [label]: event.target.value }))
-        }
-      />
-    </label>
-  )
-
   return (
     <ListPageLayout
       breadcrumb={[{ label: 'Administrasi' }, { label: 'Akun FTI' }]}
       title="Akun FTI"
     >
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(340px,0.8fr)]">
-        <DataSurface.Root>
-          <DataSurface.Header>
-            <div className="space-y-0.5">
-                <h2 className="text-sm font-semibold text-foreground">Akun FTI</h2>
-              <p className="text-sm text-secondary-foreground">
-                Akun tidak memperoleh akses Proses Bisnis atau kewenangan organisasi sampai ditugaskan secara eksplisit.
-              </p>
+      <DataSurface.Root>
+        <DataSurface.Header>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">Akun FTI</h2>
             </div>
-          </DataSurface.Header>
-          <div className="divide-y divide-border">
-            {isLoading ? (
-              <p className="p-4 text-sm text-secondary-foreground">Memuat akun...</p>
-            ) : accounts.length === 0 ? (
-              <p className="p-4 text-sm text-secondary-foreground">Belum ada akun.</p>
-            ) : (
-              accounts.map((account) => (
-                <div key={account.penggunaId} className="flex flex-wrap items-start justify-between gap-3 p-4">
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-medium text-foreground">{account.nama}</h3>
-                      <span className="rounded-full border border-border px-2 py-0.5 text-xs text-secondary-foreground">
-                        {account.platformRole === 'SUPER_ADMIN' ? 'Platform Admin' : 'User'}
-                      </span>
-                      <span className={`rounded-full border px-2 py-0.5 text-xs ${account.deletedAt ? 'border-danger/30 text-danger' : 'border-border text-secondary-foreground'}`}>
-                        {account.deletedAt ? 'Nonaktif' : 'Aktif'}
-                      </span>
-                    </div>
-                    <p className="text-sm text-secondary-foreground">
-                      {account.email} · NIP {account.nip}
-                    </p>
-                    <p className="text-xs text-secondary-foreground">
-                      {account.jabatan} · {account.pangkat}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 gap-2">
-                    <Button type="button" size="sm" variant="outline" onClick={() => openEdit(account)}>
-                      Edit
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={account.deletedAt ? 'outline' : 'destructive'}
-                      disabled={isSaving}
-                      onClick={() => {
-                        if (account.deletedAt) {
-                          void updateAccount({ penggunaId: account.penggunaId, payload: { status: 'AKTIF' } })
-                        } else {
-                          setDeactivatingAccount(account)
-                        }
-                      }}
-                    >
-                      {account.deletedAt ? 'Aktifkan' : 'Nonaktifkan'}
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
+            <Button type="button" onClick={openCreate}>Tambah Akun</Button>
           </div>
-        </DataSurface.Root>
+        </DataSurface.Header>
+        <QueryState
+          isLoading={isLoading}
+          isError={isError}
+          onRetry={() => void refetch()}
+          loading={<LoadingState message="Memuat akun…" />}
+        >
+          {accounts.length === 0 ? (
+            <p className="p-4 text-sm text-secondary-foreground">Belum ada akun.</p>
+          ) : (
+            <Table.Root>
+              <Table.Table>
+                <thead>
+                  <Table.HeadRow>
+                    <Table.Th>Nama</Table.Th>
+                    <Table.Th>Email / NIP</Table.Th>
+                    <Table.Th>Jabatan / Pangkat</Table.Th>
+                    <Table.Th>Status</Table.Th>
+                    <Table.ActionTh>Aksi</Table.ActionTh>
+                  </Table.HeadRow>
+                </thead>
+                <tbody>
+                  {accounts.map((account) => (
+                    <Table.BodyRow key={account.penggunaId}>
+                      <Table.Td>
+                        <p className="font-medium text-foreground">{account.nama}</p>
+                        <p className="text-xs text-secondary-foreground">
+                          {account.platformRole === 'SUPER_ADMIN' ? 'Administrator Platform' : 'Pengguna'}
+                        </p>
+                      </Table.Td>
+                      <Table.Td>
+                        <p>{account.email}</p>
+                        <p className="text-xs text-secondary-foreground">NIP {account.nip}</p>
+                      </Table.Td>
+                      <Table.Td>
+                        <p>{account.jabatan}</p>
+                        <p className="text-xs text-secondary-foreground">{account.pangkat}</p>
+                      </Table.Td>
+                      <Table.Td>
+                        <AccountStatusBadge status={account.deletedAt ? 'NONAKTIF' : 'AKTIF'} />
+                      </Table.Td>
+                      <Table.ActionTd>
+                        <RowActions
+                          actions={[
+                            {
+                              icon: Edit,
+                              title: `Ubah akun ${account.nama}`,
+                              onClick: () => openEdit(account),
+                              disabled: isSaving,
+                            },
+                            account.deletedAt
+                              ? {
+                                  icon: UserCheck,
+                                  title: `Aktifkan akun ${account.nama}`,
+                                  onClick: () => {
+                                    void updateAccount({
+                                      penggunaId: account.penggunaId,
+                                      payload: { status: 'AKTIF' },
+                                    })
+                                  },
+                                  disabled: isSaving,
+                                }
+                              : {
+                                  icon: UserX,
+                                  title: `Nonaktifkan akun ${account.nama}`,
+                                  onClick: () => setDeactivatingAccount(account),
+                                  disabled: isSaving,
+                                  destructive: true,
+                                },
+                          ]}
+                        />
+                      </Table.ActionTd>
+                    </Table.BodyRow>
+                  ))}
+                </tbody>
+              </Table.Table>
+            </Table.Root>
+          )}
+        </QueryState>
+      </DataSurface.Root>
 
-        {editingAccount ? (
-          <DataSurface.Root>
-            <DataSurface.Header>
-              <div className="space-y-0.5">
-                <h2 className="text-sm font-semibold text-foreground">Edit profil</h2>
-                <p className="text-sm text-secondary-foreground">
-                  Platform role dikelola sistem dan tidak dapat diubah dari sini.
-                </p>
-              </div>
-            </DataSurface.Header>
-            <div className="space-y-4 p-4">
-              {(['nama', 'nip', 'email', 'jabatan', 'pangkat', 'nohp'] as const).map((field) => (
-                <label key={field} className="block space-y-1.5 text-sm font-medium text-foreground">
-                  {field === 'nohp' ? 'Nomor HP' : field[0].toUpperCase() + field.slice(1)}
-                  <Input
-                    type={field === 'email' ? 'email' : 'text'}
-                    value={editForm[field]}
-                    onChange={(event) => setEditField(field, event.target.value)}
-                  />
-                </label>
-              ))}
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setEditingAccount(null)}>
-                  Batal
-                </Button>
-                <Button type="button" disabled={isSaving} onClick={submitEdit}>
-                  {isSaving ? 'Menyimpan...' : 'Simpan profil'}
-                </Button>
-              </div>
-            </div>
-          </DataSurface.Root>
-        ) : null}
+      <FormDialog
+        open={isCreateOpen}
+        onOpenChange={setCreateOpen}
+        title="Tambah Akun FTI"
+        description="Akun dibuat sebagai Pengguna FTI aktif dengan sandi awal yang dikelola sistem."
+        confirmLabel="Buat Akun"
+        onConfirm={submit}
+        confirmDisabled={!isValidAccountForm(form) || isSaving}
+        size="lg"
+      >
+        {ACCOUNT_FIELDS.map((field) => (
+          <FormField key={field.key} label={field.title} required>
+            <Input
+              type={field.type ?? 'text'}
+              value={form[field.key]}
+              placeholder={field.placeholder}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, [field.key]: event.target.value }))
+              }
+            />
+          </FormField>
+        ))}
+      </FormDialog>
 
-        <DataSurface.Root>
-          <DataSurface.Header>
-            <div className="space-y-0.5">
-              <h2 className="text-sm font-semibold text-foreground">Tambah akun</h2>
-              <p className="text-sm text-secondary-foreground">
-                Akun dibuat sebagai User FTI aktif dengan sandi awal yang dikelola server.
-              </p>
-            </div>
-          </DataSurface.Header>
-          <div className="space-y-4 p-4">
-            {field('nama', 'Nama', 'Contoh: Dwi Pratama')}
-            {field('nip', 'NIP', '198001012010011001')}
-            {field('email', 'Email', 'dwi@fti.example', 'email')}
-            {field('jabatan', 'Jabatan', 'Dosen')}
-            {field('pangkat', 'Pangkat', 'III/a')}
-            {field('nohp', 'Nomor HP', '081234567890')}
-            <Button type="button" disabled={!canSubmit || isSaving} onClick={submit} className="w-full">
-              {isSaving ? 'Menyimpan...' : 'Buat Akun'}
-            </Button>
-          </div>
-        </DataSurface.Root>
-      </div>
+      <FormDialog
+        open={editingAccount !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditingAccount(null)
+        }}
+        title="Ubah profil pengguna"
+        description="Platform role dikelola sistem dan tidak dapat diubah dari sini."
+        confirmLabel={isSaving ? 'Menyimpan...' : 'Simpan Profil'}
+        onConfirm={submitEdit}
+        confirmDisabled={!isValidAccountForm(editForm) || isSaving}
+        size="lg"
+      >
+        {ACCOUNT_FIELDS.map((field) => (
+          <FormField key={field.key} label={field.title} required>
+            <Input
+              type={field.type ?? 'text'}
+              value={editForm[field.key]}
+              placeholder={field.placeholder}
+              onChange={(event) => setEditField(field.key, event.target.value)}
+            />
+          </FormField>
+        ))}
+      </FormDialog>
+
       <ConfirmDialog
         open={deactivatingAccount !== null}
         onOpenChange={(open) => {
           if (!open) setDeactivatingAccount(null)
         }}
         title="Nonaktifkan akun?"
-        description="Akun tidak dapat login lagi. Jika masih menjadi Owner atau pemegang kewenangan aktif, server akan menolak tindakan ini sampai dialihkan atau dicabut."
+        description="Akun tidak dapat masuk ke sistem lagi. Jika masih menjadi Penanggung Jawab atau pemegang kewenangan aktif, sistem akan menolak tindakan ini sampai dialihkan atau dicabut."
         confirmLabel="Nonaktifkan"
         destructive
         onConfirm={() => {

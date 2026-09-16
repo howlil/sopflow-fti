@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { assertDetailSopEditable } from '../lifecycle/sop-editable.util';
+import { assertDetailSopEditable } from '../../../common/status/sop-editable.util';
 import type { JwtAccessPayload } from '../../../common';
 import { JenisLangkahProsedur, Prisma } from '../../../generated/prisma';
 import { ProsesBisnisContextService } from '../../core/proses-bisnis/konteks-proses-bisnis.service';
@@ -33,18 +33,12 @@ export class SopProsedurService {
     user: JwtAccessPayload,
     detailOrSopId: string,
     dto: UpdateSopProsedurDto,
-    logsLimit?: number,
   ): Promise<PenyusunWorkbenchDataDto> {
     const resolved = await this.sopProsedurRepository.findDetailIdByDetailOrSopId(detailOrSopId);
     if (resolved === null) {
       throw new NotFoundException('DetailSOP tidak ditemukan');
     }
 
-    if (resolved.prosesBisnisId === null) {
-      throw new ConflictException(
-        'SOP belum memiliki Penanggung Jawab kepemilikan Proses Bisnis dan tidak tersedia pada endpoint native',
-      );
-    }
     await this.konteksProsesBisnisService.assertCanAuthor(user.sub, resolved.prosesBisnisId);
 
     const detailStatus = await this.sopProsedurRepository.findDetailStatus(resolved.detailSopId);
@@ -55,7 +49,7 @@ export class SopProsedurService {
 
     const changedFields = this.collectChangedFields(dto);
     if (changedFields.length === 0) {
-      return this.getAuthorizedWorkbench(resolved.detailSopId, logsLimit);
+      return this.getAuthorizedWorkbench(resolved.detailSopId);
     }
 
     const repoInput = await this.buildRepoInput(dto, resolved.detailSopId);
@@ -65,7 +59,6 @@ export class SopProsedurService {
         detailSopId: resolved.detailSopId,
         userId: user.sub,
         input: repoInput,
-        changedFields,
       });
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -88,21 +81,17 @@ export class SopProsedurService {
       throw err;
     }
 
-    return this.getAuthorizedWorkbench(resolved.detailSopId, logsLimit);
+    return this.getAuthorizedWorkbench(resolved.detailSopId);
   }
 
-  private async getAuthorizedWorkbench(
-    detailSopId: string,
-    logsLimit?: number,
-  ): Promise<PenyusunWorkbenchDataDto> {
-    return this.sopWorkbenchReader.getForDetail(detailSopId, logsLimit);
+  private async getAuthorizedWorkbench(detailSopId: string): Promise<PenyusunWorkbenchDataDto> {
+    return this.sopWorkbenchReader.getForDetail(detailSopId);
   }
 
   private async runUpdateProsedurTransactionWithRetry(params: {
     detailSopId: string;
     userId: string;
     input: UpdateSopProsedurRepoInput;
-    changedFields: string[];
   }): Promise<void> {
     let lastError: unknown;
     for (let attempt = 1; attempt <= MAX_UPDATE_PROSEDUR_TRANSACTION_ATTEMPTS; attempt += 1) {

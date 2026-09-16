@@ -35,11 +35,12 @@ model Pengguna {
   updatedAt                 DateTime         @updatedAt
   detailSopDibuat           DetailSOP[]      @relation("SOPDibuatOleh")
   detailSopDiedit           DetailSOP[]      @relation("SOPDieditOleh")
-  logEditSop                LogEditSOP[]
   peraturanTerakhirDiedit   Peraturan[]      @relation("PeraturanTerakhirDiedit")
   tandaTangan               RiwayatTandaTangan[]
   prosesBisnisYangDikelola              ProsesBisnis[]        @relation("PenanggungJawabProsesBisnis")
   keanggotaanProsesBisnis        AnggotaProsesBisnis[]
+  paketPemeriksaanDiajukan       PaketPemeriksaanProsesBisnis[] @relation("PaketPemeriksaanDiajukanOleh")
+  paketPemeriksaanDitangani      PaketPemeriksaanProsesBisnis[] @relation("PaketPemeriksaanPenanggungJawab")
 
   @@index([platformRole, deletedAt], map: "Pengguna_platformRole_deletedAt_idx")
 }
@@ -54,7 +55,7 @@ model Departemen {
   @@map("Department")
 }
 
-/// Canonical FTI ProsesBisnis ownership. Active SOPs are owned directly by a ProsesBisnis.
+/// Canonical FTI ProsesBisnis ownership. Every SOP belongs directly to one ProsesBisnis.
 model ProsesBisnis {
   prosesBisnisId    String              @id @default(uuid()) @db.Char(36) @map("processId")
   nama         String              @db.VarChar(120)
@@ -67,6 +68,7 @@ model ProsesBisnis {
   penanggungJawab        Pengguna            @relation("PenanggungJawabProsesBisnis", fields: [penanggungJawabId], references: [penggunaId], onDelete: Restrict)
   anggota      AnggotaProsesBisnis[]
   daftarSop         SOP[]
+  paketPemeriksaan   PaketPemeriksaanProsesBisnis[]
 
   @@index([lingkup, departemenId], map: "Process_scope_departmentId_idx")
   @@index([penanggungJawabId], map: "Process_ownerId_idx")
@@ -111,13 +113,12 @@ model Peraturan {
 /// =========================
 model SOP {
   sopId      String      @id @default(uuid()) @db.Char(36)
-  prosesBisnisId  String?     @db.Char(36) @map("processId")
+  prosesBisnisId  String      @db.Char(36) @map("processId")
   judul      String      @db.VarChar(500)
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
   detailSops DetailSOP[]
-  /// Null is reserved only for imported archive rows that are not part of the active FTI workflow.
-  prosesBisnis    ProsesBisnis?    @relation(fields: [prosesBisnisId], references: [prosesBisnisId], onDelete: Restrict)
+  prosesBisnis    ProsesBisnis     @relation(fields: [prosesBisnisId], references: [prosesBisnisId], onDelete: Restrict)
 
   @@index([prosesBisnisId])
 }
@@ -150,11 +151,12 @@ model DetailSOP {
   lampiranPeralatanPerlengkapan  LampiranPeralatanPerlengkapan[]
   lampiranPencatatanPendataan    LampiranPencatatanPendataan[]
   langkahSOP                     LangkahSOP[]
-  logEditSop                     LogEditSOP[]
   relasiSopKeluar                SopTerkait[]                     @relation("RelasiSOP")
   relasiSopMasuk                 SopTerkait[]                     @relation("RelasiSOPTerkait")
   dokumenTte                     DokumenTte[]
   konfigurasiDiagram             KonfigurasiDiagramSOP[]
+  paketPemeriksaanItems          PaketPemeriksaanProsesBisnisItem[]
+  pemeriksaanProsesBisnis         PemeriksaanProsesBisnis[]
 
   @@unique([sopId, versi])
   @@index([sopId, status])
@@ -286,37 +288,6 @@ model DetailSOPPelaksana {
 }
 
 /// =========================
-/// MODUL 3 — AKTIVITAS SOP
-/// =========================
-model LogEditSOP {
-  detailSopId     String                  @db.Char(36)
-  penggunaId      String                  @db.Char(36)
-  createdAt       DateTime                @default(now()) @db.DateTime(3)
-  bagian          BagianSOP               @default(HEADER)
-  keterangan      String?                 @db.Text
-  sesiChangeCount Int                     @default(1)
-  closedAt        DateTime?               @db.DateTime(3)
-  updatedAt       DateTime                @updatedAt @db.DateTime(3)
-  detailSop       DetailSOP               @relation(fields: [detailSopId], references: [detailSopId], onDelete: Cascade)
-  pengguna        Pengguna                @relation(fields: [penggunaId], references: [penggunaId])
-  domainFields    LogEditSopDomainField[]
-
-  @@id([detailSopId, penggunaId, createdAt])
-  @@index([detailSopId, penggunaId, bagian, closedAt])
-  @@index([detailSopId, createdAt])
-}
-
-model LogEditSopDomainField {
-  detailSopId  String     @db.Char(36)
-  penggunaId   String     @db.Char(36)
-  logCreatedAt DateTime   @db.DateTime(3)
-  domainField  String     @db.VarChar(22)
-  logEditSop   LogEditSOP @relation(fields: [detailSopId, penggunaId, logCreatedAt], references: [detailSopId, penggunaId, createdAt], onDelete: Cascade)
-
-  @@id([detailSopId, penggunaId, logCreatedAt, domainField])
-}
-
-/// =========================
 /// MODUL 4 — TTE
 /// =========================
 model DokumenTte {
@@ -409,14 +380,6 @@ enum SatuanWaktu {
 
 enum JenisDokumenTte {
   SOP_BERLAKU
-}
-
-enum BagianSOP {
-  HEADER
-  LANGKAH
-  STATUS
-  UMPAN_BALIK
-  REVIEW
 }
 
 enum JenisDiagram {
@@ -515,9 +478,11 @@ enum PejabatBerwenang {
   @@map("OrganizationalAuthority")
 }
 
-/// Deterministic authority assignment for the fixed FTI approval model.
+/// Deterministic authority assignment for the fixed FTI signing model.
 /// `kunciPejabatBerwenang` is `DEAN` for faculty lingkup or
 /// `HEAD_OF_DEPARTMENT:<departemenId>` for departemen lingkup.
+/// The canonical key is the primary key: one current holder per organizational entity.
+/// Reassignment replaces the holder on that same key.
 /// Relations are intentionally scalar-only during the FTI cutover;
 /// database foreign keys are installed by the migration.
 model PenugasanPejabatBerwenang {
@@ -534,9 +499,9 @@ model PenugasanPejabatBerwenang {
   @@map("OrganizationalAuthorityAssignment")
 }
 
-/// Audit evidence that the contextual organizational authority approved one
-/// ProsesBisnis-bound SOP version. TTE is deliberately separate: approval does not
-/// make the SOP BERLAKU by itself.
+/// Legacy audit evidence retained for historical rows. New workflow execution
+/// does not create or require this record; accepted Process Review moves directly
+/// to contextual TTE.
 model PersetujuanAkhirSOP {
   detailSopId     String                  @id @db.Char(36)
   prosesBisnisId       String                  @db.Char(36) @map("processId")
@@ -578,6 +543,7 @@ model PemeriksaanProsesBisnis {
   previousStatus  StatusSOP
   nextStatus      StatusSOP
   createdAt       DateTime              @default(now()) @db.DateTime(3)
+  detailSop       DetailSOP             @relation(fields: [detailSopId], references: [detailSopId], onDelete: Restrict)
 
   @@index([detailSopId, createdAt], map: "ProcessReview_detail_created_idx")
   @@index([prosesBisnisId, createdAt], map: "ProcessReview_process_created_idx")
@@ -586,14 +552,62 @@ model PemeriksaanProsesBisnis {
   @@map("ProcessReview")
 }
 
+/// Measurable submission wave for one Proses Bisnis. The authoritative
+/// lifecycle status remains on DetailSOP; this aggregate tracks the batch.
+enum StatusPaketPemeriksaanProsesBisnis {
+  IN_REVIEW
+  PARTIALLY_COMPLETED
+  COMPLETED
+
+  @@map("ProcessReviewBatchStatus")
+}
+
+model PaketPemeriksaanProsesBisnis {
+  paketPemeriksaanProsesBisnisId String                              @id @default(uuid()) @db.Char(36) @map("processReviewBatchId")
+  prosesBisnisId                 String                              @db.Char(36) @map("processId")
+  diajukanOlehId                 String                              @db.Char(36)
+  penanggungJawabId              String                              @db.Char(36) @map("reviewerId")
+  status                         StatusPaketPemeriksaanProsesBisnis @default(IN_REVIEW)
+  diajukanPada                   DateTime                            @default(now()) @map("submittedAt")
+  selesaiPada                    DateTime?                           @map("completedAt")
+  createdAt                      DateTime                            @default(now())
+  updatedAt                      DateTime                            @updatedAt
+  prosesBisnis                   ProsesBisnis                        @relation(fields: [prosesBisnisId], references: [prosesBisnisId], onDelete: Restrict)
+  diajukanOleh                   Pengguna                            @relation("PaketPemeriksaanDiajukanOleh", fields: [diajukanOlehId], references: [penggunaId], onDelete: Restrict)
+  penanggungJawab                Pengguna                            @relation("PaketPemeriksaanPenanggungJawab", fields: [penanggungJawabId], references: [penggunaId], onDelete: Restrict)
+  items                          PaketPemeriksaanProsesBisnisItem[]
+
+  @@index([prosesBisnisId, status, diajukanPada], map: "ProcessReviewBatch_process_status_submittedAt_idx")
+  @@index([diajukanOlehId, diajukanPada], map: "ProcessReviewBatch_submittedBy_submittedAt_idx")
+  @@index([penanggungJawabId, status], map: "ProcessReviewBatch_reviewer_status_idx")
+
+  @@map("ProcessReviewBatch")
+}
+
+model PaketPemeriksaanProsesBisnisItem {
+  paketPemeriksaanProsesBisnisItemId String                       @id @default(uuid()) @db.Char(36) @map("processReviewBatchItemId")
+  paketPemeriksaanProsesBisnisId     String                       @db.Char(36) @map("processReviewBatchId")
+  detailSopId                        String                       @db.Char(36)
+  createdAt                          DateTime                     @default(now())
+  paketPemeriksaan                   PaketPemeriksaanProsesBisnis @relation(fields: [paketPemeriksaanProsesBisnisId], references: [paketPemeriksaanProsesBisnisId], onDelete: Cascade)
+  detailSop                          DetailSOP                    @relation(fields: [detailSopId], references: [detailSopId], onDelete: Restrict)
+
+  @@unique([paketPemeriksaanProsesBisnisId, detailSopId], map: "ProcessReviewBatchItem_batch_detail_key")
+  @@index([detailSopId], map: "ProcessReviewBatchItem_detail_idx")
+  @@index([paketPemeriksaanProsesBisnisId, createdAt], map: "ProcessReviewBatchItem_batch_createdAt_idx")
+
+  @@map("ProcessReviewBatchItem")
+}
+
 /// =========================
 /// NOTIFIKASI PROSES BISNIS
 /// =========================
 /// Target-native in-app notification history for ProsesBisnis-bound SOP workflow events.
-/// Kept separate from archived legacy evaluation/reminder persistence.
+/// Kept separate from reminder delivery state so notification history remains append-only.
 enum JenisNotifikasiProsesBisnis {
   PROCESS_OWNER_REVIEW_REQUESTED
   FINAL_APPROVAL_REQUESTED
+  TTE_REQUESTED
   PROCESS_REVISION_REQUESTED
   PROCESS_SOP_EFFECTIVE
   PROCESS_SOP_REVOKED
@@ -623,48 +637,6 @@ model NotifikasiProsesBisnis {
 }
 
 /// =========================
-/// PENGINGAT PROSES BISNIS
-/// =========================
-/// Target-native operational reminder state for ProsesBisnis-bound SOP workflow.
-///
-/// This table is deliberately separate from NotifikasiProsesBisnis history: the
-/// former is mutable delivery/retry state, while the latter is in-app event
-/// history with read state.
-enum JenisPengingatProsesBisnis {
-  PROCESS_OWNER_REVIEW
-  PROCESS_REVISION
-  FINAL_APPROVAL
-  TTE
-
-  @@map("ProcessReminderKind")
-}
-
-model PengingatProsesBisnis {
-  pengingatProsesBisnisId   String              @id @default(uuid()) @db.Char(36) @map("processReminderId")
-  detailSopId         String              @db.Char(36)
-  sopId               String              @db.Char(36)
-  prosesBisnisId           String              @db.Char(36) @map("processId")
-  penggunaId          String              @db.Char(36)
-  kind                JenisPengingatProsesBisnis
-  destinationPhone    String              @db.VarChar(13)
-  nextSendAt          DateTime            @db.DateTime(3)
-  lastSentAt          DateTime?           @db.DateTime(3)
-  consecutiveFailures Int                 @default(0)
-  lastErrorKind       String?             @db.VarChar(64)
-  lockedUntil         DateTime?           @db.DateTime(3)
-  lockToken           String?             @db.Char(36)
-  createdAt           DateTime            @default(now()) @db.DateTime(3)
-  updatedAt           DateTime            @updatedAt @db.DateTime(3)
-
-  @@unique([detailSopId, penggunaId, kind], map: "ProcessReminder_detail_recipient_kind_key")
-  @@index([nextSendAt, lockedUntil], map: "ProcessReminder_due_lock_idx")
-  @@index([prosesBisnisId, createdAt], map: "ProcessReminder_process_created_idx")
-  @@index([penggunaId, createdAt], map: "ProcessReminder_recipient_created_idx")
-
-  @@map("ProcessReminder")
-}
-
-/// =========================
 /// ADMINISTRASI PROSES BISNIS
 /// =========================
 enum StatusKeaktifanProsesBisnis {
@@ -681,20 +653,6 @@ enum StatusUndanganAnggotaProsesBisnis {
   EXPIRED
 
   @@map("ProcessInvitationStatus")
-}
-
-enum JenisAktivitasProsesBisnis {
-  OWNER_AUTHORITY_GRANTED
-  OWNER_AUTHORITY_REVOKED
-  PROCESS_CREATED
-  PROCESS_RENAMED
-  PROCESS_ARCHIVED
-  MEMBER_ADDED
-  MEMBER_REMOVED
-  INVITATION_CREATED
-  INVITATION_ACCEPTED
-
-  @@map("ProcessAuditEvent")
 }
 
 /// Eligibility to create and own ProsesBisnises in one organizational lingkup.
@@ -759,39 +717,9 @@ model UndanganAnggotaProsesBisnis {
   @@map("ProcessInvitation")
 }
 
-/// Append-only evidence for normal ProsesBisnis administration/self-service changes.
-model RiwayatAktivitasProsesBisnis {
-  riwayatAktivitasProsesBisnisId String            @id @default(uuid()) @db.Char(36) @map("processAuditId")
-  prosesBisnisId      String?           @db.Char(36) @map("processId")
-  actorId        String            @db.Char(36)
-  event          JenisAktivitasProsesBisnis
-  targetUserId   String?           @db.Char(36)
-  metadata       Json?
-  createdAt      DateTime          @default(now()) @db.DateTime(3)
-
-  @@index([prosesBisnisId, createdAt], map: "ProcessAudit_process_created_idx")
-  @@index([actorId, createdAt], map: "ProcessAudit_actor_created_idx")
-  @@index([targetUserId, createdAt], map: "ProcessAudit_target_created_idx")
-
-  @@map("ProcessAudit")
-}
-
 /// =========================
 /// KATALOG PELAKSANA
 /// =========================
-/// Target-domain metadata for the global reusable Pelaksana catalog.
-/// Pelaksana is a global FTI catalog and has no organizational ownership field.
-model PelaksanaAuditAttribution {
-  pelaksanaId String   @id @db.Char(36)
-  createdById String?  @db.Char(36)
-  updatedById String?  @db.Char(36)
-  createdAt   DateTime @default(now()) @db.DateTime(3)
-  updatedAt   DateTime @default(now()) @updatedAt @db.DateTime(3)
-
-  @@index([createdById], map: "PelaksanaAuditAttribution_createdById_idx")
-  @@index([updatedById], map: "PelaksanaAuditAttribution_updatedById_idx")
-}
-
 /// Stable actor label captured when a Pelaksana is selected into one DetailSOP version.
 /// Renaming the global catalog must not rewrite historical SOP actor labels.
 model DetailSOPPelaksanaSnapshot {

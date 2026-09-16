@@ -5,19 +5,17 @@ export const queryKeys = {
   users: ['users'] as const,
 
   platformAccounts: ['platformAccounts'] as const,
-  administrasiFtiOverview: ['administrasiFti', 'overview'] as const,
-
   processAdmin: ['processAdmin'] as const,
   processAdminDepartemens: ['processAdmin', 'departemen'] as const,
   processAdminUsers: ['processAdmin', 'users'] as const,
-  processAdminProsesBisnises: ['processAdmin', 'proses-bisnis'] as const,
   processOwnerAuthorities: ['processAdmin', 'ownerAuthorities'] as const,
+  processAdminMemberDirectory: ['processAdmin', 'memberDirectory'] as const,
 
   penanggungJawabProsesBisnis: ['penanggungJawabProsesBisnis'] as const,
   processOwnerScopes: ['penanggungJawabProsesBisnis', 'scopes'] as const,
   processOwnerProsesBisnises: ['penanggungJawabProsesBisnis', 'proses-bisnis'] as const,
   processOwnerUsers: ['penanggungJawabProsesBisnis', 'users'] as const,
-  processOwnerAudit: (prosesBisnisId: string) => ['penanggungJawabProsesBisnis', 'audit', prosesBisnisId] as const,
+  processOwnerMemberDirectory: ['penanggungJawabProsesBisnis', 'memberDirectory'] as const,
 
   peraturan: ['peraturan'] as const,
   peraturanList: ['peraturan', 'list'] as const,
@@ -28,6 +26,7 @@ export const queryKeys = {
     ['sop', 'list', params] as const,
   penyusunWorkbench: (detailSopId: string) => ['sop', 'penyusunWorkbench', detailSopId] as const,
   detailSop: ['detailSop'] as const,
+  pemeriksaanProsesBisnis: ['pemeriksaan-proses-bisnis'] as const,
 
   pelaksana: ['pelaksana'] as const,
 

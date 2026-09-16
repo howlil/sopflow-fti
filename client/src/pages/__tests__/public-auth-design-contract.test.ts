@@ -27,7 +27,7 @@ describe('public auth design contract', () => {
     expect(loginHeroSource).toContain('Portal Internal SOP FTI')
     expect(loginHeroSource).toContain('Kelola SOP berdasarkan Proses Bisnis dan kewenangan organisasi')
     expect(loginHeroSource).toContain('Fakultas Teknologi Informasi · SOPFlow')
-    expect(loginHeroSource).toContain("['Penyusunan', 'Review Proses', 'Persetujuan', 'TTE']")
+    expect(loginHeroSource).toContain("['Penyusunan', 'Pemeriksaan Proses Bisnis', 'Tanda Tangan Elektronik']")
     expect(loginHeroSource).toContain('linear-gradient')
     expect(loginHeroSource).toContain('radial-gradient')
     expect(loginHeroSource).toContain('lg:min-h-screen')

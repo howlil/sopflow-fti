@@ -9,15 +9,15 @@ describe('ActiveFilterChips', () => {
 
     render(
       <ActiveFilterChips
-        items={[{ id: 'status', label: 'Status: Draft', onRemove: remove }]}
+        items={[{ id: 'status', label: 'Status: Rancangan', onRemove: remove }]}
         onClearAll={clearAll}
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Hapus filter Status: Draft' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Hapus penyaringan Status: Rancangan' }))
     expect(remove).toHaveBeenCalledTimes(1)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Hapus semua filter' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Hapus semua penyaringan' }))
     expect(clearAll).toHaveBeenCalledTimes(1)
   })
 
@@ -25,6 +25,6 @@ describe('ActiveFilterChips', () => {
     const { container } = render(<ActiveFilterChips items={[]} onClearAll={vi.fn()} />)
 
     expect(container).toBeEmptyDOMElement()
-    expect(screen.queryByRole('button', { name: 'Hapus semua filter' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Hapus semua penyaringan' })).not.toBeInTheDocument()
   })
 })

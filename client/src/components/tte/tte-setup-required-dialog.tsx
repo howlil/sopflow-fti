@@ -15,7 +15,7 @@ export function TteSetupRequiredDialog({
 
   const handleOpenProfile = () => {
     onOpenChange(false);
-    navigate({ to: ROUTES.PENYUSUN.ME });
+    navigate({ to: ROUTES.ME });
   };
 
   return (

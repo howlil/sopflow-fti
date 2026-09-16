@@ -1,18 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Request } from 'express';
-import { PejabatBerwenang } from '../../../generated/prisma';
+import { JenisDokumenTte, PejabatBerwenang, StatusSOP } from '../../../generated/prisma';
 import { TteRepository } from '../shared/repository/tte.repository';
-import type { TtePengesahanPublicResponse } from '../shared/types/tte.types';
+import type { TtePengesahanPublicResponse, TtePublicStatus } from '../shared/types/tte.types';
 import { buildTteQrPayload } from '../shared/utils/tte-verifikasi-qr.util';
 import { TtePublicUrlResolver } from '../shared/utils/tte-public-url.resolver';
-import { ProsesBisnisTteVerificationRepository } from './tte-proses-bisnis-verification.repository';
 
 @Injectable()
 export class TteVerifikasiService {
   constructor(
     private readonly tteRepository: TteRepository,
     private readonly publicUrlResolver: TtePublicUrlResolver,
-    private readonly processVerificationRepository: ProsesBisnisTteVerificationRepository,
   ) {}
 
   async getPengesahanPublic(
@@ -29,18 +27,17 @@ export class TteVerifikasiService {
     }
 
     const { detailSopId, prosesBisnisId } = row.dokumenTte;
-    if (detailSopId === null || prosesBisnisId === null) {
-      throw new NotFoundException('Dokumen TTE bukan artefak SOP FTI yang aktif');
+    const detail = row.dokumenTte.detailSop;
+    if (detail === null || detail.sop.prosesBisnisId !== prosesBisnisId) {
+      throw new NotFoundException('Binding Dokumen TTE dan SOP FTI tidak valid');
     }
 
-    const approval = await this.processVerificationRepository.findApprovalForSignedDetail(
-      detailSopId,
-      row.userId,
-      prosesBisnisId,
-    );
-    if (approval === null || approval.authority !== row.authority) {
-      throw new NotFoundException('Evidence authority pengesahan tidak valid');
-    }
+    const currentPublicStatus = this.resolveCurrentPublicStatus({
+      jenisDokumen: row.dokumenTte.jenisDokumen,
+      pdfPath: row.dokumenTte.pdfPath,
+      pdfStatus: row.dokumenTte.pdfStatus,
+      detailStatus: detail.status,
+    });
 
     const authorityLabel =
       row.authority === PejabatBerwenang.DEAN ? ('Dekan' as const) : ('Kepala Departemen' as const);
@@ -51,6 +48,8 @@ export class TteVerifikasiService {
     });
 
     return {
+      signatureValid: true,
+      currentPublicStatus,
       userId: row.userId,
       dokumenTteId: row.dokumenTteId,
       ditandatanganiPada: row.ditandatanganiPada.toISOString(),
@@ -72,5 +71,28 @@ export class TteVerifikasiService {
       qrVerificationUrl: qr.qrVerificationUrl,
       qrPayload: qr.qrPayload,
     };
+  }
+
+  private resolveCurrentPublicStatus(params: {
+    jenisDokumen: JenisDokumenTte;
+    pdfPath: string | null;
+    pdfStatus: string | null;
+    detailStatus: StatusSOP;
+  }): TtePublicStatus {
+    if (params.detailStatus === StatusSOP.REVOKED || params.pdfStatus === 'REVOKED') {
+      return 'REVOKED';
+    }
+    if (params.detailStatus === StatusSOP.SUPERSEDED || params.pdfStatus === 'SUPERSEDED') {
+      return 'SUPERSEDED';
+    }
+    if (
+      params.jenisDokumen !== JenisDokumenTte.SOP_BERLAKU ||
+      params.detailStatus !== StatusSOP.EFFECTIVE ||
+      params.pdfStatus !== 'PUBLISHED' ||
+      params.pdfPath === null
+    ) {
+      return 'NOT_PUBLIC';
+    }
+    return 'CURRENT';
   }
 }

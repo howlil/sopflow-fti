@@ -1,9 +1,8 @@
 import { randomUUID } from 'crypto';
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../../../generated/prisma';
-import { BagianSOP, JenisLangkahProsedur, SatuanWaktu } from '../../../generated/prisma';
+import { JenisLangkahProsedur, SatuanWaktu } from '../../../generated/prisma';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { appendOrCreateLogSession } from '../collaboration/log-edit-session.helper';
 
 export interface RepoLangkahPatchItem {
   tempId: string;
@@ -36,7 +35,7 @@ export class SopProsedurRepository {
 
   async findDetailIdByDetailOrSopId(
     detailOrSopId: string,
-  ): Promise<{ detailSopId: string; sopId: string; prosesBisnisId: string | null } | null> {
+  ): Promise<{ detailSopId: string; sopId: string; prosesBisnisId: string } | null> {
     const direct = await this.prisma.detailSOP.findUnique({
       where: { detailSopId: detailOrSopId },
       select: { detailSopId: true, sopId: true, sop: { select: { prosesBisnisId: true } } },
@@ -115,9 +114,8 @@ export class SopProsedurRepository {
     detailSopId: string;
     userId: string;
     input: UpdateSopProsedurRepoInput;
-    changedFields: string[];
   }): Promise<void> {
-    const { detailSopId, userId, input, changedFields } = params;
+    const { detailSopId, userId, input } = params;
     await this.prisma.$transaction(async (tx) => {
       if (input.langkah !== undefined) {
         await this.clearLangkahInTx(tx, detailSopId);
@@ -153,13 +151,6 @@ export class SopProsedurRepository {
         data: { terakhirDieditOlehId: userId },
       });
 
-      await appendOrCreateLogSession({
-        tx,
-        detailSopId,
-        penggunaId: userId,
-        bagian: BagianSOP.LANGKAH,
-        fields: changedFields,
-      });
     });
   }
 

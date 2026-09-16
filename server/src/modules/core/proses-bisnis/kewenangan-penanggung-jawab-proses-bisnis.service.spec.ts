@@ -1,6 +1,6 @@
 import { ForbiddenException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
-import { LingkupOrganisasi, PlatformRole, JenisAktivitasProsesBisnis } from '../../../generated/prisma';
+import { LingkupOrganisasi, PlatformRole } from '../../../generated/prisma';
 import { KewenanganPenanggungJawabProsesBisnisService } from './kewenangan-penanggung-jawab-proses-bisnis.service';
 
 describe('KewenanganPenanggungJawabProsesBisnisService', () => {
@@ -19,12 +19,11 @@ describe('KewenanganPenanggungJawabProsesBisnisService', () => {
       },
       kewenanganPenanggungJawabProsesBisnis: {
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         findMany: jest.fn(),
         upsert: jest.fn(),
+        updateMany: jest.fn(),
         update: jest.fn(),
-      },
-      riwayatAktivitasProsesBisnis: {
-        create: jest.fn(),
       },
       $transaction: jest.fn(),
     };
@@ -63,26 +62,53 @@ describe('KewenanganPenanggungJawabProsesBisnisService', () => {
       departemenId: null,
     });
 
+    expect(prisma.kewenanganPenanggungJawabProsesBisnis.updateMany).toHaveBeenCalledWith({
+      where: { penggunaId: userId, revokedAt: null },
+      data: { revokedAt: expect.any(Date) },
+    });
     expect(prisma.kewenanganPenanggungJawabProsesBisnis.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { penggunaId_kunciLingkup: { penggunaId: userId, kunciLingkup: 'FACULTY' } },
       }),
     );
-    expect(prisma.riwayatAktivitasProsesBisnis.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        actorId: adminId,
-        event: JenisAktivitasProsesBisnis.OWNER_AUTHORITY_GRANTED,
-        targetUserId: userId,
-      }),
+  });
+
+  it('rejects Proses Bisnis creation with another users or revoked authority', async () => {
+    const { prisma, service } = makeService();
+    prisma.pengguna.findFirst.mockResolvedValue({ platformRole: PlatformRole.USER });
+    prisma.kewenanganPenanggungJawabProsesBisnis.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.assertCanCreateFromAuthority(
+        userId,
+        '33333333-3333-4333-8333-333333333333',
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(prisma.kewenanganPenanggungJawabProsesBisnis.findFirst).toHaveBeenCalledWith({
+      where: {
+        kewenanganPenanggungJawabProsesBisnisId: '33333333-3333-4333-8333-333333333333',
+        penggunaId: userId,
+        revokedAt: null,
+      },
     });
   });
 
-  it('rejects Proses Bisnis creation outside the granted owner lingkup', async () => {
+  it('rejects Proses Bisnis creation when an existing authority belongs to SUPER_ADMIN', async () => {
     const { prisma, service } = makeService();
-    prisma.kewenanganPenanggungJawabProsesBisnis.findUnique.mockResolvedValue(null);
+    prisma.pengguna.findFirst.mockResolvedValue({ platformRole: PlatformRole.SUPER_ADMIN });
+    prisma.kewenanganPenanggungJawabProsesBisnis.findFirst.mockResolvedValue({
+      penggunaId: userId,
+      lingkup: LingkupOrganisasi.FACULTY,
+      departemenId: null,
+      kunciLingkup: 'FACULTY',
+    });
 
     await expect(
-      service.assertCanCreate(userId, LingkupOrganisasi.FACULTY, null),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+      service.assertCanCreateFromAuthority(
+        userId,
+        '33333333-3333-4333-8333-333333333333',
+      ),
+    ).rejects.toMatchObject({ message: 'Akun USER aktif diperlukan untuk membuat Proses Bisnis' });
   });
 });

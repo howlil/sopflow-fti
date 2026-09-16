@@ -9,8 +9,6 @@ describe('PelaksanaService global catalog', () => {
     findAll: jest.fn(),
     findById: jest.fn(),
     findByNama: jest.fn(),
-    findAttributionByPelaksanaIds: jest.fn(),
-    findPenggunaNames: jest.fn(),
     createGlobal: jest.fn(),
     updateNamaGlobal: jest.fn(),
     countLangkahReferences: jest.fn(),
@@ -34,8 +32,6 @@ describe('PelaksanaService global catalog', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     service = new PelaksanaService(repo as unknown as PelaksanaRepository);
-    repo.findAttributionByPelaksanaIds.mockResolvedValue([]);
-    repo.findPenggunaNames.mockResolvedValue(new Map());
     repo.findByNama.mockResolvedValue(null);
   });
 
@@ -46,8 +42,6 @@ describe('PelaksanaService global catalog', () => {
       {
         id: 'pl-1',
         namaPelaksana: 'Dosen',
-        createdBy: null,
-        updatedBy: null,
         createdAt: row.createdAt.toISOString(),
         updatedAt: row.updatedAt.toISOString(),
       },
@@ -55,18 +49,12 @@ describe('PelaksanaService global catalog', () => {
     expect(repo.findAll).toHaveBeenCalledTimes(1);
   });
 
-  it('creates a global actor without any organization-scoped storage dependency and records attribution', async () => {
+  it('creates a global actor without any organization-scoped storage dependency', async () => {
     repo.createGlobal.mockResolvedValue(row);
-    repo.findAttributionByPelaksanaIds.mockResolvedValue([
-      { pelaksanaId: 'pl-1', createdById: 'u-1', updatedById: 'u-1' },
-    ]);
-    repo.findPenggunaNames.mockResolvedValue(new Map([['u-1', 'User FTI']]));
 
-    const result = await service.create(user, { namaPelaksana: '  Dosen  ' });
+    await service.create(user, { namaPelaksana: '  Dosen  ' });
 
-    expect(repo.createGlobal).toHaveBeenCalledWith('Dosen', 'u-1');
-    expect(result.createdBy).toEqual({ id: 'u-1', nama: 'User FTI' });
-    expect(result.updatedBy).toEqual({ id: 'u-1', nama: 'User FTI' });
+    expect(repo.createGlobal).toHaveBeenCalledWith('Dosen');
   });
 
   it('rejects a duplicate global name before creating another row', async () => {
@@ -78,13 +66,13 @@ describe('PelaksanaService global catalog', () => {
     expect(repo.createGlobal).not.toHaveBeenCalled();
   });
 
-  it('updates any global actor and records the editing user', async () => {
+  it('updates any global actor', async () => {
     repo.findById.mockResolvedValue(row);
     repo.updateNamaGlobal.mockResolvedValue({ ...row, nama: 'Dosen Pengampu' });
 
     const result = await service.update(user, 'pl-1', { namaPelaksana: 'Dosen Pengampu' });
 
-    expect(repo.updateNamaGlobal).toHaveBeenCalledWith('pl-1', 'Dosen Pengampu', 'u-1');
+    expect(repo.updateNamaGlobal).toHaveBeenCalledWith('pl-1', 'Dosen Pengampu');
     expect(result.namaPelaksana).toBe('Dosen Pengampu');
   });
 

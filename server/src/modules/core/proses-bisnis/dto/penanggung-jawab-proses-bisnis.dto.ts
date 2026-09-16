@@ -36,14 +36,9 @@ export class CreateOwnedProsesBisnisDto {
   @Length(2, 120)
   nama!: string;
 
-  @ApiProperty({ enum: LingkupOrganisasi })
-  @IsEnum(LingkupOrganisasi)
-  lingkup!: LingkupOrganisasi;
-
-  @ApiPropertyOptional({ format: 'uuid', nullable: true })
-  @ValidateIf((_object, value) => value !== null && value !== undefined)
+  @ApiProperty({ format: 'uuid' })
   @IsUUID()
-  departemenId?: string | null;
+  kewenanganPenanggungJawabProsesBisnisId!: string;
 }
 
 export class RenameOwnedProsesBisnisDto {

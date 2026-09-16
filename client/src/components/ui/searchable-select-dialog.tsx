@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/dialog'
 import { cn } from '@/utils/cn'
 
+const EMPTY_IDS: readonly string[] = []
+
 export interface SearchableSelectDialogProps<T> {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -20,6 +22,7 @@ export interface SearchableSelectDialogProps<T> {
   searchPlaceholder: string
   items: T[]
   existingIds?: readonly string[]
+  initialSelectedIds?: readonly string[]
   getId: (item: T) => string
   getSearchText: (item: T) => string
   renderItem: (item: T) => React.ReactNode
@@ -41,6 +44,7 @@ export function SearchableSelectDialog<T>({
   searchPlaceholder,
   items,
   existingIds = [],
+  initialSelectedIds = EMPTY_IDS,
   getId,
   getSearchText,
   renderItem,
@@ -58,11 +62,13 @@ export function SearchableSelectDialog<T>({
   const [selectedIds, setSelectedIds] = useState<string[]>([])
 
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      setSelectedIds([...initialSelectedIds])
+    } else {
       setQuery('')
       setSelectedIds([])
     }
-  }, [open])
+  }, [open, initialSelectedIds])
 
   const existingIdSet = useMemo(() => new Set(existingIds), [existingIds])
   const normalizedQuery = query.trim().toLowerCase()

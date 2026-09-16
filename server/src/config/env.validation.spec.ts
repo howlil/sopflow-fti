@@ -14,7 +14,7 @@ describe('Environment validation', () => {
       DATABASE_HOST: 'localhost',
       DATABASE_PORT: 3306,
       DATABASE_USER: 'sop_app',
-      DATABASE_NAME: 'sop_fti',
+      DATABASE_NAME: 'sop_biro_organisasi',
       DATABASE_PASSWORD: 'test',
     });
   });
@@ -26,13 +26,13 @@ describe('Environment validation', () => {
         DATABASE_HOST: '127.0.0.1',
         DATABASE_PORT: '3308',
         DATABASE_USER: 'sop_test',
-        DATABASE_NAME: 'sop_fti_test',
+        DATABASE_NAME: 'sop_biro_organisasi_test',
       }),
     ).toMatchObject({
       DATABASE_HOST: '127.0.0.1',
       DATABASE_PORT: 3308,
       DATABASE_USER: 'sop_test',
-      DATABASE_NAME: 'sop_fti_test',
+      DATABASE_NAME: 'sop_biro_organisasi_test',
     });
   });
 
@@ -65,14 +65,10 @@ describe('Environment validation', () => {
     });
   });
 
-  it('menerima PDF signing nonaktif tanpa P12 global server', () => {
-    expect(
-      validateEnv({
-        ...baseEnv,
-        PDF_SIGNING_ENABLED: 'false',
-        PDF_SIGNING_P12_BASE64: '',
-      }),
-    ).toMatchObject({ PDF_SIGNING_ENABLED: false });
+  it('menerima PDF signing nonaktif tanpa konfigurasi sertifikat global', () => {
+    expect(validateEnv({ ...baseEnv, PDF_SIGNING_ENABLED: 'false' })).toMatchObject({
+      PDF_SIGNING_ENABLED: false,
+    });
   });
 
   it('menolak TTE encryption secret yang sama dengan JWT secret', () => {

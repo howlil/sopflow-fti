@@ -71,24 +71,6 @@ export interface RouteOptions {
   lShapeOnly?: boolean
 }
 
-/* ── Kept for consumers (CellInfo/CorridorGraph stubs — no-op) ── */
-
-export interface CellInfo {
-  row: number
-  col: number
-  rect: Rect
-  center: Point
-  occupied: boolean
-  shapeRect?: Rect
-}
-
-/** Stub — corridor graph no longer used; kept for API compat. */
-export interface CorridorGraph {
-  spots: Point[]
-  adj: Map<string, { to: Point; dist: number }[]>
-  shapeObs: { l: number; t: number; w: number; h: number; r: number; b: number }[]
-}
-
 /* ── Segment helpers ──────────────────────────────────────────── */
 
 function rangesOverlap(a1: number, a2: number, b1: number, b2: number): boolean {
@@ -631,50 +613,6 @@ export function routeOrthogonal(opts: RouteOptions): Point[] {
     { x: cx2, y: midY2 },
     { x: cx2, y: cy2 },
   ])
-}
-
-/* ── Corridor stub (API compatibility — no-op) ────────────────── */
-
-export interface CorridorRouteOptions {
-  graph: CorridorGraph
-  pointA: ConnectorPoint
-  pointB: ConnectorPoint
-  shapeMargin?: number
-  occupiedSegments?: OccupiedSegment[]
-  sourcePort?: PortConstraint
-  targetPort?: PortConstraint
-  jettySize?: number
-  sourceJettySize?: number
-  targetJettySize?: number
-}
-
-/**
- * Stub for API compatibility. Delegates directly to routeOrthogonal.
- * The pre-built corridor graph is no longer needed with the geometry router.
- */
-export function routeOnCorridor(opts: CorridorRouteOptions): Point[] {
-  return routeOrthogonal({
-    pointA: opts.pointA,
-    pointB: opts.pointB,
-    shapeMargin: opts.shapeMargin,
-    occupiedSegments: opts.occupiedSegments,
-    sourcePort: opts.sourcePort,
-    targetPort: opts.targetPort,
-    jettySize: opts.jettySize,
-    sourceJettySize: opts.sourceJettySize,
-    targetJettySize: opts.targetJettySize,
-  })
-}
-
-/**
- * Stub for API compatibility.
- * No longer builds a corridor graph — returns empty graph.
- */
-export function buildCorridorGraph(
-  _cells: CellInfo[][],
-  _margin?: number,
-): CorridorGraph {
-  return { spots: [], adj: new Map(), shapeObs: [] }
 }
 
 /* ── PointKey export for consumers ───────────────────────────── */

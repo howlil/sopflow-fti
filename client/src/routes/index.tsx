@@ -1,8 +1,8 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { z } from 'zod'
 import { RouteErrorPage } from '@/components/ui/route-error'
-import { ROUTES } from '@/utils/constants'
+import { resolveAuthenticatedEntryPath } from '@/lib/auth/resolve-entry-route'
 import { ensureAuthHydrated, syncAuthFromCookie, useAuthStore } from '@/stores/authStore'
 
 const homeSearchSchema = z.object({
@@ -15,6 +15,19 @@ const LandingPage = lazy(() =>
 )
 
 function HomeRoutePage() {
+  useEffect(() => {
+    let active = true
+    void syncAuthFromCookie().then((authenticated) => {
+      if (!active || !authenticated) return
+      const user = useAuthStore.getState().user
+      if (!user) return
+      void resolveAuthenticatedEntryPath(user).then((path) => window.location.assign(path))
+    })
+    return () => {
+      active = false
+    }
+  }, [])
+
   return (
     <Suspense
       fallback={
@@ -32,12 +45,8 @@ export const Route = createFileRoute('/')({
   validateSearch: homeSearchSchema,
   beforeLoad: async () => {
     await ensureAuthHydrated()
-    if (!useAuthStore.getState().user) {
-      await syncAuthFromCookie()
-    }
-    if (useAuthStore.getState().user) {
-      throw redirect({ to: ROUTES.WORK })
-    }
+    const user = useAuthStore.getState().user
+    if (user) throw redirect({ to: await resolveAuthenticatedEntryPath(user) })
   },
   component: HomeRoutePage,
   errorComponent: ({ error, reset }) => <RouteErrorPage error={error} reset={reset} />,

@@ -22,7 +22,7 @@ export class KewenanganPenanggungJawabProsesBisnisController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Berikan kewenangan Penanggung Jawab Proses Bisnis pada lingkup Fakultas/Jurusan' })
+  @ApiOperation({ summary: 'Tetapkan Penanggung Jawab Proses Bisnis pada lingkup Fakultas/Departemen' })
   async grant(
     @Req() req: Request & { user: JwtAccessPayload },
     @Body() dto: GrantKewenanganPenanggungJawabProsesBisnisDto,

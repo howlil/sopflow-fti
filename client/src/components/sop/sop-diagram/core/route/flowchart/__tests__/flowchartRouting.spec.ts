@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  buildCorridorGraph,
   routeOrthogonal,
   normalizeOrthogonalPath,
   pathIntersectsRectangles,
@@ -36,53 +35,6 @@ function conn(overrides: Partial<FlowchartConnectionForSidePairs> = {}): Flowcha
     ...overrides,
   }
 }
-
-/** Corridor graph — flowchart kini memakai routeOrthogonal langsung. */
-describe.skip('buildCorridorGraph', () => {
-  it('places corridor graph points 4px from horizontal cell boundaries', () => {
-    const graph = buildCorridorGraph([[
-      {
-        row: 0,
-        col: 0,
-        rect: { left: 0, top: 0, width: 100, height: 80 },
-        center: { x: 50, y: 40 },
-        occupied: false,
-      },
-      {
-        row: 0,
-        col: 1,
-        rect: { left: 100, top: 0, width: 100, height: 80 },
-        center: { x: 150, y: 40 },
-        occupied: false,
-      },
-    ]])
-
-    expect(graph.spots).toContainEqual({ x: 96, y: 40 })
-    expect(graph.spots).toContainEqual({ x: 104, y: 40 })
-  })
-
-  it('places corridor graph points 4px from vertical cell boundaries', () => {
-    const graph = buildCorridorGraph([
-      [{
-        row: 0,
-        col: 0,
-        rect: { left: 0, top: 0, width: 100, height: 80 },
-        center: { x: 50, y: 40 },
-        occupied: false,
-      }],
-      [{
-        row: 1,
-        col: 0,
-        rect: { left: 0, top: 80, width: 100, height: 80 },
-        center: { x: 50, y: 120 },
-        occupied: false,
-      }],
-    ])
-
-    expect(graph.spots).toContainEqual({ x: 50, y: 76 })
-    expect(graph.spots).toContainEqual({ x: 50, y: 84 })
-  })
-})
 
 function expectOrthogonal(path: { x: number; y: number }[]) {
   expect(path.length).toBeGreaterThanOrEqual(2)

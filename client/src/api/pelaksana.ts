@@ -9,8 +9,6 @@ import { STALE_TIME } from '@/utils/constants'
 export interface GlobalPelaksana {
   id: string
   namaPelaksana: string
-  createdBy: { id: string; nama: string } | null
-  updatedBy: { id: string; nama: string } | null
   createdAt: string
   updatedAt: string
 }
@@ -36,7 +34,12 @@ export function useGlobalPelaksana() {
     queryFn: pelaksanaApi.list,
     staleTime: STALE_TIME.MEDIUM,
   })
-  return { list: query.data ?? [], isLoading: query.isLoading, error: query.error }
+  return {
+    list: query.data ?? [],
+    isLoading: query.isLoading,
+    isError: query.isError,
+    refetch: query.refetch,
+  }
 }
 
 export function useCreateGlobalPelaksana() {

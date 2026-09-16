@@ -64,7 +64,7 @@ describe('SidebarUserMenu', () => {
     openProfileMenu()
     fireEvent.click(await screen.findByText('Profil Saya'))
     expect(onNavigate).toHaveBeenCalledTimes(1)
-    expect(navigate).toHaveBeenCalledWith({ to: '/penyusun/me' })
+    expect(navigate).toHaveBeenCalledWith({ to: '/me' })
 
     openProfileMenu()
     fireEvent.click(await screen.findByText('Logout'))

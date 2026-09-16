@@ -11,7 +11,6 @@ import {
 } from 'react'
 import {
   FlowchartArrowConnector,
-  clearPathCache,
   type FlowchartConnection,
   type UsedSides,
   type PathUpdatedPayload,
@@ -763,7 +762,6 @@ function FlowchartPage({
   ])
 
   useEffect(() => {
-    if (arrowsReady) clearPathCache()
   }, [arrowsReady, areaId])
 
   const canRenderArrows = arrowsReady && connections.length > 0

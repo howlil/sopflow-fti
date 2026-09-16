@@ -12,7 +12,7 @@ describe('DataSurface', () => {
           </DataSurface.Tabs>
           <DataSurface.Toolbar data-testid="data-toolbar">
             <input aria-label="Cari SOP" />
-            <button type="button">Filter</button>
+            <button type="button">Penyaringan</button>
             <DataSurface.Actions data-testid="data-actions">
               <button type="button">Buat SOP</button>
             </DataSurface.Actions>

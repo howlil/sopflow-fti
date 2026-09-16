@@ -1,10 +1,9 @@
-import { displayStatusSop } from '../lifecycle/status-display';
+import { displayStatusSop } from '../../../common/status/status-display';
 import {
   hasRevisiInFlight,
   TERMINAL_DETAIL_STATUSES,
-} from '../lifecycle/sop-editable.util';
+} from '../../../common/status/sop-editable.util';
 import { StatusSOP } from '../../../generated/prisma';
-import { encodeLogEditSopClientId } from '../collaboration/log-edit-session.helper';
 import { mapDiagramConfigsToWorkbenchDto } from '../diagram/diagram-workbench.mapper';
 import type { PenyusunWorkbenchDataDto } from './dto/penyusun-workbench-data.dto';
 import type { SopDaftarRowDto } from './dto/sop-daftar-row.dto';
@@ -186,27 +185,6 @@ export function mapWorkbenchPayload(row: SopWorkbenchDbPayload): PenyusunWorkben
     },
   }));
 
-  const logEdit: PenyusunWorkbenchDataDto['logEdit'] = row.logEditSop.map((log) => {
-    const fields = log.domainFields.map((field) => field.domainField).sort();
-    const count = log.sesiChangeCount;
-    return {
-      id: encodeLogEditSopClientId(log.detailSopId, log.penggunaId, log.createdAt),
-      sopDetailId: log.detailSopId,
-      userId: log.penggunaId,
-      bagian: log.bagian,
-      keterangan: log.keterangan ?? null,
-      meta: fields.length === 0 && count === 0 ? null : { fields, count },
-      aktorRole: '',
-      createdAt: toIso(log.createdAt),
-      closedAt: log.closedAt instanceof Date ? toIso(log.closedAt) : null,
-      user: {
-        id: log.pengguna.penggunaId,
-        nama: log.pengguna.nama,
-        email: log.pengguna.email,
-      },
-    };
-  });
-
   let tteSignaturePayload: TteSignaturePayloadDto | undefined;
   const latestSignature = row.dokumenTte[0]?.riwayatTandaTangan[0];
   if (latestSignature?.user !== undefined) {
@@ -224,7 +202,6 @@ export function mapWorkbenchPayload(row: SopWorkbenchDbPayload): PenyusunWorkben
   return {
     detail,
     langkah,
-    logEdit,
     diagramKonfigurasi: mapDiagramConfigsToWorkbenchDto(row.konfigurasiDiagram),
     tteSignaturePayload,
   };

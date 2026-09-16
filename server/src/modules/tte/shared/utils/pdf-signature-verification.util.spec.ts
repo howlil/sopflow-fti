@@ -27,7 +27,7 @@ describe('Pengujian util verifikasi tanda tangan PDF', () => {
     const output = execSync(`node scripts/generate-pdf-signing-cert.cjs ${passphrase}`, {
       encoding: 'utf8',
     });
-    const line = output.split('\n').find((entry) => entry.startsWith('PDF_SIGNING_P12_BASE64='));
+    const line = output.split('\n').find((entry) => entry.startsWith('P12_BASE64='));
     if (!line) {
       throw new Error('Gagal menghasilkan sertifikat uji PDF.');
     }

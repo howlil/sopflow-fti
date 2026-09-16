@@ -22,18 +22,18 @@ describe('projectProsesBisnisSopLifecycle', () => {
   it('projects authoring as an actionable current-user stage', () => {
     expect(projectProsesBisnisSopLifecycle(baseInput)).toEqual({
       stage: 'AUTHORING',
-      stateLabel: 'Draft',
+      stateLabel: 'Draf',
       responsibility: { type: 'CURRENT_USER', name: 'Anda' },
       action: {
         type: 'CONTINUE_AUTHORING',
-        label: 'Lanjutkan SOP',
+        label: 'Lanjutkan Penyusunan SOP',
         destination: 'SOP_DETAIL',
       },
       blockingReason: null,
     });
   });
 
-  it('projects Penanggung Jawab Proses Bisnis review as waiting on the contextual owner', () => {
+  it('projects Pemeriksaan Proses Bisnis as waiting on the contextual owner', () => {
     expect(
       projectProsesBisnisSopLifecycle({
         ...baseInput,
@@ -41,14 +41,14 @@ describe('projectProsesBisnisSopLifecycle', () => {
       }),
     ).toMatchObject({
       stage: 'PROCESS_REVIEW',
-      stateLabel: 'Menunggu review Penanggung Jawab Proses Bisnis',
+      stateLabel: 'Menunggu Pemeriksaan Proses Bisnis',
       responsibility: { type: 'PROCESS_OWNER', name: 'Penanggung Jawab Proses Bisnis FTI' },
       action: null,
-      blockingReason: 'Menunggu review Penanggung Jawab Proses Bisnis FTI.',
+      blockingReason: 'Menunggu pemeriksaan oleh Penanggung Jawab Proses Bisnis FTI.',
     });
   });
 
-  it('projects the owner review action for the current Penanggung Jawab Proses Bisnis', () => {
+  it('projects the pemeriksaan action for the current Penanggung Jawab Proses Bisnis', () => {
     expect(
       projectProsesBisnisSopLifecycle({
         ...baseInput,
@@ -59,14 +59,14 @@ describe('projectProsesBisnisSopLifecycle', () => {
       responsibility: { type: 'CURRENT_USER', name: 'Anda' },
       action: {
         type: 'REVIEW_PROCESS',
-        label: 'Review SOP',
+        label: 'Periksa SOP',
         destination: 'SOP_DETAIL',
       },
       blockingReason: null,
     });
   });
 
-  it('distinguishes final approval from TTE for the same authority', () => {
+  it('maps compatibility approval states to TTE for the same authority', () => {
     const finalApproval = projectProsesBisnisSopLifecycle({
       ...baseInput,
       status: StatusSOP.FINAL_APPROVAL,
@@ -79,19 +79,19 @@ describe('projectProsesBisnisSopLifecycle', () => {
     });
 
     expect(finalApproval).toMatchObject({
-      stage: 'FINAL_APPROVAL',
-      stateLabel: 'Menunggu persetujuan akhir',
+      stage: 'TTE',
+      stateLabel: 'Menunggu Tanda Tangan Elektronik',
       responsibility: { type: 'DEAN', name: 'Dekan FTI' },
       action: null,
     });
     expect(tte).toMatchObject({
       stage: 'TTE',
-      stateLabel: 'Menunggu TTE',
+      stateLabel: 'Menunggu Tanda Tangan Elektronik',
       responsibility: { type: 'CURRENT_USER', name: 'Anda' },
       action: {
         type: 'SIGN_TTE',
-        label: 'Tanda tangani',
-        destination: 'APPROVAL_INBOX',
+        label: 'Tandatangani',
+        destination: 'TTE_INBOX',
       },
     });
   });
@@ -124,9 +124,9 @@ describe('projectProsesBisnisSopLifecycle', () => {
         authority: { holderId: 'head-1', holderName: 'Kepala TI' },
       }),
     ).toMatchObject({
-      stage: 'FINAL_APPROVAL',
+      stage: 'TTE',
       responsibility: { type: 'HEAD_OF_DEPARTMENT', name: 'Kepala TI' },
-      blockingReason: 'Menunggu persetujuan akhir Kepala TI.',
+      blockingReason: 'Menunggu Tanda Tangan Elektronik oleh Kepala TI.',
     });
   });
 });

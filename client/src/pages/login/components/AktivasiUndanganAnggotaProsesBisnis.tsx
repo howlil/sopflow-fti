@@ -81,7 +81,7 @@ export function AktivasiUndanganAnggotaProsesBisnis({ token }: { token: string }
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Undangan tidak tersedia</h1>
         <p className="text-sm leading-6 text-secondary-foreground">{error}</p>
         <Button variant="outline" onClick={() => window.location.assign('/login')}>
-          Kembali ke login
+          Kembali ke halaman masuk
         </Button>
       </div>
     )

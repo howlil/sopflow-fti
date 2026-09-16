@@ -53,8 +53,8 @@ describe('NotifikasiProsesBisnisService', () => {
       data: expect.objectContaining({
         penggunaId: 'owner-1',
         kind: JenisNotifikasiProsesBisnis.PROCESS_OWNER_REVIEW_REQUESTED,
-        title: 'Review SOP Proses Bisnis diperlukan',
-        actionHref: '/work/queue',
+        title: 'Pemeriksaan SOP Proses Bisnis diperlukan',
+        actionHref: '/sop',
       }),
     });
   });
@@ -70,14 +70,14 @@ describe('NotifikasiProsesBisnisService', () => {
       penggunaId: 'dean-1',
       kind: JenisNotifikasiProsesBisnis.FINAL_APPROVAL_REQUESTED,
       namaProsesBisnis: 'Akademik',
-      authorityLabel: 'Dean',
+      authorityLabel: 'Dekan',
     });
 
     expect(tx.notifikasiProsesBisnis.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         penggunaId: 'dean-1',
         kind: JenisNotifikasiProsesBisnis.FINAL_APPROVAL_REQUESTED,
-        body: expect.stringContaining('Dean'),
+        body: expect.stringContaining('Dekan'),
         actionHref: '/persetujuan',
       }),
     });
@@ -106,9 +106,9 @@ describe('NotifikasiProsesBisnisService', () => {
   });
 
   it.each([
-    [JenisNotifikasiProsesBisnis.PROCESS_REVISION_REQUESTED, 'Revisi SOP Proses Bisnis diperlukan'],
-    [JenisNotifikasiProsesBisnis.PROCESS_SOP_EFFECTIVE, 'SOP Proses Bisnis sudah berlaku'],
-    [JenisNotifikasiProsesBisnis.PROCESS_SOP_REVOKED, 'SOP Proses Bisnis sudah dicabut'],
+    [JenisNotifikasiProsesBisnis.PROCESS_REVISION_REQUESTED, 'Perbaikan SOP Proses Bisnis diperlukan'],
+    [JenisNotifikasiProsesBisnis.PROCESS_SOP_EFFECTIVE, 'SOP Proses Bisnis telah berlaku'],
+    [JenisNotifikasiProsesBisnis.PROCESS_SOP_REVOKED, 'SOP Proses Bisnis telah dicabut'],
   ])('maps %s to current FTI workflow feedback copy', async (kind, title) => {
     const { service } = makeService();
     const tx = makeTx();
@@ -127,7 +127,7 @@ describe('NotifikasiProsesBisnisService', () => {
         kind,
         title,
         preview: expect.stringContaining('Akademik'),
-        actionHref: '/work/queue',
+        actionHref: '/sop',
       }),
     });
   });

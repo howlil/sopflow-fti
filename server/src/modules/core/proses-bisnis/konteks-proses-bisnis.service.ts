@@ -34,7 +34,7 @@ export class ProsesBisnisContextService {
     });
   }
 
-  async assertCanAuthor(penggunaId: string, prosesBisnisId: string) {
+  async assertCanView(penggunaId: string, prosesBisnisId: string) {
     if (await this.isArchived(prosesBisnisId)) {
       throw new ForbiddenException('Proses Bisnis sudah diarsipkan dan bersifat read-only');
     }
@@ -51,6 +51,34 @@ export class ProsesBisnisContextService {
     return prosesBisnis;
   }
 
+  async assertCanAuthor(penggunaId: string, prosesBisnisId: string) {
+    if (await this.isArchived(prosesBisnisId)) {
+      throw new ForbiddenException('Proses Bisnis sudah diarsipkan dan bersifat read-only');
+    }
+    const prosesBisnis = await this.prisma.prosesBisnis.findFirst({
+      where: { prosesBisnisId, anggota: { some: { penggunaId } } },
+      include: prosesBisnisInclude,
+    });
+    if (prosesBisnis === null) {
+      throw new ForbiddenException('Akses ditolak: hanya Anggota Proses Bisnis yang dapat mengubah SOP');
+    }
+    return prosesBisnis;
+  }
+
+  async assertCanInitiateSop(penggunaId: string, prosesBisnisId: string) {
+    if (await this.isArchived(prosesBisnisId)) {
+      throw new ForbiddenException('Proses Bisnis sudah diarsipkan dan bersifat read-only');
+    }
+    const prosesBisnis = await this.prisma.prosesBisnis.findFirst({
+      where: { prosesBisnisId, anggota: { some: { penggunaId } } },
+      include: prosesBisnisInclude,
+    });
+    if (prosesBisnis === null) {
+      throw new ForbiddenException('Akses ditolak: hanya Anggota Proses Bisnis yang dapat menginisiasi SOP');
+    }
+    return prosesBisnis;
+  }
+
   async assertCanReview(penggunaId: string, prosesBisnisId: string) {
     if (await this.isArchived(prosesBisnisId)) {
       throw new ForbiddenException('Proses Bisnis sudah diarsipkan dan tidak menerima tindakan workflow baru');
@@ -60,7 +88,7 @@ export class ProsesBisnisContextService {
       include: prosesBisnisInclude,
     });
     if (prosesBisnis === null) {
-      throw new ForbiddenException('Akses ditolak: hanya Penanggung Jawab Proses Bisnis yang dapat melakukan review');
+      throw new ForbiddenException('Akses ditolak: hanya Penanggung Jawab Proses Bisnis yang dapat melakukan pemeriksaan');
     }
     return prosesBisnis;
   }

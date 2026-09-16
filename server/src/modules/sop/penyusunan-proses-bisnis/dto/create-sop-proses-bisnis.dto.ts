@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 
 export class CreateProsesBisnisSopDto {
-  @ApiProperty({ description: 'Proses Bisnis yang menjadi owner kontekstual SOP' })
+  @ApiProperty({ description: 'Proses Bisnis yang menjadi konteks kewenangan SOP' })
   @IsUUID()
   readonly prosesBisnisId!: string;
 

@@ -22,6 +22,24 @@ services:
       timeout: 10s
       retries: 10
 
+  backend-bootstrap:
+    image: sop-arsip-backend
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PUBLIC_APP_ORIGIN: ${PUBLIC_APP_ORIGIN:?set PUBLIC_APP_ORIGIN}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET}
+      TTE_ENCRYPTION_SECRET: ${TTE_ENCRYPTION_SECRET:?set TTE_ENCRYPTION_SECRET}
+      DATABASE_HOST: db
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
+    command: ["/usr/local/bin/sopflow-backend-bootstrap.sh"]
+
   backend:
     image: sop-arsip-backend
     build:
@@ -31,6 +49,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      backend-bootstrap:
+        condition: service_completed_successfully
     environment:
       PUBLIC_APP_ORIGIN: ${PUBLIC_APP_ORIGIN:?set PUBLIC_APP_ORIGIN}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
@@ -67,9 +87,7 @@ services:
     cap_drop:
       - ALL
     healthcheck:
-      # The public service is ready only when its proxied backend is ready.
-      # Keeping this check here lets Compose start without blocking on a
-      # service_healthy dependency while MyPaaS still gets an end-to-end gate.
+
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/api/health/ready"]
       start_period: 30s
       interval: 10s
@@ -78,9 +96,6 @@ services:
 
 volumes:
   db_data:
-    # Keep the established database volume name while the Compose network is
-    # isolated by MyPaaS. This prevents a project-name cleanup from hiding the
-    # existing production data behind a newly named volume.
     name: sop-arsip_db_data
   sop_pdf_data:
     name: sop-arsip_sop_pdf_data

@@ -50,7 +50,7 @@ export class SopDaftarRowDto {
   })
   readonly canCabutSop!: boolean;
 
-  @ApiProperty({ description: 'Draft awal satu-satunya dapat dihapus oleh author yang berwenang' })
+  @ApiProperty({ description: 'Draf awal satu-satunya dapat dihapus oleh Penyusun SOP yang berwenang' })
   readonly canHapusSopDraft!: boolean;
 
   @ApiPropertyOptional({

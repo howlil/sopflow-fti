@@ -1,12 +1,9 @@
 import {
   Body,
   Controller,
-  DefaultValuePipe,
   Param,
-  ParseIntPipe,
   ParseUUIDPipe,
   Patch,
-  Query,
   Req,
 } from '@nestjs/common';
 import {
@@ -15,7 +12,6 @@ import {
   ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOperation,
-  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -42,11 +38,6 @@ export class SopDiagramController {
     summary:
       'PATCH konfigurasi diagram SOP Proses Bisnis-bound (layoutSeed + path manual). Param :detailSopId boleh DetailSOP atau SOP header.',
   })
-  @ApiQuery({
-    name: 'logsLimit',
-    required: false,
-    schema: { default: 100, minimum: 1, maximum: 500 },
-  })
   @ApiResponse({ status: 200, type: PenyusunWorkbenchDataDto })
   @ApiBadRequestResponse()
   @ApiForbiddenResponse()
@@ -55,9 +46,8 @@ export class SopDiagramController {
     @Req() req: Request & { user: JwtAccessPayload },
     @Param('detailSopId', ParseUUIDPipe) detailSopId: string,
     @Body() dto: UpdateSopDiagramDto,
-    @Query('logsLimit', new DefaultValuePipe(100), ParseIntPipe) logsLimit: number,
   ): Promise<ApiSuccessResponse<PenyusunWorkbenchDataDto>> {
-    const data = await this.sopDiagramService.updateDiagram(req.user, detailSopId, dto, logsLimit);
+    const data = await this.sopDiagramService.updateDiagram(req.user, detailSopId, dto);
     return {
       message: 'Konfigurasi diagram berhasil diperbarui',
       success: true,

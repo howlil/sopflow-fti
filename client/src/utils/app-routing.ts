@@ -19,7 +19,7 @@ export function parseSafeInternalRedirect(redirect: string | undefined): string 
 
 export function resolvePostLoginPath(
   redirect: string | undefined,
-  fallbackPath: string = ROUTES.WORK,
+  fallbackPath: string = ROUTES.ME,
 ): string {
   return parseSafeInternalRedirect(redirect) ?? fallbackPath
 }

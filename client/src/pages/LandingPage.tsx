@@ -9,10 +9,9 @@ const PRODUCT_NAME = 'SOPFlow FTI'
 
 const WORKFLOW_STAGES = [
   { step: '01', title: 'Penyusunan' },
-  { step: '02', title: 'Review Proses' },
-  { step: '03', title: 'Persetujuan Akhir' },
-  { step: '04', title: 'TTE' },
-  { step: '05', title: 'Berlaku' },
+  { step: '02', title: 'Pemeriksaan Proses Bisnis' },
+  { step: '03', title: 'Tanda Tangan Elektronik' },
+  { step: '04', title: 'Berlaku' },
 ] as const
 
 export function LandingPage() {

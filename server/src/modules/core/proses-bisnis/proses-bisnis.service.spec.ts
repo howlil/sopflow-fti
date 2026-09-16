@@ -13,7 +13,12 @@ describe('ProsesBisnisService', () => {
       | 'updateDepartemen'
       | 'listAssignableUsers'
       | 'listProsesBisnis'
-      | 'getAdminOverview'
+      | 'listMemberDirectory'
+      | 'findActiveUser'
+      | 'findMemberMembership'
+      | 'findProsesBisnis'
+      | 'findProcessStatus'
+      | 'transferMember'
     >
   >;
 
@@ -24,7 +29,12 @@ describe('ProsesBisnisService', () => {
       updateDepartemen: jest.fn(),
       listAssignableUsers: jest.fn(),
       listProsesBisnis: jest.fn(),
-      getAdminOverview: jest.fn(),
+      listMemberDirectory: jest.fn(),
+      findActiveUser: jest.fn(),
+      findMemberMembership: jest.fn(),
+      findProsesBisnis: jest.fn(),
+      findProcessStatus: jest.fn(),
+      transferMember: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -67,11 +77,20 @@ describe('ProsesBisnisService', () => {
     expect(repository.listProsesBisnis).toHaveBeenCalledTimes(1);
   });
 
-  it('delegates the Admin overview read model to the repository', async () => {
-    const overview = { accounts: { total: 1 } };
-    repository.getAdminOverview.mockResolvedValue(overview as never);
+  it('moves an active member atomically through the admin transfer boundary', async () => {
+    repository.findActiveUser.mockResolvedValue({ penggunaId: 'user-1', platformRole: 'USER' } as never);
+    repository.findMemberMembership
+      .mockResolvedValueOnce({ prosesBisnisId: 'source-process', penggunaId: 'user-1' } as never)
+      .mockResolvedValueOnce(null);
+    repository.findProsesBisnis.mockResolvedValue({ prosesBisnisId: 'target-process', penanggungJawabId: 'owner-2' } as never);
+    repository.findProcessStatus.mockResolvedValue(null);
 
-    await expect(service.getAdminOverview()).resolves.toEqual(overview);
-    expect(repository.getAdminOverview).toHaveBeenCalledTimes(1);
+    await expect(service.transferAnggota('user-1', 'source-process', 'target-process')).resolves.toEqual({
+      penggunaId: 'user-1',
+      fromProsesBisnisId: 'source-process',
+      toProsesBisnisId: 'target-process',
+    });
+    expect(repository.findMemberMembership).toHaveBeenNthCalledWith(1, 'user-1', 'source-process');
+    expect(repository.transferMember).toHaveBeenCalledWith('user-1', 'source-process', 'target-process');
   });
 });

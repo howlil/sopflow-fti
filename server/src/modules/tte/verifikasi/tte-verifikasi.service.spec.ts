@@ -1,17 +1,13 @@
 import { NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JenisDokumenTte, PejabatBerwenang } from '../../../generated/prisma';
+import { JenisDokumenTte, PejabatBerwenang, StatusSOP } from '../../../generated/prisma';
 import { TteRepository } from '../shared/repository/tte.repository';
 import { TtePublicUrlResolver } from '../shared/utils/tte-public-url.resolver';
-import type { ProsesBisnisTteVerificationRepository } from './tte-proses-bisnis-verification.repository';
 import { TteVerifikasiService } from './tte-verifikasi.service';
 
 describe('TteVerifikasiService', () => {
   let service: TteVerifikasiService;
   let mockTteRepository: Partial<TteRepository>;
-  let mockProsesBisnisVerificationRepository: jest.Mocked<
-    Pick<ProsesBisnisTteVerificationRepository, 'findApprovalForSignedDetail'>
-  >;
 
   const defaultRiwayatRow = {
     userId: 'user-123',
@@ -31,19 +27,18 @@ describe('TteVerifikasiService', () => {
       hashDokumen: 'abc123hash',
       detailSopId: 'detail-1',
       prosesBisnisId: 'process-1',
+      pdfPath: '/storage/sop/dok-123.pdf',
+      pdfStatus: 'PUBLISHED',
+      detailSop: {
+        status: StatusSOP.EFFECTIVE,
+        sop: { prosesBisnisId: 'process-1' },
+      },
     },
   };
 
   beforeEach(() => {
     mockTteRepository = {
       findRiwayatPengesahanByUserAndDokumen: jest.fn(),
-    };
-    mockProsesBisnisVerificationRepository = {
-      findApprovalForSignedDetail: jest.fn().mockResolvedValue({
-        authority: PejabatBerwenang.HEAD_OF_DEPARTMENT,
-        kunciPejabatBerwenang: 'HEAD_OF_DEPARTMENT:department-a',
-        approvedById: 'user-123',
-      }),
     };
     const configService = {
       get: jest.fn((key: string) => {
@@ -54,7 +49,6 @@ describe('TteVerifikasiService', () => {
     service = new TteVerifikasiService(
       mockTteRepository as TteRepository,
       new TtePublicUrlResolver(configService as unknown as ConfigService),
-      mockProsesBisnisVerificationRepository as unknown as ProsesBisnisTteVerificationRepository,
     );
   });
 
@@ -66,67 +60,20 @@ describe('TteVerifikasiService', () => {
     );
   });
 
-  it('menolak artefak tanpa binding DetailSOP dan Proses Bisnis native', async () => {
-    (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue({
-      ...defaultRiwayatRow,
-      dokumenTte: { ...defaultRiwayatRow.dokumenTte, prosesBisnisId: null },
-    });
-
-    await expect(service.getPengesahanPublic('dok-123', 'user-123')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-    expect(mockProsesBisnisVerificationRepository.findApprovalForSignedDetail).not.toHaveBeenCalled();
-  });
-
-  it('menolak ketika approval evidence tidak ditemukan', async () => {
-    (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue(
-      defaultRiwayatRow,
-    );
-    mockProsesBisnisVerificationRepository.findApprovalForSignedDetail.mockResolvedValue(null);
-
-    await expect(service.getPengesahanPublic('dok-123', 'user-123')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-  });
-
-  it('menolak ketika authority signature tidak sama dengan persetujuan akhir evidence', async () => {
-    (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue(
-      defaultRiwayatRow,
-    );
-    mockProsesBisnisVerificationRepository.findApprovalForSignedDetail.mockResolvedValue({
-      authority: PejabatBerwenang.DEAN,
-      kunciPejabatBerwenang: 'DEAN',
-      approvedById: 'user-123',
-    });
-
-    await expect(service.getPengesahanPublic('dok-123', 'user-123')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-  });
-
-  it('mengekspos Dean dari native signing dan approval evidence', async () => {
+  it('mengekspos Dean dari native signing evidence', async () => {
     const row = {
       ...defaultRiwayatRow,
       authority: PejabatBerwenang.DEAN,
       user: { ...defaultRiwayatRow.user, jabatan: 'Dekan' },
     };
     (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue(row);
-    mockProsesBisnisVerificationRepository.findApprovalForSignedDetail.mockResolvedValue({
-      authority: PejabatBerwenang.DEAN,
-      kunciPejabatBerwenang: 'DEAN',
-      approvedById: 'user-123',
-    });
-
     const result = await service.getPengesahanPublic('dok-123', 'user-123');
 
     expect(result.authority).toBe(PejabatBerwenang.DEAN);
     expect(result.authorityLabel).toBe('Dekan');
+    expect(result.signatureValid).toBe(true);
+    expect(result.currentPublicStatus).toBe('CURRENT');
     expect(result).not.toHaveProperty('peran');
-    expect(mockProsesBisnisVerificationRepository.findApprovalForSignedDetail).toHaveBeenCalledWith(
-      'detail-1',
-      'user-123',
-      'process-1',
-    );
   });
 
   it('mengekspos Kepala Departemen untuk Departemen Proses Bisnis', async () => {
@@ -141,12 +88,44 @@ describe('TteVerifikasiService', () => {
     expect(result.dokumen.sopDetailId).toBe('detail-1');
   });
 
+  it.each([
+    [StatusSOP.REVOKED, 'REVOKED'],
+    [StatusSOP.SUPERSEDED, 'SUPERSEDED'],
+  ] as const)(
+    'menandai status histori %s sebagai tidak current',
+    async (detailStatus, expectedStatus) => {
+      (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue({
+        ...defaultRiwayatRow,
+        dokumenTte: {
+          ...defaultRiwayatRow.dokumenTte,
+          detailSop: { ...defaultRiwayatRow.dokumenTte.detailSop, status: detailStatus },
+          pdfStatus: detailStatus === StatusSOP.REVOKED ? 'REVOKED' : 'SUPERSEDED',
+        },
+      });
+
+      const result = await service.getPengesahanPublic('dok-123', 'user-123');
+
+      expect(result.signatureValid).toBe(true);
+      expect(result.currentPublicStatus).toBe(expectedStatus);
+    },
+  );
+
+  it('menandai dokumen efektif tanpa artefak publik sebagai tidak tersedia publik', async () => {
+    (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue({
+      ...defaultRiwayatRow,
+      dokumenTte: { ...defaultRiwayatRow.dokumenTte, pdfPath: null, pdfStatus: null },
+    });
+
+    const result = await service.getPengesahanPublic('dok-123', 'user-123');
+
+    expect(result.currentPublicStatus).toBe('NOT_PUBLIC');
+  });
+
   it('memakai payload JSON ketika origin publik tidak tersedia', async () => {
     const emptyConfig = { get: jest.fn().mockReturnValue(undefined) };
     const serviceTanpaOrigin = new TteVerifikasiService(
       mockTteRepository as TteRepository,
       new TtePublicUrlResolver(emptyConfig as unknown as ConfigService),
-      mockProsesBisnisVerificationRepository as unknown as ProsesBisnisTteVerificationRepository,
     );
     (mockTteRepository.findRiwayatPengesahanByUserAndDokumen as jest.Mock).mockResolvedValue(
       defaultRiwayatRow,

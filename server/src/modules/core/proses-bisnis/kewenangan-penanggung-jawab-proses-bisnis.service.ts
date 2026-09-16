@@ -3,7 +3,6 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import {
   LingkupOrganisasi,
   PlatformRole,
-  JenisAktivitasProsesBisnis,
 } from '../../../generated/prisma';
 import type { GrantKewenanganPenanggungJawabProsesBisnisDto } from './dto/penanggung-jawab-proses-bisnis.dto';
 
@@ -35,6 +34,10 @@ export class KewenanganPenanggungJawabProsesBisnisService {
     const kunciLingkup = this.kunciLingkup(dto.lingkup, departemenId);
 
     const authority = await this.prisma.$transaction(async (tx) => {
+      await tx.kewenanganPenanggungJawabProsesBisnis.updateMany({
+        where: { penggunaId: dto.penggunaId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
       const row = await tx.kewenanganPenanggungJawabProsesBisnis.upsert({
         where: { penggunaId_kunciLingkup: { penggunaId: dto.penggunaId, kunciLingkup } },
         create: {
@@ -51,61 +54,53 @@ export class KewenanganPenanggungJawabProsesBisnisService {
           revokedAt: null,
         },
       });
-      await tx.riwayatAktivitasProsesBisnis.create({
-        data: {
-          actorId: grantedById,
-          event: JenisAktivitasProsesBisnis.OWNER_AUTHORITY_GRANTED,
-          targetUserId: dto.penggunaId,
-          metadata: { lingkup: dto.lingkup, departemenId, kunciLingkup },
-        },
-      });
       return row;
     });
 
     return (await this.enrich([authority]))[0];
   }
 
-  async revoke(grantedById: string, kewenanganPenanggungJawabProsesBisnisId: string) {
+  async revoke(_grantedById: string, kewenanganPenanggungJawabProsesBisnisId: string) {
     const current = await this.prisma.kewenanganPenanggungJawabProsesBisnis.findUnique({
       where: { kewenanganPenanggungJawabProsesBisnisId },
     });
     if (current === null || current.revokedAt !== null) {
       throw new NotFoundException('Kewenangan Penanggung Jawab Proses Bisnis aktif tidak ditemukan');
     }
-    await this.prisma.$transaction([
-      this.prisma.kewenanganPenanggungJawabProsesBisnis.update({
-        where: { kewenanganPenanggungJawabProsesBisnisId },
-        data: { revokedAt: new Date() },
+    await this.prisma.kewenanganPenanggungJawabProsesBisnis.update({
+      where: { kewenanganPenanggungJawabProsesBisnisId },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  async assertCanCreateFromAuthority(
+    penggunaId: string,
+    kewenanganPenanggungJawabProsesBisnisId: string,
+  ): Promise<{ lingkup: LingkupOrganisasi; departemenId: string | null; kunciLingkup: string }> {
+    const [user, authority] = await Promise.all([
+      this.prisma.pengguna.findFirst({
+        where: { penggunaId, deletedAt: null },
+        select: { platformRole: true },
       }),
-      this.prisma.riwayatAktivitasProsesBisnis.create({
-        data: {
-          actorId: grantedById,
-          event: JenisAktivitasProsesBisnis.OWNER_AUTHORITY_REVOKED,
-          targetUserId: current.penggunaId,
-          metadata: {
-            lingkup: current.lingkup,
-            departemenId: current.departemenId,
-            kunciLingkup: current.kunciLingkup,
-          },
+      this.prisma.kewenanganPenanggungJawabProsesBisnis.findFirst({
+        where: {
+          kewenanganPenanggungJawabProsesBisnisId,
+          penggunaId,
+          revokedAt: null,
         },
       }),
     ]);
-  }
-
-  async assertCanCreate(
-    penggunaId: string,
-    lingkup: LingkupOrganisasi,
-    requestedDepartemenId?: string | null,
-  ): Promise<{ lingkup: LingkupOrganisasi; departemenId: string | null; kunciLingkup: string }> {
-    const departemenId = await this.resolveDepartemen(lingkup, requestedDepartemenId);
-    const kunciLingkup = this.kunciLingkup(lingkup, departemenId);
-    const authority = await this.prisma.kewenanganPenanggungJawabProsesBisnis.findUnique({
-      where: { penggunaId_kunciLingkup: { penggunaId, kunciLingkup } },
-    });
-    if (authority === null || authority.revokedAt !== null) {
-      throw new ForbiddenException('Anda tidak memiliki kewenangan membuat Proses Bisnis pada lingkup ini');
+    if (user === null || user.platformRole !== PlatformRole.USER) {
+      throw new ForbiddenException('Akun USER aktif diperlukan untuk membuat Proses Bisnis');
     }
-    return { lingkup, departemenId, kunciLingkup };
+    if (authority === null) {
+      throw new ForbiddenException('Anda tidak memiliki kewenangan aktif pada unit ini');
+    }
+    return {
+      lingkup: authority.lingkup,
+      departemenId: authority.departemenId,
+      kunciLingkup: authority.kunciLingkup,
+    };
   }
 
   kunciLingkup(lingkup: LingkupOrganisasi, departemenId: string | null): string {

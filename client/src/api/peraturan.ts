@@ -33,6 +33,7 @@ export function usePeraturan() {
     data: list = [],
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: queryKeys.peraturanList,
     queryFn: peraturanApi.findAll,
@@ -64,6 +65,7 @@ export function usePeraturan() {
     list,
     isLoading,
     error,
+    refetch,
     create: createMutation.mutateAsync,
     update: updateMutation.mutateAsync,
     delete: deleteMutation.mutateAsync,

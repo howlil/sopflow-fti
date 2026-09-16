@@ -15,7 +15,7 @@ import type { TTESignaturePayload } from '@/types/dto/tte.dto'
 export { downloadSopPdf, printSopPdfDocument } from './print-sop-pdf'
 
 export const CETAK_ARSIP_DISABLED_TITLE =
-  'Tersedia setelah SOP selesai melalui persetujuan akhir dan TTE.'
+  'Tersedia setelah SOP selesai melalui pemeriksaan Proses Bisnis dan TTE.'
 
 /** Cetak SOP arsip pengajuan — hanya setelah pengajuan SELESAI (semua SOP Berlaku). */
 export function canCetakSopArsipPengajuan(status: string | undefined): boolean {

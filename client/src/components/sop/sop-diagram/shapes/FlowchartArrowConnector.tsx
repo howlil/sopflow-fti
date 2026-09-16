@@ -66,14 +66,6 @@ type BoundsRect = { left: number; top: number; right: number; bottom: number }
  */
 export type RoutedPathsRef = MutableRefObject<Map<string, OccupiedSegment[]>>
 
-/** Clear path cache — no-op stub, kept for API compat. */
-export function clearPathCache(_connectionId?: string): void {
-  // no-op: module-level pathCache removed
-}
-
-
-
-
 function samePoint(a: ArrowPathPoint | null | undefined, b: ArrowPathPoint | null | undefined): boolean {
   if (a == null || b == null) return a === b
   return a.x === b.x && a.y === b.y
@@ -98,7 +90,6 @@ function sameLabelPosition(
   if (a == null || b == null) return a === b
   return a.x === b.x && a.y === b.y
 }
-
 
 /* ───────────────────────── Props ─────────────────────────── */
 
@@ -551,8 +542,6 @@ export function FlowchartArrowConnector({
           bottom: pathAllowedBounds.top + pathAllowedBounds.height,
         }
       : constraintRect
-    const corridorGraph = false // corridor graph no longer used; kept for type compat
-    void corridorGraph
 
     const dy = (toPos.top + toPos.height / 2) - (fromPos.top + fromPos.height / 2)
     const dx = (toPos.left + toPos.width / 2) - (fromPos.left + fromPos.width / 2)
@@ -654,8 +643,6 @@ export function FlowchartArrowConnector({
         fromShape,
         toShape,
       }))
-
-
 
     const runRouting = () => {
     let bestPath: { x: number; y: number }[] | null = null
@@ -776,7 +763,6 @@ export function FlowchartArrowConnector({
 
       const pointA = { shape: fromShape, side: sSide, distance: distA }
       const pointB = { shape: toShape, side: eSide, distance: distB }
-      // Always use routeOrthogonal (corridor graph no longer needed)
       const path = routeOrthogonal({
         pointA,
         pointB,
@@ -1028,7 +1014,6 @@ export function FlowchartArrowConnector({
             flowchart: {
               globalBounds: guardCtx.globalBounds,
               globalBoundsMargin: guardCtx.boundsMargin,
-              corridorGraph: null,
             },
           },
         }

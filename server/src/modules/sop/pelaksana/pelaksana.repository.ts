@@ -8,12 +8,6 @@ export type PelaksanaRow = {
   updatedAt: Date;
 };
 
-export type PelaksanaAttributionRow = {
-  pelaksanaId: string;
-  createdById: string | null;
-  updatedById: string | null;
-};
-
 const pelaksanaSelect = {
   pelaksanaId: true,
   nama: true,
@@ -40,51 +34,15 @@ export class PelaksanaRepository {
     });
   }
 
-  async findAttributionByPelaksanaIds(ids: string[]): Promise<PelaksanaAttributionRow[]> {
-    if (ids.length === 0) return [];
-    return this.prisma.pelaksanaAuditAttribution.findMany({
-      where: { pelaksanaId: { in: ids } },
-      select: { pelaksanaId: true, createdById: true, updatedById: true },
-    });
+  async createGlobal(nama: string): Promise<PelaksanaRow> {
+    return this.prisma.pelaksana.create({ data: { nama }, select: pelaksanaSelect });
   }
 
-  async findPenggunaNames(ids: string[]): Promise<Map<string, string>> {
-    const uniqueIds = Array.from(new Set(ids.filter((id) => id.length > 0)));
-    if (uniqueIds.length === 0) return new Map();
-    const rows = await this.prisma.pengguna.findMany({
-      where: { penggunaId: { in: uniqueIds } },
-      select: { penggunaId: true, nama: true },
-    });
-    return new Map(rows.map((row) => [row.penggunaId, row.nama]));
-  }
-
-  async createGlobal(nama: string, userId: string): Promise<PelaksanaRow> {
-    return this.prisma.$transaction(async (tx) => {
-      const row = await tx.pelaksana.create({ data: { nama }, select: pelaksanaSelect });
-      await tx.pelaksanaAuditAttribution.create({
-        data: {
-          pelaksanaId: row.pelaksanaId,
-          createdById: userId,
-          updatedById: userId,
-        },
-      });
-      return row;
-    });
-  }
-
-  async updateNamaGlobal(pelaksanaId: string, nama: string, userId: string): Promise<PelaksanaRow> {
-    return this.prisma.$transaction(async (tx) => {
-      const row = await tx.pelaksana.update({
-        where: { pelaksanaId },
-        data: { nama },
-        select: pelaksanaSelect,
-      });
-      await tx.pelaksanaAuditAttribution.upsert({
-        where: { pelaksanaId },
-        create: { pelaksanaId, updatedById: userId },
-        update: { updatedById: userId },
-      });
-      return row;
+  async updateNamaGlobal(pelaksanaId: string, nama: string): Promise<PelaksanaRow> {
+    return this.prisma.pelaksana.update({
+      where: { pelaksanaId },
+      data: { nama },
+      select: pelaksanaSelect,
     });
   }
 

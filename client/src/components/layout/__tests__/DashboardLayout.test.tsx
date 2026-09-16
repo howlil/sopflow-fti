@@ -4,20 +4,40 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let mockProsesBisnises: Array<{ prosesBisnisId: string }> = [];
 let mockAuthorities: Array<{ kunciPejabatBerwenang: string }> = [];
+let mockOwnerContext = { scopes: [] as unknown[], prosesBisnis: [] as unknown[] };
+let mockPath = "/me";
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ to, children, ...props }: { to: string; children: ReactNode }) => (
     <a href={to} {...props}>{children}</a>
   ),
   Outlet: () => <div>Konten halaman</div>,
-  useLocation: () => ({ pathname: "/work/queue" }),
+  useLocation: () => ({ pathname: mockPath }),
 }));
 
 vi.mock("@/api/konteks-proses-bisnis", () => ({ useMyProsesBisnises: () => ({ data: mockProsesBisnises }) }));
 vi.mock("@/api/pejabat-berwenang", () => ({
   useMyOrganizationalAuthorities: () => ({ data: mockAuthorities }),
 }));
-vi.mock("@/components/layout/HeaderBar", () => ({ HeaderBar: () => <div>Header</div> }));
+vi.mock("@/api/penanggung-jawab-proses-bisnis", () => ({
+  useProsesBisnisOwnerSelfService: () => mockOwnerContext,
+}));
+vi.mock("@/components/layout/HeaderBar", () => ({
+  HeaderBar: ({
+    isMobileNavOpen,
+    onMobileNavToggle,
+  }: {
+    isMobileNavOpen?: boolean;
+    onMobileNavToggle?: () => void;
+  }) => (
+    <>
+      <div>Header</div>
+      {onMobileNavToggle ? (
+        <button type="button" aria-label={isMobileNavOpen ? "Tutup navigasi" : "Buka navigasi"} onClick={onMobileNavToggle} />
+      ) : null}
+    </>
+  ),
+}));
 vi.mock("@/components/layout/PageHeaderProvider", () => ({
   PageHeaderProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
@@ -42,6 +62,8 @@ describe("DashboardLayout desktop sidebar", () => {
     useUIStore.setState({ sidebarOpen: true });
     mockProsesBisnises = [];
     mockAuthorities = [];
+    mockOwnerContext = { scopes: [], prosesBisnis: [] };
+    mockPath = "/me";
   });
 
   it("dapat ditutup, tetap menamai menu, dan dapat dibuka kembali", () => {
@@ -62,22 +84,27 @@ describe("DashboardLayout desktop sidebar", () => {
   it("menampilkan pekerjaan SOP hanya dari hubungan Proses Bisnis", () => {
     mockProsesBisnises = [{ prosesBisnisId: "process-1" }];
     render(<DashboardLayout />);
-    expect(screen.getAllByRole("link", { name: "Tugas Saya" })).not.toHaveLength(0);
-    expect(screen.getAllByRole("link", { name: "Semua SOP" })).not.toHaveLength(0);
+    expect(screen.getAllByRole("link", { name: "SOP" })).not.toHaveLength(0);
   });
 
   it("menampilkan persetujuan hanya dari kewenangan organisasi", () => {
     mockAuthorities = [{ kunciPejabatBerwenang: "DEAN" }];
     render(<DashboardLayout />);
-    expect(screen.getAllByRole("link", { name: "Persetujuan & TTE" })).not.toHaveLength(0);
+    expect(screen.getAllByRole("link", { name: "Siklus SOP" })).not.toHaveLength(0);
+    expect(screen.getAllByRole("link", { name: "Tanda Tangan SOP" })).not.toHaveLength(0);
   });
 
-  it("tanpa konteks tetap menyediakan beranda netral tanpa menu workflow palsu", () => {
+  it("menampilkan pengelolaan Proses Bisnis hanya untuk Penanggung Jawab", () => {
+    mockOwnerContext = { scopes: [{}], prosesBisnis: [] };
     render(<DashboardLayout />);
-    expect(screen.getAllByRole("link", { name: "Beranda Kerja" })).not.toHaveLength(0);
-    expect(screen.queryByRole("link", { name: "Tugas Saya" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Semua SOP" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Persetujuan & TTE" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Proses Bisnis" })).not.toHaveLength(0);
+  });
+
+  it("tanpa konteks tidak menampilkan menu workflow palsu", () => {
+    render(<DashboardLayout />);
+    expect(screen.queryByRole("link", { name: "SOP" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Siklus SOP" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Tanda Tangan SOP" })).not.toBeInTheDocument();
   });
 
   it("memulihkan preferensi sidebar yang tersimpan", async () => {
@@ -91,6 +118,7 @@ describe("DashboardLayout desktop sidebar", () => {
 
   it("menampilkan label lengkap dengan separator panel yang netral", () => {
     mockProsesBisnises = [{ prosesBisnisId: "process-1" }];
+    mockPath = "/sop";
     render(<DashboardLayout />);
     const sidebar = document.querySelector("#desktop-sidebar");
     const activeLink = sidebar?.querySelector('a[aria-current="page"]');

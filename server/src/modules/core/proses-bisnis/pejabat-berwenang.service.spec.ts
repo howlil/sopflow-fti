@@ -102,7 +102,7 @@ describe('PejabatBerwenangService', () => {
     } as unknown as PrismaService;
     const service = new PejabatBerwenangService(prisma);
 
-    await expect(service.assertCanApprove('admin-1', 'prosesBisnis-a')).rejects.toBeInstanceOf(
+    await expect(service.assertCurrentAuthorityHolder('admin-1', 'prosesBisnis-a')).rejects.toBeInstanceOf(
       ForbiddenException,
     );
   });

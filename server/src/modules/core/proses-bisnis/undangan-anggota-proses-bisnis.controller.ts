@@ -4,7 +4,7 @@ import { type ApiSuccessResponse } from '../../../common';
 import { AcceptUndanganAnggotaProsesBisnisDto } from './dto/penanggung-jawab-proses-bisnis.dto';
 import { PenanggungJawabProsesBisnisService } from './penanggung-jawab-proses-bisnis.service';
 
-@ApiTags('Proses Bisnis Invitations')
+@ApiTags('Undangan Tim Penyusun SOP')
 @Controller('undangan-anggota-proses-bisnis')
 export class UndanganAnggotaProsesBisnisController {
   constructor(private readonly service: PenanggungJawabProsesBisnisService) {}
