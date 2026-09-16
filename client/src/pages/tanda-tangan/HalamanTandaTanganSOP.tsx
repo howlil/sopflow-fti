@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, Eye, FileSignature, Loader2, ShieldCheck } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
-import { useProsesBisnisTteQueue, processApprovalApi } from '@/api/persetujuan-akhir-sop'
+import { prosesBisnisLifecycleApi, useProsesBisnisTteQueue } from '@/api/siklus-sop-proses-bisnis'
 import { useBulkTandaTanganiProsesBisnisSop } from '@/api/tte-proses-bisnis'
 import { DataSurface } from '@/components/data/data-surface'
 import { ListPageLayout } from '@/components/layout/ListPageLayout'
@@ -59,7 +59,7 @@ export function HalamanTandaTanganSOP() {
     try {
       const items = []
       for (const item of selectedItems) {
-        const document = await processApprovalApi.document(item.detailSopId)
+        const document = await prosesBisnisLifecycleApi.document(item.detailSopId)
         const preview = mapPenyusunWorkbenchToPreviewProps(document.workbench)
         const authorityLabel = document.authority.authority === 'DEAN' ? 'Dekan' : 'Kepala Departemen'
         const pdfBase64 = await buildSopArsipPdfBase64FromPreviewProps({
