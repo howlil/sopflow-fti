@@ -6,9 +6,7 @@ import {
 
 const baseInput: ProsesBisnisSopLifecycleProjectionInput = {
   status: StatusSOP.DRAFT,
-  approvalExists: false,
   currentUserId: 'anggota-1',
-  detailSopId: 'detail-1',
   prosesBisnis: {
     lingkup: LingkupOrganisasi.FACULTY,
     penanggungJawabId: 'owner-1',
@@ -66,25 +64,14 @@ describe('projectProsesBisnisSopLifecycle', () => {
     });
   });
 
-  it('maps compatibility approval states to TTE for the same authority', () => {
-    const finalApproval = projectProsesBisnisSopLifecycle({
-      ...baseInput,
-      status: StatusSOP.FINAL_APPROVAL,
-    });
-    const tte = projectProsesBisnisSopLifecycle({
-      ...baseInput,
-      status: StatusSOP.TTE_PENDING,
-      approvalExists: true,
-      currentUserId: 'dean-1',
-    });
-
-    expect(finalApproval).toMatchObject({
-      stage: 'TTE',
-      stateLabel: 'Menunggu Tanda Tangan Elektronik',
-      responsibility: { type: 'DEAN', name: 'Dekan FTI' },
-      action: null,
-    });
-    expect(tte).toMatchObject({
+  it('projects TTE_PENDING to contextual signing authority', () => {
+    expect(
+      projectProsesBisnisSopLifecycle({
+        ...baseInput,
+        status: StatusSOP.TTE_PENDING,
+        currentUserId: 'dean-1',
+      }),
+    ).toMatchObject({
       stage: 'TTE',
       stateLabel: 'Menunggu Tanda Tangan Elektronik',
       responsibility: { type: 'CURRENT_USER', name: 'Anda' },
@@ -120,7 +107,7 @@ describe('projectProsesBisnisSopLifecycle', () => {
           lingkup: LingkupOrganisasi.DEPARTMENT,
           namaDepartemen: 'Teknik Informatika',
         },
-        status: StatusSOP.FINAL_APPROVAL,
+        status: StatusSOP.TTE_PENDING,
         authority: { holderId: 'head-1', holderName: 'Kepala TI' },
       }),
     ).toMatchObject({
