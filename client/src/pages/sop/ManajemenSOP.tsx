@@ -68,9 +68,16 @@ export function ManajemenSOP() {
   const { list: listFilteredByServer, create } = useSopSuspense(sopListParams);
   const currentUserId = useAuthStore((state) => state.user?.id);
   const { data: prosesBisnisSaya = [], isLoading: isLoadingProsesBisnis } = useMyProsesBisnises();
-  const prosesBisnisYangDimiliki = useMemo(
-    () => prosesBisnisSaya.filter((prosesBisnis) => prosesBisnis.penanggungJawabId === currentUserId),
+  const prosesBisnisYangDapatDisusun = useMemo(
+    () =>
+      prosesBisnisSaya.filter((prosesBisnis) =>
+        prosesBisnis.anggota.some((anggota) => anggota.penggunaId === currentUserId),
+      ),
     [currentUserId, prosesBisnisSaya],
+  );
+  const prosesBisnisYangDapatDisusunIds = useMemo(
+    () => new Set(prosesBisnisYangDapatDisusun.map((prosesBisnis) => prosesBisnis.prosesBisnisId)),
+    [prosesBisnisYangDapatDisusun],
   );
   const { filteredList } = useDaftarSopData({
     list: listFilteredByServer,
@@ -89,6 +96,7 @@ export function ManajemenSOP() {
   const canSubmitStatus = (status: string) => status === "DRAFT" || status === "REVISION_REQUIRED";
   const isSelectable = (sop: SopDaftarRow) =>
     sop.detailSopId !== null &&
+    prosesBisnisYangDapatDisusunIds.has(sop.prosesBisnisId) &&
     canSubmitStatus(sop.status) &&
     (selectedProsesBisnisId === undefined || selectedProsesBisnisId === sop.prosesBisnisId);
   const toggleSelection = (sop: SopDaftarRow) => {
@@ -205,7 +213,7 @@ export function ManajemenSOP() {
                 Ajukan untuk Pemeriksaan ({selectedDetailSopIds.length})
               </Button>
             ) : null}
-            {prosesBisnisYangDimiliki.length > 0 ? (
+            {prosesBisnisYangDapatDisusun.length > 0 ? (
               <DataSurface.Actions>
                 <Button
                   size="sm"
@@ -264,14 +272,15 @@ export function ManajemenSOP() {
                           ? "Ubah atau hapus kata kunci pencarian."
                           : hasAdvancedFilters
                             ? "Hapus atau ubah penyaringan untuk memperluas hasil."
-                            : prosesBisnisYangDimiliki.length > 0
-                              ? "Tambahkan SOP baru dari Proses Bisnis yang menjadi tanggung jawab Anda."
-                              : "SOP akan tampil setelah diinisiasi oleh Penanggung Jawab Proses Bisnis."
+                            : prosesBisnisYangDapatDisusun.length > 0
+                              ? "Tambahkan SOP baru dari Proses Bisnis tempat Anda terdaftar sebagai Penyusun."
+                              : "Belum ada SOP pada Proses Bisnis yang dapat Anda akses."
                       }
                     />
                   ) : (
                     pageData.map((sop) => {
                       const namaProsesBisnis = (sop as ProsesBisnisAwareSopRow).namaProsesBisnis;
+                      const canAuthorThisSop = prosesBisnisYangDapatDisusunIds.has(sop.prosesBisnisId);
                       return (
                         <Table.BodyRow key={sop.id}>
                           <Table.Td>
@@ -318,7 +327,7 @@ export function ManajemenSOP() {
                           <Table.ActionTd>
                             <RowActions
                               actions={[
-                                sop.status && canEditSop(sop.status as StatusSOP)
+                                canAuthorThisSop && sop.status && canEditSop(sop.status as StatusSOP)
                                   ? {
                                       icon: Edit,
                                       to: ROUTES.DETAIL_SOP,
@@ -331,7 +340,7 @@ export function ManajemenSOP() {
                                       params: { id: sop.detailSopId ?? sop.id },
                                       title: "Lihat",
                                     },
-                                ...(canHapusSopDraftAwal(sop)
+                                ...(canAuthorThisSop && canHapusSopDraftAwal(sop)
                                   ? [
                                       {
                                         icon: Trash2,
@@ -356,9 +365,9 @@ export function ManajemenSOP() {
       </DataSurface.Root>
 
       <BuatSOPDialog
-        open={isBuatSOPDialogOpen && prosesBisnisYangDimiliki.length > 0}
+        open={isBuatSOPDialogOpen && prosesBisnisYangDapatDisusun.length > 0}
         onOpenChange={setIsBuatSOPDialogOpen}
-        prosesBisnis={prosesBisnisYangDimiliki}
+        prosesBisnis={prosesBisnisYangDapatDisusun}
         isLoadingProsesBisnis={isLoadingProsesBisnis}
         onCreate={async (data) => {
           await create({

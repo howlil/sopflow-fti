@@ -15,7 +15,7 @@ export type NotifikasiProsesBisnisCreateInput = Readonly<{
   kind: JenisNotifikasiProsesBisnis;
   namaProsesBisnis: string;
   authorityLabel?: string;
-  catatan?: string;
+  catatan?: string | null;
 }>;
 
 export type ProsesBisnisInAppNotification = Readonly<{

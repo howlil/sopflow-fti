@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsString, Matches, MaxLength, ValidateIf } from 'class-validator';
 
 export enum KeputusanPemeriksaanProsesBisnis {
   REVISION = 'REVISION',
@@ -15,8 +15,12 @@ export class KeputusanPemeriksaanProsesBisnisDto {
     description: 'Catatan perbaikan; wajib diisi ketika keputusan REVISION.',
     maxLength: 5000,
   })
-  @IsOptional()
+  @ValidateIf(
+    (dto: KeputusanPemeriksaanProsesBisnisDto) =>
+      dto.decision === KeputusanPemeriksaanProsesBisnis.REVISION || dto.catatan !== undefined,
+  )
   @IsString()
+  @Matches(/\S/, { message: 'Catatan perbaikan wajib diisi ketika keputusan REVISION' })
   @MaxLength(5000)
   catatan?: string;
 }

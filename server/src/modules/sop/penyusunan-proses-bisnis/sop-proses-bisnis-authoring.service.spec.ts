@@ -84,7 +84,7 @@ describe('ProsesBisnisSopAuthoringService', () => {
       namaProsesBisnis: 'Tugas Akhir',
       siklus: {
         stage: 'AUTHORING',
-        stateLabel: 'Draft',
+        stateLabel: 'Draf',
         responsibility: { type: 'CURRENT_USER', name: 'Anda' },
       },
     });
