@@ -231,7 +231,7 @@ export class ProsesBisnisTteService {
     if (result.error === 'NOT_APPROVED') {
       throw new ConflictException('SOP belum disetujui dalam Pemeriksaan Proses Bisnis');
     }
-    if (result.error === 'APPROVAL_CONTEXT_DRIFT') {
+    if (result.error === 'AUTHORITY_CONTEXT_DRIFT') {
       throw new ConflictException('Context pejabat berwenang tidak cocok dengan Proses Bisnis SOP');
     }
     if (result.error === 'BAD_STATUS') {
