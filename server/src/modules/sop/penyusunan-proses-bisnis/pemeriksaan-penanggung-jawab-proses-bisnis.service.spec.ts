@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import {
   JenisLangkahProsedur,
@@ -34,8 +34,10 @@ function makeService(options?: {
     sop: { prosesBisnisId: string; judul: string };
   }>;
   latestDetails?: Array<{ detailSopId: string; sopId: string }>;
-  reviewBatchItems?: Array<{ paketPemeriksaanProsesBisnisId: string }>;
-  reviewBatch?: { items: Array<{ detailSop: { status: StatusSOP } }> };
+  activeReviewBatchItem?: { paketPemeriksaanProsesBisnisId: string };
+  reviewBatch?: { items: Array<{ detailSopId: string; createdAt: Date }> };
+  resolvedReviewDetailIds?: string[];
+  reviewPackages?: Array<Record<string, unknown>>;
 }) {
   const tx = {
     detailSOP: {
@@ -43,6 +45,13 @@ function makeService(options?: {
     },
     pemeriksaanProsesBisnis: {
       create: jest.fn().mockResolvedValue({}),
+      findFirst: jest.fn((args: { where: { detailSopId: string } }) =>
+        Promise.resolve(
+          options?.resolvedReviewDetailIds?.includes(args.where.detailSopId)
+            ? { pemeriksaanProsesBisnisId: `review-${args.where.detailSopId}` }
+            : null,
+        ),
+      ),
     },
     paketPemeriksaanProsesBisnis: {
       create: jest.fn().mockResolvedValue({
@@ -55,7 +64,7 @@ function makeService(options?: {
     },
     paketPemeriksaanProsesBisnisItem: {
       createMany: jest.fn().mockResolvedValue({ count: 0 }),
-      findMany: jest.fn().mockResolvedValue(options?.reviewBatchItems ?? []),
+      findFirst: jest.fn().mockResolvedValue(options?.activeReviewBatchItem ?? null),
     },
   };
   const prisma = {
@@ -68,6 +77,9 @@ function makeService(options?: {
         .fn()
         .mockResolvedValueOnce(options?.batchDetails ?? [])
         .mockResolvedValueOnce(options?.latestDetails ?? []),
+    },
+    paketPemeriksaanProsesBisnis: {
+      findMany: jest.fn().mockResolvedValue(options?.reviewPackages ?? []),
     },
     $transaction: jest.fn((callback: (client: typeof tx) => unknown) => callback(tx)),
   } as unknown as PrismaService;
@@ -255,6 +267,7 @@ describe('ProsesBisnisOwnerReviewService', () => {
         penggunaId: 'author-1',
         kind: JenisNotifikasiProsesBisnis.PROCESS_REVISION_REQUESTED,
         namaProsesBisnis: 'Akademik',
+        catatan: 'Perbaiki langkah 2',
       }),
     );
     expect(tx.pemeriksaanProsesBisnis.create).toHaveBeenCalledWith({
@@ -318,26 +331,18 @@ describe('ProsesBisnisOwnerReviewService', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('persists an omitted revision note as null', async () => {
-    const { service, tx } = makeService({
+  it('requires a non-empty revision note before any workflow mutation', async () => {
+    const { service, prisma, tx } = makeService({
       penanggungJawab: true,
       status: StatusSOP.PROCESS_REVIEW,
     });
 
-    await service.review(user, 'detail-a', KeputusanPemeriksaanProsesBisnis.REVISION);
+    await expect(
+      service.review(user, 'detail-a', KeputusanPemeriksaanProsesBisnis.REVISION, '   '),
+    ).rejects.toBeInstanceOf(BadRequestException);
 
-    expect(tx.pemeriksaanProsesBisnis.create).toHaveBeenCalledWith({
-      data: {
-        detailSopId: 'detail-a',
-        sopId: 'sop-a',
-        prosesBisnisId: 'prosesBisnis-a',
-        reviewedById: 'user-1',
-        decision: 'REVISION',
-        previousStatus: StatusSOP.PROCESS_REVIEW,
-        nextStatus: StatusSOP.REVISION_REQUIRED,
-        catatan: null,
-      },
-    });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(tx.pemeriksaanProsesBisnis.create).not.toHaveBeenCalled();
   });
 
   it('rejects a stale concurrent review decision instead of overwriting the winner', async () => {
@@ -451,16 +456,18 @@ describe('ProsesBisnisOwnerReviewService', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
-  it('marks a Paket Pemeriksaan selesai after its final SOP decision', async () => {
+  it('marks only the active Paket Pemeriksaan selesai after its final SOP decision', async () => {
+    const submittedAt = new Date('2026-09-16T00:00:00.000Z');
     const { service, tx } = makeService({
       status: StatusSOP.PROCESS_REVIEW,
-      reviewBatchItems: [{ paketPemeriksaanProsesBisnisId: 'paket-1' }],
+      activeReviewBatchItem: { paketPemeriksaanProsesBisnisId: 'paket-1' },
       reviewBatch: {
         items: [
-          { detailSop: { status: StatusSOP.TTE_PENDING } },
-          { detailSop: { status: StatusSOP.TTE_PENDING } },
+          { detailSopId: 'detail-a', createdAt: submittedAt },
+          { detailSopId: 'detail-b', createdAt: submittedAt },
         ],
       },
+      resolvedReviewDetailIds: ['detail-a', 'detail-b'],
     });
 
     await service.review(user, 'detail-a', KeputusanPemeriksaanProsesBisnis.ACCEPT);
@@ -468,6 +475,90 @@ describe('ProsesBisnisOwnerReviewService', () => {
     expect(tx.paketPemeriksaanProsesBisnis.update).toHaveBeenCalledWith({
       where: { paketPemeriksaanProsesBisnisId: 'paket-1' },
       data: { status: 'COMPLETED', selesaiPada: expect.any(Date) as unknown as Date },
+    });
+  });
+
+  it('keeps historical batch outcomes immutable after the same DetailSOP is resubmitted', async () => {
+    const firstSubmittedAt = new Date('2026-09-16T01:00:00.000Z');
+    const firstReviewedAt = new Date('2026-09-16T02:00:00.000Z');
+    const secondSubmittedAt = new Date('2026-09-16T03:00:00.000Z');
+    const secondReviewedAt = new Date('2026-09-16T04:00:00.000Z');
+    const reviewHistory = [
+      {
+        catatan: 'Perbaiki langkah 2',
+        decision: 'REVISION',
+        nextStatus: StatusSOP.REVISION_REQUIRED,
+        createdAt: firstReviewedAt,
+      },
+      {
+        catatan: null,
+        decision: 'ACCEPT',
+        nextStatus: StatusSOP.TTE_PENDING,
+        createdAt: secondReviewedAt,
+      },
+    ];
+    const detail = {
+      detailSopId: 'detail-a',
+      sopId: 'sop-a',
+      versi: 1,
+      nomorSOP: '001',
+      sop: { judul: 'SOP A' },
+      pemeriksaanProsesBisnis: reviewHistory,
+    };
+    const { service } = makeService({
+      reviewPackages: [
+        {
+          paketPemeriksaanProsesBisnisId: 'paket-2',
+          prosesBisnisId: 'prosesBisnis-a',
+          penanggungJawabId: 'user-1',
+          status: 'COMPLETED',
+          diajukanPada: secondSubmittedAt,
+          selesaiPada: secondReviewedAt,
+          prosesBisnis: { prosesBisnisId: 'prosesBisnis-a', nama: 'Akademik' },
+          items: [
+            {
+              paketPemeriksaanProsesBisnisItemId: 'item-2',
+              detailSopId: 'detail-a',
+              createdAt: secondSubmittedAt,
+              detailSop: detail,
+            },
+          ],
+        },
+        {
+          paketPemeriksaanProsesBisnisId: 'paket-1',
+          prosesBisnisId: 'prosesBisnis-a',
+          penanggungJawabId: 'user-1',
+          status: 'COMPLETED',
+          diajukanPada: firstSubmittedAt,
+          selesaiPada: firstReviewedAt,
+          prosesBisnis: { prosesBisnisId: 'prosesBisnis-a', nama: 'Akademik' },
+          items: [
+            {
+              paketPemeriksaanProsesBisnisItemId: 'item-1',
+              detailSopId: 'detail-a',
+              createdAt: firstSubmittedAt,
+              detailSop: detail,
+            },
+          ],
+        },
+      ],
+    });
+
+    const packages = await service.listForCurrentReviewer(user);
+    const firstAttempt = packages.find(
+      (paket) => paket.paketPemeriksaanProsesBisnisId === 'paket-1',
+    );
+    const secondAttempt = packages.find(
+      (paket) => paket.paketPemeriksaanProsesBisnisId === 'paket-2',
+    );
+
+    expect(firstAttempt?.items[0]).toMatchObject({
+      status: StatusSOP.REVISION_REQUIRED,
+      catatanTerakhir: 'Perbaiki langkah 2',
+    });
+    expect(secondAttempt?.items[0]).toMatchObject({
+      status: StatusSOP.TTE_PENDING,
+      catatanTerakhir: null,
     });
   });
 });
