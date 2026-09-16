@@ -23,30 +23,6 @@ export interface PejabatBerwenangConfigurationDto extends PenugasanPejabatBerwen
   departemen: { departemenId: string; nama: string } | null
 }
 
-export interface PersetujuanAkhirSOPDto {
-  detailSopId: string
-  prosesBisnisId: string
-  approvedById: string
-  authority: PejabatBerwenang
-  kunciPejabatBerwenang: string
-  approvedAt: string
-}
-
-export interface ProsesBisnisApprovalQueueRowDto {
-  detailSopId: string
-  sopId: string
-  judul: string
-  nomorSOP: string
-  versi: number
-  prosesBisnisId: string
-  namaProsesBisnis: string
-  lingkup: LingkupOrganisasi
-  departemenId: string | null
-  departmentNama: string | null
-  approval: PersetujuanAkhirSOPDto | null
-  updatedAt: string
-}
-
 export interface ProsesBisnisApprovalDocumentDto {
   workbench: PenyusunWorkbenchData
   authority: {
@@ -118,7 +94,7 @@ export interface ProsesBisnisRevocationResultDto {
   detailSopId: string
   sopId: string
   prosesBisnisId: string
-  status: 'DICABUT'
+  status: 'REVOKED'
 }
 
 export type StatusPaketPemeriksaanProsesBisnis =
