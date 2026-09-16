@@ -201,7 +201,7 @@ export class ProsesBisnisOwnerReviewService {
 
   async listForCurrentReviewer(user: JwtAccessPayload) {
     const packages = await this.prisma.paketPemeriksaanProsesBisnis.findMany({
-      where: { prosesBisnis: { penanggungJawabId: user.sub } },
+      where: { penanggungJawabId: user.sub },
       orderBy: { diajukanPada: 'desc' },
       include: {
         prosesBisnis: { select: { prosesBisnisId: true, nama: true } },
@@ -214,13 +214,10 @@ export class ProsesBisnisOwnerReviewService {
                 sopId: true,
                 versi: true,
                 nomorSOP: true,
-                status: true,
-                updatedAt: true,
                 sop: { select: { judul: true } },
                 pemeriksaanProsesBisnis: {
-                  orderBy: { createdAt: 'desc' },
-                  take: 1,
-                  select: { catatan: true, decision: true, createdAt: true },
+                  orderBy: { createdAt: 'asc' },
+                  select: { catatan: true, decision: true, nextStatus: true, createdAt: true },
                 },
               },
             },
@@ -228,25 +225,63 @@ export class ProsesBisnisOwnerReviewService {
         },
       },
     });
+
+    const itemsByDetail = new Map<
+      string,
+      Array<{ paketPemeriksaanProsesBisnisItemId: string; createdAt: Date }>
+    >();
+    for (const paket of packages) {
+      for (const item of paket.items) {
+        const timeline = itemsByDetail.get(item.detailSopId) ?? [];
+        timeline.push({
+          paketPemeriksaanProsesBisnisItemId: item.paketPemeriksaanProsesBisnisItemId,
+          createdAt: item.createdAt,
+        });
+        itemsByDetail.set(item.detailSopId, timeline);
+      }
+    }
+
+    const nextSubmissionByItemId = new Map<string, Date | null>();
+    for (const timeline of itemsByDetail.values()) {
+      timeline.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      timeline.forEach((item, index) => {
+        nextSubmissionByItemId.set(
+          item.paketPemeriksaanProsesBisnisItemId,
+          timeline[index + 1]?.createdAt ?? null,
+        );
+      });
+    }
+
     return packages.map((paket) => {
       const items = paket.items.map((item) => {
         const detail = item.detailSop;
-        const latestReview = detail.pemeriksaanProsesBisnis[0] ?? null;
+        const nextSubmittedAt =
+          nextSubmissionByItemId.get(item.paketPemeriksaanProsesBisnisItemId) ?? null;
+        const attemptReview = detail.pemeriksaanProsesBisnis.find(
+          (review) =>
+            review.createdAt.getTime() >= item.createdAt.getTime() &&
+            (nextSubmittedAt === null || review.createdAt.getTime() < nextSubmittedAt.getTime()),
+        );
+        const attemptStatus = attemptReview?.nextStatus ?? StatusSOP.PROCESS_REVIEW;
         return {
           detailSopId: detail.detailSopId,
           sopId: detail.sopId,
           judul: detail.sop.judul,
           nomorSOP: detail.nomorSOP,
           versi: detail.versi,
-          status: detail.status,
-          statusLabel: displayStatusSop(detail.status).label,
-          updatedAt: detail.updatedAt,
-          catatanTerakhir: latestReview?.catatan ?? null,
+          status: attemptStatus,
+          statusLabel: displayStatusSop(attemptStatus).label,
+          updatedAt: attemptReview?.createdAt ?? item.createdAt,
+          catatanTerakhir: attemptReview?.catatan ?? null,
         };
       });
-      const menungguPemeriksaan = items.filter((item) => item.status === StatusSOP.PROCESS_REVIEW).length;
+      const menungguPemeriksaan = items.filter(
+        (item) => item.status === StatusSOP.PROCESS_REVIEW,
+      ).length;
       const disetujui = items.filter((item) => item.status === StatusSOP.TTE_PENDING).length;
-      const perluPerbaikan = items.filter((item) => item.status === StatusSOP.REVISION_REQUIRED).length;
+      const perluPerbaikan = items.filter(
+        (item) => item.status === StatusSOP.REVISION_REQUIRED,
+      ).length;
       return {
         paketPemeriksaanProsesBisnisId: paket.paketPemeriksaanProsesBisnisId,
         prosesBisnisId: paket.prosesBisnisId,
@@ -271,8 +306,15 @@ export class ProsesBisnisOwnerReviewService {
     catatanRaw?: string,
   ): Promise<PenyusunWorkbenchDataDto> {
     const catatan = catatanRaw?.trim() || null;
+    if (decision === KeputusanPemeriksaanProsesBisnis.REVISION && catatan === null) {
+      throw new BadRequestException('Catatan perbaikan wajib diisi ketika SOP dikembalikan');
+    }
+
     const context = await this.resolveTargetContext(detailOrSopId);
-    const prosesBisnis = await this.konteksProsesBisnisService.assertCanReview(user.sub, context.prosesBisnisId);
+    const prosesBisnis = await this.konteksProsesBisnisService.assertCanReview(
+      user.sub,
+      context.prosesBisnisId,
+    );
 
     const statusContext = await this.sopCatalogRepository.findLatestDetailStatusContext(
       context.detailSopId,
@@ -310,10 +352,12 @@ export class ProsesBisnisOwnerReviewService {
         penggunaId: detail.dibuatOlehId,
         kind: JenisNotifikasiProsesBisnis.PROCESS_REVISION_REQUESTED,
         namaProsesBisnis: prosesBisnis.nama,
-        catatan: catatan ?? undefined,
+        catatan,
       };
     } else {
-      const authority = await this.organizationalAuthorityService.resolveForProsesBisnis(context.prosesBisnisId);
+      const authority = await this.organizationalAuthorityService.resolveForProsesBisnis(
+        context.prosesBisnisId,
+      );
       notification = {
         detailSopId: context.detailSopId,
         sopId: context.sopId,
@@ -401,31 +445,61 @@ export class ProsesBisnisOwnerReviewService {
     tx: Prisma.TransactionClient,
     detailSopId: string,
   ): Promise<void> {
-    const items = await tx.paketPemeriksaanProsesBisnisItem.findMany({
-      where: { detailSopId },
+    const activeItem = await tx.paketPemeriksaanProsesBisnisItem.findFirst({
+      where: {
+        detailSopId,
+        paketPemeriksaan: {
+          status: {
+            in: [
+              StatusPaketPemeriksaanProsesBisnis.IN_REVIEW,
+              StatusPaketPemeriksaanProsesBisnis.PARTIALLY_COMPLETED,
+            ],
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
       select: { paketPemeriksaanProsesBisnisId: true },
     });
-    for (const item of items) {
-      const paket = await tx.paketPemeriksaanProsesBisnis.findUnique({
-        where: { paketPemeriksaanProsesBisnisId: item.paketPemeriksaanProsesBisnisId },
-        select: { items: { select: { detailSop: { select: { status: true } } } } },
+    if (activeItem === null) return;
+
+    const paket = await tx.paketPemeriksaanProsesBisnis.findUnique({
+      where: {
+        paketPemeriksaanProsesBisnisId: activeItem.paketPemeriksaanProsesBisnisId,
+      },
+      select: {
+        items: {
+          select: { detailSopId: true, createdAt: true },
+        },
+      },
+    });
+    if (paket === null) return;
+
+    let menunggu = 0;
+    for (const item of paket.items) {
+      const review = await tx.pemeriksaanProsesBisnis.findFirst({
+        where: {
+          detailSopId: item.detailSopId,
+          createdAt: { gte: item.createdAt },
+        },
+        orderBy: { createdAt: 'asc' },
+        select: { pemeriksaanProsesBisnisId: true },
       });
-      if (paket === null) continue;
-      const total = paket.items.length;
-      const menunggu = paket.items.filter(
-        (paketItem) => paketItem.detailSop.status === StatusSOP.PROCESS_REVIEW,
-      ).length;
-      const status =
-        menunggu === 0
-          ? StatusPaketPemeriksaanProsesBisnis.COMPLETED
-          : menunggu === total
-            ? StatusPaketPemeriksaanProsesBisnis.IN_REVIEW
-            : StatusPaketPemeriksaanProsesBisnis.PARTIALLY_COMPLETED;
-      await tx.paketPemeriksaanProsesBisnis.update({
-        where: { paketPemeriksaanProsesBisnisId: item.paketPemeriksaanProsesBisnisId },
-        data: { status, selesaiPada: menunggu === 0 ? new Date() : null },
-      });
+      if (review === null) menunggu += 1;
     }
+
+    const total = paket.items.length;
+    const status =
+      menunggu === 0
+        ? StatusPaketPemeriksaanProsesBisnis.COMPLETED
+        : menunggu === total
+          ? StatusPaketPemeriksaanProsesBisnis.IN_REVIEW
+          : StatusPaketPemeriksaanProsesBisnis.PARTIALLY_COMPLETED;
+    await tx.paketPemeriksaanProsesBisnis.update({
+      where: {
+        paketPemeriksaanProsesBisnisId: activeItem.paketPemeriksaanProsesBisnisId,
+      },
+      data: { status, selesaiPada: menunggu === 0 ? new Date() : null },
+    });
   }
 
   private async resolveTargetContext(detailOrSopId: string): Promise<{
