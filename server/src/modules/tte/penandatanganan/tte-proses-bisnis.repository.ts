@@ -208,7 +208,7 @@ export class ProsesBisnisTteRepository {
         const promoted = await tx.detailSOP.updateMany({
           where: {
             detailSopId: context.detailSopId,
-            status: { in: [StatusSOP.TTE_PENDING, StatusSOP.FINAL_APPROVAL] },
+            status: StatusSOP.TTE_PENDING,
           },
           data: {
             status: StatusSOP.EFFECTIVE,
@@ -315,13 +315,13 @@ export class ProsesBisnisTteRepository {
         detailSopId: detail.detailSopId,
         prosesBisnisId,
         decision: 'ACCEPT',
-        nextStatus: { in: [StatusSOP.TTE_PENDING, StatusSOP.FINAL_APPROVAL] },
+        nextStatus: StatusSOP.TTE_PENDING,
       },
       orderBy: { createdAt: 'desc' },
       select: { pemeriksaanProsesBisnisId: true },
     });
     if (acceptedReview === null) return { error: 'NOT_APPROVED' as const };
-    if (detail.status !== StatusSOP.TTE_PENDING && detail.status !== StatusSOP.FINAL_APPROVAL) {
+    if (detail.status !== StatusSOP.TTE_PENDING) {
       return { error: 'BAD_STATUS' as const, status: detail.status };
     }
 
