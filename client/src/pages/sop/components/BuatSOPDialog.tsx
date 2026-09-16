@@ -1,5 +1,5 @@
 /**
- * Dialog Buat SOP Baru — ProsesBisnis + judul + nomor SOP; server membuat header + DetailSOP v1 (DRAFT).
+ * Dialog Buat SOP Baru — hanya untuk Anggota Proses Bisnis/Penyusun SOP.
  */
 import { useState } from "react";
 import { FileText } from "lucide-react";
@@ -43,30 +43,26 @@ export function BuatSOPDialog({
   const { showToast } = useToast();
 
   const handleSubmit = async () => {
-    if (!formData.prosesBisnisId || !formData.judulSOP?.trim() || !formData.nomorSop?.trim()) {
-      showToast("Mohon pilih Proses Bisnis dan lengkapi Judul serta Nomor SOP", "error");
+    if (!formData.prosesBisnisId || !formData.judulSOP.trim() || !formData.nomorSop.trim()) {
+      showToast("Pilih Proses Bisnis dan lengkapi Judul serta Nomor SOP", "error");
       return;
     }
 
-    const data = {
-      prosesBisnisId: formData.prosesBisnisId,
-      judul: formData.judulSOP.trim(),
-      nomorSop: formData.nomorSop.trim(),
-    };
-
     try {
-      await onCreate(data);
+      await onCreate({
+        prosesBisnisId: formData.prosesBisnisId,
+        judul: formData.judulSOP.trim(),
+        nomorSop: formData.nomorSop.trim(),
+      });
       onOpenChange(false);
       setFormData(EMPTY_FORM);
     } catch {
-      // Error toast sudah ditangani useMutationWithToast di parent
+      // Mutation toast owns error presentation.
     }
   };
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) {
-      setFormData(EMPTY_FORM);
-    }
+    if (!next) setFormData(EMPTY_FORM);
     onOpenChange(next);
   };
 
@@ -74,7 +70,7 @@ export function BuatSOPDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-sm">Buat SOP Baru</DialogTitle>
+          <DialogTitle className="text-sm">Buat SOP</DialogTitle>
           <DialogDescription className="text-xs">
             SOP diinisiasi oleh Penanggung Jawab Proses Bisnis.
           </DialogDescription>
@@ -109,8 +105,8 @@ export function BuatSOPDialog({
               className="h-9 text-xs"
               placeholder="Contoh: SOP Pelayanan Tugas Akhir"
               value={formData.judulSOP}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, judulSOP: e.target.value }))
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, judulSOP: event.target.value }))
               }
             />
           </FormField>
@@ -119,28 +115,18 @@ export function BuatSOPDialog({
               className="h-9 text-xs"
               placeholder="Contoh: FTI/TA/001/2026"
               value={formData.nomorSop}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, nomorSop: e.target.value }))
+              onChange={(event) =>
+                setFormData((prev) => ({ ...prev, nomorSop: event.target.value }))
               }
             />
           </FormField>
         </div>
         <DialogFooter className="gap-2 pt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs"
-            onClick={() => handleOpenChange(false)}
-          >
+          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => handleOpenChange(false)}>
             Batal
           </Button>
-          <Button
-            size="sm"
-            className="h-8 gap-1.5 text-xs"
-            onClick={handleSubmit}
-            disabled={prosesBisnis.length === 0}
-          >
-            <FileText className="w-3.5 h-3.5" />
+          <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={handleSubmit} disabled={prosesBisnis.length === 0}>
+            <FileText className="h-3.5 w-3.5" aria-hidden />
             Buat SOP
           </Button>
         </DialogFooter>

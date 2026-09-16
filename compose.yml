@@ -1,5 +1,8 @@
-# Do not set a fixed top-level Compose project name here. MyPaaS supplies a
-# unique project name with `-p` so each deployment gets an isolated network.
+# MyPaaS supplies the Compose project name so every release gets an isolated network.
+
+x-backend-build: &backend-build
+  context: ./server
+  dockerfile: Dockerfile
 
 services:
   db:
@@ -9,7 +12,8 @@ services:
       - --lower_case_table_names=1
     environment:
       MARIADB_RANDOM_ROOT_PASSWORD: "1"
-      MARIADB_DATABASE: sop_fti
+      # Keep the physical schema name used by the persistent production volume.
+      MARIADB_DATABASE: sop_biro_organisasi
       MARIADB_USER: sop_app
       MARIADB_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
       TZ: Asia/Jakarta
@@ -17,10 +21,10 @@ services:
       - db_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      start_period: 60s
-      interval: 15s
-      timeout: 10s
-      retries: 10
+      start_period: 30s
+      interval: 2s
+      timeout: 2s
+      retries: 30
 
   backend-bootstrap:
     image: sop-arsip-backend
@@ -42,14 +46,34 @@ services:
 
   backend:
     image: sop-arsip-backend
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-    restart: unless-stopped
+    build: *backend-build
+    restart: "no"
     depends_on:
       db:
         condition: service_healthy
       backend-bootstrap:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      PUBLIC_APP_ORIGIN: ${PUBLIC_APP_ORIGIN:?set PUBLIC_APP_ORIGIN}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET}
+      TTE_ENCRYPTION_SECRET: ${TTE_ENCRYPTION_SECRET:?set TTE_ENCRYPTION_SECRET}
+      DATABASE_HOST: db
+      DATABASE_NAME: sop_biro_organisasi
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
+    entrypoint: ["/usr/local/bin/sopflow-db-bootstrap.sh"]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  backend:
+    image: sop-arsip-backend
+    build: *backend-build
+    restart: unless-stopped
+    depends_on:
+      bootstrap:
         condition: service_completed_successfully
     environment:
       PUBLIC_APP_ORIGIN: ${PUBLIC_APP_ORIGIN:?set PUBLIC_APP_ORIGIN}
@@ -57,6 +81,7 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?set JWT_REFRESH_SECRET}
       TTE_ENCRYPTION_SECRET: ${TTE_ENCRYPTION_SECRET:?set TTE_ENCRYPTION_SECRET}
       DATABASE_HOST: db
+      DATABASE_NAME: sop_biro_organisasi
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
     volumes:
       - sop_pdf_data:/app/storage/sop-pdf
@@ -68,10 +93,10 @@ services:
       - ALL
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3001/api/health/ready"]
-      start_period: 120s
-      interval: 10s
-      timeout: 5s
-      retries: 15
+      start_period: 30s
+      interval: 2s
+      timeout: 2s
+      retries: 30
 
   frontend:
     image: sop-arsip-frontend
@@ -81,7 +106,7 @@ services:
     restart: unless-stopped
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
     expose:
       - "8080"
     cap_drop:

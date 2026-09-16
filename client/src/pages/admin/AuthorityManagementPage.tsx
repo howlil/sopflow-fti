@@ -35,19 +35,15 @@ export function AuthorityManagementPage() {
 
   const dean = configuration.find((item) => item.authority === 'DEAN') ?? null
   const headByDepartemenId = useMemo(
-    () =>
-      new Map(
-        configuration
-          .filter(
-            (item) =>
-              item.authority === 'HEAD_OF_DEPARTMENT' && item.departemenId !== null,
-          )
-          .map((item) => [item.departemenId as string, item]),
-      ),
+    () => new Map(
+      configuration
+        .filter((item) => item.authority === 'HEAD_OF_DEPARTMENT' && item.departemenId !== null)
+        .map((item) => [item.departemenId as string, item]),
+    ),
     [configuration],
   )
   const eligibleUsers = useMemo(
-    () => users.filter((user) => user.platformRole === 'USER'),
+    () => users.filter((user) => user.platformRole === 'USER' && !user.deletedAt),
     [users],
   )
   const isLoading = isProsesBisnisAdminLoading || isAuthorityLoading

@@ -9,12 +9,22 @@ import { STALE_TIME } from '@/utils/constants'
 export const processContextApi = {
   mine: () =>
     unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisDto[]>>('/konteks-proses-bisnis/mine')),
+  authoring: () =>
+    unwrapApiData(apiClient.get<ApiSuccessResponse<ProsesBisnisDto[]>>('/konteks-proses-bisnis/authoring')),
 }
 
 export function useMyProsesBisnises() {
   return useQuery({
     queryKey: processQueryKeys.mine,
     queryFn: processContextApi.mine,
+    staleTime: STALE_TIME.MEDIUM,
+  })
+}
+
+export function useMyAuthoringProsesBisnises() {
+  return useQuery({
+    queryKey: processQueryKeys.authoring,
+    queryFn: processContextApi.authoring,
     staleTime: STALE_TIME.MEDIUM,
   })
 }

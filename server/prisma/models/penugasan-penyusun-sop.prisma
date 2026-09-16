@@ -1,0 +1,22 @@
+/// Penugasan tanggung jawab satu SOP kepada satu Penyusun utama.
+///
+/// Penugasan ini bukan ACL. Hak membuat/mengedit SOP tetap berasal dari
+/// AnggotaProsesBisnis; Penanggung Jawab hanya menentukan siapa Penyusun utama
+/// untuk koordinasi pekerjaan.
+///
+/// Relations are scalar-only. Database foreign keys and membership invariants
+/// are installed by migration so this model does not add inverse fields to the
+/// legacy canonical models.
+model PenugasanPenyusunSOP {
+  sopId            String   @id @db.Char(36)
+  prosesBisnisId   String   @db.Char(36) @map("processId")
+  penyusunId       String   @db.Char(36)
+  ditugaskanOlehId String   @db.Char(36) @map("assignedById")
+  ditugaskanPada   DateTime @default(now()) @db.DateTime(3) @map("assignedAt")
+  updatedAt        DateTime @updatedAt @db.DateTime(3)
+
+  @@index([prosesBisnisId, penyusunId], map: "SopDrafterAssignment_process_drafter_idx")
+  @@index([ditugaskanOlehId, ditugaskanPada], map: "SopDrafterAssignment_assigner_assigned_idx")
+
+  @@map("SopDrafterAssignment")
+}

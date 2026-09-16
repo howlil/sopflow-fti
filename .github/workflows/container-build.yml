@@ -1,9 +1,14 @@
-name: Container Build
+name: Deployment Smoke
 
 on:
+  workflow_dispatch:
   push:
+    branches:
+      - master
     paths:
       - 'compose.yml'
+      - '.env.example'
+      - 'server/src/**'
       - 'server/Dockerfile'
       - 'server/docker-entrypoint.sh'
       - 'server/docker-bootstrap.sh'
@@ -11,6 +16,10 @@ on:
       - 'server/package.json'
       - 'server/pnpm-lock.yaml'
       - 'server/pnpm-workspace.yaml'
+      - 'server/prisma/**/*.prisma'
+      - 'server/prisma/migrations/**'
+      - 'server/prisma.config.ts'
+      - 'client/src/**'
       - 'client/Dockerfile'
       - 'client/.dockerignore'
       - 'client/package.json'
@@ -23,6 +32,7 @@ on:
   pull_request:
     paths:
       - 'compose.yml'
+      - '.env.example'
       - 'server/Dockerfile'
       - 'server/docker-entrypoint.sh'
       - 'server/docker-bootstrap.sh'
@@ -30,6 +40,9 @@ on:
       - 'server/package.json'
       - 'server/pnpm-lock.yaml'
       - 'server/pnpm-workspace.yaml'
+      - 'server/prisma/**/*.prisma'
+      - 'server/prisma/migrations/**'
+      - 'server/prisma.config.ts'
       - 'client/Dockerfile'
       - 'client/.dockerignore'
       - 'client/package.json'
@@ -44,11 +57,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: container-build-${{ github.ref }}
+  group: deployment-smoke-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-images:
+  production-compose:
     runs-on: ubuntu-latest
     timeout-minutes: 12
 
@@ -56,25 +69,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Guard backend runtime package-manager independence
+      - name: Validate production contract
         shell: bash
         run: |
           set -euo pipefail
+          docker compose --env-file .env.example -f compose.yml config >/dev/null
+          docker compose --env-file .env.example -f compose.yml config --format json > /tmp/compose.json
 
-          package_manager="$(node -p "require('./server/package.json').packageManager")"
-          grep -F "corepack prepare ${package_manager} --activate" server/Dockerfile >/dev/null
+          compose_vars="$({ grep -oE '\$\{[A-Z0-9_]+' compose.yml || true; } | sed 's/${//' | sort -u)"
+          example_vars="$(grep -E '^[A-Z0-9_]+=' .env.example | cut -d= -f1 | sort -u)"
+          diff -u <(printf '%s\n' "$example_vars") <(printf '%s\n' "$compose_vars")
 
-          runtime_block="$(awk '/^FROM .* AS runtime$/{runtime=1} runtime{print}' server/Dockerfile)"
-          if printf '%s\n' "$runtime_block" | grep -Eq '(^|[[:space:]])(corepack|pnpm)([[:space:]]|$)'; then
-            echo 'Backend runtime image must not require Corepack or pnpm.' >&2
-            exit 1
-          fi
+          test "$(node -p "require('./server/package.json').packageManager")" = 'pnpm@11.21.0'
+          test "$(node -p "require('./client/package.json').packageManager")" = 'pnpm@11.21.0'
+          grep -F 'corepack prepare pnpm@11.21.0 --activate' server/Dockerfile >/dev/null
+          grep -F 'corepack prepare pnpm@11.21.0 --activate' client/Dockerfile >/dev/null
+          grep -F 'entrypoint: ["/usr/local/bin/sopflow-db-bootstrap.sh"]' compose.yml >/dev/null
+          grep -F 'condition: service_completed_successfully' compose.yml >/dev/null
+          grep -F 'http://127.0.0.1:8080/healthz' compose.yml >/dev/null
+          jq -e '.services.bootstrap.build != null and .services.backend.build != null and .services.frontend.build != null' /tmp/compose.json >/dev/null
+          sh -n server/docker-bootstrap.sh
+          sh -n client/docker-entrypoint.sh
 
-          backend_block="$(awk '/^  backend:/{backend=1} /^  frontend:/{backend=0} backend{print}' compose.yml)"
-          if printf '%s\n' "$backend_block" | grep -Eq '(^|[[:space:]])pnpm([[:space:]]|$)'; then
-            echo 'Backend Compose startup must not invoke pnpm.' >&2
-            exit 1
-          fi
+      - name: Reproduce MyPaaS pre-pull
+        run: docker compose --env-file .env.example -f compose.yml pull --ignore-buildable
 
           grep -F './node_modules/.bin/prisma migrate deploy' server/docker-bootstrap.sh >/dev/null
           grep -F 'exec node dist/src/main.js' server/docker-entrypoint.sh >/dev/null
@@ -86,7 +104,8 @@ jobs:
       - name: Build application images
         run: docker compose --env-file .env.example -f compose.yml build backend frontend
 
-      - name: Verify backend runtime payload without network
+      - name: Start production Compose and wait for real readiness
+        shell: bash
         run: |
           docker run --rm --network none \
             -e DATABASE_PASSWORD=ci-runtime-smoke-password \

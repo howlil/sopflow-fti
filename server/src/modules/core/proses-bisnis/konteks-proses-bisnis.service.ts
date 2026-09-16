@@ -22,6 +22,11 @@ const prosesBisnisInclude = {
 export class ProsesBisnisContextService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Semua Proses Bisnis tempat pengguna mempunyai tanggung jawab aktif, baik
+   * sebagai Penanggung Jawab maupun Anggota. Gunakan ini untuk navigasi/konteks
+   * umum, bukan sebagai authoring authorization.
+   */
   async listForUser(penggunaId: string) {
     const archivedIds = await this.archivedProsesBisnisIds();
     return this.prisma.prosesBisnis.findMany({
@@ -41,12 +46,14 @@ export class ProsesBisnisContextService {
     const prosesBisnis = await this.prisma.prosesBisnis.findFirst({
       where: {
         prosesBisnisId,
-        OR: [{ penanggungJawabId: penggunaId }, { anggota: { some: { penggunaId } } }],
+        anggota: { some: { penggunaId } },
       },
       include: prosesBisnisInclude,
     });
     if (prosesBisnis === null) {
-      throw new ForbiddenException('Akses ditolak: pengguna bukan Penanggung Jawab Proses Bisnis atau Anggota Proses Bisnis');
+      throw new ForbiddenException(
+        'Akses ditolak: hanya Anggota Proses Bisnis/Penyusun SOP yang dapat membuat atau mengedit SOP',
+      );
     }
     return prosesBisnis;
   }
