@@ -94,7 +94,7 @@ async function run(): Promise<void> {
         OR
         (r.decision = 'ACCEPT'
           AND r.previousStatus = 'PROCESS_REVIEW'
-          AND r.nextStatus = 'FINAL_APPROVAL')
+          AND r.nextStatus IN ('TTE_PENDING', 'FINAL_APPROVAL'))
       )
       OR NOT EXISTS (
         SELECT 1
@@ -120,7 +120,9 @@ async function run(): Promise<void> {
           AND a.authorityKey = CONCAT('HEAD_OF_DEPARTMENT:', a.departmentId))
       )
     `),
-    invalidFinalApproval: await count(`
+    // ProcessFinalApproval is historical evidence only. Keep validating old rows while
+    // the active workflow goes directly from ProcessReview ACCEPT to TTE_PENDING.
+    invalidHistoricalFinalApproval: await count(`
       SELECT COUNT(*) AS count
       FROM ProcessFinalApproval fa
       WHERE fa.processReviewId IS NULL

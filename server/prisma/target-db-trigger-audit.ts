@@ -54,6 +54,7 @@ const expectedTriggerNames = new Set([
   'trg_process_owner_authority_one_scope_update',
   'trg_process_owner_scope_insert',
   'trg_process_owner_scope_update',
+  // Retained while ProcessFinalApproval historical evidence remains in the schema.
   'trg_process_final_approval_contract_insert',
   'trg_process_final_approval_contract_update',
   'trg_dokumen_tte_process_contract_insert',
@@ -65,7 +66,7 @@ const semanticRequirements: Record<string, string[]> = {
     "'REVISION'",
     "'REVISION_REQUIRED'",
     "'ACCEPT'",
-    "'FINAL_APPROVAL'",
+    "'TTE_PENDING'",
     '`ownerId`',
   ],
   trg_process_final_approval_contract_insert: [
