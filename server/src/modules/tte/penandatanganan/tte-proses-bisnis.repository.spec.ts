@@ -111,7 +111,7 @@ describe('ProsesBisnisTteRepository effective-state integrity', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           detailSopId,
-          status: { in: [StatusSOP.TTE_PENDING, StatusSOP.FINAL_APPROVAL] },
+          status: StatusSOP.TTE_PENDING,
         }),
         data: expect.objectContaining({ status: StatusSOP.EFFECTIVE }),
       }),

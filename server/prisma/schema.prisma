@@ -356,7 +356,6 @@ enum StatusSOP {
   DRAFT
   PROCESS_REVIEW
   REVISION_REQUIRED
-  FINAL_APPROVAL
   TTE_PENDING
   EFFECTIVE
   SUPERSEDED
@@ -426,8 +425,8 @@ model OverridePanahDiagramSOP {
   startY           Float
   endX             Float
   endY             Float
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   konfigurasiDiagram KonfigurasiDiagramSOP       @relation(fields: [detailSopId, jenis], references: [detailSopId, jenis], onDelete: Cascade)
   dariLangkah        LangkahSOP                  @relation("OverridePanahDariLangkah", fields: [dariLangkahSopId], references: [langkahSopId], onDelete: Cascade)
@@ -469,7 +468,7 @@ model OverrideLabelDiagramSOP {
 }
 
 /// =========================
-/// PEJABAT BERWENANG & PERSETUJUAN AKHIR
+/// PEJABAT BERWENANG
 /// =========================
 enum PejabatBerwenang {
   DEAN
@@ -497,26 +496,6 @@ model PenugasanPejabatBerwenang {
   @@index([holderId], map: "OrganizationalAuthorityAssignment_holderId_idx")
 
   @@map("OrganizationalAuthorityAssignment")
-}
-
-/// Legacy audit evidence retained for historical rows. New workflow execution
-/// does not create or require this record; accepted Process Review moves directly
-/// to contextual TTE.
-model PersetujuanAkhirSOP {
-  detailSopId     String                  @id @db.Char(36)
-  prosesBisnisId       String                  @db.Char(36) @map("processId")
-  approvedById    String                  @db.Char(36)
-  pemeriksaanProsesBisnisId String?                 @db.Char(36) @map("processReviewId")
-  authority       PejabatBerwenang
-  kunciPejabatBerwenang    String                  @db.VarChar(64) @map("authorityKey")
-  approvedAt      DateTime                @default(now())
-
-  @@index([prosesBisnisId, approvedAt], map: "ProcessFinalApproval_processId_approvedAt_idx")
-  @@index([approvedById, approvedAt], map: "ProcessFinalApproval_approvedById_approvedAt_idx")
-  @@index([kunciPejabatBerwenang], map: "ProcessFinalApproval_authorityKey_idx")
-  @@index([pemeriksaanProsesBisnisId], map: "ProcessFinalApproval_processReviewId_idx")
-
-  @@map("ProcessFinalApproval")
 }
 
 /// =========================
@@ -606,7 +585,6 @@ model PaketPemeriksaanProsesBisnisItem {
 /// Kept separate from reminder delivery state so notification history remains append-only.
 enum JenisNotifikasiProsesBisnis {
   PROCESS_OWNER_REVIEW_REQUESTED
-  FINAL_APPROVAL_REQUESTED
   TTE_REQUESTED
   PROCESS_REVISION_REQUESTED
   PROCESS_SOP_EFFECTIVE

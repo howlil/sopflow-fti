@@ -91,9 +91,26 @@ type LowerCaseTableNamesRow = {
   lowerCaseTableNames: number | string | bigint;
 };
 
-const baseline = readFileSync(
-  join(__dirname, 'migrations/0_fti_native_baseline/migration.sql'),
-  'utf8',
+const migration = (name: string): string =>
+  readFileSync(join(__dirname, `migrations/${name}/migration.sql`), 'utf8');
+
+const baseline = migration('0_fti_native_baseline');
+const batchMigration = migration('7_bulk_process_review_batches');
+
+const removedTables = new Set([
+  'LogEditSopDomainField',
+  'LogEditSOP',
+  'ProcessReminder',
+  'ProcessAudit',
+  'PelaksanaAuditAttribution',
+  'ProcessFinalApproval',
+]);
+
+const targetStatusEnum = normalizeType(
+  "ENUM('DRAFT','PROCESS_REVIEW','REVISION_REQUIRED','TTE_PENDING','EFFECTIVE','SUPERSEDED','REVOKED')",
+);
+const targetNotificationEnum = normalizeType(
+  "ENUM('PROCESS_OWNER_REVIEW_REQUESTED','TTE_REQUESTED','PROCESS_REVISION_REQUESTED','PROCESS_SOP_EFFECTIVE','PROCESS_SOP_REVOKED')",
 );
 
 function normalizeType(value: string): string {
@@ -132,7 +149,7 @@ function quotedNames(value: string): string[] {
   return [...value.matchAll(/`([^`]+)`/g)].map((match) => match[1] as string);
 }
 
-function parseExpectedPhysicalContract(): {
+function parsePhysicalContract(sql: string): {
   columns: ExpectedColumn[];
   indexes: ExpectedIndex[];
   checks: ExpectedCheck[];
@@ -142,7 +159,7 @@ function parseExpectedPhysicalContract(): {
   const checks: ExpectedCheck[] = [];
   const createTable = /CREATE TABLE `([^`]+)` \(\n([\s\S]*?)\n\) DEFAULT CHARACTER SET/g;
 
-  for (const match of baseline.matchAll(createTable)) {
+  for (const match of sql.matchAll(createTable)) {
     const table = match[1];
     const body = match[2];
     if (!table || body === undefined) continue;
@@ -158,7 +175,7 @@ function parseExpectedPhysicalContract(): {
         if (!column || !definition) continue;
         const nullMatch = definition.match(/\s+(NOT NULL|NULL)(?:\s|$)/);
         if (!nullMatch || nullMatch.index === undefined) {
-          throw new Error(`Tidak dapat parse nullability baseline ${table}.${column}: ${line}`);
+          throw new Error(`Tidak dapat parse nullability migration ${table}.${column}: ${line}`);
         }
         const type = definition.slice(0, nullMatch.index).trim();
         const nullable = nullMatch[1] === 'NULL';
@@ -219,10 +236,10 @@ function parseExpectedPhysicalContract(): {
   return { columns, indexes, checks };
 }
 
-function parseExpectedForeignKeys(): ExpectedForeignKey[] {
+function parseForeignKeys(sql: string): ExpectedForeignKey[] {
   const result: ExpectedForeignKey[] = [];
-  const pattern = /ALTER TABLE `([^`]+)` ADD CONSTRAINT `([^`]+)` FOREIGN KEY \(([^)]+)\) REFERENCES `([^`]+)`\(([^)]+)\) ON DELETE (CASCADE|RESTRICT|SET NULL|NO ACTION) ON UPDATE (CASCADE|RESTRICT|SET NULL|NO ACTION);/g;
-  for (const match of baseline.matchAll(pattern)) {
+  const pattern = /ALTER TABLE `([^`]+)`\s+ADD CONSTRAINT `([^`]+)`\s+FOREIGN KEY \(([^)]+)\) REFERENCES `([^`]+)`\(([^)]+)\) ON DELETE (CASCADE|RESTRICT|SET NULL|NO ACTION) ON UPDATE (CASCADE|RESTRICT|SET NULL|NO ACTION);/g;
+  for (const match of sql.matchAll(pattern)) {
     const [, table, name, columns, referencedTable, referencedColumns, deleteRule, updateRule] = match;
     if (!table || !name || !columns || !referencedTable || !referencedColumns || !deleteRule || !updateRule) continue;
     result.push({
@@ -235,12 +252,78 @@ function parseExpectedForeignKeys(): ExpectedForeignKey[] {
       updateRule,
     });
   }
-  return result.sort((a, b) => a.name.localeCompare(b.name));
+  return result;
+}
+
+function buildExpectedContract(): {
+  columns: ExpectedColumn[];
+  indexes: ExpectedIndex[];
+  checks: ExpectedCheck[];
+  foreignKeys: ExpectedForeignKey[];
+} {
+  const baselineContract = parsePhysicalContract(baseline);
+  const batchContract = parsePhysicalContract(batchMigration);
+
+  const columns = [...baselineContract.columns, ...batchContract.columns]
+    .filter((column) => !removedTables.has(column.table))
+    .map((column): ExpectedColumn => {
+      if (column.table === 'SOP' && column.column === 'processId') {
+        return { ...column, nullable: false };
+      }
+      if (column.table === 'DetailSOP' && column.column === 'status') {
+        return { ...column, type: targetStatusEnum };
+      }
+      if (
+        column.table === 'ProcessReview' &&
+        (column.column === 'previousStatus' || column.column === 'nextStatus')
+      ) {
+        return { ...column, type: targetStatusEnum };
+      }
+      if (column.table === 'ProcessNotification' && column.column === 'kind') {
+        return { ...column, type: targetNotificationEnum };
+      }
+      return column;
+    });
+
+  const indexes = [...baselineContract.indexes, ...batchContract.indexes]
+    .filter((index) => !removedTables.has(index.table))
+    .filter(
+      (index) =>
+        !(
+          index.table === 'ProcessReviewBatchItem' &&
+          index.name === 'ProcessReviewBatchItem_detailSopId_key'
+        ),
+    );
+  indexes.push(
+    {
+      table: 'ProcessReviewBatchItem',
+      name: 'ProcessReviewBatchItem_detail_idx',
+      unique: false,
+      columns: ['detailSopId'],
+    },
+    {
+      table: 'ProcessReviewBatchItem',
+      name: 'ProcessReviewBatchItem_batch_detail_key',
+      unique: true,
+      columns: ['processReviewBatchId', 'detailSopId'],
+    },
+  );
+
+  const checks = [...baselineContract.checks, ...batchContract.checks].filter(
+    (check) => !removedTables.has(check.table),
+  );
+
+  const foreignKeys = [...parseForeignKeys(baseline), ...parseForeignKeys(batchMigration)]
+    .filter(
+      (fk) => !removedTables.has(fk.table) && !removedTables.has(fk.referencedTable),
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return { columns, indexes, checks, foreignKeys };
 }
 
 async function run(): Promise<void> {
-  const expected = parseExpectedPhysicalContract();
-  const expectedFks = parseExpectedForeignKeys();
+  const expected = buildExpectedContract();
   const lowerCaseRows = await prisma.$queryRawUnsafe<LowerCaseTableNamesRow[]>(
     'SELECT @@lower_case_table_names AS lowerCaseTableNames',
   );
@@ -303,8 +386,8 @@ async function run(): Promise<void> {
     actualFkGroups.set(row.constraintName, rows);
   }
   const fkProblems: string[] = [];
-  const expectedFkNames = new Set(expectedFks.map((fk) => fk.name));
-  for (const fk of expectedFks) {
+  const expectedFkNames = new Set(expected.foreignKeys.map((fk) => fk.name));
+  for (const fk of expected.foreignKeys) {
     const rows = actualFkGroups.get(fk.name);
     if (!rows) {
       fkProblems.push(`${fk.name}: missing`);
@@ -390,7 +473,7 @@ async function run(): Promise<void> {
   const result = {
     lowerCaseTableNames,
     expectedColumns: expected.columns.length,
-    expectedForeignKeys: expectedFks.length,
+    expectedForeignKeys: expected.foreignKeys.length,
     expectedDeclaredIndexes: expected.indexes.length,
     expectedChecks: expected.checks.length,
     columnProblems,
@@ -406,7 +489,7 @@ async function run(): Promise<void> {
     indexProblems.length ||
     checkProblems.length
   ) {
-    throw new Error('FTI physical database contract tidak identik dengan canonical baseline');
+    throw new Error('FTI physical database contract tidak identik dengan canonical target');
   }
 }
 

@@ -1,7 +1,7 @@
 import { apiClient } from '@/lib/api/api-client'
 import { unwrapApiData } from '@/lib/api/response'
 import { useMutationWithToast } from '@/hooks/useMutationWithToast'
-import { approvalQueueKey, tteQueueKey } from '@/api/persetujuan-akhir-sop'
+import { prosesBisnisLifecycleKey, tteQueueKey } from '@/api/siklus-sop-proses-bisnis'
 import type { ApiSuccessResponse } from '@/types/dto/auth.dto'
 import type {
   TandaTanganiProsesBisnisSopDto,
@@ -37,7 +37,7 @@ export function useTandaTanganiProsesBisnisSop(options?: {
   return useMutationWithToast({
     mutationFn: ({ detailSopId, payload }: TandaTanganiProsesBisnisSopMutationDto) =>
       processTteApi.sign(detailSopId, payload),
-    invalidateKeys: [approvalQueueKey, tteQueueKey],
+    invalidateKeys: [prosesBisnisLifecycleKey, tteQueueKey],
     successMessage: 'SOP berhasil ditandatangani dan berlaku.',
     useDetailedErrors: true,
     errorMessagePrefix: 'Gagal menandatangani SOP',
@@ -53,7 +53,7 @@ export function useTandaTanganiProsesBisnisSop(options?: {
 export function useBulkTandaTanganiProsesBisnisSop() {
   return useMutationWithToast({
     mutationFn: processTteApi.signMany,
-    invalidateKeys: [approvalQueueKey, tteQueueKey],
+    invalidateKeys: [prosesBisnisLifecycleKey, tteQueueKey],
     successMessage: 'Bulk TTE selesai diproses.',
     useDetailedErrors: true,
     errorMessagePrefix: 'Gagal memproses bulk TTE',

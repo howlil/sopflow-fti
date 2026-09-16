@@ -33,9 +33,6 @@ describe('ProsesBisnisSopAuthoringService', () => {
           { sopId: 'sop-target-accessible', prosesBisnisId: 'prosesBisnis-a' },
         ]),
       },
-      persetujuanAkhirSOP: {
-        findMany: jest.fn().mockResolvedValue([]),
-      },
       penugasanPejabatBerwenang: {
         findMany: jest.fn().mockResolvedValue([]),
       },

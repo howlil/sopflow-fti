@@ -79,7 +79,7 @@ async function run(): Promise<void> {
       SELECT COUNT(*) AS count
       FROM DetailSOP d
       JOIN SOP s ON s.sopId = d.sopId
-      WHERE d.status IN ('DRAFT', 'PROCESS_REVIEW', 'REVISION_REQUIRED', 'FINAL_APPROVAL', 'TTE_PENDING')
+      WHERE d.status IN ('DRAFT', 'PROCESS_REVIEW', 'REVISION_REQUIRED', 'TTE_PENDING')
         AND s.processId IS NULL
     `),
     invalidProcessReview: await count(`
@@ -94,7 +94,7 @@ async function run(): Promise<void> {
         OR
         (r.decision = 'ACCEPT'
           AND r.previousStatus = 'PROCESS_REVIEW'
-          AND r.nextStatus IN ('TTE_PENDING', 'FINAL_APPROVAL'))
+          AND r.nextStatus = 'TTE_PENDING')
       )
       OR NOT EXISTS (
         SELECT 1
@@ -119,44 +119,6 @@ async function run(): Promise<void> {
           AND a.departmentId IS NOT NULL
           AND a.authorityKey = CONCAT('HEAD_OF_DEPARTMENT:', a.departmentId))
       )
-    `),
-    // ProcessFinalApproval is historical evidence only. Keep validating old rows while
-    // the active workflow goes directly from ProcessReview ACCEPT to TTE_PENDING.
-    invalidHistoricalFinalApproval: await count(`
-      SELECT COUNT(*) AS count
-      FROM ProcessFinalApproval fa
-      WHERE fa.processReviewId IS NULL
-         OR NOT EXISTS (
-           SELECT 1
-           FROM ProcessReview r
-           WHERE r.processReviewId = fa.processReviewId
-             AND r.detailSopId = fa.detailSopId
-             AND r.processId = fa.processId
-             AND r.decision = 'ACCEPT'
-             AND r.previousStatus = 'PROCESS_REVIEW'
-             AND r.nextStatus = 'FINAL_APPROVAL'
-         )
-         OR NOT EXISTS (
-           SELECT 1
-           FROM OrganizationalAuthorityAssignment a
-           JOIN Process p ON p.processId = fa.processId
-           WHERE a.authorityKey = fa.authorityKey
-             AND a.authority = fa.authority
-             AND a.holderId = fa.approvedById
-             AND (
-               (p.scope = 'FACULTY'
-                 AND p.departmentId IS NULL
-                 AND fa.authority = 'DEAN'
-                 AND a.departmentId IS NULL
-                 AND a.authorityKey = 'DEAN')
-               OR
-               (p.scope = 'DEPARTMENT'
-                 AND p.departmentId IS NOT NULL
-                 AND fa.authority = 'HEAD_OF_DEPARTMENT'
-                 AND a.departmentId = p.departmentId
-                 AND a.authorityKey = CONCAT('HEAD_OF_DEPARTMENT:', p.departmentId))
-             )
-         )
     `),
     invalidTteProcessOwnership: await count(`
       SELECT COUNT(*) AS count

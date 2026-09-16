@@ -32,7 +32,7 @@
 ## Process review
 
 - `REVISION` review evidence must transition `PROCESS_REVIEW -> REVISION_REQUIRED` and include a non-empty note.
-- `ACCEPT` review evidence must transition `PROCESS_REVIEW -> TTE_PENDING`; `FINAL_APPROVAL` is retained only as a legacy status for historical rows.
+- `ACCEPT` review evidence must transition `PROCESS_REVIEW -> TTE_PENDING`.
 - Review evidence must refer to the same `DetailSOP`, SOP, and Process ownership chain.
 - `reviewedById` must be the owner of that Process.
 - These rules are enforced by database triggers on insert and update, not only by service validation.
@@ -43,10 +43,9 @@
 - `HEAD_OF_DEPARTMENT` assignment requires a Department and uses `authorityKey = HEAD_OF_DEPARTMENT:<departmentId>`.
 - The canonical authority key is unique: exactly one current holder exists for the Faculty entity and for each Department entity.
 - Organizational authority holders must be workflow `USER` identities.
-- Final approval must reference an `ACCEPT` Process review for the same `detailSopId` and `processId`.
-- `approvedById`, `authority`, and `authorityKey` must resolve to the holder of the organizational authority assignment for that Process scope.
 - Faculty signing authority is Dean. Department signing authority is that Department Head.
-- Database triggers enforce these cross-table relationships on insert and update.
+- TTE authority is resolved directly from the Process scope and current organizational authority assignment.
+- `FINAL_APPROVAL` and `ProcessFinalApproval` are not part of the target schema.
 
 ## TTE
 
@@ -54,7 +53,7 @@
 - `DokumenTte.processId` must equal the Process that owns the SOP containing that `DetailSOP`; the database rejects cross-Process TTE documents.
 - Signing history stores contextual `PejabatBerwenang` and signer/certificate evidence.
 - A signed version transitions from `TTE_PENDING` to `EFFECTIVE` atomically with signing evidence in the application transaction.
-- The signer is resolved from the current Process scope and authority assignment; a `ProcessFinalApproval` row is not required for new signing.
+- The signer is resolved from the current Process scope and authority assignment.
 
 ## Catalogs
 
@@ -72,7 +71,8 @@
 - `0_fti_native_baseline` is the canonical schema baseline for a fresh database.
 - `1_fti_native_invariants` installs database invariants that Prisma schema cannot express.
 - `2_fti_workflow_identity_invariants` prevents platform-admin identities from entering workflow relationships through direct writes.
-- `3_require_sop_process_ownership` contracts `SOP.processId` to `NOT NULL` and removes transitional null-ownership triggers.
+- `3_require_sop_process` contracts `SOP.processId` to `NOT NULL` and removes transitional null-ownership triggers.
 - `6_single_process_owner_scope` enforces one active owner scope per account and matching Process ownership through database triggers.
+- `9_remove_final_approval` normalizes legacy final-approval rows into direct TTE state, removes `ProcessFinalApproval`, and contracts the status/notification enums.
 - Existing databases must contain no SOP with null `processId` before migration 3 can apply; the migration fails instead of deleting or inventing ownership.
 - Every migration committed after this baseline must be forward-only and FTI-native.

@@ -9,16 +9,12 @@ import { SopCatalogRepository } from '../catalog/sop-catalog.repository';
 import { projectProsesBisnisSopLifecycle } from './sop-proses-bisnis-siklus.projection';
 
 @Injectable()
-export class PersetujuanAkhirSOPService {
+export class ProsesBisnisSopLifecycleService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly authorityService: PejabatBerwenangService,
     private readonly sopCatalogRepository: SopCatalogRepository,
   ) {}
-
-  async listForCurrentApprover(user: JwtAccessPayload) {
-    return this.listLifecycleForCurrentAuthority(user);
-  }
 
   async listLifecycleForCurrentAuthority(user: JwtAccessPayload) {
     const prosesBisnis = await this.listScopedProcesses(user.sub);
@@ -49,9 +45,7 @@ export class PersetujuanAkhirSOPService {
       const authority = authorityByProcess.get(process.prosesBisnisId) ?? null;
       const siklus = projectProsesBisnisSopLifecycle({
         status: detail.status,
-        approvalExists: false,
         currentUserId: user.sub,
-        detailSopId: detail.detailSopId,
         prosesBisnis: {
           lingkup: process.lingkup,
           penanggungJawabId: process.penanggungJawabId,
@@ -100,7 +94,7 @@ export class PersetujuanAkhirSOPService {
     const groups = await this.listLifecycleForCurrentAuthority(user);
     const pending = groups.flatMap((group) =>
       group.sops
-        .filter((row) => row.status === StatusSOP.TTE_PENDING || row.status === StatusSOP.FINAL_APPROVAL)
+        .filter((row) => row.status === StatusSOP.TTE_PENDING)
         .map((row) => ({ ...row, prosesBisnisId: group.prosesBisnisId, namaProsesBisnis: group.namaProsesBisnis })),
     );
     const processIds = groups.map((group) => group.prosesBisnisId);
@@ -172,7 +166,7 @@ export class PersetujuanAkhirSOPService {
     });
   }
 
-  private async resolveAuthorities(prosesBisnis: Awaited<ReturnType<PersetujuanAkhirSOPService['listScopedProcesses']>>) {
+  private async resolveAuthorities(prosesBisnis: Awaited<ReturnType<ProsesBisnisSopLifecycleService['listScopedProcesses']>>) {
     const keys = prosesBisnis.map((process) =>
       process.lingkup === LingkupOrganisasi.FACULTY
         ? 'DEAN'
@@ -246,7 +240,7 @@ export class PersetujuanAkhirSOPService {
       throw new NotFoundException('DetailSOP terbaru tidak ditemukan');
     }
     if (latest.detailSopId !== resolved.detailSopId) {
-      throw new ConflictException('Pengesahan hanya dapat diberikan pada versi SOP terbaru');
+      throw new ConflictException('TTE hanya dapat dilakukan pada versi SOP terbaru');
     }
     return { detailSopId: resolved.detailSopId, prosesBisnisId: resolved.prosesBisnisId };
   }

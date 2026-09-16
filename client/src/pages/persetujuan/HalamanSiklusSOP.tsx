@@ -1,6 +1,6 @@
 import { Eye, FileSignature, Workflow } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
-import { useProsesBisnisLifecycle } from '@/api/persetujuan-akhir-sop'
+import { useProsesBisnisLifecycle } from '@/api/siklus-sop-proses-bisnis'
 import { useMyOrganizationalAuthorities } from '@/api/pejabat-berwenang'
 import { ExpandableGroupedTable } from '@/components/data/expandable-grouped-table'
 import { DataSurface } from '@/components/data/data-surface'
@@ -16,7 +16,7 @@ import { ROUTES } from '@/utils/constants'
 function statusVariant(status: string): 'default' | 'success' | 'warning' | 'destructive' | 'secondary' {
   if (status === 'EFFECTIVE') return 'success'
   if (status === 'REVOKED') return 'destructive'
-  if (status === 'TTE_PENDING' || status === 'FINAL_APPROVAL') return 'warning'
+  if (status === 'TTE_PENDING') return 'warning'
   return 'secondary'
 }
 
@@ -95,7 +95,7 @@ function renderSopRows(group: ProsesBisnisLifecycleGroupDto) {
   )
 }
 
-export function HalamanPersetujuanAkhirSOP() {
+export function HalamanSiklusSOP() {
   const lifecycle = useProsesBisnisLifecycle()
   const { data: authorities = [] } = useMyOrganizationalAuthorities()
   const authorityCount = authorities.length

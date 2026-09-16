@@ -11,15 +11,15 @@ import type { Request } from 'express';
 import { type ApiSuccessResponse, JwtAuthGuard } from '../../../common';
 import { ACCESS_TOKEN_COOKIE_NAME, type JwtAccessPayload } from '../../core/auth/helpers/auth.shared';
 import { PelaksanaSnapshotService } from '../pelaksana/pelaksana-snapshot.service';
-import { PersetujuanAkhirSOPService } from './persetujuan-akhir-sop.service';
+import { ProsesBisnisSopLifecycleService } from './siklus-sop-proses-bisnis.service';
 
 @ApiTags('Proses Bisnis Siklus SOP')
 @ApiCookieAuth(ACCESS_TOKEN_COOKIE_NAME)
 @Controller('persetujuan-proses-bisnis')
 @UseGuards(JwtAuthGuard)
-export class PersetujuanAkhirSOPController {
+export class ProsesBisnisSopLifecycleController {
   constructor(
-    private readonly service: PersetujuanAkhirSOPService,
+    private readonly service: ProsesBisnisSopLifecycleService,
     private readonly pelaksanaSnapshotService: PelaksanaSnapshotService,
   ) {}
 
@@ -59,5 +59,4 @@ export class PersetujuanAkhirSOPController {
       },
     };
   }
-
 }

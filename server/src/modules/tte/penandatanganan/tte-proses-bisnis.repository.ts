@@ -23,7 +23,7 @@ type ProsesBisnisTteContextFailure = {
     | 'NOT_FOUND'
     | 'NOT_LATEST'
     | 'NOT_APPROVED'
-    | 'APPROVAL_CONTEXT_DRIFT'
+    | 'AUTHORITY_CONTEXT_DRIFT'
     | 'BAD_STATUS';
   readonly status?: StatusSOP;
 };
@@ -208,7 +208,7 @@ export class ProsesBisnisTteRepository {
         const promoted = await tx.detailSOP.updateMany({
           where: {
             detailSopId: context.detailSopId,
-            status: { in: [StatusSOP.TTE_PENDING, StatusSOP.FINAL_APPROVAL] },
+            status: StatusSOP.TTE_PENDING,
           },
           data: {
             status: StatusSOP.EFFECTIVE,
@@ -315,13 +315,13 @@ export class ProsesBisnisTteRepository {
         detailSopId: detail.detailSopId,
         prosesBisnisId,
         decision: 'ACCEPT',
-        nextStatus: { in: [StatusSOP.TTE_PENDING, StatusSOP.FINAL_APPROVAL] },
+        nextStatus: StatusSOP.TTE_PENDING,
       },
       orderBy: { createdAt: 'desc' },
       select: { pemeriksaanProsesBisnisId: true },
     });
     if (acceptedReview === null) return { error: 'NOT_APPROVED' as const };
-    if (detail.status !== StatusSOP.TTE_PENDING && detail.status !== StatusSOP.FINAL_APPROVAL) {
+    if (detail.status !== StatusSOP.TTE_PENDING) {
       return { error: 'BAD_STATUS' as const, status: detail.status };
     }
 
@@ -333,7 +333,7 @@ export class ProsesBisnisTteRepository {
         : detail.sop.prosesBisnis.departemenId === null
           ? null
           : `HEAD_OF_DEPARTMENT:${detail.sop.prosesBisnis.departemenId}`;
-    if (kunciPejabatBerwenang === null) return { error: 'APPROVAL_CONTEXT_DRIFT' as const };
+    if (kunciPejabatBerwenang === null) return { error: 'AUTHORITY_CONTEXT_DRIFT' as const };
     const assignment = await tx.penugasanPejabatBerwenang.findUnique({
       where: { kunciPejabatBerwenang },
       select: { authority: true, departemenId: true, holderId: true },
@@ -342,7 +342,7 @@ export class ProsesBisnisTteRepository {
       assignment === null ||
       assignment.authority !== authority ||
       assignment.departemenId !== detail.sop.prosesBisnis.departemenId
-    ) return { error: 'APPROVAL_CONTEXT_DRIFT' as const };
+    ) return { error: 'AUTHORITY_CONTEXT_DRIFT' as const };
 
     return {
       ok: true as const,

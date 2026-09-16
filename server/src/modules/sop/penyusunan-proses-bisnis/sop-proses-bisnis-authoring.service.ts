@@ -35,7 +35,6 @@ type ProsesBisnisAwareSopRow = SopDaftarRowDto & {
   siklus: ProsesBisnisSopLifecycleProjection;
 };
 
-type FinalApprovalReference = { detailSopId: string };
 type AuthorityAssignmentReference = {
   kunciPejabatBerwenang: string;
   authority: PejabatBerwenang;
@@ -63,7 +62,9 @@ export class ProsesBisnisSopAuthoringService {
       this.sopCatalogRepository.findDaftarAll(filters),
     ]);
 
-    const prosesBisnisById = new Map(prosesBisnisSaya.map((prosesBisnis) => [prosesBisnis.prosesBisnisId, prosesBisnis]));
+    const prosesBisnisById = new Map(
+      prosesBisnisSaya.map((prosesBisnis) => [prosesBisnis.prosesBisnisId, prosesBisnis]),
+    );
     const prosesBisnisBySop = new Map(
       allNativeSops.map((sop) => [sop.sopId, sop.prosesBisnisId]),
     );
@@ -83,9 +84,6 @@ export class ProsesBisnisSopAuthoringService {
 
     if (accessibleRows.length === 0) return [];
 
-    const detailIds = accessibleRows
-      .map(({ row }) => row.detail?.detailSopId)
-      .filter((detailId): detailId is string => detailId !== undefined);
     const authorityKeys = [
       ...new Set(
         accessibleRows.flatMap(({ prosesBisnisId }) => {
@@ -101,22 +99,18 @@ export class ProsesBisnisSopAuthoringService {
         }),
       ),
     ];
-    const [approvals, assignments]: [FinalApprovalReference[], AuthorityAssignmentReference[]] =
-      await Promise.all([
-        detailIds.length === 0
-          ? []
-          : this.prisma.persetujuanAkhirSOP.findMany({
-              where: { detailSopId: { in: detailIds } },
-              select: { detailSopId: true },
-            }),
-        authorityKeys.length === 0
-          ? []
-          : this.prisma.penugasanPejabatBerwenang.findMany({
-              where: { kunciPejabatBerwenang: { in: authorityKeys } },
-              select: { kunciPejabatBerwenang: true, authority: true, departemenId: true, holderId: true },
-            }),
-      ]);
-    const approvalIds = new Set(approvals.map((approval) => approval.detailSopId));
+    const assignments: AuthorityAssignmentReference[] =
+      authorityKeys.length === 0
+        ? []
+        : await this.prisma.penugasanPejabatBerwenang.findMany({
+            where: { kunciPejabatBerwenang: { in: authorityKeys } },
+            select: {
+              kunciPejabatBerwenang: true,
+              authority: true,
+              departemenId: true,
+              holderId: true,
+            },
+          });
     const assignmentByKey = new Map<string, AuthorityAssignmentReference>(
       assignments.map((assignment): [string, AuthorityAssignmentReference] => [
         assignment.kunciPejabatBerwenang,
@@ -133,50 +127,52 @@ export class ProsesBisnisSopAuthoringService {
           });
     const holderById = new Map(holders.map((holder) => [holder.penggunaId, holder]));
 
-    const additionalTargetRows: ProsesBisnisAwareSopRow[] = accessibleRows.map(({ row, prosesBisnisId }) => {
-      const prosesBisnis = prosesBisnisById.get(prosesBisnisId);
-      if (prosesBisnis === undefined) {
-        throw new Error('Proses Bisnis disappeared while projecting Proses Bisnis SOP siklus');
-      }
-      const mapped = mapDaftarRow(row);
-      const detailSopId = mapped.detailSopId ?? mapped.id;
-      const kunciPejabatBerwenang =
-        prosesBisnis.lingkup === LingkupOrganisasi.FACULTY
-          ? 'DEAN'
-          : prosesBisnis.departemenId === null
-            ? null
-            : `HEAD_OF_DEPARTMENT:${prosesBisnis.departemenId}`;
-      const assignment = kunciPejabatBerwenang === null ? undefined : assignmentByKey.get(kunciPejabatBerwenang);
-      const expectedAuthority =
-        prosesBisnis.lingkup === LingkupOrganisasi.FACULTY
-          ? PejabatBerwenang.DEAN
-          : PejabatBerwenang.HEAD_OF_DEPARTMENT;
-      const isConsistentAuthority =
-        assignment !== undefined &&
-        assignment.authority === expectedAuthority &&
-        assignment.departemenId === prosesBisnis.departemenId;
-      const holder = assignment === undefined ? undefined : holderById.get(assignment.holderId);
-      return {
-        ...mapped,
-        prosesBisnisId: prosesBisnis.prosesBisnisId,
-        namaProsesBisnis: prosesBisnis.nama,
-        siklus: projectProsesBisnisSopLifecycle({
-          status: mapped.status,
-          approvalExists: approvalIds.has(detailSopId),
-          currentUserId: user.sub,
-          detailSopId,
-          prosesBisnis: {
-            lingkup: prosesBisnis.lingkup,
-            penanggungJawabId: prosesBisnis.penanggungJawabId,
-            namaPenanggungJawab: prosesBisnis.penanggungJawab?.nama ?? null,
-            namaDepartemen: prosesBisnis.departemen?.nama ?? null,
-          },
-          authority: !isConsistentAuthority
-            ? null
-            : { holderId: assignment.holderId, holderName: holder?.nama ?? null },
-        }),
-      };
-    });
+    const additionalTargetRows: ProsesBisnisAwareSopRow[] = accessibleRows.map(
+      ({ row, prosesBisnisId }) => {
+        const prosesBisnis = prosesBisnisById.get(prosesBisnisId);
+        if (prosesBisnis === undefined) {
+          throw new Error('Proses Bisnis disappeared while projecting Proses Bisnis SOP siklus');
+        }
+        const mapped = mapDaftarRow(row);
+        const kunciPejabatBerwenang =
+          prosesBisnis.lingkup === LingkupOrganisasi.FACULTY
+            ? 'DEAN'
+            : prosesBisnis.departemenId === null
+              ? null
+              : `HEAD_OF_DEPARTMENT:${prosesBisnis.departemenId}`;
+        const assignment =
+          kunciPejabatBerwenang === null
+            ? undefined
+            : assignmentByKey.get(kunciPejabatBerwenang);
+        const expectedAuthority =
+          prosesBisnis.lingkup === LingkupOrganisasi.FACULTY
+            ? PejabatBerwenang.DEAN
+            : PejabatBerwenang.HEAD_OF_DEPARTMENT;
+        const isConsistentAuthority =
+          assignment !== undefined &&
+          assignment.authority === expectedAuthority &&
+          assignment.departemenId === prosesBisnis.departemenId;
+        const holder = assignment === undefined ? undefined : holderById.get(assignment.holderId);
+        return {
+          ...mapped,
+          prosesBisnisId: prosesBisnis.prosesBisnisId,
+          namaProsesBisnis: prosesBisnis.nama,
+          siklus: projectProsesBisnisSopLifecycle({
+            status: mapped.status,
+            currentUserId: user.sub,
+            prosesBisnis: {
+              lingkup: prosesBisnis.lingkup,
+              penanggungJawabId: prosesBisnis.penanggungJawabId,
+              namaPenanggungJawab: prosesBisnis.penanggungJawab?.nama ?? null,
+              namaDepartemen: prosesBisnis.departemen?.nama ?? null,
+            },
+            authority: !isConsistentAuthority
+              ? null
+              : { holderId: assignment.holderId, holderName: holder?.nama ?? null },
+          }),
+        };
+      },
+    );
 
     return additionalTargetRows.sort((a, b) => {
       const aTime = a.terakhirDiperbarui ?? '';
@@ -186,7 +182,10 @@ export class ProsesBisnisSopAuthoringService {
   }
 
   async create(user: JwtAccessPayload, dto: CreateProsesBisnisSopDto): Promise<ProsesBisnisAwareSopRow> {
-    const prosesBisnis = await this.konteksProsesBisnisService.assertCanInitiateSop(user.sub, dto.prosesBisnisId);
+    const prosesBisnis = await this.konteksProsesBisnisService.assertCanInitiateSop(
+      user.sub,
+      dto.prosesBisnisId,
+    );
 
     const namaLembaga = dto.namaLembaga?.trim() ?? '';
     let sopId: string;
@@ -230,9 +229,7 @@ export class ProsesBisnisSopAuthoringService {
       namaProsesBisnis: prosesBisnis.nama,
       siklus: projectProsesBisnisSopLifecycle({
         status: row.detail?.status ?? StatusSOP.DRAFT,
-        approvalExists: false,
         currentUserId: user.sub,
-        detailSopId: row.detail?.detailSopId ?? row.sopId,
         prosesBisnis: {
           lingkup: prosesBisnis.lingkup,
           penanggungJawabId: prosesBisnis.penanggungJawabId,
@@ -249,7 +246,10 @@ export class ProsesBisnisSopAuthoringService {
     detailOrSopId: string,
   ): Promise<PenyusunWorkbenchDataDto> {
     const context = await this.resolveProsesBisnisContext(detailOrSopId);
-    const prosesBisnis = await this.konteksProsesBisnisService.assertCanView(user.sub, context.prosesBisnisId);
+    const prosesBisnis = await this.konteksProsesBisnisService.assertCanView(
+      user.sub,
+      context.prosesBisnisId,
+    );
     const workbench = await this.sopWorkbenchReader.getForDetail(context.resolved.detailSopId);
     return this.withProsesBisnisContext(
       await this.withStatusProsesBisnis(user, workbench, prosesBisnis),
@@ -264,7 +264,10 @@ export class ProsesBisnisSopAuthoringService {
     dto: UpdateSopHeaderDto,
   ): Promise<PenyusunWorkbenchDataDto> {
     const context = await this.resolveProsesBisnisContext(detailOrSopId);
-    const prosesBisnis = await this.konteksProsesBisnisService.assertCanAuthor(user.sub, context.prosesBisnisId);
+    const prosesBisnis = await this.konteksProsesBisnisService.assertCanAuthor(
+      user.sub,
+      context.prosesBisnisId,
+    );
     const statusContext = await this.sopCatalogRepository.findLatestDetailStatusContext(
       context.resolved.detailSopId,
     );
@@ -349,12 +352,6 @@ export class ProsesBisnisSopAuthoringService {
     workbench: PenyusunWorkbenchDataDto,
     prosesBisnis: Awaited<ReturnType<ProsesBisnisContextService['assertCanAuthor']>>,
   ): Promise<PenyusunWorkbenchDataDto> {
-    const detailSopId = workbench.detail.id;
-    const approval = await this.prisma.persetujuanAkhirSOP.findFirst({
-      where: { detailSopId },
-      select: { detailSopId: true },
-    });
-
     const kunciPejabatBerwenang =
       prosesBisnis.lingkup === LingkupOrganisasi.FACULTY
         ? 'DEAN'
@@ -393,9 +390,7 @@ export class ProsesBisnisSopAuthoringService {
         prosesBisnis.anggota.some((anggota) => anggota.penggunaId === user.sub),
       siklus: projectProsesBisnisSopLifecycle({
         status: workbench.detail.status,
-        approvalExists: approval !== null,
         currentUserId: user.sub,
-        detailSopId,
         prosesBisnis: {
           lingkup: prosesBisnis.lingkup,
           penanggungJawabId: prosesBisnis.penanggungJawabId,

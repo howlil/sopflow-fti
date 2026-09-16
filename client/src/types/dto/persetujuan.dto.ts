@@ -23,7 +23,7 @@ export interface PejabatBerwenangConfigurationDto extends PenugasanPejabatBerwen
   departemen: { departemenId: string; nama: string } | null
 }
 
-export interface ProsesBisnisApprovalDocumentDto {
+export interface ProsesBisnisTteDocumentDto {
   workbench: PenyusunWorkbenchData
   authority: {
     authority: PejabatBerwenang

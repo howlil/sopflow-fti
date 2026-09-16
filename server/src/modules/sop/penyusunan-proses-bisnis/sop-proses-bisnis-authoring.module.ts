@@ -3,8 +3,8 @@ import { ProsesBisnisModule } from '../../core/proses-bisnis/proses-bisnis.modul
 import { NotifikasiProsesBisnisModule } from '../../notifications/proses-bisnis/notifikasi-proses-bisnis.module';
 import { SopWorkbenchModule } from '../catalog/sop-workbench.module';
 import { PelaksanaModule } from '../pelaksana/pelaksana.module';
-import { PersetujuanAkhirSOPController } from './persetujuan-akhir-sop.controller';
-import { PersetujuanAkhirSOPService } from './persetujuan-akhir-sop.service';
+import { ProsesBisnisSopLifecycleController } from './siklus-sop-proses-bisnis.controller';
+import { ProsesBisnisSopLifecycleService } from './siklus-sop-proses-bisnis.service';
 import { ProsesBisnisOwnerReviewController } from './pemeriksaan-penanggung-jawab-proses-bisnis.controller';
 import { ProsesBisnisOwnerReviewService } from './pemeriksaan-penanggung-jawab-proses-bisnis.service';
 import { ProsesBisnisSopAuthoringController } from './sop-proses-bisnis-authoring.controller';
@@ -18,21 +18,14 @@ import { ProsesBisnisVersionService } from './versi-sop-proses-bisnis.service';
   controllers: [
     ProsesBisnisSopAuthoringController,
     ProsesBisnisOwnerReviewController,
-    PersetujuanAkhirSOPController,
+    ProsesBisnisSopLifecycleController,
     ProsesBisnisSopRevocationController,
   ],
   providers: [
     ProsesBisnisSopAuthoringService,
     ProsesBisnisVersionService,
     ProsesBisnisOwnerReviewService,
-    PersetujuanAkhirSOPService,
-    ProsesBisnisSopRevocationService,
-  ],
-  exports: [
-    ProsesBisnisSopAuthoringService,
-    ProsesBisnisVersionService,
-    ProsesBisnisOwnerReviewService,
-    PersetujuanAkhirSOPService,
+    ProsesBisnisSopLifecycleService,
     ProsesBisnisSopRevocationService,
   ],
 })

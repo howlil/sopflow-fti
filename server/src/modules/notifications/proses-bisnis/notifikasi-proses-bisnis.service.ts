@@ -146,15 +146,6 @@ export class NotifikasiProsesBisnisService {
           body: `SOP pada Proses Bisnis ${input.namaProsesBisnis} telah dikirimkan dan menunggu keputusan Penanggung Jawab Proses Bisnis.`,
           actionHref: '/sop',
         };
-      case JenisNotifikasiProsesBisnis.FINAL_APPROVAL_REQUESTED: {
-        const authority = input.authorityLabel ?? 'kewenangan organisasi';
-        return {
-          title: 'Pengesahan SOP diperlukan',
-          preview: `SOP pada Proses Bisnis ${input.namaProsesBisnis} menunggu pengesahan Anda.`,
-          body: `SOP pada Proses Bisnis ${input.namaProsesBisnis} telah disetujui hasil pemeriksaannya dan menunggu pengesahan oleh ${authority}.`,
-          actionHref: '/persetujuan',
-        };
-      }
       case JenisNotifikasiProsesBisnis.TTE_REQUESTED: {
         const authority = input.authorityLabel ?? 'kewenangan organisasi';
         return {

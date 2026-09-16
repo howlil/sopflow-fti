@@ -4,7 +4,6 @@ export type StatusSOP =
   | "DRAFT"
   | "PROCESS_REVIEW"
   | "REVISION_REQUIRED"
-  | "FINAL_APPROVAL"
   | "TTE_PENDING"
   | "EFFECTIVE"
   | "SUPERSEDED"
