@@ -39,9 +39,7 @@ export interface ProsesBisnisSopLifecycleProjection {
 
 export interface ProsesBisnisSopLifecycleProjectionInput {
   status: string;
-  approvalExists: boolean;
   currentUserId: string;
-  detailSopId: string;
   prosesBisnis: {
     lingkup: LingkupOrganisasi;
     penanggungJawabId: string;
@@ -119,7 +117,7 @@ export function projectProsesBisnisSopLifecycle(
     };
   }
 
-  if (input.status === StatusSOP.FINAL_APPROVAL || input.status === StatusSOP.TTE_PENDING) {
+  if (input.status === StatusSOP.TTE_PENDING) {
     const hasAuthorityHolder = authority?.holderId !== null && authority?.holderId !== undefined;
     const responsibility = currentUserOr(
       input.currentUserId,
