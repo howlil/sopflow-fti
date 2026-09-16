@@ -6,8 +6,6 @@ export const SOP_STATUS_BADGE_COLORS: Record<string, StatusBadgeColors> = {
   DRAFT: { color: 'text-secondary-foreground', bgColor: 'bg-surface-muted' },
   PROCESS_REVIEW: { color: 'text-amber-800', bgColor: 'bg-amber-100' },
   REVISION_REQUIRED: { color: 'text-orange-700', bgColor: 'bg-orange-100' },
-  // Historical compatibility only; active workflow enters TTE_PENDING directly.
-  FINAL_APPROVAL: { color: 'text-violet-800', bgColor: 'bg-violet-100' },
   TTE_PENDING: { color: 'text-violet-800', bgColor: 'bg-violet-100' },
   EFFECTIVE: { color: 'text-emerald-800', bgColor: 'bg-emerald-100' },
   SUPERSEDED: { color: 'text-secondary-foreground', bgColor: 'bg-surface-muted' },
@@ -34,7 +32,6 @@ const SOP_STATUS_FILTER_LABELS: Record<(typeof SOP_STATUS_FILTER_VALUES)[number]
 
 export const SOP_STATUS_LABELS: Record<string, string> = {
   ...SOP_STATUS_FILTER_LABELS,
-  FINAL_APPROVAL: 'Menunggu Tanda Tangan Elektronik',
   SUPERSEDED: 'Digantikan',
 }
 
