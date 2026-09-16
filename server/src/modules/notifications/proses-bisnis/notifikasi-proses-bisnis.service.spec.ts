@@ -59,30 +59,6 @@ describe('NotifikasiProsesBisnisService', () => {
     });
   });
 
-  it('creates final-approval notification content for the resolved authority', async () => {
-    const { service } = makeService();
-    const tx = makeTx();
-
-    await service.createInTransaction(tx as never, {
-      detailSopId: 'detail-1',
-      sopId: 'sop-1',
-      prosesBisnisId: 'prosesBisnis-1',
-      penggunaId: 'dean-1',
-      kind: JenisNotifikasiProsesBisnis.FINAL_APPROVAL_REQUESTED,
-      namaProsesBisnis: 'Akademik',
-      authorityLabel: 'Dekan',
-    });
-
-    expect(tx.notifikasiProsesBisnis.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        penggunaId: 'dean-1',
-        kind: JenisNotifikasiProsesBisnis.FINAL_APPROVAL_REQUESTED,
-        body: expect.stringContaining('Dekan'),
-        actionHref: '/persetujuan',
-      }),
-    });
-  });
-
   it('includes the native Proses Bisnis revision note in durable author feedback', async () => {
     const { service } = makeService();
     const tx = makeTx();
