@@ -16,7 +16,7 @@ import { ROUTES } from '@/utils/constants'
 function statusVariant(status: string): 'default' | 'success' | 'warning' | 'destructive' | 'secondary' {
   if (status === 'EFFECTIVE') return 'success'
   if (status === 'REVOKED') return 'destructive'
-  if (status === 'TTE_PENDING' || status === 'FINAL_APPROVAL') return 'warning'
+  if (status === 'TTE_PENDING') return 'warning'
   return 'secondary'
 }
 
